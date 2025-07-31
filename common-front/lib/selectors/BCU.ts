@@ -9,5 +9,6 @@ export const BcuMeasurements = {
     averageCurrentV: 'BCU/average_current_v',
     averageCurrentW: 'BCU/average_current_w',
     generalState: 'BCU/bcu_general_state',
-    operationalState: 'BCU/bcu_operational_state'
+    operationalState: 'BCU/bcu_operational_state',
+    nestedState: 'BCU/bcu_nested_state'
 };

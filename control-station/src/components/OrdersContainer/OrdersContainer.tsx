@@ -6,8 +6,8 @@ import { useOrders } from "common";
 import { useOrdersStore } from "common";
 
 interface Props {
-    boardFilter?: string[]; // Array de nombres de placas a mostrar
-    boardOrdersFilter?: (boardOrders: BoardOrders[]) => BoardOrders[]; // Función personalizada para filtrar BoardOrders
+    boardFilter?: string[];
+    boardOrdersFilter?: (boardOrders: BoardOrders[]) => BoardOrders[];
 }
 
 export const OrdersContainer = ({ boardFilter, boardOrdersFilter }: Props) => {

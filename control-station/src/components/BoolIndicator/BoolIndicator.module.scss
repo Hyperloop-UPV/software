@@ -4,12 +4,12 @@
     display: flex;
     align-items: center;
     width: 100%;
-    min-height: clamp(2rem, 3vw, 2.5rem);
+    min-height: clamp(1.5rem, 2.5vw, 2rem);
     margin-left: auto;
     padding: 0;
     box-sizing: border-box;
-    margin-bottom: clamp(0.3rem, 1vw, 0.6rem); 
-    border-radius: 0.5rem;
+    margin-bottom: clamp(0.2rem, 0.8vw, 0.4rem); 
+    border-radius: 0.4rem;
 }
 
 .state_indicator:last-child {
@@ -18,7 +18,7 @@
 
 .title {
     font-family: Roboto;
-    font-size: 1.1rem;
+    font-size: clamp(0.75rem, 2vw, 1rem);
     font-style: normal;
     text-align: center;
     font-weight: 400;
@@ -33,8 +33,8 @@
 
 .icon {
     opacity: 0.6;
-    width: clamp(0.9rem, 2vw, 1.1rem);
-    height: clamp(0.9rem, 2vw, 1.1rem);
+    width: clamp(0.7rem, 1.5vw, 0.9rem);
+    height: clamp(0.7rem, 1.5vw, 0.9rem);
     display: flex;
     align-items: center;
     justify-content: center;

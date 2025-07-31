@@ -22,7 +22,7 @@ export const GaugeTag = memo(
         const lostConnection = useContext(LostConnectionContext);
         const percentage = lostConnection
             ? 100
-            : getPercentageFromRange(value, min, max);
+            : getPercentageFromRange(Math.abs(value), min, max);
 
         useGlobalTicker(() => {
             setValue(getUpdate());
@@ -41,7 +41,6 @@ export const GaugeTag = memo(
                     name={name}
                     units={units}
                     value={value}
-                    min={min}
                     max={max}
                     lostConnection={lostConnection}
                 ></TextData>

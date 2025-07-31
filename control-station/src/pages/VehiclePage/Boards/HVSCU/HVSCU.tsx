@@ -1,6 +1,6 @@
 import { Window } from 'components/Window/Window';
 import styles from './HVSCU.module.scss';
-import { ImdIndicator } from 'components/ImdIndicator/ImdIndicator';
+import { ImdIndicator } from 'components/BoolIndicator/ImdIndicator';
 import { EnumIndicator } from 'components/EnumIndicator/EnumIndicator';
 import Battery from 'assets/svg/battery-filled.svg'
 import Contactors from 'assets/svg/open-contactors-icon.svg'

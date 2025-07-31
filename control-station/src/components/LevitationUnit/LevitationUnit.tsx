@@ -100,10 +100,10 @@ export const LevitationUnit = ({ unitIndex, kind, imageSide }: Props) => {
                     icon={thunder}
                     getValue={current.getUpdate}
                     units={current.units}
-                    safeRangeMin={current.range[0]!!}
-                    safeRangeMax={current.range[1]!!}
-                    warningRangeMin={current.warningRange[0]!!}
-                    warningRangeMax={current.warningRange[1]!!}
+                    safeRangeMin={-50}
+                    safeRangeMax={50}
+                    warningRangeMin={-60}
+                    warningRangeMax={60}
                 />
                 {/* <BarIndicator
                     icon={thermometerFilled}

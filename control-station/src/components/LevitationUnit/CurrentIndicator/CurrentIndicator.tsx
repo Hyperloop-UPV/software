@@ -26,8 +26,6 @@ export const CurrentIndicator = memo(
     ({
         icon,
         getValue,
-        safeRangeMin,
-        warningRangeMin,
         safeRangeMax,
         warningRangeMax,
         units,
@@ -41,17 +39,17 @@ export const CurrentIndicator = memo(
         const percentage = lostConnection
             ? 100
             : getPercentageFromRange(
-                  valueState,
-                  warningRangeMin,
+                  Math.abs(valueState),
+                  0,
                   warningRangeMax
               );
         const state = lostConnection
             ? 'fault'
             : getStateFromRange(
-                  valueState,
-                  safeRangeMin,
+                  Math.abs(valueState),
+                  0,
                   safeRangeMax,
-                  warningRangeMin,
+                  0,
                   warningRangeMax
               );
 

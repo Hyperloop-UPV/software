@@ -6,7 +6,7 @@ type Props = {
     value: number;
     units: string;
     lostConnection: boolean;
-    min: number;
+    min?: number;
     max: number;
 };
 
@@ -19,7 +19,7 @@ export const TextData = memo(
                     {lostConnection ? '-.--' : value.toFixed(2)}
                 </div>
                 <div className={styles.units}>{units}</div>
-                <div className={styles.min}>{`min: ${min}`}</div>
+                <div className={styles.min}>{min && `min: ${min}`}</div>
                 <div className={styles.max}>{`max: ${max}`}</div>
             </div>
         );

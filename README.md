@@ -6,6 +6,8 @@
 
 Hyperloop UPV's Control Station is a unified software solution for real-time monitoring and commanding of the pod. It combines a back-end (Go) that ingests and interprets sensor data–defined via the JSON-based "ADJ" specifications–and a front-end (Typescript/React) that displays metrics, logs, and diagnostics to operators. With features like packet parsing, logging, and live dashboards, it acts as the central hub to safely interface the pod, making it easier for team members to oversee performance, detect faults, and send precise orders to the vehicle.
 
+<img width="1728" height="997" alt="control_station_mock" src="https://github.com/user-attachments/assets/a77b3411-c466-4100-8277-48d957290a46" />
+
 ## Quick Start
 
 ### For Users

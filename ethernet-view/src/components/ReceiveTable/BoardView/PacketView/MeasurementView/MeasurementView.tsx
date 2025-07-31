@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from './MeasurementView.module.scss';
 import {
     Measurement,
@@ -42,13 +41,12 @@ export const MeasurementView = ({ measurement }: Props) => {
 
     const logChecked = useMeasurementsStore(state => state.measurements[measurement.id]?.log !== false);
 
-    React.useEffect(() => {
-        const handler = (e: any) => {
-            setLog(e.detail);
-        };
-        window.addEventListener('log-all', handler);
-        return () => window.removeEventListener('log-all', handler);
-    }, [setLog]);
+    const showLatest = useMeasurementsStore(state => {
+        const meas = state.measurements[measurement.id];
+        return isNumeric && meas && typeof meas.value === 'object' && 'showLatest' in meas.value 
+            ? meas.value.showLatest 
+            : false;
+    });
 
     return (
         <>
@@ -70,10 +68,10 @@ export const MeasurementView = ({ measurement }: Props) => {
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         <input
                             type="checkbox"
-                            defaultChecked={false}
+                            checked={showLatest}
                             className={styles.show_last}
                             title="Show latest value"
-                            onInput={onLatestValueChange}
+                            onChange={onLatestValueChange}
                         />
                     </span>
                     <span ref={valueRef} className={styles.value}></span>

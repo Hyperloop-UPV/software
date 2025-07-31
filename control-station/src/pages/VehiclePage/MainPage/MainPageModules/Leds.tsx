@@ -1,14 +1,18 @@
 import { HvscuMeasurements, useGlobalTicker, useMeasurementsStore } from "common";
-import { useContext, useState } from "react";
+import { memo, useContext, useState } from "react";
 import { LostConnectionContext } from "services/connections";
 import styles from '../MainPage.module.scss';
 import { useEffect } from 'react';
 
-export const LEDS = () => {
+type Props = {
+    measurement: string
+}
+
+export const LEDS = memo(({ measurement }: Props) => {
     const getNumericMeasurementInfo = useMeasurementsStore((state) => state.getNumericMeasurementInfo);
     const lostConnection = useContext(LostConnectionContext);
     const voltage = getNumericMeasurementInfo(
-        HvscuMeasurements.VoltageReading
+        measurement
     );
 
     const [VoltageValue, setValueState] = useState<number>(0);
@@ -35,4 +39,4 @@ export const LEDS = () => {
     return (
         <div className={styles.leds} style={{ backgroundColor: bgColor }} />
     );
-}
+});

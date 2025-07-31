@@ -62,6 +62,7 @@ export interface MeasurementsStore {
     getMeasurementFallback: (id: MeasurementId) => Measurement;
     clearMeasurements: (board: string) => void;
     setLogAll: (log: boolean) => void;
+    setShowAllLatest: (showLatest: boolean) => void;
     getLogVariables: () => string[];
 }
 
@@ -247,6 +248,20 @@ export const useMeasurementsStore = create<MeasurementsStore>((set, get) => ({
         for (const id in measurementsDraft) {
             const m = measurementsDraft[id];
             m.log = log;
+        }
+        set((state) => ({
+            ...state,
+            measurements: measurementsDraft,
+        }));
+    },
+
+    setShowAllLatest: (showLatest: boolean) => {
+        const measurementsDraft = get().measurements;
+        for (const id in measurementsDraft) {
+            const m = measurementsDraft[id];
+            if (isNumericType(m.type) && typeof m.value === 'object' && 'showLatest' in m.value) {
+                (m.value as NumericValue).showLatest = showLatest;
+            }
         }
         set((state) => ({
             ...state,

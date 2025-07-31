@@ -69,6 +69,10 @@ const enumToColor: { [key: string]: string } = {
     'CLOSED' : '#ACF293',
     'CLOSE' : '#ACF293',
 
+    'OPERATIONAL': '#ACF293',
+    'TESTING' : '#83C0F8',
+    'BOOSTING' : '#07FCC3',
+
     'DISENGAGED' : '#FBD15B',
     'ENGAGED' : '#ACF293',
     'FAULT': "#EF9A87",

@@ -34,8 +34,8 @@
 
 .sectionContainer {
     width: 100%;
-    margin-bottom: 20px;
-    margin-top: 1rem;
+    margin-bottom: 5px;
+    margin-top: 0.2rem;
 }
 
 .sectionTitle {
@@ -66,7 +66,9 @@
     justify-content: space-around;
     align-items: center;
     width: 100%;
-    margin-bottom: 5px; /* Espacio entre filas */
+    margin-bottom: 2px;
+    padding: 3px 0;
+    min-height: 25px;
 }
 
 .statusItem {
@@ -80,18 +82,27 @@
     width: 100%;
 }
 
+.statusItem h3 {
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
 .value {
     color: colors.getThemeColor("text-secondary");
     font-family: "IBM Plex Mono", monospace;
     border: 1.5px solid colors.getThemeColor("border");
     border-radius: 1.2rem;
     font-size: 16px;
-    height: 40px;
+    height: 22px;
     width: 40%;
     margin-left: 5px;
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 0;
+    line-height: 1;
 }
 
 .statusFirstLabel {
@@ -107,6 +118,8 @@
     color: colors.getThemeColor("text-secondary");
     font-family: "IBM Plex Mono", monospace;
     margin-bottom: 10px;
+    padding: 2px 0;
+    height: 20px;
 }
 
 .statusSecondLabel {
@@ -121,14 +134,17 @@
     background-color: colors.getThemeColor("surface");
     color: colors.getThemeColor("text-secondary");
     font-family: "IBM Plex Mono", monospace;
+    padding: 2px 0;
+    height: 20px;
 }
 
 .modulesContainer {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 10px;
+    gap: 3px 15px;
     width: 100%;
-    padding: 0 10px;
+    max-width: 95%;
+    padding: 0 5px;
     justify-items: center;
     margin: 0 auto;
 }

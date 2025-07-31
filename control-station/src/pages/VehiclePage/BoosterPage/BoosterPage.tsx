@@ -27,6 +27,8 @@ import thermometer from "assets/svg/thermometer-field.svg";
 import Contactors from "assets/svg/open-contactors-icon.svg";
 import teamLogo from "assets/svg/team_logo.svg";
 import { BigOrderButton } from "components/BigOrderButton";
+import { LEDS } from "../MainPage/MainPageModules/Leds";
+import { SdcIndicator } from "components/BoolIndicator/SdcIndicator";
 
 interface ModuleData {
   id: number | string;
@@ -93,26 +95,27 @@ export function BoosterPage() {
     >
       <main className={styles.boosterMainContainer}>
         <div className={styles.boosterContainer}>
+          <LEDS measurement={HvscuCabinetMeasurements.BusVoltage}/>
           <Window title="Booster Status">
             <div className={styles.statusIndicators}>
               <BarIndicator
                 name="Total Voltage"
                 icon={battery}
                 getValue={totalSupercapsVoltageInfo.getUpdate}
-                safeRangeMin={totalSupercapsVoltageInfo.range[0]!!}
-                safeRangeMax={totalSupercapsVoltageInfo.range[1]!!}
-                warningRangeMin={totalSupercapsVoltageInfo.warningRange[0]!!}
-                warningRangeMax={totalSupercapsVoltageInfo.warningRange[1]!!}
+                safeRangeMin={0}
+                safeRangeMax={432}
+                warningRangeMin={0}
+                warningRangeMax={432}
                 units={totalSupercapsVoltageInfo.units}
               />
               <BarIndicator
                 name="Current Output"
                 icon={thunder}
                 getValue={currentMeasurementInfo.getUpdate}
-                safeRangeMin={currentMeasurementInfo.range[0]!!}
-                safeRangeMax={currentMeasurementInfo.range[1]!!}
-                warningRangeMin={currentMeasurementInfo.warningRange[0]!!}
-                warningRangeMax={currentMeasurementInfo.warningRange[1]!!}
+                safeRangeMin={0}
+                safeRangeMax={125}
+                warningRangeMin={0}
+                warningRangeMax={125}
                 units={currentMeasurementInfo.units}
               />
             </div>
@@ -128,6 +131,10 @@ export function BoosterPage() {
                 />
               </div>
               <div className={styles.text}>
+                <span className={styles.subtitle}>SDC</span>
+                <SdcIndicator/>
+              </div>
+              <div className={styles.text}>
                 <span className={styles.subtitle}>BCU General State</span>
                 <EnumIndicator
                   measurementId={BcuMeasurements.generalState}
@@ -138,6 +145,13 @@ export function BoosterPage() {
                 <span className={styles.subtitle}>BCU Operational State</span>
                 <EnumIndicator
                   measurementId={BcuMeasurements.operationalState}
+                  icon={teamLogo}
+                />
+              </div>
+              <div className={styles.text}>
+                <span className={styles.subtitle}>BCU Control State</span>
+                <EnumIndicator
+                  measurementId={BcuMeasurements.nestedState}
                   icon={teamLogo}
                 />
               </div>

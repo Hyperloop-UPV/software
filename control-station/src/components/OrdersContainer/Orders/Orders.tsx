@@ -16,7 +16,7 @@ export const Orders = ({ boards }: Props) => {
     return (
         <OrderContext.Provider value={sendOrder}>
             <div className={styles.ordersWrapper}>
-                <div className={styles.stateOrdersToggle}>
+                {/*<div className={styles.stateOrdersToggle}>
                     Always show state orders:{' '}
                     <Button
                         key={alwaysShowStateOrders ? 'true' : 'false'}
@@ -27,7 +27,7 @@ export const Orders = ({ boards }: Props) => {
                             setAlwaysShowStateOrders((prev) => !prev)
                         }
                     />
-                </div>
+                </div>*/}
                 <div className={styles.boardOrderList}>
                     {boards.map((board) => {
                         return (

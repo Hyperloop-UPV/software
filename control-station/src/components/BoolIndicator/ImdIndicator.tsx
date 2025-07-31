@@ -1,7 +1,7 @@
 import { HvscuMeasurements, useGlobalTicker, useMeasurementsStore, usePodDataStore, getPacket } from 'common';
-import styles from './ImdIndicator.module.scss';
+import styles from './BoolIndicator.module.scss';
 import thunderIcon from 'assets/svg/thunder-filled.svg'
-import { memo, useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { LostConnectionContext } from 'services/connections';
 
 export const ImdIndicator = () => {

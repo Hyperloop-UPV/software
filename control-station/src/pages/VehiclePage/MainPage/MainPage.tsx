@@ -1,6 +1,6 @@
 import styles from './MainPage.module.scss';
 import { HVSCU } from '../Boards/HVSCU/HVSCU';
-import { MessagesContainer, VcuMeasurements } from 'common';
+import { HvscuMeasurements, MessagesContainer, VcuMeasurements } from 'common';
 import { Window } from 'components/Window/Window';
 import { emergencyStopOrders, getHardcodedOrders } from '../BatteriesPage/FixedOrders';
 import { BigOrderButton } from 'components/BigOrderButton';
@@ -31,7 +31,7 @@ export const MainPage = () => {
              )}
         >
         <div className={styles.data1_page}>
-            <LEDS/>
+            <LEDS measurement={HvscuMeasurements.VoltageReading}/>
             <PodPosition/>
             <div className={styles.main}>
                 <div className={styles.column}>

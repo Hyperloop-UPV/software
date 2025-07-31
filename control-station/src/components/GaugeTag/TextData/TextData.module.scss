@@ -43,11 +43,13 @@
         font-weight: 300;
         font-size: 11px;
         color: colors.getThemeColor("battery-text");
-        padding-top: 0.5rem;
+        padding-top: 0rem;
     }
     .max {
         font-weight: 300;
         font-size: 11px;
         color: colors.getThemeColor("battery-text");
+        padding-top: 0.5rem;
+        padding-bottom: 1rem;
     }
 }

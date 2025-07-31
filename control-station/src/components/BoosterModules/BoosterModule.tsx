@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import styles from "./BoosterModule.module.scss";
 
-import { useMeasurementsStore, useGlobalTicker } from "common";
+import { useMeasurementsStore, useGlobalTicker, usePodDataStore } from "common";
+import { LostConnectionContext } from "services/connections";
 
 interface CellProps {
   value: number;
@@ -10,6 +11,8 @@ interface CellProps {
 const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
   const minThresholdCellVoltage = 3.73;
   const getNumericMeasurementInfo = useMeasurementsStore((state) => state.getNumericMeasurementInfo);
+  const podData = usePodDataStore((state) => state.podData);
+  const lostConnection = useContext(LostConnectionContext);
   
   // Estados para todos los valores
   const [moduleMinCell, setModuleMinCell] = useState<number>(0);
@@ -18,8 +21,17 @@ const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
   const [moduleMaxTemp, setModuleMaxTemp] = useState<number>(0);
   const [moduleMinTemp, setModuleMinTemp] = useState<number>(0);
   const [cellValues, setCellValues] = useState<number[]>(Array(48).fill(0));
+  const [hasReceivedData, setHasReceivedData] = useState(false);
 
   useGlobalTicker(() => {
+    const boardName = 'HVSCU-Cabinet';
+    const board = podData.boards.find(b => b.name === boardName);
+    const hasReceivedPackets = board?.packets.some(packet => packet.count > 0) || false;
+    
+    if (hasReceivedPackets && !hasReceivedData) {
+      setHasReceivedData(true);
+    }
+    
     // Actualizar valores del módulo
     setModuleMinCell(getNumericMeasurementInfo(`HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_min_cell`)?.getUpdate() ?? 0);
     setModuleMaxCell(getNumericMeasurementInfo(`HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_max_cell`)?.getUpdate() ?? 0);
@@ -36,14 +48,16 @@ const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
     );
   });
 
+  const showDisconnected = lostConnection || !hasReceivedData;
+
   const Cell: React.FC<CellProps> = ({ value }) => {
-    const formattedValue = Math.max(0, Math.min(99.999, value)).toFixed(3);
+    const formattedValue =  Math.max(0, Math.min(99.999, value)).toFixed(3);
     return (
       <div
-        className={`${styles.cell} ${styles.green}`}
-        title={`${value.toFixed(3)} V`}
+        className={`${styles.cell} ${showDisconnected ? styles.disconnected : styles.green}`}
+        title={showDisconnected ? "DISCONNECTED" : `${value.toFixed(3)} V`}
       >
-        <span className={styles.cellText}>{formattedValue}V</span>
+        <span className={styles.cellText}>{formattedValue}{showDisconnected ? "" : "V"}</span>
       </div>
     );
   };

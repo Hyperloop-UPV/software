@@ -119,42 +119,44 @@ export function BatteriesPage() {
     >
       <main className={styles.batteriesMainContainer}>
         <div className={styles.batteriesContainer}>
-          <Window title="High Voltage Batteries">
+          <div className={styles.sectionContainer}>
             <div className={styles.statusContainer}>
-              <div className={styles.statusRow1}>
-                <div className={styles.statusItem}>
-                  <h3>Total Voltage:</h3>
-                  <div className={styles.value}>
-                    <span>{voltageTotal?.toFixed(1)}V</span>
+              <Window title="High Voltage Batteries">
+                <div className={styles.statusRow1}>
+                  <div className={styles.statusItem}>
+                    <h3>Total Voltage:</h3>
+                    <div className={styles.value}>
+                      <span>{voltageTotal?.toFixed(1)}V</span>
+                    </div>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <h3>Max V:</h3>
+                    <div className={styles.value}>
+                      <span>{maxVoltageHigh?.toFixed(2)}V</span>
+                    </div>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <h3>Min V:</h3>
+                    <div className={styles.value}>
+                      <span>{minVoltageHigh?.toFixed(2)}V</span>
+                    </div>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <h3>Max Temp:</h3>
+                    <div className={styles.value}>
+                      <span>{maxTempHigh?.toFixed(1)}°C</span>
+                    </div>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <h3>Min Temp:</h3>
+                    <div className={styles.value}>
+                      <span>{minTempHigh?.toFixed(1)}°C</span>
+                    </div>
                   </div>
                 </div>
-                <div className={styles.statusItem}>
-                  <h3>Max V:</h3>
-                  <div className={styles.value}>
-                    <span>{maxVoltageHigh?.toFixed(2)}V</span>
-                  </div>
-                </div>
-                <div className={styles.statusItem}>
-                  <h3>Min V:</h3>
-                  <div className={styles.value}>
-                    <span>{minVoltageHigh?.toFixed(2)}V</span>
-                  </div>
-                </div>
-                <div className={styles.statusItem}>
-                  <h3>Max Temp:</h3>
-                  <div className={styles.value}>
-                    <span>{maxTempHigh?.toFixed(1)}°C</span>
-                  </div>
-                </div>
-                <div className={styles.statusItem}>
-                  <h3>Min Temp:</h3>
-                  <div className={styles.value}>
-                    <span>{minTempHigh?.toFixed(1)}°C</span>
-                  </div>
-                </div>
-              </div>
+              </Window>
             </div>
-          </Window>
+          </div>
 
           <div className={styles.sectionContainer}>
             <div className={styles.modulesContainer}>
@@ -181,7 +183,6 @@ export function BatteriesPage() {
           </div>
 
           <div className={styles.sectionContainer}>
-            {/* Low Voltage Bar */}
             <div className={styles.statusContainer}>
               <Window title="Low Voltage Battery">
                 <div className={styles.statusRow1}>
@@ -218,7 +219,9 @@ export function BatteriesPage() {
                 </div>
               </Window>
             </div>
+          </div>
 
+          <div className={styles.sectionContainer}>
             <div className={styles.lowVoltageContainer}>
               <LowVoltageModule />
             </div>
