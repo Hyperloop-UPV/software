@@ -12,22 +12,17 @@ export const ImdIndicator = () => {
     const podData = usePodDataStore((state) => state.podData);
     const lostConnection = useContext(LostConnectionContext);
 
-    const [hasReceivedData, setHasReceivedData] = useState(false);
-    const [IsImdOk, setVariant] = useState(true); 
+    const [IsImdOk, setVariant] = useState<boolean | null>(true); 
+
+    const hvscuBoard = podData.boards.find(board => board.name === 'HVSCU');
+    const hasReceivedData = hvscuBoard?.packets.some(packet => packet.count > 0) || false;
 
     useGlobalTicker(() => {
-        const hvscuBoard = podData.boards.find(board => board.name === 'HVSCU');
-        const hasReceivedPackets = hvscuBoard?.packets.some(packet => packet.count > 0) || false;
-        
         const currentValue = getValue();
         setVariant(currentValue);
-        
-        if (hasReceivedPackets && !hasReceivedData) {
-            setHasReceivedData(true);
-        }
     });
 
-    const showDisconnected = lostConnection || !hasReceivedData;
+    const showDisconnected = lostConnection || !hasReceivedData || IsImdOk === null;
 
     return (
         <div

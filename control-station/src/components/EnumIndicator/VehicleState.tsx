@@ -15,22 +15,17 @@ export const VehicleState = () => {
     const podData = usePodDataStore((state) => state.podData);
     const lostConnection = useContext(LostConnectionContext);
 
-    const [hasReceivedData, setHasReceivedData] = useState(false);
     const [generalState, setGeneralState] = useState('FAULT');
     const [operationalState, setOperationalState] = useState('FAULT');
 
+    const vcuBoard = podData.boards.find(board => board.name === 'VCU');
+    const hasReceivedData = vcuBoard?.packets.some(packet => packet.count > 0) || false;
+
     useGlobalTicker(() => {
-        const vcuBoard = podData.boards.find(board => board.name === 'VCU');
-        const hasReceivedPackets = vcuBoard?.packets.some(packet => packet.count > 0) || false;
-        
         const currentGeneralState = generalStateMeasurement();
         const currentOperationalState = operationalStateMeasurement();
         setGeneralState(currentGeneralState);
         setOperationalState(currentOperationalState);
-        
-        if (hasReceivedPackets && !hasReceivedData) {
-            setHasReceivedData(true);
-        }
     });
 
     const showDisconnected = lostConnection || !hasReceivedData;

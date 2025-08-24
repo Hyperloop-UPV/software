@@ -11,19 +11,14 @@ export const BrakeState = () => {
     const podData = usePodDataStore((state) => state.podData);
     const lostConnection = useContext(LostConnectionContext);
 
-    const [hasReceivedData, setHasReceivedData] = useState(false);
     const [ReedsState, setVariant] = useState(false);
 
+    const vcuBoard = podData.boards.find(board => board.name === 'VCU');
+    const hasReceivedData = vcuBoard?.packets.some(packet => packet.count > 0) || false;
+
     useGlobalTicker(() => {
-        const vcuBoard = podData.boards.find(board => board.name === 'VCU');
-        const hasReceivedPackets = vcuBoard?.packets.some(packet => packet.count > 0) || false;
-        
         const currentValue = getValue();
         setVariant(currentValue);
-
-        if (hasReceivedPackets && !hasReceivedData) {
-            setHasReceivedData(true);
-        }
     });
 
     const showDisconnected = lostConnection || !hasReceivedData;

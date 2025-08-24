@@ -16,24 +16,18 @@ export const EnumIndicator = memo(({ measurementId, icon }: Props) => {
   const podData = usePodDataStore((state) => state.podData);
   const lostConnection = useContext(LostConnectionContext);
 
-  const [hasReceivedData, setHasReceivedData] = useState(false);
-  const [variant, setVariant] = useState(getValue());
+  const [variant, setVariant] = useState<string | null>(getValue());
+  
+  const boardName = measurementId.split('/')[0];
+  const board = podData.boards.find(b => b.name === boardName);
+  const hasReceivedData = board?.packets.some(packet => packet.count > 0) || false;
 
   useGlobalTicker(() => {
-    const boardName = measurementId.split('/')[0];
-    
-    const board = podData.boards.find(b => b.name === boardName);
-    const hasReceivedPackets = board?.packets.some(packet => packet.count > 0) || false;
-    
     const currentValue = getValue();
     setVariant(currentValue);
-
-    if (hasReceivedPackets && !hasReceivedData) {
-      setHasReceivedData(true);
-    }
   });
 
-  const showDisconnected = lostConnection || !hasReceivedData;
+  const showDisconnected = lostConnection || !hasReceivedData || variant === null;
   const state = showDisconnected ? "DISCONNECTED" : variant;
 
   return (
