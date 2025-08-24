@@ -9,7 +9,6 @@ type Props = {
     sweep: number;
     strokeWidth: number;
     percentage: number;
-    isStale?: boolean;
 };
 
 export const Gauge = ({
@@ -18,7 +17,6 @@ export const Gauge = ({
     sweep,
     strokeWidth,
     percentage,
-    isStale,
 }: Props) => {
     const radius = 500;
     return (
@@ -38,7 +36,7 @@ export const Gauge = ({
 
             <BackgroundArc
                 sweep={sweep}
-                className={isStale ? styles.staleArc : styles.rainbowArc}
+                className={styles.rainbowArc}
                 id={id}
                 percentage={percentage}
                 radius={radius}

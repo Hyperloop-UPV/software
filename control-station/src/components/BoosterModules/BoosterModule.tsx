@@ -1,12 +1,11 @@
-import React, { useEffect, useState, useContext, useRef, useMemo } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import styles from "./BoosterModule.module.scss";
 
 import { useMeasurementsStore, useGlobalTicker, usePodDataStore } from "common";
 import { LostConnectionContext } from "services/connections";
-import { DELTA_SAMPLE_PERIOD, DELTA_GRACE_PERIOD } from "constants/deltaTracking";
 
 interface CellProps {
-  value: number | null;
+  value: number;
 }
 
 const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
@@ -16,84 +15,13 @@ const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
   const lostConnection = useContext(LostConnectionContext);
   
   // Estados para todos los valores
-  const [moduleMinCell, setModuleMinCell] = useState<number | null>(0);
-  const [moduleMaxCell, setModuleMaxCell] = useState<number | null>(0);
-  const [moduleTotalVoltage, setModuleTotalVoltage] = useState<number | null>(0);
-  const [moduleMaxTemp, setModuleMaxTemp] = useState<number | null>(0);
-  const [moduleMinTemp, setModuleMinTemp] = useState<number | null>(0);
-  const [cellValues, setCellValues] = useState<(number | null)[]>(Array(48).fill(0));
+  const [moduleMinCell, setModuleMinCell] = useState<number>(0);
+  const [moduleMaxCell, setModuleMaxCell] = useState<number>(0);
+  const [moduleTotalVoltage, setModuleTotalVoltage] = useState<number>(0);
+  const [moduleMaxTemp, setModuleMaxTemp] = useState<number>(0);
+  const [moduleMinTemp, setModuleMinTemp] = useState<number>(0);
+  const [cellValues, setCellValues] = useState<number[]>(Array(48).fill(0));
   const [hasReceivedData, setHasReceivedData] = useState(false);
-  
-  // Delta tracking state for all values
-  const deltaTrackingRef = useRef<{
-    [key: string]: {
-      value: number | null;
-      lastSampleTime: number;
-      lastChangeTime: number;
-      isStale: boolean;
-    };
-  }>({});
-
-  // Create delta-tracked getter for numeric values
-  const createDeltaTrackedGetter = useMemo(() => {
-    return (key: string, originalGetter: () => number) => {
-      return () => {
-        const now = Date.now();
-        const prevData = deltaTrackingRef.current[key];
-        
-        // Check if sample period has passed since last sample
-        if (prevData && now - prevData.lastSampleTime < DELTA_SAMPLE_PERIOD) {
-          // Not enough time passed, return current value if not stale, otherwise null
-          const currentValue = originalGetter();
-          return prevData.isStale ? null : currentValue;
-        }
-        
-        // Sample period has passed or no previous data, get fresh value
-        const currentValue = originalGetter();
-        
-        // Initialize if no previous data
-        if (!prevData) {
-          deltaTrackingRef.current[key] = {
-            value: currentValue,
-            lastSampleTime: now,
-            lastChangeTime: now,
-            isStale: false,
-          };
-          return currentValue;
-        }
-        
-        // Check for delta with tolerance
-        const prevValue = prevData.value;
-        const tolerance = 0.01; // Small tolerance for voltage values
-        const hasChanged = prevValue === null || currentValue === null 
-          ? prevValue !== currentValue 
-          : Math.abs(prevValue - currentValue) > tolerance;
-        
-        if (hasChanged) {
-          // Value changed significantly, update everything
-          deltaTrackingRef.current[key] = {
-            value: currentValue,
-            lastSampleTime: now,
-            lastChangeTime: now,
-            isStale: false,
-          };
-          return currentValue;
-        } else {
-          // Value hasn't changed significantly, check if it's been stale for too long
-          const staleDuration = now - prevData.lastChangeTime;
-          const isStale = staleDuration > DELTA_GRACE_PERIOD; // Grace period
-          
-          deltaTrackingRef.current[key] = {
-            value: currentValue,
-            lastSampleTime: now,
-            lastChangeTime: prevData.lastChangeTime,
-            isStale: isStale,
-          };
-          return isStale ? null : currentValue;
-        }
-      };
-    };
-  }, []);
 
   useGlobalTicker(() => {
     const boardName = 'HVSCU-Cabinet';
@@ -104,31 +32,18 @@ const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
       setHasReceivedData(true);
     }
     
-    // Actualizar valores del módulo con delta tracking
-    const moduleValues = [
-      { key: `min_cell_${id}`, varName: `HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_min_cell`, setter: setModuleMinCell },
-      { key: `max_cell_${id}`, varName: `HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_max_cell`, setter: setModuleMaxCell },
-      { key: `voltage_${id}`, varName: `HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_voltage`, setter: setModuleTotalVoltage },
-      { key: `max_temp_${id}`, varName: `HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_max_temp`, setter: setModuleMaxTemp },
-      { key: `min_temp_${id}`, varName: `HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_min_temp`, setter: setModuleMinTemp },
-    ];
+    // Actualizar valores del módulo
+    setModuleMinCell(getNumericMeasurementInfo(`HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_min_cell`)?.getUpdate() ?? 0);
+    setModuleMaxCell(getNumericMeasurementInfo(`HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_max_cell`)?.getUpdate() ?? 0);
+    setModuleTotalVoltage(getNumericMeasurementInfo(`HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_voltage`)?.getUpdate() ?? 0);
+    setModuleMaxTemp(getNumericMeasurementInfo(`HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_max_temp`)?.getUpdate() ?? 0);
+    setModuleMinTemp(getNumericMeasurementInfo(`HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_min_temp`)?.getUpdate() ?? 0);
     
-    moduleValues.forEach(({ key, varName, setter }) => {
-      const measurementInfo = getNumericMeasurementInfo(varName);
-      if (measurementInfo) {
-        const deltaGetter = createDeltaTrackedGetter(key, measurementInfo.getUpdate);
-        setter(deltaGetter());
-      }
-    });
-    
-    // Actualizar valores de las celdas con delta tracking
+    // Actualizar valores de las celdas
     setCellValues(
       Array.from({ length: 48 }, (_, i) => {
         const variableName = `HVSCU-Cabinet/HVSCU-Cabinet_module_${id}_cell_${i + 1}_voltage`;
-        const measurementInfo = getNumericMeasurementInfo(variableName);
-        if (!measurementInfo) return null;
-        const deltaGetter = createDeltaTrackedGetter(`cell_${id}_${i}`, measurementInfo.getUpdate);
-        return deltaGetter();
+        return getNumericMeasurementInfo(variableName)?.getUpdate() ?? 0;
       })
     );
   });
@@ -136,15 +51,13 @@ const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
   const showDisconnected = lostConnection || !hasReceivedData;
 
   const Cell: React.FC<CellProps> = ({ value }) => {
-    const isStale = value === null;
-    const displayValue = value !== null ? value : 0;
-    const formattedValue = isStale || showDisconnected ? "-.---" : Math.max(0, Math.min(99.999, displayValue)).toFixed(3);
+    const formattedValue =  Math.max(0, Math.min(99.999, value)).toFixed(3);
     return (
       <div
-        className={`${styles.cell} ${(showDisconnected || isStale) ? styles.disconnected : styles.green}`}
-        title={showDisconnected || isStale ? "DISCONNECTED" : `${displayValue.toFixed(3)} V`}
+        className={`${styles.cell} ${showDisconnected ? styles.disconnected : styles.green}`}
+        title={showDisconnected ? "DISCONNECTED" : `${value.toFixed(3)} V`}
       >
-        <span className={styles.cellText}>{formattedValue}{(showDisconnected || isStale) ? "" : "V"}</span>
+        <span className={styles.cellText}>{formattedValue}{showDisconnected ? "" : "V"}</span>
       </div>
     );
   };
@@ -159,23 +72,23 @@ const BoosterModule: React.FC<{ id: string | number }> = ({ id }) => {
         <div className={styles.voltageContainer}>
           <div className={styles.dataStyle}>
             <p className={styles.moduleInfoLabel}>Total V:</p>
-            <p className={styles.p}>{moduleTotalVoltage === null ? "-.--" : `${moduleTotalVoltage.toFixed(2)} V`}</p>
+            <p className={styles.p}>{`${moduleTotalVoltage.toFixed(2)} V`}</p>
           </div>
           <div className={styles.dataStyle}>
             <p className={styles.moduleInfoLabel}>V max:</p>
-            <p className={styles.p}>{moduleMaxCell === null ? "-.--" : `${moduleMaxCell.toFixed(2)} V`}</p>
+            <p className={styles.p}>{`${moduleMaxCell.toFixed(2)} V`}</p>
           </div>
           <div className={styles.dataStyle}>
             <p className={styles.moduleInfoLabel}>V min:</p>
-            <p className={styles.p}>{moduleMinCell === null ? "-.--" : `${moduleMinCell.toFixed(2)} V`}</p>
+            <p className={styles.p}>{`${moduleMinCell.toFixed(2)} V`}</p>
           </div>
           <div className={styles.dataStyle}>
             <p className={styles.moduleInfoLabel}>Max Temp:</p>
-            <p className={styles.p}>{moduleMaxTemp === null ? "-.--" : `${moduleMaxTemp.toFixed(2)} °C`}</p>
+            <p className={styles.p}>{`${moduleMaxTemp.toFixed(2)} °C`}</p>
           </div>
           <div className={styles.dataStyle}>
             <p className={styles.moduleInfoLabel}>Min Temp:</p>
-            <p className={styles.p}>{moduleMinTemp === null ? "-.--" : `${moduleMinTemp.toFixed(2)} °C`}</p>
+            <p className={styles.p}>{`${moduleMinTemp.toFixed(2)} °C`}</p>
           </div>
         </div>
       </div>

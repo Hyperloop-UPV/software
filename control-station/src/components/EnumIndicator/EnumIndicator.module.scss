@@ -1,4 +1,4 @@
-@use "src/styles/colors";
+@use 'src/styles/colors';
 
 .enum_indicator {
     display: flex;
@@ -8,12 +8,12 @@
     margin-left: auto;
     padding: 0;
     box-sizing: border-box;
-    margin-bottom: clamp(0.2rem, 0.8vw, 0.4rem);
+    margin-bottom: clamp(0.2rem, 0.8vw, 0.4rem); 
     border-radius: 0.4rem;
 }
 
 .enum_indicator:last-child {
-    margin-bottom: 0;
+    margin-bottom: 0; 
 }
 
 .title {
@@ -25,7 +25,7 @@
     opacity: 0.8;
     margin: 0;
     flex: 1 1 auto;
-    color: colors.getColor("primary", 15);
+    color: colors.getColor('primary', 15);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

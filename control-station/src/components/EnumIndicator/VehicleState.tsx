@@ -1,6 +1,6 @@
 import { useGlobalTicker, useMeasurementsStore, VcuMeasurements, usePodDataStore } from 'common';
 import styles from './EnumIndicator.module.scss';
-import { useContext, useState, useRef, useMemo } from 'react';
+import { useContext, useState } from 'react';
 import { LostConnectionContext } from 'services/connections';
 import teamLogo from 'assets/svg/team_logo.svg'
 
@@ -15,98 +15,20 @@ export const VehicleState = () => {
     const podData = usePodDataStore((state) => state.podData);
     const lostConnection = useContext(LostConnectionContext);
 
-    const [hasReceivedData, setHasReceivedData] = useState(false);
-    const [generalState, setGeneralState] = useState<string | null>('FAULT');
-    const [operationalState, setOperationalState] = useState<string | null>('FAULT');
-    
-    // Delta tracking state for both states
-    const deltaTrackingRef = useRef<{
-        generalValue: string | null;
-        operationalValue: string | null;
-        lastSampleTime: number;
-        lastChangeTime: number;
-        isStale: boolean;
-    } | null>(null);
+    const [generalState, setGeneralState] = useState('FAULT');
+    const [operationalState, setOperationalState] = useState('FAULT');
 
-    // Create delta-tracked getter with memoization
-    const getDeltaTrackedValues = useMemo(() => {
-        return () => {
-            const now = Date.now();
-            const prevData = deltaTrackingRef.current;
-            
-            // Check if 400ms have passed since last sample
-            if (prevData && now - prevData.lastSampleTime < 400) {
-                // Not enough time passed, return current values if not stale, otherwise null
-                const currentGeneral = generalStateMeasurement();
-                const currentOperational = operationalStateMeasurement();
-                return prevData.isStale 
-                    ? { general: null, operational: null }
-                    : { general: currentGeneral, operational: currentOperational };
-            }
-            
-            // 400ms have passed or no previous data, get fresh values
-            const currentGeneral = generalStateMeasurement();
-            const currentOperational = operationalStateMeasurement();
-            
-            // Initialize if no previous data
-            if (!prevData) {
-                deltaTrackingRef.current = {
-                    generalValue: currentGeneral,
-                    operationalValue: currentOperational,
-                    lastSampleTime: now,
-                    lastChangeTime: now,
-                    isStale: false,
-                };
-                return { general: currentGeneral, operational: currentOperational };
-            }
-            
-            // Check for delta (either state changing means there's a change)
-            const hasChanged = prevData.generalValue !== currentGeneral || 
-                             prevData.operationalValue !== currentOperational;
-            
-            if (hasChanged) {
-                // Value changed, update everything
-                deltaTrackingRef.current = {
-                    generalValue: currentGeneral,
-                    operationalValue: currentOperational,
-                    lastSampleTime: now,
-                    lastChangeTime: now,
-                    isStale: false,
-                };
-                return { general: currentGeneral, operational: currentOperational };
-            } else {
-                // Values haven't changed, check if it's been stale for too long
-                const staleDuration = now - prevData.lastChangeTime;
-                const isStale = staleDuration > 100; // 100ms grace period
-                
-                deltaTrackingRef.current = {
-                    generalValue: currentGeneral,
-                    operationalValue: currentOperational,
-                    lastSampleTime: now,
-                    lastChangeTime: prevData.lastChangeTime,
-                    isStale: isStale,
-                };
-                return isStale 
-                    ? { general: null, operational: null }
-                    : { general: currentGeneral, operational: currentOperational };
-            }
-        };
-    }, [generalStateMeasurement, operationalStateMeasurement]);
+    const vcuBoard = podData.boards.find(board => board.name === 'VCU');
+    const hasReceivedData = vcuBoard?.packets.some(packet => packet.count > 0) || false;
 
     useGlobalTicker(() => {
-        const vcuBoard = podData.boards.find(board => board.name === 'VCU');
-        const hasReceivedPackets = vcuBoard?.packets.some(packet => packet.count > 0) || false;
-        
-        const values = getDeltaTrackedValues();
-        setGeneralState(values.general);
-        setOperationalState(values.operational);
-        
-        if (hasReceivedPackets && !hasReceivedData) {
-            setHasReceivedData(true);
-        }
+        const currentGeneralState = generalStateMeasurement();
+        const currentOperationalState = operationalStateMeasurement();
+        setGeneralState(currentGeneralState);
+        setOperationalState(currentOperationalState);
     });
 
-    const showDisconnected = lostConnection || !hasReceivedData || generalState === null || operationalState === null;
+    const showDisconnected = lostConnection || !hasReceivedData;
     
     const state = showDisconnected
         ? 'DISCONNECTED'
