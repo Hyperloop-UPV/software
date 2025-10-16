@@ -96,7 +96,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	err := sublogger.writer.Write([]string{
-		fmt.Sprint(orderRecord.Packet.Timestamp().UnixMilli()),
+		fmt.Sprint(orderRecord.Packet.Timestamp().UnixMicro()),
 		orderRecord.From,
 		orderRecord.To,
 		fmt.Sprint(orderRecord.Packet.Id()),

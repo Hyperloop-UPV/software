@@ -120,7 +120,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 		}
 
 		err = saveFile.Write([]string{
-			fmt.Sprint(dataRecord.Packet.Timestamp().UnixMilli()),
+			fmt.Sprint(dataRecord.Packet.Timestamp().UnixMicro()),
 			dataRecord.From,
 			dataRecord.To,
 			valueRepresentation,

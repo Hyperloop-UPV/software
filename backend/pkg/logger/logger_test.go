@@ -77,8 +77,8 @@ func TestLogger(t *testing.T) {
 		t.Error(err)
 	}
 
-	if output[0] != fmt.Sprint(dataPacketTime.UnixMilli()) || output[1] != "test" || output[2] != "test" || output[3] != "true" {
-		t.Errorf("dataErr: expected [%v test test true], got %v", timestamp.UnixMilli(), output)
+	if output[0] != fmt.Sprint(dataPacketTime.UnixMicro()) || output[1] != "test" || output[2] != "test" || output[3] != "true" {
+		t.Errorf("dataErr: expected [%v test test true], got %v", timestamp.UnixMicro(), output)
 	}
 
 	// Order
@@ -111,7 +111,7 @@ func TestLogger(t *testing.T) {
 		t.Error(err)
 	}
 
-	if output[0] != fmt.Sprint(orderPacketTime.UnixMilli()) || output[1] != "test" || output[2] != "test" {
+	if output[0] != fmt.Sprint(orderPacketTime.UnixMicro()) || output[1] != "test" || output[2] != "test" {
 		t.Errorf("orderErr: expected [test test], got %v", output)
 	}
 
@@ -163,7 +163,7 @@ func TestLogger(t *testing.T) {
 		t.Error(err)
 	}
 
-	if output[0] != fmt.Sprint(timestamp.UnixMilli()) || output[1] != "test" || output[2] != "test" || output[3] != "0" || output[4] != "7" || output[5] != "3" || output[6] != "test" || output[7] != "&{0 0}" || output[8] != protectionPacketTime.Format(time.RFC3339) {
+	if output[0] != fmt.Sprint(timestamp.UnixMicro()) || output[1] != "test" || output[2] != "test" || output[3] != "0" || output[4] != "7" || output[5] != "3" || output[6] != "test" || output[7] != "&{0 0}" || output[8] != protectionPacketTime.Format(time.RFC3339) {
 		t.Errorf("orderErr: expected [test test 0], got %v", output)
 	}
 
