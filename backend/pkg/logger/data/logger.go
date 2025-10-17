@@ -29,6 +29,8 @@ type Logger struct {
 	saveFiles map[data.ValueName]*file.CSV
 	// allowedVars contains the full names (board/valueName) to be logged
 	allowedVars map[string]struct{}
+	// save the starting time of the logger in Unix microseconds in order to log relative timestamps
+	startTime int64
 }
 
 // Record is a struct that implements the abstraction.LoggerRecord interface
@@ -47,6 +49,7 @@ func NewLogger() *Logger {
 		running:     &atomic.Bool{},
 		fileLock:    &sync.RWMutex{},
 		allowedVars: nil, // no filter by default
+		startTime:   0,
 	}
 
 	logger.running.Store(false)
@@ -67,6 +70,8 @@ func (sublogger *Logger) Start() error {
 		fmt.Println("Logger already running")
 		return nil
 	}
+
+	sublogger.startTime = time.Now().UnixMicro() // Update the start time
 
 	fmt.Println("Logger started")
 	return nil
@@ -120,7 +125,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 		}
 
 		err = saveFile.Write([]string{
-			fmt.Sprint(dataRecord.Packet.Timestamp().UnixMicro()),
+			fmt.Sprint(dataRecord.Packet.Timestamp().UnixMicro() - sublogger.startTime), // Save the timestamp relative to the start time
 			dataRecord.From,
 			dataRecord.To,
 			valueRepresentation,

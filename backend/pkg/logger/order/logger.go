@@ -21,6 +21,8 @@ type Logger struct {
 	// An atomic boolean is used in order to use CompareAndSwap in the Start and Stop methods
 	running *atomic.Bool
 	writer  *file.CSV
+	// save the starting time of the logger in Unix microseconds in order to log relative timestamps
+	startTime int64
 }
 
 type Record struct {
@@ -36,8 +38,9 @@ func (*Record) Name() abstraction.LoggerName {
 
 func NewLogger() *Logger {
 	return &Logger{
-		running: &atomic.Bool{},
-		writer:  nil,
+		running:   &atomic.Bool{},
+		writer:    nil,
+		startTime: 0,
 	}
 }
 
@@ -51,6 +54,9 @@ func (sublogger *Logger) Start() error {
 	if err != nil {
 		return err
 	}
+
+	sublogger.startTime = time.Now().UnixMicro() // Update the start time
+
 	sublogger.writer = file.NewCSV(fileRaw)
 
 	fmt.Println("Logger started")
@@ -96,7 +102,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	err := sublogger.writer.Write([]string{
-		fmt.Sprint(orderRecord.Packet.Timestamp().UnixMicro()),
+		fmt.Sprint(orderRecord.Packet.Timestamp().UnixMicro() - sublogger.startTime),
 		orderRecord.From,
 		orderRecord.To,
 		fmt.Sprint(orderRecord.Packet.Id()),

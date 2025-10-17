@@ -26,6 +26,8 @@ type Logger struct {
 	saveFiles map[abstraction.BoardId]*file.CSV
 	// BoardNames is a map that contains the common name of each board
 	boardNames map[abstraction.BoardId]string
+	// save the starting time of the logger in Unix microseconds in order to log relative timestamps
+	startTime int64
 }
 
 // Record is a struct that implements the abstraction.LoggerRecord interface
@@ -45,6 +47,7 @@ func NewLogger(boardMap map[abstraction.BoardId]string) *Logger {
 		fileLock:   &sync.Mutex{},
 		saveFiles:  make(map[abstraction.BoardId]*file.CSV),
 		boardNames: boardMap,
+		startTime:  0,
 	}
 }
 
@@ -53,6 +56,8 @@ func (sublogger *Logger) Start() error {
 		fmt.Println("Logger already running")
 		return nil
 	}
+
+	sublogger.startTime = time.Now().UnixMicro() // Update the start time
 
 	fmt.Println("Logger started")
 	return nil
@@ -82,7 +87,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	err = saveFile.Write([]string{
-		fmt.Sprint(infoRecord.Timestamp.UnixMicro()),
+		fmt.Sprint(infoRecord.Timestamp.UnixMicro() - sublogger.startTime),
 		infoRecord.From,
 		infoRecord.To,
 		fmt.Sprint(infoRecord.Packet.Id()),
