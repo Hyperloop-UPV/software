@@ -18,13 +18,13 @@ boards = ["HVSCU", "HVSCU-cabinet", "PCU", "LCU", "BCU", "BMSL"]
 
 # ADJ (Architecture Description JSON) Configuration
 [adj]
-branch = "software" # Leave blank when using ADJ as a submodule (like this: "")
+branch = "BLCU_fixed_packets" # Leave blank when using ADJ as a submodule (like this: "")
 test = true         # Enable test mode
 
 # Network Configuration
 [network]
-manual = false  # Manual network device selection
-dev_mode = true # IMPORTANT: Dev mode enabled - uses UDP server instead of packet sniffer
+manual = true  # Manual network device selection
+dev_mode = true  # IMPORTANT: Dev mode enabled - uses UDP server instead of packet sniffer
 
 # Transport Configuration
 [transport]

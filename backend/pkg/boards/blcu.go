@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	BlcuName = "BLCU"
+	BlcuName = "target"
 
 	AckId           = abstraction.BoardEvent("ACK")
 	DownloadEventId = abstraction.BoardEvent("DOWNLOAD")
@@ -33,7 +33,7 @@ type TFTPConfig struct {
 
 type BLCU struct {
 	api             abstraction.BoardAPI
-	ackChan         chan struct{}
+	tftpStatusChan  chan bool
 	ip              string
 	tftpConfig      TFTPConfig
 	id              abstraction.BoardId
@@ -55,7 +55,7 @@ func New(ip string) *BLCU {
 // Deprecated: Use NewWithConfig for proper order ID configuration
 func NewWithTFTPConfig(ip string, tftpConfig TFTPConfig, id abstraction.BoardId) *BLCU {
 	return &BLCU{
-		ackChan:         make(chan struct{}),
+		tftpStatusChan:  make(chan bool, 1),
 		ip:              ip,
 		tftpConfig:      tftpConfig,
 		id:              id,
@@ -66,7 +66,7 @@ func NewWithTFTPConfig(ip string, tftpConfig TFTPConfig, id abstraction.BoardId)
 
 func NewWithConfig(ip string, tftpConfig TFTPConfig, id abstraction.BoardId, downloadOrderId, uploadOrderId uint16) *BLCU {
 	return &BLCU{
-		ackChan:         make(chan struct{}),
+		tftpStatusChan:  make(chan bool, 1),
 		ip:              ip,
 		tftpConfig:      tftpConfig,
 		id:              id,
@@ -80,8 +80,8 @@ func (board *BLCU) Id() abstraction.BoardId {
 
 func (boards *BLCU) Notify(boardNotification abstraction.BoardNotification) {
 	switch notification := boardNotification.(type) {
-	case *AckNotification:
-		boards.ackChan <- struct{}{}
+	case *TFTPStatusNotification:
+		boards.tftpStatusChan <- notification.IsTFTPEnabled
 
 	case *DownloadEvent:
 		err := boards.download(*notification)
@@ -92,6 +92,7 @@ func (boards *BLCU) Notify(boardNotification abstraction.BoardNotification) {
 			}.Error())
 		}
 	case *UploadEvent:
+		fmt.Println("Received upload event for board:", notification.Board)
 		err := boards.upload(*notification)
 		if err != nil {
 			fmt.Println(ErrUploadFailure{
@@ -124,17 +125,32 @@ func (boards *BLCU) download(notification DownloadEvent) error {
 
 	err := boards.api.SendMessage(transport.NewPacketMessage(ping))
 	if err != nil {
+		// Couldn't connect to the BLCU
 		return ErrSendMessageFailed{
 			Timestamp: time.Now(),
 			Inner:     err,
 		}
 	}
 
-	// Wait for the ACK
-	<-boards.ackChan
+	// Wait for TFTP enabled status
+	select {
+	case isTFTPEnabled := <-boards.tftpStatusChan:
+		if !isTFTPEnabled {
+			return ErrSendMessageFailed{
+				Timestamp: time.Now(),
+				Inner:     fmt.Errorf("TFTP not enabled on BLCU device"),
+			}
+		}
+	case <-time.After(10 * time.Second):
+		return ErrSendMessageFailed{
+			Timestamp: time.Now(),
+			Inner:     fmt.Errorf("timeout waiting for TFTP status"),
+		}
+	}
 
 	// TODO! Notify on progress
 
+	// Start TFTP client
 	client, err := tftp.NewClient(boards.ip,
 		tftp.WithBlockSize(boards.tftpConfig.BlockSize),
 		tftp.WithRetries(boards.tftpConfig.Retries),
@@ -148,6 +164,7 @@ func (boards *BLCU) download(notification DownloadEvent) error {
 		}
 	}
 
+	// Download the file
 	buffer := &bytes.Buffer{}
 
 	_, err = client.ReadFile(BlcuName, tftp.BinaryMode, buffer)
@@ -171,6 +188,7 @@ func (boards *BLCU) download(notification DownloadEvent) error {
 		}
 	}
 
+	// Notify success to front
 	pushErr := boards.api.SendPush(abstraction.BrokerPush(
 		&DownloadSuccess{
 			Data: buffer.Bytes(),
@@ -187,32 +205,60 @@ func (boards *BLCU) download(notification DownloadEvent) error {
 }
 
 func (boards *BLCU) upload(notification UploadEvent) error {
-	ping := dataPacket.NewPacketWithValues(abstraction.PacketId(boards.uploadOrderId),
+	fmt.Println("Uploading BLCU firmware...")
+
+	// Create new packet with board update command
+	ping := dataPacket.NewPacketWithValues(abstraction.PacketId(boards.uploadOrderId), // 700
 		map[dataPacket.ValueName]dataPacket.Value{
-			BlcuName: dataPacket.NewEnumValue(dataPacket.EnumVariant(notification.Board)),
+			BlcuName: dataPacket.NewEnumValue(dataPacket.EnumVariant(notification.Board)), // The board to be updated
 		},
-		map[dataPacket.ValueName]bool{
+		map[dataPacket.ValueName]bool{ // True
 			BlcuName: true,
 		})
+	fmt.Println("Notifying BLCU...", ping)
 
+	// Actually send the message
 	err := boards.api.SendMessage(transport.NewPacketMessage(ping))
 	if err != nil {
+		// Couldn't connect to the BLCU
+		fmt.Println("Failed to send upload ping:", err)
 		return ErrSendMessageFailed{
 			Timestamp: time.Now(),
 			Inner:     err,
 		}
 	}
 
-	<-boards.ackChan
+	// Wait for TFTP enabled status
+	fmt.Println("Waiting for TFTP status...")
+	select {
+	case isTFTPEnabled := <-boards.tftpStatusChan:
+		if !isTFTPEnabled {
+			fmt.Println("TFTP not enabled on BLCU device")
+			return ErrSendMessageFailed{
+				Timestamp: time.Now(),
+				Inner:     fmt.Errorf("TFTP not enabled on BLCU device"),
+			}
+		}
+		fmt.Println("TFTP enabled, starting upload...")
+	case <-time.After(10 * time.Second):
+		fmt.Println("Timeout waiting for TFTP status")
+		return ErrSendMessageFailed{
+			Timestamp: time.Now(),
+			Inner:     fmt.Errorf("timeout waiting for TFTP status"),
+		}
+	}
 
 	// TODO! Notify on progress
 
+	// Start TFTP client
+	// TODO: Check if it fails here
 	client, err := tftp.NewClient(boards.ip,
 		tftp.WithBlockSize(boards.tftpConfig.BlockSize),
 		tftp.WithRetries(boards.tftpConfig.Retries),
 		tftp.WithTimeout(time.Duration(boards.tftpConfig.TimeoutMs)*time.Millisecond),
 	)
 	if err != nil {
+		fmt.Println("Failed to create TFTP client:", err)
 		return ErrNewClientFailed{
 			Addr:      boards.ip,
 			Timestamp: time.Now(),
@@ -220,9 +266,11 @@ func (boards *BLCU) upload(notification UploadEvent) error {
 		}
 	}
 
+	// Get the update payload and prepare the buffer
 	data := notification.Data
 	buffer := bytes.NewBuffer(data)
 
+	// Write the file
 	read, err := client.WriteFile(BlcuName, tftp.BinaryMode, buffer)
 	if err != nil {
 		pushErr := boards.api.SendPush(abstraction.BrokerPush(
@@ -263,6 +311,7 @@ func (boards *BLCU) upload(notification UploadEvent) error {
 		return err
 	}
 
+	// Notify success to front
 	pushErr := boards.api.SendPush(abstraction.BrokerPush(
 		&UploadSuccess{}))
 	if pushErr != nil {

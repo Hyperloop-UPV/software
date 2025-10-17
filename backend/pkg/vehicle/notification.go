@@ -47,6 +47,22 @@ func (vehicle *Vehicle) handlePacketNotification(notification transport.PacketNo
 
 	switch p := notification.Packet.(type) {
 	case *data.Packet:
+		// Check if this is a TFTP status packet from BLCU (packet ID 5)
+		if p.Id() == 5 && notification.From != "" {
+			// Extract isTFTPEnabled boolean value
+			values := p.GetValues()
+			if isTFTPEnabledValue, ok := values["isTFTPEnabled"]; ok {
+				if boolVal, ok := isTFTPEnabledValue.(*data.BooleanValue); ok {
+					vehicle.boards[vehicle.BlcuId].Notify(abstraction.BoardNotification(
+						&boards.TFTPStatusNotification{
+							IsTFTPEnabled: boolVal.Value(),
+						},
+					))
+					return nil
+				}
+			}
+		}
+
 		update := vehicle.updateFactory.NewUpdate(p)
 		err := vehicle.broker.Push(data_topic.NewPush(&update))
 		if err != nil {

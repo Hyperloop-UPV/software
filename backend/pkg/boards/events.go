@@ -12,6 +12,14 @@ func (ack AckNotification) Event() abstraction.BoardEvent {
 	return ack.ID
 }
 
+type TFTPStatusNotification struct {
+	IsTFTPEnabled bool
+}
+
+func (status TFTPStatusNotification) Event() abstraction.BoardEvent {
+	return "TFTP_STATUS"
+}
+
 type DownloadEvent struct {
 	BoardEvent abstraction.BoardEvent // DownloadId
 	BoardID    abstraction.BoardId
