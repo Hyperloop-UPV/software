@@ -48,8 +48,8 @@ import (
 	state_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/state"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/sniffer"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	blcu_packet "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/blcu"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/order"
@@ -92,7 +92,7 @@ var currentVersion string
 func main() {
 	// Parse command line flags
 	flag.Parse()
-	
+
 	// Handle version flag
 	if *versionFlag {
 		versionFile := "VERSION.txt"
@@ -104,7 +104,7 @@ func main() {
 		}
 		os.Exit(0)
 	}
-	
+
 	// update() // FIXME: Updater disabled due to cross-platform and reliability issues
 
 	traceFile := initTrace(*traceLevel, *traceFile)
@@ -184,6 +184,7 @@ func main() {
 		state_logger.Name:      state_logger.NewLogger(),
 	}
 
+	logger.SetFormatTimestamp(logger.TimeUnit(config.Logging.TimeUnit)) // MUST be before creating subloggers
 	loggerHandler := logger.NewLogger(subloggers, trace.Logger)
 
 	// <--- order transfer --->

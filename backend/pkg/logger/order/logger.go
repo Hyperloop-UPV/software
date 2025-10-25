@@ -55,7 +55,7 @@ func (sublogger *Logger) Start() error {
 		return err
 	}
 
-	sublogger.startTime = time.Now().UnixMicro() // Update the start time
+	sublogger.startTime = logger.FormatTimestamp(time.Now()) // Update the start time
 
 	sublogger.writer = file.NewCSV(fileRaw)
 
@@ -102,7 +102,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	err := sublogger.writer.Write([]string{
-		fmt.Sprint(orderRecord.Packet.Timestamp().UnixMicro() - sublogger.startTime),
+		fmt.Sprint(logger.FormatTimestamp(orderRecord.Packet.Timestamp()) - sublogger.startTime),
 		orderRecord.From,
 		orderRecord.To,
 		fmt.Sprint(orderRecord.Packet.Id()),

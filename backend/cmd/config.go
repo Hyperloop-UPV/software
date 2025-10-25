@@ -46,6 +46,10 @@ type TCP struct {
 	KeepAlive         int     `toml:"keep_alive_ms"`
 }
 
+type Logging struct {
+	TimeUnit string `toml:"time_unit"`
+}
+
 type Config struct {
 	App       App
 	Vehicle   vehicle.Config
@@ -56,4 +60,5 @@ type Config struct {
 	TFTP      TFTP
 	TCP       TCP
 	Blcu      Blcu
+	Logging   Logging
 }
