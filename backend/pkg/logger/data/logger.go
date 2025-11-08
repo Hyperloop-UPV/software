@@ -71,7 +71,7 @@ func (sublogger *Logger) Start() error {
 		return nil
 	}
 
-	sublogger.startTime = time.Now().UnixMicro() // Update the start time
+	sublogger.startTime = loggerHandler.FormatTimestamp(time.Now()) // Update the start time
 
 	fmt.Println("Logger started")
 	return nil
@@ -125,7 +125,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 		}
 
 		err = saveFile.Write([]string{
-			fmt.Sprint(dataRecord.Packet.Timestamp().UnixMicro() - sublogger.startTime), // Save the timestamp relative to the start time
+			fmt.Sprint(loggerHandler.FormatTimestamp(dataRecord.Packet.Timestamp()) - sublogger.startTime), // Save the timestamp relative to the start time
 			dataRecord.From,
 			dataRecord.To,
 			valueRepresentation,
@@ -144,10 +144,12 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	return writeErr
 }
 
+// Checks if the file for the given valueName exists, and creates it if it doesn't
 func (sublogger *Logger) getFile(valueName data.ValueName, board string) (*file.CSV, error) {
 	sublogger.fileLock.Lock()
 	defer sublogger.fileLock.Unlock()
 
+	// Check if the file already exists
 	valueFile, ok := sublogger.saveFiles[valueName]
 	if ok {
 		return valueFile, nil
@@ -159,6 +161,7 @@ func (sublogger *Logger) getFile(valueName data.ValueName, board string) (*file.
 	return sublogger.saveFiles[valueName], err
 }
 
+// createFile creates the file for the given valueName and board, creating all necessary directories
 func (sublogger *Logger) createFile(valueName data.ValueName, board string) (*os.File, error) {
 	filename := path.Join(
 		"logger",

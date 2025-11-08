@@ -52,6 +52,9 @@ timeout_ms = 5000      # Timeout between retries in milliseconds
 backoff_factor = 2     # Backoff multiplier for retry delays
 enable_progress = true # Enable progress callbacks during transfers
 
+# Logger Configuration
+time_unit = "us"      # Time unit for log timestamps (ns, us, ms, s)  Default: ns
+
 # <-- DO NOT TOUCH BELOW THIS LINE -->
 
 # Server Configuration

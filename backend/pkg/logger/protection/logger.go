@@ -57,7 +57,7 @@ func (sublogger *Logger) Start() error {
 		return nil
 	}
 
-	sublogger.startTime = time.Now().UnixMicro() // Update the start time
+	sublogger.startTime = logger.FormatTimestamp(time.Now()) // Update the start time
 
 	fmt.Println("Logger started")
 	return nil
@@ -87,7 +87,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	err = saveFile.Write([]string{
-		fmt.Sprint(infoRecord.Timestamp.UnixMicro() - sublogger.startTime),
+		fmt.Sprint(logger.FormatTimestamp(infoRecord.Timestamp) - sublogger.startTime),
 		infoRecord.From,
 		infoRecord.To,
 		fmt.Sprint(infoRecord.Packet.Id()),
