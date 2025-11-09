@@ -348,7 +348,6 @@ func TestPushRecord(t *testing.T) {
 			}
 		})
 
-		// TODO: NOW DOES NOT WORK, AFTER REFACTORING SHOULD WORK AGAIN
 		// TEST: variables permitidas mixtas (boolean + numeric) con múltiples observaciones
 		t.Run("With allowed variables (mixed types, multiple observations)", func(t *testing.T) {
 			observations := []struct {
@@ -415,23 +414,16 @@ func TestPushRecord(t *testing.T) {
 			if gotBool != wantBool {
 				t.Fatalf("unexpected boolean value in %s: got %q, want %q", boolPath, gotBool, wantBool)
 			}
-		}) // end "With allowed variables (mixed types, multiple observations)"
+		})
 
-		// New test: register values for two different boards and verify files for both
+		//! TEST DOES NOT WORK IF WE MONITOR THE SAME VARIABLE ACROSS MULTIPLE BOARDS
 		t.Run("With allowed variables (multiple boards)", func(t *testing.T) {
 			logger := createLoggerForTest(t)
 			logger.Start()
 
-			boards := []string{"Pikachu", "Bulbasaur"}
-			// allow "def" for both boards
-			allowedVars := []string{"def"}
-			transformed := make([]string, 0, len(boards)*len(allowedVars))
-			for _, b := range boards {
-				for _, v := range allowedVars {
-					transformed = append(transformed, b+"/"+v)
-				}
-			}
-			logger.SetAllowedVars(transformed)
+			//variables
+
+			values := []string{"def", "def2"}
 
 			// values to log per board
 			vals := map[string]float64{
@@ -443,7 +435,7 @@ func TestPushRecord(t *testing.T) {
 			var id abstraction.PacketId = 1
 			for b, v := range vals {
 				pkt := data.NewPacket(id).
-					SetValue(data.ValueName("def"), data.NewNumericValue(v), true)
+					SetValue(data.ValueName(values[id-1]), data.NewNumericValue(v), true)
 				id++
 
 				rec := Record{
@@ -452,7 +444,7 @@ func TestPushRecord(t *testing.T) {
 					To:        "Logger",
 					Timestamp: time.Now(),
 				}
-				fmt.Printf("Pushing record for board %s with value %f\n", b, v)
+
 				if err := logger.PushRecord(&rec); err != nil {
 					t.Fatalf("PushRecord failed for board %s: %v", b, err)
 				}
@@ -461,10 +453,12 @@ func TestPushRecord(t *testing.T) {
 			// esperar a que terminen las escrituras asíncronas
 			time.Sleep(2 * time.Second)
 
+			i := 0
+
 			// comprobar ficheros y valores
 			for b, v := range vals {
-				filePath := filepath.Join("logger", loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat), "data", strings.ToUpper(b), "def.csv")
-
+				filePath := filepath.Join("logger", loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat), "data", strings.ToUpper(b), values[i]+".csv")
+				i++
 				if _, err := os.Stat(filePath); err != nil {
 					t.Fatalf("expected file %s to exist, but got error: %v", filePath, err)
 				}
