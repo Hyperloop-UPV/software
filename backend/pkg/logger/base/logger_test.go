@@ -2,8 +2,7 @@ package loggerbase
 
 import (
 	"os"
-	"path/filepath"
-	"strings"
+
 	"testing"
 )
 
@@ -28,11 +27,6 @@ func chdirTemp(t *testing.T) string {
 	}
 	t.Cleanup(func() { _ = os.Chdir(old) })
 	return tmp
-}
-
-func splitPath(p string) []string {
-	p = filepath.Clean(p)
-	return strings.Split(p, string(os.PathSeparator))
 }
 
 /*******
