@@ -65,7 +65,7 @@ func TestStart(t *testing.T) {
 			t.Fatalf("expected nil, got %v", out)
 		}
 		// Capture start time
-		startTime = logger.startTime
+		startTime = logger.StartTime
 
 	})
 
@@ -81,8 +81,8 @@ func TestStart(t *testing.T) {
 		if out != nil {
 			t.Fatalf("expected nil, got %v", out)
 		}
-		if logger.startTime != startTime {
-			t.Fatalf("expected startTime to be %d, got %d", startTime, logger.startTime)
+		if logger.StartTime != startTime {
+			t.Fatalf("expected startTime to be %d, got %d", startTime, logger.StartTime)
 		}
 	})
 

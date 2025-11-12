@@ -12,6 +12,7 @@ import (
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	loggerHandler "github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
+	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/file"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 )
@@ -22,37 +23,34 @@ const (
 
 // Logger is a struct that implements the abstraction.Logger interface
 type Logger struct {
-	// An atomic boolean is used in order to use CompareAndSwap in the Start and Stop methods
-	running  *atomic.Bool
+	loggerbase.BaseLogger
+
 	fileLock *sync.RWMutex
 	// saveFiles is a map that contains the file of each value
 	saveFiles map[data.ValueName]*file.CSV
 	// allowedVars contains the full names (board/valueName) to be logged
 	allowedVars map[string]struct{}
-	// save the starting time of the logger in Unix microseconds in order to log relative timestamps
-	startTime int64
 }
 
 // Record is a struct that implements the abstraction.LoggerRecord interface
-type Record struct {
-	Packet    *data.Packet
-	From      string
-	To        string
-	Timestamp time.Time
-}
+type Record loggerbase.Record
 
 func (*Record) Name() abstraction.LoggerName { return Name }
 
 func NewLogger() *Logger {
 	logger := &Logger{
+
+		BaseLogger: loggerbase.BaseLogger{
+			Running:   &atomic.Bool{},
+			StartTime: 0,
+			Name:      Name,
+		},
 		saveFiles:   make(map[data.ValueName]*file.CSV),
-		running:     &atomic.Bool{},
 		fileLock:    &sync.RWMutex{},
 		allowedVars: nil, // no filter by default
-		startTime:   0,
 	}
 
-	logger.running.Store(false)
+	logger.Running.Store(false)
 	return logger
 }
 
@@ -65,25 +63,13 @@ func (sublogger *Logger) SetAllowedVars(allowed []string) {
 	sublogger.allowedVars = allowedMap
 }
 
-func (sublogger *Logger) Start() error {
-	if !sublogger.running.CompareAndSwap(false, true) {
-		fmt.Println("Logger already running")
-		return nil
-	}
-
-	sublogger.startTime = loggerHandler.FormatTimestamp(time.Now()) // Update the start time
-
-	fmt.Println("Logger started")
-	return nil
-}
-
 // numeric is an interface that allows to get the value of any numeric format
 type numeric interface {
 	Value() float64
 }
 
 func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
-	if !sublogger.running.Load() {
+	if !sublogger.Running.Load() {
 		return loggerHandler.ErrLoggerNotRunning{
 			Name:      Name,
 			Timestamp: time.Now(),
@@ -125,7 +111,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 		}
 
 		err = saveFile.Write([]string{
-			fmt.Sprint(loggerHandler.FormatTimestamp(dataRecord.Packet.Timestamp()) - sublogger.startTime), // Save the timestamp relative to the start time
+			fmt.Sprint(loggerHandler.FormatTimestamp(dataRecord.Packet.Timestamp()) - sublogger.StartTime), // Save the timestamp relative to the start time
 			dataRecord.From,
 			dataRecord.To,
 			valueRepresentation,
@@ -161,7 +147,8 @@ func (sublogger *Logger) getFile(valueName data.ValueName, board string) (*file.
 	return sublogger.saveFiles[valueName], err
 }
 
-// createFile creates the file for the given valueName and board, creating all necessary directories
+// override createFile from BaseLogger to add specific path
+// and filename structure
 func (sublogger *Logger) createFile(valueName data.ValueName, board string) (*os.File, error) {
 	filename := path.Join(
 		"logger",
@@ -171,16 +158,7 @@ func (sublogger *Logger) createFile(valueName data.ValueName, board string) (*os
 		fmt.Sprintf("%s.csv", valueName),
 	)
 
-	err := os.MkdirAll(path.Dir(filename), os.ModePerm)
-	if err != nil {
-		return nil, loggerHandler.ErrCreatingAllDir{
-			Name:      Name,
-			Timestamp: time.Now(),
-			Path:      filename,
-		}
-	}
-
-	return os.Create(path.Join(filename))
+	return sublogger.BaseLogger.CreateFile(filename)
 }
 
 func (sublogger *Logger) PullRecord(abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
@@ -188,7 +166,7 @@ func (sublogger *Logger) PullRecord(abstraction.LoggerRequest) (abstraction.Logg
 }
 
 func (sublogger *Logger) Stop() error {
-	if !sublogger.running.CompareAndSwap(true, false) {
+	if !sublogger.Running.CompareAndSwap(true, false) {
 		fmt.Println("Logger already stopped")
 		return nil
 	}

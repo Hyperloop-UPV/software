@@ -7,10 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
+
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/file"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 )
 
 const (
@@ -18,19 +19,13 @@ const (
 )
 
 type Logger struct {
-	// An atomic boolean is used in order to use CompareAndSwap in the Start and Stop methods
-	running *atomic.Bool
-	writer  *file.CSV
-	// save the starting time of the logger in Unix microseconds in order to log relative timestamps
-	startTime int64
+	loggerbase.BaseLogger
+
+	writer *file.CSV
 }
 
-type Record struct {
-	Packet    *data.Packet
-	From      string
-	To        string
-	Timestamp time.Time
-}
+// Record is a struct that implements the abstraction.LoggerRecord interface but we add the Name method
+type Record loggerbase.Record
 
 func (*Record) Name() abstraction.LoggerName {
 	return Name
@@ -38,28 +33,26 @@ func (*Record) Name() abstraction.LoggerName {
 
 func NewLogger() *Logger {
 	return &Logger{
-		running:   &atomic.Bool{},
-		writer:    nil,
-		startTime: 0,
+		BaseLogger: loggerbase.BaseLogger{
+			Running:   &atomic.Bool{},
+			StartTime: 0,
+			Name:      Name,
+		},
+		writer: nil,
 	}
 }
 
 func (sublogger *Logger) Start() error {
-	if !sublogger.running.CompareAndSwap(false, true) {
-		fmt.Println("Logger already running")
-		return nil
-	}
+
+	sublogger.BaseLogger.Start()
 
 	fileRaw, err := sublogger.createFile()
 	if err != nil {
 		return err
 	}
 
-	sublogger.startTime = logger.FormatTimestamp(time.Now()) // Update the start time
-
 	sublogger.writer = file.NewCSV(fileRaw)
 
-	fmt.Println("Logger started")
 	return nil
 }
 
@@ -71,20 +64,11 @@ func (sublogger *Logger) createFile() (*os.File, error) {
 		"order.csv",
 	)
 
-	err := os.MkdirAll(path.Dir(filename), os.ModePerm)
-	if err != nil {
-		return nil, logger.ErrCreatingAllDir{
-			Name:      Name,
-			Timestamp: time.Now(),
-			Path:      filename,
-		}
-	}
-
-	return os.Create(filename)
+	return sublogger.BaseLogger.CreateFile(filename)
 }
 
 func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
-	if !sublogger.running.Load() {
+	if !sublogger.Running.Load() {
 		return logger.ErrLoggerNotRunning{
 			Name:      Name,
 			Timestamp: time.Now(),
@@ -102,7 +86,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	err := sublogger.writer.Write([]string{
-		fmt.Sprint(logger.FormatTimestamp(orderRecord.Packet.Timestamp()) - sublogger.startTime),
+		fmt.Sprint(logger.FormatTimestamp(orderRecord.Packet.Timestamp()) - sublogger.StartTime),
 		orderRecord.From,
 		orderRecord.To,
 		fmt.Sprint(orderRecord.Packet.Id()),
@@ -126,7 +110,7 @@ func (sublogger *Logger) PullRecord(abstraction.LoggerRequest) (abstraction.Logg
 }
 
 func (sublogger *Logger) Stop() error {
-	if !sublogger.running.CompareAndSwap(true, false) {
+	if !sublogger.Running.CompareAndSwap(true, false) {
 		fmt.Println("Logger already stopped")
 		return nil
 	}
