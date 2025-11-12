@@ -33,9 +33,9 @@ func generatLoggerGroup() *logger.Logger {
 			Logger())
 }
 
-/**
-*
-**/
+/************************************
+* Mockapplogger for testing purposes *
+************************************/
 
 // mockSublogger minimally implements abstraction.Logger for testing error propagation.
 type mockSublogger struct {
@@ -63,7 +63,28 @@ type mockRecord struct {
 
 func (r *mockRecord) Name() abstraction.LoggerName { return r.n }
 
+// chdirTemp changes the current working directory to a temporary directory for the duration of the test.
+func chdirTemp(t *testing.T) string {
+	t.Helper()
+	tmp := t.TempDir()
+	old, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(old) })
+	return tmp
+}
+
+/************************************
+* Test functions for logger group *
+************************************/
+
 func TestCreateLoggerGroup(t *testing.T) {
+
+	_ = chdirTemp(t) // Change to a temporary directory
 
 	// logger handler
 	var loggerHandler *logger.Logger
@@ -89,6 +110,9 @@ func TestCreateLoggerGroup(t *testing.T) {
 }
 
 func TestLoggerGroup_Errors(t *testing.T) {
+
+	_ = chdirTemp(t) // Change to a temporary directory
+
 	// Logger with empty map → PushRecord should return error (no sublogger)
 	lEmpty := logger.NewLogger(map[abstraction.LoggerName]abstraction.Logger{}, zerolog.New(os.Stdout))
 	err := lEmpty.PushRecord(&mockRecord{n: abstraction.LoggerName("missing")})
@@ -108,6 +132,8 @@ func TestLoggerGroup_Errors(t *testing.T) {
 }
 
 func TestStartAndStopLoggerGroup(t *testing.T) {
+
+	_ = chdirTemp(t) // Change to a temporary directory
 
 	// logger handler
 	loggerHandler := generatLoggerGroup()
