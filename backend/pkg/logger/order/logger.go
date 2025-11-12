@@ -50,7 +50,7 @@ func (sublogger *Logger) Start() error {
 	}
 
 	sublogger.writer = file.NewCSV(fileRaw)
-
+	fmt.Println("Logger started " + string(sublogger.Name) + ".")
 	return nil
 }
 
@@ -103,24 +103,18 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	return nil
 }
 
-func (sublogger *Logger) PullRecord(abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
-	panic("TODO!")
-}
-
+// Base Stop method with custom close function
 func (sublogger *Logger) Stop() error {
-	if !sublogger.Running.CompareAndSwap(true, false) {
-		fmt.Println("Logger already stopped")
-		return nil
-	}
 
-	err := sublogger.writer.Close()
-	if err != nil {
-		return logger.ErrClosingFile{
-			Name:      Name,
-			Timestamp: time.Now(),
+	return sublogger.BaseLogger.Stop(func() error {
+		err := sublogger.writer.Close()
+		if err != nil {
+			return logger.ErrClosingFile{
+				Name:      Name,
+				Timestamp: time.Now(),
+			}
 		}
-	}
 
-	fmt.Println("Logger stopped")
-	return nil
+		return err
+	})
 }

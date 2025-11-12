@@ -44,6 +44,8 @@ type Record struct {
 func (*Record) Name() abstraction.LoggerName { return Name }
 
 func NewLogger(boardMap map[abstraction.BoardId]string) *Logger {
+
+	fmt.Print("ssfs")
 	return &Logger{
 		BaseLogger: loggerbase.NewBaseLogger(Name),
 		fileLock:   &sync.Mutex{},
@@ -123,30 +125,23 @@ func (sublogger *Logger) createFile(boardId abstraction.BoardId) (*os.File, erro
 	return sublogger.BaseLogger.CreateFile(filename)
 }
 
-func (sublogger *Logger) PullRecord(abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
-	panic("TODO!")
-}
-
 func (sublogger *Logger) Stop() error {
-	if !sublogger.Running.CompareAndSwap(true, false) {
-		fmt.Println("Logger already stopped")
-		return nil
-	}
 
-	closeErr := error(nil)
-	for _, file := range sublogger.saveFiles {
-		err := file.Close()
-		if err != nil {
-			closeErr = logger.ErrClosingFile{
-				Name:      Name,
-				Timestamp: time.Now(),
+	return sublogger.BaseLogger.Stop(func() error {
+		closeErr := error(nil)
+		for _, file := range sublogger.saveFiles {
+			err := file.Close()
+			if err != nil {
+				closeErr = logger.ErrClosingFile{
+					Name:      Name,
+					Timestamp: time.Now(),
+				}
+				fmt.Println(closeErr.Error())
 			}
-			fmt.Println(closeErr.Error())
 		}
-	}
 
-	sublogger.saveFiles = make(map[abstraction.BoardId]*file.CSV, len(sublogger.saveFiles))
+		sublogger.saveFiles = make(map[abstraction.BoardId]*file.CSV, len(sublogger.saveFiles))
 
-	fmt.Println("Logger stopped")
-	return closeErr
+		return closeErr
+	})
 }

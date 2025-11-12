@@ -156,31 +156,25 @@ func (sublogger *Logger) createFile(valueName data.ValueName, board string) (*os
 	return sublogger.BaseLogger.CreateFile(filename)
 }
 
-func (sublogger *Logger) PullRecord(abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
-	panic("TODO!")
-}
-
+// Base Stop method with custom close function
 func (sublogger *Logger) Stop() error {
-	if !sublogger.Running.CompareAndSwap(true, false) {
-		fmt.Println("Logger already stopped")
-		return nil
-	}
 
-	closeErr := error(nil)
-	for valueName, file := range sublogger.saveFiles {
-		err := file.Close()
-		if err != nil {
-			closeErr = loggerHandler.ErrClosingFile{
-				Name:      Name,
-				Timestamp: time.Now(),
+	return sublogger.BaseLogger.Stop(func() error {
+		closeErr := error(nil)
+		for valueName, file := range sublogger.saveFiles {
+			err := file.Close()
+			if err != nil {
+				closeErr = loggerHandler.ErrClosingFile{
+					Name:      Name,
+					Timestamp: time.Now(),
+				}
+
+				fmt.Println(valueName, ": ", closeErr)
 			}
-
-			fmt.Println(valueName, ": ", closeErr)
 		}
-	}
 
-	sublogger.saveFiles = make(map[data.ValueName]*file.CSV, len(sublogger.saveFiles))
+		sublogger.saveFiles = make(map[data.ValueName]*file.CSV, len(sublogger.saveFiles))
 
-	fmt.Println("Logger stopped")
-	return closeErr
+		return closeErr
+	})
 }
