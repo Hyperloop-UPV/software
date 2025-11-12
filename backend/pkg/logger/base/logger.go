@@ -91,6 +91,6 @@ func (sublogger *BaseLogger) Stop(templateStop func() error) error {
 
 	output := templateStop()
 
-	fmt.Println("Logger stopped" + string(sublogger.Name) + ".")
+	fmt.Println("Logger stopped " + string(sublogger.Name) + ".")
 	return output
 }
