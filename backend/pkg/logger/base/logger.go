@@ -77,6 +77,10 @@ func NewBaseLogger(name abstraction.LoggerName) *BaseLogger {
 	}
 }
 
+func (sublogger *BaseLogger) PullRecord(abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
+	panic("TODO!")
+}
+
 // Function to stop the base logger
 // Param templateStop is a function that contains the specific stop actions of each logger
 func (sublogger *BaseLogger) Stop(templateStop func() error) error {
@@ -89,9 +93,4 @@ func (sublogger *BaseLogger) Stop(templateStop func() error) error {
 
 	fmt.Println("Logger stopped" + string(sublogger.Name) + ".")
 	return output
-}
-
-// TODO: Base PullRecord method
-func (sublogger *BaseLogger) PullRecord(abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
-	panic("TODO!")
 }
