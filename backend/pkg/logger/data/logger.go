@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
@@ -23,7 +22,7 @@ const (
 
 // Logger is a struct that implements the abstraction.Logger interface
 type Logger struct {
-	loggerbase.BaseLogger
+	*loggerbase.BaseLogger
 
 	fileLock *sync.RWMutex
 	// saveFiles is a map that contains the file of each value
@@ -40,11 +39,7 @@ func (*Record) Name() abstraction.LoggerName { return Name }
 func NewLogger() *Logger {
 	logger := &Logger{
 
-		BaseLogger: loggerbase.BaseLogger{
-			Running:   &atomic.Bool{},
-			StartTime: 0,
-			Name:      Name,
-		},
+		BaseLogger:  loggerbase.NewBaseLogger(Name),
 		saveFiles:   make(map[data.ValueName]*file.CSV),
 		fileLock:    &sync.RWMutex{},
 		allowedVars: nil, // no filter by default

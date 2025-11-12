@@ -48,7 +48,7 @@ func (sublogger *BaseLogger) Start() error {
 
 	sublogger.StartTime = loggerHandler.FormatTimestamp(time.Now()) // Update the start time
 
-	fmt.Println("Logger started")
+	fmt.Println("Logger started " + string(sublogger.Name) + ".")
 	return nil
 }
 
@@ -66,4 +66,13 @@ func (sublogger *BaseLogger) CreateFile(filename string) (*os.File, error) {
 	}
 
 	return os.Create(path.Join(filename))
+}
+
+// Create a base Logger with default values
+func NewBaseLogger(name abstraction.LoggerName) *BaseLogger {
+	return &BaseLogger{
+		Running:   &atomic.Bool{},
+		StartTime: 0,
+		Name:      name,
+	}
 }

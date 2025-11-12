@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
@@ -22,7 +21,7 @@ const (
 type Logger struct {
 
 	// embed the base logger
-	loggerbase.BaseLogger
+	*loggerbase.BaseLogger
 
 	// An atomic boolean is used in order to use CompareAndSwap in the Start and Stop methods
 	fileLock *sync.Mutex
@@ -46,11 +45,7 @@ func (*Record) Name() abstraction.LoggerName { return Name }
 
 func NewLogger(boardMap map[abstraction.BoardId]string) *Logger {
 	return &Logger{
-		BaseLogger: loggerbase.BaseLogger{
-			Running:   &atomic.Bool{},
-			StartTime: 0,
-			Name:      Name,
-		},
+		BaseLogger: loggerbase.NewBaseLogger(Name),
 		fileLock:   &sync.Mutex{},
 		saveFiles:  make(map[abstraction.BoardId]*file.CSV),
 		boardNames: boardMap,

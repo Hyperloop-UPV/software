@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sync/atomic"
 	"time"
 
 	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
@@ -19,7 +18,7 @@ const (
 )
 
 type Logger struct {
-	loggerbase.BaseLogger
+	*loggerbase.BaseLogger
 
 	writer *file.CSV
 }
@@ -33,19 +32,18 @@ func (*Record) Name() abstraction.LoggerName {
 
 func NewLogger() *Logger {
 	return &Logger{
-		BaseLogger: loggerbase.BaseLogger{
-			Running:   &atomic.Bool{},
-			StartTime: 0,
-			Name:      Name,
-		},
-		writer: nil,
+		BaseLogger: loggerbase.NewBaseLogger(Name),
+		writer:     nil,
 	}
 }
 
 func (sublogger *Logger) Start() error {
 
-	sublogger.BaseLogger.Start()
-
+	if !sublogger.Running.CompareAndSwap(false, true) {
+		fmt.Println("Logger already running")
+		return nil
+	}
+	// Create the file for logging, if the logger was already running
 	fileRaw, err := sublogger.createFile()
 	if err != nil {
 		return err
