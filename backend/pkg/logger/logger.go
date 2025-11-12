@@ -26,8 +26,12 @@ type Logger struct {
 	trace zerolog.Logger
 }
 
+/**************
+* HandlerLogger *
+***************/
 var _ abstraction.Logger = &Logger{}
 
+// Used on subloggers to get the current timestamp for folder or file names
 var Timestamp = time.Now()
 
 func (Logger) HandlerName() string { return HandlerName }
@@ -68,7 +72,12 @@ func (logger *Logger) Start() error {
 	for name, sublogger := range logger.subloggers {
 		err := sublogger.Start()
 		if err != nil {
-			logger.trace.Error().Stack().Err(err).Str("subLogger", string(name)).Msg("start sublogger")
+			logger.trace.
+				Error().
+				Stack().
+				Err(err).
+				Str("subLogger", string(name)).
+				Msg("start sublogger")
 			return err
 		}
 	}
@@ -79,25 +88,44 @@ func (logger *Logger) Start() error {
 
 // PushRecord works as a proxy for the PushRecord method of the subloggers
 func (logger *Logger) PushRecord(record abstraction.LoggerRecord) error {
+
 	logger.trace.Trace().Type("record", record).Msg("push")
 	sublogger, ok := logger.subloggers[record.Name()]
 	if !ok {
-		logger.trace.Warn().Type("record", record).Str("name", string(record.Name())).Msg("no sublogger found for record")
+		logger.trace.
+			Warn().
+			Type("record", record).
+			Str("name", string(record.Name())).
+			Msg("no sublogger found for record")
+
 		return ErrLoggerNotFound{record.Name()}
 	}
 
 	return sublogger.PushRecord(record)
 }
 
-// PullRecord works as a proxy for the PullRecord method of the subloggers
+// ! This method should not be used because any of the subloggers has PullRecord implemented
+// // PullRecord works as a proxy for the PullRecord method of the subloggers
 func (logger *Logger) PullRecord(request abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
-	logger.trace.Trace().Type("request", request).Msg("request")
-	loggerChecked, ok := logger.subloggers[request.Name()]
-	if !ok {
-		logger.trace.Warn().Type("request", request).Str("name", string(request.Name())).Msg("no subloggger found for request")
-		return nil, ErrLoggerNotFound{request.Name()}
-	}
-	return loggerChecked.PullRecord(request)
+
+	panic("PullRecord")
+
+	// logger.trace.
+	// 	Trace().
+	// 	Type("request", request).
+	// 	Msg("request")
+
+	// loggerChecked, ok := logger.subloggers[request.Name()]
+	// if !ok {
+	// 	logger.trace.
+	// 		Warn().
+	// 		Type("request", request).
+	// 		Str("name", string(request.Name())).
+	// 		Msg("no subloggger found for request")
+
+	// 	return nil, ErrLoggerNotFound{request.Name()}
+	// }
+	// return loggerChecked.PullRecord(request)
 }
 
 func (logger *Logger) Stop() error {
