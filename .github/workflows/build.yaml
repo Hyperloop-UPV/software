@@ -1,0 +1,316 @@
+name: Build Backend and Frontend
+
+on:
+  push:
+    branches:
+      - production
+  pull_request:
+    branches:
+      - production
+  workflow_dispatch:
+
+jobs:
+  # Detect what changed
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend_any_changed: ${{ steps.changes.outputs.backend_any_changed }}
+      control-station_any_changed: ${{ steps.changes.outputs.control-station_any_changed }}
+      ethernet-view_any_changed: ${{ steps.changes.outputs.ethernet-view_any_changed }}
+      common-front_any_changed: ${{ steps.changes.outputs.common-front_any_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed files
+        id: changes
+        uses: tj-actions/changed-files@v41
+        with:
+          files_yaml: |
+            backend:
+              - 'backend/**/*'
+            control-station:
+              - 'control-station/**/*'
+            ethernet-view:
+              - 'ethernet-view/**/*'
+            common-front:
+              - 'common-front/**/*'
+
+      - name: Debug changed files
+        run: |
+          echo "Changed backend: ${{ steps.changes.outputs.backend_any_changed }}"
+          echo "Changed control-station: ${{ steps.changes.outputs.control-station_any_changed }}"
+          echo "Changed ethernet-view: ${{ steps.changes.outputs.ethernet-view_any_changed }}"
+          echo "Changed common-front: ${{ steps.changes.outputs.common-front_any_changed }}"
+
+  # Download backend from previous build if no changes
+  download-backend:
+    name: Download Backend - ${{ matrix.platform }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_any_changed != 'true'
+    runs-on: ubuntu-latest
+    # Continue on error is necessary because download-backend job can fail if backend artifact is not found
+    # and it is not necessary to fail the build in this case
+    continue-on-error: true
+    outputs:
+      downloaded: ${{ steps.download.outcome == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux, windows, macos-intel, macos-arm64]
+
+    steps:
+      - name: Download backend from latest build
+        id: download
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: backend-${{ matrix.platform }}
+          path: backend-artifacts
+          if_no_artifact_found: fail
+
+      - name: Re-upload backend artifact
+        if: steps.download.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.platform }}
+          path: backend-artifacts/*
+          retention-days: 30
+
+  # Build Go backends on native platforms
+  # only if backend changed or download-backend failed
+  build-backend:
+    name: Build Backend - ${{ matrix.platform }}
+    needs: [detect-changes, download-backend]
+    # Always is needed to execute this job even if backend download failed
+    # By default it would be skipped because dependent job failed
+    if: always() &&
+      (needs.detect-changes.outputs.backend_any_changed == 'true' ||
+      needs.download-backend.outputs.downloaded != 'true')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            binary_name: backend-linux-amd64
+
+          - os: windows-latest
+            platform: windows
+            binary_name: backend-windows-amd64.exe
+
+          - os: macos-latest
+            platform: macos-intel
+            binary_name: backend-darwin-amd64
+            goarch: amd64
+
+          - os: macos-latest
+            platform: macos-arm64
+            binary_name: backend-darwin-arm64
+            goarch: arm64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libpcap-dev gcc
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install libpcap
+
+      - name: Build backend (Linux)
+        if: runner.os == 'Linux'
+        working-directory: backend/cmd
+        run: |
+          CGO_ENABLED=1 go build -o ${{ matrix.binary_name }} .
+
+      - name: Build backend (Windows)
+        if: runner.os == 'Windows'
+        working-directory: backend/cmd
+        run: |
+          $env:CGO_ENABLED="1"
+          go build -o ${{ matrix.binary_name }} .
+        shell: pwsh
+
+      - name: Build backend (macOS)
+        if: runner.os == 'macOS'
+        working-directory: backend/cmd
+        run: |
+          CGO_ENABLED=1 GOARCH=${{ matrix.goarch }} go build -o ${{ matrix.binary_name }} .
+
+      - name: Upload backend binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.platform }}
+          path: backend/cmd/${{ matrix.binary_name }}
+          retention-days: 30
+
+  # Download control-station from previous build if no changes
+  download-control-station:
+    name: Download Control Station
+    needs: detect-changes
+    # The condition checks if control station changed or common front changed
+    if: needs.detect-changes.outputs.control-station_any_changed != 'true' && needs.detect-changes.outputs.common-front_any_changed != 'true'
+    runs-on: ubuntu-latest
+    # Continue on error is necessary because download-control-station job can fail if control station artifact is not found
+    # and it is not necessary to fail the build in this case
+    continue-on-error: true
+    outputs:
+      downloaded: ${{ steps.download.outcome == 'success' }}
+    steps:
+      - name: Download control-station from latest build
+        id: download
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: control-station
+          path: control-station-artifacts
+          if_no_artifact_found: fail
+
+      - name: Re-upload control-station artifact
+        if: steps.download.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-station
+          path: control-station-artifacts/**
+          retention-days: 30
+
+  # Build control-station (if control-station or common-front changed)
+  build-control-station:
+    name: Build Control Station
+    needs: [detect-changes, download-control-station]
+    # Always is needed to execute this job even if control station download failed
+    # By default it would be skipped because dependent job failed
+    # The condition checks if control station changed or common front changed or download control station failed
+    if: always() &&
+      (needs.detect-changes.outputs.control-station_any_changed == 'true' ||
+      needs.detect-changes.outputs.common-front_any_changed == 'true' ||
+      needs.download-control-station.outputs.downloaded != 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build common-front
+        working-directory: common-front
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build control-station
+        working-directory: control-station
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload control-station artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-station
+          path: control-station/static/**
+          retention-days: 30
+
+      # Re-upload is necessary because previous job can't see these artifacts,
+      # neither it can be moved into a different job.
+  # upload-control-station:
+  #   name: Upload Control Station
+  #   needs: [build-control-station, download-control-station]
+  #   steps:
+  #     - name: Upload control-station artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: control-station
+  #         path: control-station-artifacts/**
+  #         retention-days: 30
+
+  # Download ethernet-view from previous build if no changes
+  download-ethernet-view:
+    name: Download Ethernet View
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ethernet-view_any_changed != 'true' && needs.detect-changes.outputs.common-front_any_changed != 'true'
+    runs-on: ubuntu-latest
+    # Continue on error is necessary because download-ethernet-view job can fail if ethernet view artifact is not found
+    # and it is not necessary to fail the build in this case
+    continue-on-error: true
+    outputs:
+      downloaded: ${{ steps.download.outcome == 'success' }}
+    steps:
+      - name: Download ethernet-view from latest build
+        id: download
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: ethernet-view
+          path: ethernet-view-artifacts
+          if_no_artifact_found: fail
+
+      - name: Re-upload ethernet-view artifact
+        if: steps.download.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethernet-view
+          path: ethernet-view-artifacts/**
+          retention-days: 30
+
+  # Build ethernet-view (if ethernet-view or common-front changed)
+  build-ethernet-view:
+    name: Build Ethernet View
+    needs: [detect-changes, download-ethernet-view]
+    # Always is needed to execute this job even if ethernet view download failed
+    # By default it would be skipped because dependent job failed
+    # The condition checks if ethernet view changed or common front changed or download ethernet view failed
+    if: always() &&
+      (needs.detect-changes.outputs.ethernet-view_any_changed == 'true' ||
+      needs.detect-changes.outputs.common-front_any_changed == 'true' ||
+      needs.download-ethernet-view.outputs.downloaded != 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build common-front
+        working-directory: common-front
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build ethernet-view
+        working-directory: ethernet-view
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload ethernet-view artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethernet-view
+          path: ethernet-view/static/**
+          retention-days: 30
