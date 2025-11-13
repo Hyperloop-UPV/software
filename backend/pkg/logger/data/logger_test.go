@@ -94,7 +94,7 @@ func TestStart(t *testing.T) {
 
 func TestPushRecord(t *testing.T) {
 
-	//_ = chdirTemp(t) // Change to a temporary directory
+	_ = chdirTemp(t) // Change to a temporary directory
 
 	boardName := "Pikachu"
 
