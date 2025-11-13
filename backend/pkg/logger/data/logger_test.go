@@ -94,7 +94,7 @@ func TestStart(t *testing.T) {
 
 func TestPushRecord(t *testing.T) {
 
-	_ = chdirTemp(t) // Change to a temporary directory
+	//_ = chdirTemp(t) // Change to a temporary directory
 
 	boardName := "Pikachu"
 
@@ -175,7 +175,6 @@ func TestPushRecord(t *testing.T) {
 			}
 		})
 
-		// --- START: nueva verificación antes de detener ---
 		// read and store current file contents to compare later
 		filePath := filepath.Join("logger", loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat), "data", strings.ToUpper(boardName), valueName+".csv")
 		time.Sleep(200 * time.Millisecond) // small wait to stabilize
@@ -184,7 +183,6 @@ func TestPushRecord(t *testing.T) {
 			t.Fatalf("could not read file before stopping logger: %v", err)
 		}
 		before := strings.TrimSpace(string(beforeBytes))
-		// --- END: nueva verificación antes de detener ---
 
 		// stop the logger
 		logger.Stop()
@@ -528,8 +526,11 @@ func runCreateFile_Success(t *testing.T) {
 		t.Fatalf("expected prefix 'logger', got %q", parts[0])
 	}
 
-	// TODO: after refactor, we should be able to assert the date folder
-	// parts[1] is the date folder → we intentionally do NOT assert its value
+	// parts[1] is the date folder
+
+	if parts[1] != loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat) {
+		t.Fatalf("expected folder '%s', got %q", loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat), parts[2])
+	}
 
 	if parts[2] != "data" {
 		t.Fatalf("expected folder 'data', got %q", parts[2])
