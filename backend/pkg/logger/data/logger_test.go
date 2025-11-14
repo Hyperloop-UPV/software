@@ -414,72 +414,84 @@ func TestPushRecord(t *testing.T) {
 			}
 		})
 
-		//! TEST DOES NOT WORK IF WE MONITOR THE SAME VARIABLE ACROSS MULTIPLE BOARDS
-		t.Run("With allowed variables (multiple boards)", func(t *testing.T) {
-			logger := createLoggerForTest(t)
-			logger.Start()
-
-			//variables
-
-			values := []string{"def", "def2"}
-
-			// values to log per board
-			vals := map[string]float64{
-				"Pikachu":   11.11,
-				"Bulbasaur": 22.22,
-			}
-
-			// push one record per board using "def" and unique packet IDs
-			var id abstraction.PacketId = 1
-			for b, v := range vals {
-				pkt := data.NewPacket(id).
-					SetValue(data.ValueName(values[id-1]), data.NewNumericValue(v), true)
-				id++
-
-				rec := Record{
-					Packet:    pkt,
-					From:      b,
-					To:        "Logger",
-					Timestamp: time.Now(),
-				}
-
-				if err := logger.PushRecord(&rec); err != nil {
-					t.Fatalf("PushRecord failed for board %s: %v", b, err)
-				}
-			}
-
-			// esperar a que terminen las escrituras asíncronas
-			time.Sleep(2 * time.Second)
-
-			i := 0
-
-			// comprobar ficheros y valores
-			for b, v := range vals {
-				filePath := filepath.Join("logger", loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat), "data", strings.ToUpper(b), values[i]+".csv")
-				i++
-				if _, err := os.Stat(filePath); err != nil {
-					t.Fatalf("expected file %s to exist, but got error: %v", filePath, err)
-				}
-
-				bts, err := os.ReadFile(filePath)
-				if err != nil {
-					t.Fatalf("could not read file %s: %v", filePath, err)
-				}
-				lines := strings.Split(strings.TrimSpace(string(bts)), "\n")
-				last := strings.TrimSpace(lines[len(lines)-1])
-				fields := strings.Split(last, ",")
-				if len(fields) < 1 {
-					t.Fatalf("unexpected CSV content in %s: %q", filePath, last)
-				}
-				got := fields[len(fields)-1]
-				want := strconv.FormatFloat(v, 'f', -1, 64)
-				if got != want {
-					t.Fatalf("unexpected value in %s: got %q, want %q", filePath, got, want)
-				}
-			}
+		t.Run("With allowed variables (multiple boards, different values Name)", func(t *testing.T) {
+			multipleBoardsValueNames(t, []string{"def", "def2"})
 		})
+
+		// The same as before but the loggers have the same value Name
+		t.Run("With allowed variables (multiple boards, same value Name)", func(t *testing.T) {
+
+			multipleBoardsValueNames(t, []string{"def", "def"})
+
+		})
+
 	})
 
+}
+
+// Test Multiple boards with the valueNames got from input
+
+func multipleBoardsValueNames(t *testing.T, values []string) {
+
+	logger := createLoggerForTest(t)
+	logger.Start()
+
+	//variables
+
+	// values to log per board
+	vals := map[string]float64{
+		"Pikachu":   11.11,
+		"Bulbasaur": 22.22,
+	}
+
+	// push one record per board using "def" and unique packet IDs
+	var id abstraction.PacketId = 1
+	for b, v := range vals {
+		pkt := data.NewPacket(id).
+			SetValue(data.ValueName(values[id-1]), data.NewNumericValue(v), true)
+		id++
+
+		rec := Record{
+			Packet:    pkt,
+			From:      b,
+			To:        "Logger",
+			Timestamp: time.Now(),
+		}
+
+		if err := logger.PushRecord(&rec); err != nil {
+			t.Fatalf("PushRecord failed for board %s: %v", b, err)
+		}
+	}
+
+	// esperar a que terminen las escrituras asíncronas
+	time.Sleep(2 * time.Second)
+
+	i := 0
+
+	// comprobar ficheros y valores
+	for b, v := range vals {
+		filePath := filepath.Join("logger", loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat), "data", strings.ToUpper(b), values[i]+".csv")
+		i++
+		if _, err := os.Stat(filePath); err != nil {
+			t.Fatalf("expected file %s to exist, but got error: %v", filePath, err)
+		}
+
+		bts, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Fatalf("could not read file %s: %v", filePath, err)
+		}
+		lines := strings.Split(strings.TrimSpace(string(bts)), "\n")
+		last := strings.TrimSpace(lines[len(lines)-1])
+		fields := strings.Split(last, ",")
+		if len(fields) < 1 {
+			t.Fatalf("unexpected CSV content in %s: %q", filePath, last)
+		}
+		got := fields[len(fields)-1]
+		want := strconv.FormatFloat(v, 'f', -1, 64)
+		if got != want {
+			t.Fatalf("unexpected value in %s: got %q, want %q", filePath, got, want)
+		}
+	}
 }
 
 /*************

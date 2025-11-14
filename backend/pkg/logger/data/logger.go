@@ -16,6 +16,8 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 )
 
+type loggerAccess string
+
 const (
 	Name abstraction.LoggerName = "data"
 )
@@ -26,7 +28,7 @@ type Logger struct {
 
 	fileLock *sync.RWMutex
 	// saveFiles is a map that contains the file of each value
-	saveFiles map[data.ValueName]*file.CSV
+	saveFiles map[loggerAccess]*file.CSV
 	// allowedVars contains the full names (board/valueName) to be logged
 	allowedVars map[string]struct{}
 }
@@ -40,7 +42,7 @@ func NewLogger() *Logger {
 	logger := &Logger{
 
 		BaseLogger:  loggerbase.NewBaseLogger(Name),
-		saveFiles:   make(map[data.ValueName]*file.CSV),
+		saveFiles:   make(map[loggerAccess]*file.CSV),
 		fileLock:    &sync.RWMutex{},
 		allowedVars: nil, // no filter by default
 	}
@@ -130,16 +132,19 @@ func (sublogger *Logger) getFile(valueName data.ValueName, board string) (*file.
 	sublogger.fileLock.Lock()
 	defer sublogger.fileLock.Unlock()
 
+	// Takes into account that several boards might have the same valueName,
+	valueNameBoard := internalLoggerName(valueName, board)
+
 	// Check if the file already exists
-	valueFile, ok := sublogger.saveFiles[valueName]
+	valueFile, ok := sublogger.saveFiles[valueNameBoard]
 	if ok {
 		return valueFile, nil
 	}
 
 	valueFileRaw, err := sublogger.createFile(valueName, board)
-	sublogger.saveFiles[valueName] = file.NewCSV(valueFileRaw)
+	sublogger.saveFiles[valueNameBoard] = file.NewCSV(valueFileRaw)
 
-	return sublogger.saveFiles[valueName], err
+	return sublogger.saveFiles[valueNameBoard], err
 }
 
 // override createFile from BaseLogger to add specific path
@@ -173,8 +178,14 @@ func (sublogger *Logger) Stop() error {
 			}
 		}
 
-		sublogger.saveFiles = make(map[data.ValueName]*file.CSV, len(sublogger.saveFiles))
+		sublogger.saveFiles = make(map[loggerAccess]*file.CSV, len(sublogger.saveFiles))
 
 		return closeErr
 	})
+}
+
+// This function avoids conflict between two boards that have the same variable to represent
+// should be called only when using  saveFiles
+func internalLoggerName(valueName data.ValueName, board string) loggerAccess {
+	return loggerAccess(string(valueName) + "-" + string(board))
 }
