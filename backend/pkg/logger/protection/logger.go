@@ -5,11 +5,11 @@ import (
 	"os"
 	"path"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
+	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/file"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
 )
@@ -19,15 +19,17 @@ const (
 )
 
 type Logger struct {
+
+	// embed the base logger
+	*loggerbase.BaseLogger
+
 	// An atomic boolean is used in order to use CompareAndSwap in the Start and Stop methods
-	running  *atomic.Bool
 	fileLock *sync.Mutex
 	// saveFiles is a map that contains the file of each info packet
 	saveFiles map[abstraction.BoardId]*file.CSV
 	// BoardNames is a map that contains the common name of each board
 	boardNames map[abstraction.BoardId]string
 	// save the starting time of the logger in Unix microseconds in order to log relative timestamps
-	startTime int64
 }
 
 // Record is a struct that implements the abstraction.LoggerRecord interface
@@ -42,29 +44,18 @@ type Record struct {
 func (*Record) Name() abstraction.LoggerName { return Name }
 
 func NewLogger(boardMap map[abstraction.BoardId]string) *Logger {
+
+	fmt.Print("ssfs")
 	return &Logger{
-		running:    &atomic.Bool{},
+		BaseLogger: loggerbase.NewBaseLogger(Name),
 		fileLock:   &sync.Mutex{},
 		saveFiles:  make(map[abstraction.BoardId]*file.CSV),
 		boardNames: boardMap,
-		startTime:  0,
 	}
-}
-
-func (sublogger *Logger) Start() error {
-	if !sublogger.running.CompareAndSwap(false, true) {
-		fmt.Println("Logger already running")
-		return nil
-	}
-
-	sublogger.startTime = logger.FormatTimestamp(time.Now()) // Update the start time
-
-	fmt.Println("Logger started")
-	return nil
 }
 
 func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
-	if !sublogger.running.Load() {
+	if !sublogger.Running.Load() {
 		return logger.ErrLoggerNotRunning{
 			Name:      Name,
 			Timestamp: time.Now(),
@@ -87,7 +78,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	err = saveFile.Write([]string{
-		fmt.Sprint(logger.FormatTimestamp(infoRecord.Timestamp) - sublogger.startTime),
+		fmt.Sprint(logger.FormatTimestamp(infoRecord.Timestamp) - sublogger.StartTime),
 		infoRecord.From,
 		infoRecord.To,
 		fmt.Sprint(infoRecord.Packet.Id()),
@@ -116,6 +107,8 @@ func (sublogger *Logger) getFile(boardId abstraction.BoardId) (*file.CSV, error)
 	return sublogger.saveFiles[boardId], err
 }
 
+// override createFile from BaseLogger to add specific path
+// and filename structure
 func (sublogger *Logger) createFile(boardId abstraction.BoardId) (*os.File, error) {
 	boardName, ok := sublogger.boardNames[boardId]
 	if !ok {
@@ -129,42 +122,26 @@ func (sublogger *Logger) createFile(boardId abstraction.BoardId) (*os.File, erro
 		fmt.Sprintf("%s.csv", boardName),
 	)
 
-	err := os.MkdirAll(path.Dir(filename), os.ModePerm)
-	if err != nil {
-		return nil, logger.ErrCreatingAllDir{
-			Name:      Name,
-			Timestamp: time.Now(),
-			Path:      filename,
-		}
-	}
-
-	return os.Create(filename)
-}
-
-func (sublogger *Logger) PullRecord(abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
-	panic("TODO!")
+	return sublogger.BaseLogger.CreateFile(filename)
 }
 
 func (sublogger *Logger) Stop() error {
-	if !sublogger.running.CompareAndSwap(true, false) {
-		fmt.Println("Logger already stopped")
-		return nil
-	}
 
-	closeErr := error(nil)
-	for _, file := range sublogger.saveFiles {
-		err := file.Close()
-		if err != nil {
-			closeErr = logger.ErrClosingFile{
-				Name:      Name,
-				Timestamp: time.Now(),
+	return sublogger.BaseLogger.Stop(func() error {
+		closeErr := error(nil)
+		for _, file := range sublogger.saveFiles {
+			err := file.Close()
+			if err != nil {
+				closeErr = logger.ErrClosingFile{
+					Name:      Name,
+					Timestamp: time.Now(),
+				}
+				fmt.Println(closeErr.Error())
 			}
-			fmt.Println(closeErr.Error())
 		}
-	}
 
-	sublogger.saveFiles = make(map[abstraction.BoardId]*file.CSV, len(sublogger.saveFiles))
+		sublogger.saveFiles = make(map[abstraction.BoardId]*file.CSV, len(sublogger.saveFiles))
 
-	fmt.Println("Logger stopped")
-	return closeErr
+		return closeErr
+	})
 }

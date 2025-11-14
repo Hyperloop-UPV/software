@@ -44,8 +44,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 	data_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
 	order_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/order"
-	protection_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/protection"
-	state_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/state"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/sniffer"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
@@ -176,12 +174,9 @@ func main() {
 	updateFactory := update_factory.NewFactory(boardToPackets)
 
 	// <--- logger --->
-	var boardMap map[abstraction.BoardId]string
 	var subloggers = map[abstraction.LoggerName]abstraction.Logger{
-		data_logger.Name:       data_logger.NewLogger(),
-		protection_logger.Name: protection_logger.NewLogger(boardMap),
-		order_logger.Name:      order_logger.NewLogger(),
-		state_logger.Name:      state_logger.NewLogger(),
+		data_logger.Name:  data_logger.NewLogger(),
+		order_logger.Name: order_logger.NewLogger(),
 	}
 
 	logger.SetFormatTimestamp(logger.TimeUnit(config.Logging.TimeUnit)) // MUST be before creating subloggers

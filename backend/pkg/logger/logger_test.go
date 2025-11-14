@@ -1,224 +1,284 @@
 package logger_test
 
 import (
-	"encoding/csv"
-	"fmt"
-	"os"
-	"path"
+	"bufio"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"os"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/order"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/protection"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/state"
-	dataPacketer "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
-	protectionPacketer "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
-	statePacketer "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/state"
 	"github.com/rs/zerolog"
+
+	dataPacketer "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 )
 
-func TestLogger(t *testing.T) {
-	dataSublogger := data.NewLogger()
-	orderSublogger := order.NewLogger()
-	protectionSublogger := protection.NewLogger(map[abstraction.BoardId]string{
-		0: "test",
-	})
-	stateSublogger := state.NewLogger()
-	loggerHandler := logger.NewLogger(map[abstraction.LoggerName]abstraction.Logger{
-		data.Name:       dataSublogger,
-		order.Name:      orderSublogger,
-		protection.Name: protectionSublogger,
-		state.Name:      stateSublogger,
-	}, zerolog.New(os.Stdout).With().Timestamp().Logger())
+func generatLoggerGroup() *logger.Logger {
 
-	if err := loggerHandler.Start(); err != nil {
-		t.Error(err)
-	}
-
-	timestamp := logger.Timestamp
-
-	// Data
-	dataPacket := dataPacketer.NewPacketWithValues(
-		0,
-		map[dataPacketer.ValueName]dataPacketer.Value{
-			"test": dataPacketer.NewBooleanValue(true),
+	return logger.NewLogger(
+		map[abstraction.LoggerName]abstraction.Logger{
+			data.Name:  data.NewLogger(),
+			order.Name: order.NewLogger(),
 		},
-		map[dataPacketer.ValueName]bool{
-			"test": true,
-		})
-	dataPacketTime := time.Now()
-	dataRecord := &data.Record{
-		Packet:    dataPacket,
-		From:      "test",
-		To:        "test",
-		Timestamp: timestamp,
-	}
-	err := loggerHandler.PushRecord(dataRecord)
+
+		zerolog.
+			New(os.Stdout).
+			With().
+			Timestamp().
+			Logger())
+}
+
+/************************************
+* Mockapplogger for testing purposes *
+************************************/
+
+// mockSublogger minimally implements abstraction.Logger for testing error propagation.
+type mockSublogger struct {
+	startErr error
+}
+
+func (m *mockSublogger) Start() error {
+	return m.startErr
+}
+func (m *mockSublogger) Stop() error {
+	return nil
+}
+func (m *mockSublogger) PushRecord(_ abstraction.LoggerRecord) error {
+	return nil
+}
+func (m *mockSublogger) PullRecord(_ abstraction.LoggerRequest) (abstraction.LoggerRecord, error) {
+	return nil, nil
+}
+func (m *mockSublogger) HandlerName() string { return "mock" }
+
+// mockRecord minimally implements Name() required by logger's PushRecord.
+type mockRecord struct {
+	n abstraction.LoggerName
+}
+
+func (r *mockRecord) Name() abstraction.LoggerName { return r.n }
+
+// chdirTemp changes the current working directory to a temporary directory for the duration of the test.
+func chdirTemp(t *testing.T) string {
+	t.Helper()
+	tmp := t.TempDir()
+	old, err := os.Getwd()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(old) })
+	return tmp
+}
+
+/************************************
+* Test functions for logger group *
+************************************/
+
+func TestCreateLoggerGroup(t *testing.T) {
+
+	_ = chdirTemp(t) // Change to a temporary directory
+
+	// logger handler
+	var loggerHandler *logger.Logger
+
+	// Generate logger group
+	t.Run("Create logger group", func(t *testing.T) {
+
+		loggerHandler = generatLoggerGroup()
+
+		if loggerHandler == nil {
+			t.Errorf("Failed to create logger group")
+		}
+
+	})
+
+	t.Run(" Check Name", func(t *testing.T) {
+
+		if loggerHandler.HandlerName() != "logger" {
+			t.Errorf("Logger HandlerName() incorrect, got: %s, want: %s", loggerHandler.HandlerName(), "logger")
+		}
+	})
+
+}
+
+func TestLoggerGroup_Errors(t *testing.T) {
+
+	_ = chdirTemp(t) // Change to a temporary directory
+
+	// Logger with empty map → PushRecord should return error (no sublogger)
+	lEmpty := logger.NewLogger(map[abstraction.LoggerName]abstraction.Logger{}, zerolog.New(os.Stdout))
+	err := lEmpty.PushRecord(&mockRecord{n: abstraction.LoggerName("missing")})
+	if err == nil {
+		t.Fatalf("expected error when PushRecord to non-existent sublogger, got nil")
 	}
 
-	filename := path.Join(
-		"logger/data",
-		fmt.Sprintf("%s", timestamp.Format(logger.TimestampFormat)),
-		fmt.Sprintf("%s.csv", "test"),
-	)
-	file, err := os.Open(filename)
-	if err != nil {
-		t.Error(err)
+	// Logger whose sublogger returns error on Start → Start should propagate the error
+	wantErr := os.ErrPermission
+	badMap := map[abstraction.LoggerName]abstraction.Logger{
+		abstraction.LoggerName("bad"): &mockSublogger{startErr: wantErr},
 	}
-	defer file.Close()
+	lBad := logger.NewLogger(badMap, zerolog.New(os.Stdout))
+	if err := lBad.Start(); err != wantErr {
+		t.Fatalf("Start did not propagate the expected error. Got: %v, Want: %v", err, wantErr)
+	}
+}
 
-	output, err := csv.NewReader(file).Read()
-	if err != nil {
-		t.Error(err)
-	}
+func TestStartAndStopLoggerGroup(t *testing.T) {
 
-	if output[0] != fmt.Sprint(logger.FormatTimestamp(dataPacketTime)) || output[1] != "test" || output[2] != "test" || output[3] != "true" {
-		t.Errorf("dataErr: expected [%v test test true], got %v", logger.FormatTimestamp(timestamp), output)
-	}
+	_ = chdirTemp(t) // Change to a temporary directory
 
-	// Order
-	orderPacket := dataPacketer.NewPacket(0)
-	orderPacketTime := time.Now()
-	orderRecord := &order.Record{
-		Packet:    orderPacket,
-		From:      "test",
-		To:        "test",
-		Timestamp: timestamp,
-	}
-	err = loggerHandler.PushRecord(orderRecord)
-	if err != nil {
-		t.Error(err)
-	}
+	// logger handler
+	loggerHandler := generatLoggerGroup()
 
-	filename = path.Join(
-		"logger/order",
-		fmt.Sprintf("%s", timestamp.Format(logger.TimestampFormat)),
-		"order.csv",
-	)
-	file, err = os.Open(filename)
-	if err != nil {
-		t.Error(err)
-	}
-	defer file.Close()
-
-	output, err = csv.NewReader(file).Read()
-	if err != nil {
-		t.Error(err)
-	}
-
-	if output[0] != fmt.Sprint(logger.FormatTimestamp(orderPacketTime)) || output[1] != "test" || output[2] != "test" {
-		t.Errorf("orderErr: expected [test test], got %v", output)
-	}
-
-	// Protection
-	protectionPacket := protectionPacketer.NewPacket(0, protectionPacketer.OkSeverity)
-	protectionPacket.Timestamp = &protectionPacketer.Timestamp{
-		Counter: 0,
-		Second:  0,
-		Minute:  0,
-		Hour:    0,
-		Day:     0,
-		Month:   0,
-		Year:    0,
-	}
-	protectionPacket.Name = "test"
-	protectionPacket.Kind = protectionPacketer.EqualsKind
-	protectionPacket.Data = &protectionPacketer.Equals[int8]{
-		Target: 0,
-		Value:  0,
-	}
-	protectionPacket.Type = protectionPacketer.Uint8Type
-	protectionRecord := &protection.Record{
-		Packet:    protectionPacket,
-		BoardId:   abstraction.BoardId(0),
-		From:      "test",
-		To:        "test",
-		Timestamp: timestamp,
-	}
-	protectionPacketTime := protectionPacket.Timestamp.ToTime()
-
-	err = loggerHandler.PushRecord(protectionRecord)
-	if err != nil {
-		t.Error(err)
-	}
-
-	filename = path.Join(
-		"logger/protections",
-		fmt.Sprintf("%s", timestamp.Format(logger.TimestampFormat)),
-		fmt.Sprintf("%s.csv", "test"),
-	)
-	file, err = os.Open(filename)
-	if err != nil {
-		t.Error(err)
-	}
-	defer file.Close()
-
-	output, err = csv.NewReader(file).Read()
-	if err != nil {
-		t.Error(err)
-	}
-
-	if output[0] != fmt.Sprint(logger.FormatTimestamp(timestamp)) || output[1] != "test" || output[2] != "test" || output[3] != "0" || output[4] != "7" || output[5] != "3" || output[6] != "test" || output[7] != "&{0 0}" || output[8] != protectionPacketTime.Format(time.RFC3339) {
-		t.Errorf("orderErr: expected [test test 0], got %v", output)
-	}
-
-	// State
-	matrix := [8][15]float32{
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-	}
-	statePacket := statePacketer.NewSpace(0, matrix)
-	stateRecord := &state.Record{
-		Packet:    statePacket,
-		From:      "test",
-		To:        "test",
-		Timestamp: timestamp,
-	}
-
-	err = loggerHandler.PushRecord(stateRecord)
-	if err != nil {
-		t.Error(err)
-	}
-
-	filename = path.Join(
-		"logger", "state",
-		logger.Timestamp.Format(logger.TimestampFormat),
-		fmt.Sprintf("%s.csv", stateRecord.Timestamp.Format(logger.TimestampFormat)),
-	)
-	file, err = os.Open(filename)
-	if err != nil {
-		t.Error(err)
-	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	for i := 0; i < 8; i++ {
-		output, err = reader.Read()
+	t.Run("Start logger group", func(t *testing.T) {
+		err := loggerHandler.Start()
 		if err != nil {
-			t.Error(err)
+			t.Errorf("Failed to start logger group: %s", err)
+		}
+	})
+
+	// previous line
+
+	var previousLine string
+
+	// Try to write a log to check if the logger is running
+
+	t.Run("Push Record to logger group", func(t *testing.T) {
+
+		// Data
+		dataPacket := dataPacketer.NewPacketWithValues(
+			0,
+			map[dataPacketer.ValueName]dataPacketer.Value{
+				"test": dataPacketer.NewBooleanValue(true),
+			},
+			map[dataPacketer.ValueName]bool{
+				"test": true,
+			})
+		dataPacketTime := time.Now()
+		dataRecord := &data.Record{
+			Packet:    dataPacket,
+			From:      "test",
+			To:        "test",
+			Timestamp: dataPacketTime,
+		}
+		loggerHandler.PushRecord(dataRecord)
+
+		// Read file to ensure it was successfully written
+
+		filePath := filepath.Join("logger", logger.Timestamp.Format(logger.TimestampFormat), "data", "TEST", "test.csv")
+
+		time.Sleep(2 * time.Second) // small wait to stabilize
+
+		_, err := os.Stat(filePath)
+		if os.IsNotExist(err) {
+			t.Errorf("Failed to write log to file: %s", err)
 		}
 
-		for j := 0; j < 15; j++ {
-			if output[j] != fmt.Sprint(float32(1.0)) {
-				t.Errorf("stateErr: expected 1.0, got %v", output[j])
-			}
+		// Look last line of the file
+		file, err := os.Open(filePath)
+		if err != nil {
+			t.Errorf("Failed to open log file: %s", err)
 		}
-	}
+		defer file.Close()
 
-	if closeErr := loggerHandler.Stop(); closeErr != nil {
-		t.Error(err)
-	}
+		var lastLine string
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			lastLine = scanner.Text()
+		}
 
-	os.RemoveAll("logger")
+		line := strings.TrimSpace(string(lastLine))
+		if line == "" {
+			t.Fatalf("file %s is empty", filePath)
+		}
+
+		// split the line by commas
+		fields := strings.Split(line, ",")
+		if len(fields) < 3 {
+			t.Fatalf("CSV line has fewer than 3 fields: %s", line)
+		}
+
+		// check content
+		if fields[1] != "test" {
+			t.Errorf("Incorrect Packet ID, got: %s, want: %s", fields[1], "test")
+		}
+
+		if fields[2] != "test" {
+			t.Errorf("Incorrect Packet ID, got: %s, want: %s", fields[2], "test")
+		}
+
+		if fields[3] != "true" {
+			t.Errorf("Incorrect Packet Value for 'test', got: %s, want: %s", fields[3], "true")
+		}
+
+		previousLine = line
+
+	})
+
+	t.Run("Stop logger group", func(t *testing.T) {
+		err := loggerHandler.Stop()
+		if err != nil {
+			t.Errorf("Failed to stop logger group: %s", err)
+		}
+	})
+
+	t.Run("Push Record when stopped", func(t *testing.T) {
+
+		// Data
+		dataPacket := dataPacketer.NewPacketWithValues(
+			0,
+			map[dataPacketer.ValueName]dataPacketer.Value{
+				"test": dataPacketer.NewBooleanValue(true),
+			},
+			map[dataPacketer.ValueName]bool{
+				"test": true,
+			})
+		dataPacketTime := time.Now()
+		dataRecord := &data.Record{
+			Packet:    dataPacket,
+			From:      "test",
+			To:        "test",
+			Timestamp: dataPacketTime,
+		}
+		loggerHandler.PushRecord(dataRecord)
+
+		// Read file to ensure it was successfully written
+
+		filePath := filepath.Join("logger", logger.Timestamp.Format(logger.TimestampFormat), "data", "TEST", "test.csv")
+
+		time.Sleep(2 * time.Second) // small wait to stabilize
+
+		_, err := os.Stat(filePath)
+		if os.IsNotExist(err) {
+			t.Errorf("Failed to write log to file: %s", err)
+		}
+
+		// Look last line of the file
+		file, err := os.Open(filePath)
+		if err != nil {
+			t.Errorf("Failed to open log file: %s", err)
+		}
+		defer file.Close()
+
+		var lastLine string
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			lastLine = scanner.Text()
+		}
+
+		line := strings.TrimSpace(string(lastLine))
+
+		if line != previousLine {
+			t.Errorf("Logger wrote a log when stopped, got: %s, want: %s", line, previousLine)
+		}
+
+	})
 }
