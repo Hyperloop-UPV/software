@@ -49,6 +49,8 @@ func (sublogger *Logger) Start() error {
 		return err
 	}
 
+	sublogger.StartTime = logger.FormatTimestamp(time.Now()) // Update the start time
+
 	sublogger.writer = file.NewCSV(fileRaw)
 	fmt.Println("Logger started " + string(sublogger.Name) + ".")
 	return nil
