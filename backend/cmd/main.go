@@ -350,7 +350,7 @@ func main() {
 
 	// Start handling network packets (either sniffer or UDP server based on dev mode)
 	// Dev mode: Use UDP server
-	trace.Info().Msg("Starting in dev mode with UDP server")
+	trace.Info().Msg("Starting UDP server")
 	udpServer := udp.NewServer(adj.Info.Addresses[BACKEND], adj.Info.Ports[UDP], &trace.Logger)
 	err = udpServer.Start()
 	if err != nil {
