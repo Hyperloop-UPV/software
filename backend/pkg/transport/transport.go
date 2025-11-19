@@ -119,6 +119,45 @@ func (transport *Transport) HandleServer(config tcp.ServerConfig, local string) 
 // handleTCPConn is used to handle the specific TCP connections to the boards. It detects errors caused
 // on concurrent reads and writes, so other routines should not worry about closing or handling errors
 func (transport *Transport) handleTCPConn(conn net.Conn) error {
+	transport.configureTCPConn(conn)
+
+	target, err := transport.resolveTarget(conn)
+	if err != nil {
+		return err
+	}
+
+	connectionLogger := transport.logger.With().Str("remoteAddress", conn.RemoteAddr().String()).Str("target", string(target)).Logger()
+	connectionLogger.Info().Msg("new connection")
+
+	if err := transport.checkIfActiveConnection(target, conn, connectionLogger); err != nil {
+		transport.errChan <- err
+		return err
+	}
+
+	conn, errChan := tcp.WithErrChan(conn)
+	defer func() {
+		conn.Close()
+		connectionLogger.Info().Msg("close")
+	}()
+
+	cleanupConn := transport.addConnection(target, conn, connectionLogger)
+	defer cleanupConn()
+
+	transport.api.ConnectionUpdate(target, true)
+	defer transport.api.ConnectionUpdate(target, false)
+
+	transport.tcpReceiveLoop(conn, connectionLogger)
+
+	err = <-errChan
+	if err != nil {
+		connectionLogger.Error().Stack().Err(err).Msg("")
+		transport.errChan <- err
+	}
+	return err
+}
+
+// configureTCPConn sets TCP-level options like linger and no-delay.
+func (transport *Transport) configureTCPConn(conn net.Conn) {
 	if tcpConn, ok := conn.(*net.TCPConn); ok {
 		transport.logger.Trace().Str("remoteAddress", conn.RemoteAddr().String()).Msg("setting connection linger")
 		err := tcpConn.SetLinger(0)
@@ -134,88 +173,86 @@ func (transport *Transport) handleTCPConn(conn net.Conn) error {
 			transport.logger.Error().Stack().Err(err).Str("remoteAddress", conn.RemoteAddr().String()).Msg("set no delay")
 		}
 	}
+}
 
-	target, ok := transport.ipToTarget[conn.RemoteAddr().(*net.TCPAddr).IP.String()]
+// resolveTarget maps the remote IP address of the connection to a TransportTarget
+// using the ipToTarget map.
+func (transport *Transport) resolveTarget(conn net.Conn) (abstraction.TransportTarget, error) {
+	remoteAddr := conn.RemoteAddr().(*net.TCPAddr)
+	ip := remoteAddr.IP.String()
+
+	target, ok := transport.ipToTarget[ip]
 	if !ok {
 		conn.Close()
-		transport.logger.Warn().Str("remoteAddress", conn.RemoteAddr().(*net.TCPAddr).IP.String()).Msg("ip target not found")
+		transport.logger.Warn().Str("remoteAddress", ip).Msg("ip target not found")
 		err := ErrUnknownTarget{Remote: conn.RemoteAddr()}
 		transport.errChan <- err
-		return err
+		var zero abstraction.TransportTarget
+		return zero, err
+
 	}
+	return target, nil
+}
 
-	connectionLogger := transport.logger.With().Str("remoteAddress", conn.RemoteAddr().String()).Str("target", string(target)).Logger()
-	connectionLogger.Info().Msg("new connection")
+// checkIfActiveConnection closes and rejects conn if target already has an active connection.
+func (transport *Transport) checkIfActiveConnection(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger,) error {
+	transport.connectionsMx.Lock()
+	defer transport.connectionsMx.Unlock()
 
-	if err := func() error {
-		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
-		if _, ok := transport.connections[target]; ok {
-			conn.Close()
-			connectionLogger.Debug().Msg("already connected")
-			return ErrTargetAlreadyConnected{Target: target}
-		}
-		return nil
-	}(); err != nil {
+	if _, ok := transport.connections[target]; ok {
+		conn.Close()
+		logger.Debug().Msg("already connected")
+		err := ErrTargetAlreadyConnected{Target: target}
 		transport.errChan <- err
 		return err
 	}
+	return nil
+}
 
-	conn, errChan := tcp.WithErrChan(conn)
-	defer func() {
-		conn.Close()
-		connectionLogger.Info().Msg("close")
-	}()
+// addConnection stores conn for target and returns a cleanup that removes it.
+func (transport *Transport) addConnection(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger) func() {
+	transport.connectionsMx.Lock()
+	logger.Debug().Msg("added connection")
+	transport.connections[target] = conn
+	transport.connectionsMx.Unlock()
 
-	func() {
+	return func() {
 		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
-		connectionLogger.Debug().Msg("added connection")
-		transport.connections[target] = conn
-	}()
-	defer func() {
-		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
-		connectionLogger.Debug().Msg("removed connection")
+		logger.Debug().Msg("removed connection")
 		delete(transport.connections, target)
-	}()
+		transport.connectionsMx.Unlock()
+	}
+}
 
-	transport.api.ConnectionUpdate(target, true)
-	defer transport.api.ConnectionUpdate(target, false)
-
+// tcpReceiveLoop reads packets from conn and forwards notifications until an error occurs.
+func (transport *Transport) tcpReceiveLoop(conn net.Conn, logger zerolog.Logger) {
 	go func() {
 		for {
 			packet, err := transport.decoder.DecodeNext(conn)
 			if err != nil {
-				connectionLogger.Error().Stack().Err(err).Msg("decode")
+				logger.Error().Stack().Err(err).Msg("decode")
 				transport.errChan <- err
 				transport.SendFault()
 				return
 			}
 
 			if transport.propagateFault && packet.Id() == 0 {
-				connectionLogger.Info().Msg("replicating packet with id 0 to all boards")
+				logger.Info().Msg("replicating packet with id 0 to all boards")
 				err := transport.handlePacketEvent(NewPacketMessage(packet))
 				if err != nil {
-					connectionLogger.Error().Err(err).Msg("failed to replicate packet")
+					logger.Error().Err(err).Msg("failed to replicate packet")
 				}
 			}
 
 			from := conn.RemoteAddr().String()
 			to := conn.LocalAddr().String()
 
-			connectionLogger.Trace().Type("type", packet).Msg("packet")
+			logger.Trace().Type("type", packet).Msg("packet")
 			transport.api.Notification(NewPacketNotification(packet, from, to, time.Now()))
 		}
 	}()
-
-	err := <-errChan
-	if err != nil {
-		connectionLogger.Error().Stack().Err(err).Msg("")
-		transport.errChan <- err
-	}
-	return err
 }
+
 
 // SendMessage triggers an event to send something to the vehicle. Some messages
 // might additional means to pass information around (e.g. file read and write)
