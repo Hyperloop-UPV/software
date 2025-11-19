@@ -158,20 +158,25 @@ func (transport *Transport) handleTCPConn(conn net.Conn) error {
 
 // configureTCPConn sets TCP-level options like linger and no-delay.
 func (transport *Transport) configureTCPConn(conn net.Conn) {
-	if tcpConn, ok := conn.(*net.TCPConn); ok {
-		transport.logger.Trace().Str("remoteAddress", conn.RemoteAddr().String()).Msg("setting connection linger")
-		err := tcpConn.SetLinger(0)
-		if err != nil {
-			transport.errChan <- err
-			transport.logger.Error().Stack().Err(err).Str("remoteAddress", conn.RemoteAddr().String()).Msg("set linger")
-		}
+	tcpConn, ok := conn.(*net.TCPConn)
+	if !ok {
+		return
+	}
 
-		transport.logger.Trace().Str("remoteAddress", conn.RemoteAddr().String()).Msg("setting connection no delay")
-		err = tcpConn.SetNoDelay(true)
-		if err != nil {
-			transport.errChan <- err
-			transport.logger.Error().Stack().Err(err).Str("remoteAddress", conn.RemoteAddr().String()).Msg("set no delay")
-		}
+	remote := conn.RemoteAddr().String()
+
+	transport.logger.Trace().Str("remoteAddress", remote).Msg("setting connection linger")
+	err := tcpConn.SetLinger(0)
+	if err != nil {
+		transport.errChan <- err
+		transport.logger.Error().Stack().Err(err).Str("remoteAddress", remote).Msg("set linger")
+	}
+
+	transport.logger.Trace().Str("remoteAddress", remote).Msg("setting connection no delay")
+	err = tcpConn.SetNoDelay(true)
+	if err != nil {
+		transport.errChan <- err
+		transport.logger.Error().Stack().Err(err).Str("remoteAddress", remote).Msg("set no delay")
 	}
 }
 
@@ -226,6 +231,9 @@ func (transport *Transport) addConnection(target abstraction.TransportTarget, co
 
 // tcpReceiveLoop reads packets from conn and forwards notifications until an error occurs.
 func (transport *Transport) tcpReceiveLoop(conn net.Conn, logger zerolog.Logger) {
+	from := conn.RemoteAddr().String()
+	to := conn.LocalAddr().String()
+	
 	go func() {
 		for {
 			packet, err := transport.decoder.DecodeNext(conn)
@@ -243,9 +251,6 @@ func (transport *Transport) tcpReceiveLoop(conn net.Conn, logger zerolog.Logger)
 					logger.Error().Err(err).Msg("failed to replicate packet")
 				}
 			}
-
-			from := conn.RemoteAddr().String()
-			to := conn.LocalAddr().String()
 
 			logger.Trace().Type("type", packet).Msg("packet")
 			transport.api.Notification(NewPacketNotification(packet, from, to, time.Now()))
