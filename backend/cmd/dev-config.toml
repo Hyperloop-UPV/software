@@ -24,7 +24,6 @@ test = true         # Enable test mode
 # Network Configuration
 [network]
 manual = false  # Manual network device selection
-dev_mode = true # IMPORTANT: Dev mode enabled - uses UDP server instead of packet sniffer
 
 # Transport Configuration
 [transport]
