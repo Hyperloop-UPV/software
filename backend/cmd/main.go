@@ -45,7 +45,6 @@ import (
 	data_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
 	order_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/sniffer"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	blcu_packet "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/blcu"
@@ -56,7 +55,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/vehicle"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	"github.com/fatih/color"
-	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/jmaralo/sntp"
 	"github.com/pelletier/go-toml/v2"
@@ -154,24 +152,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 		trace.Fatal().Err(err).Msg("creating podData")
-	}
-
-	var dev pcap.Interface
-	if !config.Network.DevMode {
-		// Only select device if not in dev mode (sniffer requires device selection)
-		if *networkDevice != -1 {
-			devs, err := pcap.FindAllDevs()
-			if err != nil {
-				trace.Fatal().Err(err).Msg("Getting devices")
-			}
-
-			dev = devs[*networkDevice]
-		} else {
-			dev, err = selectDev(adj.Info.Addresses, config)
-			if err != nil {
-				trace.Fatal().Err(err).Msg("Error selecting device")
-			}
-		}
 	}
 
 	vehicleOrders, err := vehicle_models.NewVehicleOrders(podData.Boards, adj.Info.Addresses[BLCU])
@@ -386,42 +366,14 @@ func main() {
 	}, fmt.Sprintf("%s:%d", adj.Info.Addresses[BACKEND], adj.Info.Ports[TcpServer]))
 
 	// Start handling network packets (either sniffer or UDP server based on dev mode)
-	if config.Network.DevMode {
-		// Dev mode: Use UDP server
-		trace.Info().Msg("Starting in dev mode with UDP server")
-		udpServer := udp.NewServer(adj.Info.Addresses[BACKEND], adj.Info.Ports[UDP], &trace.Logger)
-		err := udpServer.Start()
-		if err != nil {
-			panic("failed to start UDP server: " + err.Error())
-		}
-		go transp.HandleUDPServer(udpServer)
-	} else {
-		// Production mode: Use packet sniffer
-		source, err := pcap.OpenLive(dev.Name, 1500, true, pcap.BlockForever)
-		if err != nil {
-			panic("failed to obtain sniffer source: " + err.Error())
-		}
-
-		if *playbackFile != "" {
-			source, err = pcap.OpenOffline(*playbackFile)
-			if err != nil {
-				panic("failed to obtain sniffer source: " + err.Error())
-			}
-		}
-
-		boardIps := make([]net.IP, 0, len(adj.Info.BoardIds))
-		for boardName := range adj.Info.BoardIds {
-			boardIps = append(boardIps, net.ParseIP(adj.Info.Addresses[boardName]))
-		}
-
-		filter := getFilter(boardIps, net.ParseIP(adj.Info.Addresses[BACKEND]), adj.Info.Ports[UDP])
-		trace.Warn().Str("filter", filter).Msg("filter")
-		err = source.SetBPFFilter(filter)
-		if err != nil {
-			panic("failed to compile bpf filter")
-		}
-		go transp.HandleSniffer(sniffer.New(source, &layers.LayerTypeEthernet, trace.Logger))
+	// Dev mode: Use UDP server
+	trace.Info().Msg("Starting UDP server")
+	udpServer := udp.NewServer(adj.Info.Addresses[BACKEND], adj.Info.Ports[UDP], &trace.Logger)
+	err = udpServer.Start()
+	if err != nil {
+		panic("failed to start UDP server: " + err.Error())
 	}
+	go transp.HandleUDPServer(udpServer)
 
 	// <--- http server --->
 	podDataHandle, err := h.HandleDataJSON("podData.json", pod_data.GetDataOnlyPodData(podData))
