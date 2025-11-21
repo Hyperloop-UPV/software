@@ -6,7 +6,7 @@ import (
 	"path"
 )
 
-func getBoards(boardsList map[string]string) (map[string]Board, error) {
+func getBoards(RepoPath string, boardsList map[string]string) (map[string]Board, error) {
 	boards := make(map[string]Board, len(boardsList))
 	for boardName, boardPath := range boardsList {
 		fullPath := path.Join(RepoPath, boardPath)

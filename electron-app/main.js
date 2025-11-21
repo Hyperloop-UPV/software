@@ -6,7 +6,7 @@ const fs = require("fs");
 let backendProcess = null;
 let packetSenderProcess = null;
 let mainWindow = null;
-let currentView = "control-station";
+let currentView = "ethernet-view";
 
 function getBinaryPath(name) {
   const platform = process.platform;
@@ -44,9 +44,27 @@ function getBinaryPath(name) {
 
 function getConfigPath() {
   if (!app.isPackaged) {
+    // Development: use dev-config.toml directly
     return path.join(__dirname, "..", "backend", "cmd", "dev-config.toml");
   }
-  return path.join(process.resourcesPath, "config.toml");
+
+  // Production: use user config directory (writable, cross-platform)
+  const userConfigDir = app.getPath("userData"); // Returns platform-specific path
+  const configPath = path.join(userConfigDir, "configs", "config.toml");
+
+  // If config doesn't exist, copy from resources (first run)
+  if (!fs.existsSync(configPath)) {
+    const defaultConfigPath = path.join(process.resourcesPath, "config.toml");
+    if (fs.existsSync(defaultConfigPath)) {
+      // Ensure user config directory exists (works on all platforms)
+      fs.mkdirSync(userConfigDir, { recursive: true });
+      // Copy default config to user config directory
+      fs.copyFileSync(defaultConfigPath, configPath);
+      console.log(`Created config file at: ${configPath}`);
+    }
+  }
+
+  return configPath;
 }
 
 function startBackend() {
@@ -59,7 +77,7 @@ function startBackend() {
     return;
   }
 
-  console.log(`Starting backend: ${backendBin}`);
+  console.log(`Starting backend: ${backendBin}, config: ${configPath}}`);
 
   // Set working directory to backend/cmd in development, or resources in production
   const workingDir = !app.isPackaged
@@ -74,9 +92,9 @@ function startBackend() {
     console.log(`[Backend] ${data.toString().trim()}`);
   });
 
-  backendProcess.stderr.on("data", (data) => {
-    console.error(`[Backend Error] ${data.toString().trim()}`);
-  });
+  // backendProcess.stderr.on("data", (data) => {
+  //   console.error(`[Backend Error] ${data.toString().trim()}`);
+  // });
 
   backendProcess.on("error", (error) => {
     console.error(`Failed to start backend: ${error.message}`);
@@ -135,8 +153,8 @@ function createWindow() {
     backgroundColor: "#1a1a1a",
   });
 
-  // Load control station by default
-  loadView("control-station");
+  // Load ethernet view by default
+  loadView("ethernet-view");
 
   // Create menu
   createMenu();
@@ -159,7 +177,7 @@ function loadView(view) {
     mainWindow.loadFile(viewPath);
     mainWindow.setTitle(
       `Hyperloop Control Station - ${
-        view === "control-station" ? "Control" : "Ethernet View"
+        view === "control-station" ? "Competition View" : "Testing View"
       }`
     );
   } else {
