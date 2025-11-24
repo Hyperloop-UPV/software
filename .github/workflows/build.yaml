@@ -8,17 +8,33 @@ on:
     branches:
       - production
   workflow_dispatch:
-
+    inputs:
+      rebuild-backend:
+        description: Rebuild backends
+        type: boolean
+        default: false
+      rebuild-control-station:
+        description: Rebuild control station
+        type: boolean
+        default: false
+      rebuild-ethernet-view:
+        description: Rebuild ethernet view
+        type: boolean
+        default: false
+      rebuild-common-front:
+        description: Rebuild common front
+        type: boolean
+        default: false
 jobs:
   # Detect what changed
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      backend_any_changed: ${{ steps.changes.outputs.backend_any_changed }}
-      control-station_any_changed: ${{ steps.changes.outputs.control-station_any_changed }}
-      ethernet-view_any_changed: ${{ steps.changes.outputs.ethernet-view_any_changed }}
-      common-front_any_changed: ${{ steps.changes.outputs.common-front_any_changed }}
+      backend_needs_rebuild: ${{ steps.changes.outputs.backend_any_changed == 'true' || github.event.inputs.rebuild-backend == 'true' }}
+      control-station_needs_rebuild: ${{ steps.changes.outputs.control-station_any_changed == 'true' || github.event.inputs.rebuild-control-station == 'true' }}
+      ethernet-view_needs_rebuild: ${{ steps.changes.outputs.ethernet-view_any_changed == 'true' || github.event.inputs.rebuild-ethernet-view == 'true' }}
+      common-front_needs_rebuild: ${{ steps.changes.outputs.common-front_any_changed == 'true' || github.event.inputs.rebuild-common-front == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -50,7 +66,7 @@ jobs:
   download-backend:
     name: Download Backend - ${{ matrix.platform }}
     needs: detect-changes
-    if: needs.detect-changes.outputs.backend_any_changed != 'true'
+    if: needs.detect-changes.outputs.backend_needs_rebuild != 'true'
     runs-on: ubuntu-latest
     # Continue on error is necessary because download-backend job can fail if backend artifact is not found
     # and it is not necessary to fail the build in this case
@@ -90,7 +106,7 @@ jobs:
     # Always is needed to execute this job even if backend download failed
     # By default it would be skipped because dependent job failed
     if: always() &&
-      (needs.detect-changes.outputs.backend_any_changed == 'true' ||
+      (needs.detect-changes.outputs.backend_needs_rebuild == 'true' ||
       needs.download-backend.outputs.downloaded != 'true')
     runs-on: ${{ matrix.os }}
     strategy:
@@ -164,7 +180,7 @@ jobs:
     name: Download Control Station
     needs: detect-changes
     # The condition checks if control station changed or common front changed
-    if: needs.detect-changes.outputs.control-station_any_changed != 'true' && needs.detect-changes.outputs.common-front_any_changed != 'true'
+    if: needs.detect-changes.outputs.control-station_needs_rebuild != 'true' && needs.detect-changes.outputs.common-front_needs_rebuild != 'true'
     runs-on: ubuntu-latest
     # Continue on error is necessary because download-control-station job can fail if control station artifact is not found
     # and it is not necessary to fail the build in this case
@@ -199,8 +215,8 @@ jobs:
     # By default it would be skipped because dependent job failed
     # The condition checks if control station changed or common front changed or download control station failed
     if: always() &&
-      (needs.detect-changes.outputs.control-station_any_changed == 'true' ||
-      needs.detect-changes.outputs.common-front_any_changed == 'true' ||
+      (needs.detect-changes.outputs.control-station_needs_rebuild == 'true' ||
+      needs.detect-changes.outputs.common-front_needs_rebuild == 'true' ||
       needs.download-control-station.outputs.downloaded != 'true')
     runs-on: ubuntu-latest
     steps:
@@ -231,24 +247,11 @@ jobs:
           path: control-station/static/**
           retention-days: 30
 
-      # Re-upload is necessary because previous job can't see these artifacts,
-      # neither it can be moved into a different job.
-  # upload-control-station:
-  #   name: Upload Control Station
-  #   needs: [build-control-station, download-control-station]
-  #   steps:
-  #     - name: Upload control-station artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: control-station
-  #         path: control-station-artifacts/**
-  #         retention-days: 30
-
   # Download ethernet-view from previous build if no changes
   download-ethernet-view:
     name: Download Ethernet View
     needs: detect-changes
-    if: needs.detect-changes.outputs.ethernet-view_any_changed != 'true' && needs.detect-changes.outputs.common-front_any_changed != 'true'
+    if: needs.detect-changes.outputs.ethernet-view_needs_rebuild != 'true' && needs.detect-changes.outputs.common-front_needs_rebuild != 'true'
     runs-on: ubuntu-latest
     # Continue on error is necessary because download-ethernet-view job can fail if ethernet view artifact is not found
     # and it is not necessary to fail the build in this case
@@ -283,8 +286,8 @@ jobs:
     # By default it would be skipped because dependent job failed
     # The condition checks if ethernet view changed or common front changed or download ethernet view failed
     if: always() &&
-      (needs.detect-changes.outputs.ethernet-view_any_changed == 'true' ||
-      needs.detect-changes.outputs.common-front_any_changed == 'true' ||
+      (needs.detect-changes.outputs.ethernet-view_needs_rebuild == 'true' ||
+      needs.detect-changes.outputs.common-front_needs_rebuild == 'true' ||
       needs.download-ethernet-view.outputs.downloaded != 'true')
     runs-on: ubuntu-latest
     steps:
