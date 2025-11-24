@@ -50,14 +50,17 @@ function getConfigPath() {
 
   // Production: use user config directory (writable, cross-platform)
   const userConfigDir = app.getPath("userData"); // Returns platform-specific path
-  const configPath = path.join(userConfigDir, "configs", "config.toml");
+  const configsDir = path.join(userConfigDir, "configs");
+  const configPath = path.join(configsDir, "config.toml");
+
+  console.log("Config path exists:", fs.existsSync(configPath));
 
   // If config doesn't exist, copy from resources (first run)
   if (!fs.existsSync(configPath)) {
     const defaultConfigPath = path.join(process.resourcesPath, "config.toml");
     if (fs.existsSync(defaultConfigPath)) {
       // Ensure user config directory exists (works on all platforms)
-      fs.mkdirSync(userConfigDir, { recursive: true });
+      fs.mkdirSync(configsDir, { recursive: true });
       // Copy default config to user config directory
       fs.copyFileSync(defaultConfigPath, configPath);
       console.log(`Created config file at: ${configPath}`);
