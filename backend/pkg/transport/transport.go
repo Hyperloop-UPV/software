@@ -275,8 +275,10 @@ func (transport *Transport) SendMessage(message abstraction.TransportMessage) er
 		err = ErrUnrecognizedEvent{message.Event()}
 	}
 	// handlePacketEvent already sends the error through the channel, so this avoids duplicates
-	if _, ok := err.(ErrConnClosed); !ok {
-		transport.errChan <- err
+	if err != nil {
+		if _, ok := err.(ErrConnClosed); !ok {
+			transport.errChan <- err
+		}
 	}
 	return err
 }
@@ -368,14 +370,18 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 // handleFileWrite writes a file through tftp to the blcu
 func (transport *Transport) handleFileWrite(message FileWriteMessage) error {
 	_, err := transport.tftp.WriteFile(message.Filename(), tftp.BinaryMode, message)
-	transport.errChan <- err
+	if err != nil {
+		transport.errChan <- err
+	}
 	return err
 }
 
 // handleFileRead reads a file through tftp from the blcu
 func (transport *Transport) handleFileRead(message FileReadMessage) error {
 	_, err := transport.tftp.ReadFile(message.Filename(), tftp.BinaryMode, message)
-	transport.errChan <- err
+	if err != nil {
+		transport.errChan <- err
+	}
 	return err
 }
 
