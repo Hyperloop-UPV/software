@@ -121,7 +121,7 @@ func (transport *Transport) HandleServer(config tcp.ServerConfig, local string) 
 func (transport *Transport) handleTCPConn(conn net.Conn) error {
 	transport.configureTCPConn(conn)
 
-	target, err := transport.resolveTarget(conn)
+	target, err := transport.targetFromTCPConn(conn)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (transport *Transport) handleTCPConn(conn net.Conn) error {
 	connectionLogger := transport.logger.With().Str("remoteAddress", conn.RemoteAddr().String()).Str("target", string(target)).Logger()
 	connectionLogger.Info().Msg("new connection")
 
-	if err := transport.checkIfActiveConnection(target, conn, connectionLogger); err != nil {
+	if err := transport.rejectIfConnectedTCPConn(target, conn, connectionLogger); err != nil {
 		transport.errChan <- err
 		return err
 	}
@@ -140,13 +140,13 @@ func (transport *Transport) handleTCPConn(conn net.Conn) error {
 		connectionLogger.Info().Msg("close")
 	}()
 
-	cleanupConn := transport.addConnection(target, conn, connectionLogger)
+	cleanupConn := transport.registerTCPConn(target, conn, connectionLogger)
 	defer cleanupConn()
 
 	transport.api.ConnectionUpdate(target, true)
 	defer transport.api.ConnectionUpdate(target, false)
 
-	transport.tcpReceiveLoop(conn, connectionLogger)
+	transport.readLoopTCPConn(conn, connectionLogger)
 
 	err = <-errChan
 	if err != nil {
@@ -180,9 +180,9 @@ func (transport *Transport) configureTCPConn(conn net.Conn) {
 	}
 }
 
-// resolveTarget maps the remote IP address of the connection to a TransportTarget
+// targetFromTCPConn maps the remote IP address of the connection to a TransportTarget
 // using the ipToTarget map.
-func (transport *Transport) resolveTarget(conn net.Conn) (abstraction.TransportTarget, error) {
+func (transport *Transport) targetFromTCPConn(conn net.Conn) (abstraction.TransportTarget, error) {
 	remoteAddr := conn.RemoteAddr().(*net.TCPAddr)
 	ip := remoteAddr.IP.String()
 
@@ -199,8 +199,8 @@ func (transport *Transport) resolveTarget(conn net.Conn) (abstraction.TransportT
 	return target, nil
 }
 
-// checkIfActiveConnection closes and rejects conn if target already has an active connection.
-func (transport *Transport) checkIfActiveConnection(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger,) error {
+// rejectIfConnectedTCPConn closes and rejects conn if target already has an active connection.
+func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger,) error {
 	transport.connectionsMx.Lock()
 	defer transport.connectionsMx.Unlock()
 
@@ -214,8 +214,8 @@ func (transport *Transport) checkIfActiveConnection(target abstraction.Transport
 	return nil
 }
 
-// addConnection stores conn for target and returns a cleanup that removes it.
-func (transport *Transport) addConnection(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger) func() {
+// registerTCPConn stores conn for target and returns a cleanup that removes it.
+func (transport *Transport) registerTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger) func() {
 	transport.connectionsMx.Lock()
 	logger.Debug().Msg("added connection")
 	transport.connections[target] = conn
@@ -229,8 +229,8 @@ func (transport *Transport) addConnection(target abstraction.TransportTarget, co
 	}
 }
 
-// tcpReceiveLoop reads packets from conn and forwards notifications until an error occurs.
-func (transport *Transport) tcpReceiveLoop(conn net.Conn, logger zerolog.Logger) {
+// readLoopTCPConn reads packets from conn and forwards notifications until an error occurs.
+func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger) {
 	from := conn.RemoteAddr().String()
 	to := conn.LocalAddr().String()
 	
