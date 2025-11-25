@@ -104,6 +104,11 @@ func (enable *Enable) handleVariables(_ websocket.ClientId, message *websocket.M
 	return nil
 }
 
+func (enable *Enable) NotifyStarted() error {
+	enable.isRunning.Store(true)
+	return enable.broadcastState()
+}
+
 func (enable *Enable) broadcastState() error {
 	payload, err := json.Marshal(enable.isRunning.Load())
 	if err != nil {
