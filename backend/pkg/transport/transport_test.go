@@ -227,8 +227,10 @@ func (s *MockBoardServer) GetConnectionCount() int {
 
 // Test utilities
 func createTestTransport(t *testing.T) (*Transport, *TestTransportAPI) {
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	
+	// if NewTestWriter(t) is used: background goroutines may log after the test ends and cause a panic
+	//logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	logger := zerolog.New(zerolog.Nop()).With().Timestamp().Logger()
+
 	enc := presentation.NewEncoder(binary.BigEndian, logger)
     dec := presentation.NewDecoder(binary.BigEndian, logger)
     wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
