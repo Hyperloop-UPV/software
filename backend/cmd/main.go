@@ -179,6 +179,11 @@ func main() {
 	orderTopic := order_topic.NewSendTopic()
 	loggerTopic := logger_topic.NewEnableTopic()
 	loggerTopic.SetDataLogger(subloggers[data_logger.Name].(*data_logger.Logger))
+	loggerHandler.SetOnStart(func() {
+		if err := loggerTopic.NotifyStarted(); err != nil {
+			trace.Error().Err(err).Msg("failed to notify logger started")
+		}
+	})
 
 	messageTopic := message_topic.NewUpdateTopic()
 	stateOrderTopic := order_topic.NewState(idToBoard, trace.Logger)
