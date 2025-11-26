@@ -1,0 +1,331 @@
+name: Release Electron App
+
+on:
+  # Commented because provokes duplicated builds
+  # push:
+  #   tags:
+  #     - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g., 1.0.0)"
+        required: true
+      draft:
+        description: "Create as draft release"
+        type: boolean
+        default: true
+
+jobs:
+  # Determine version once on Linux
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      is_draft: ${{ steps.get_version.outputs.is_draft }}
+    steps:
+      - name: Determine version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "is_draft=${{ github.event.inputs.draft }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            echo "is_draft=false" >> $GITHUB_OUTPUT
+          fi
+          echo "Version determined: $(cat $GITHUB_OUTPUT | grep version)"
+
+    # Verify that required artifacts exist from build.yaml workflow
+  verify-artifacts:
+    name: Verify Artifacts Exist
+    needs: determine-version
+    runs-on: ubuntu-latest
+    outputs:
+      artifacts_exist: ${{ steps.check.outputs.all_exist }}
+      backend_linux_exists: ${{ steps.check.outputs.backend_linux }}
+      backend_windows_exists: ${{ steps.check.outputs.backend_windows }}
+      backend_macos_intel_exists: ${{ steps.check.outputs.backend_macos_intel }}
+      backend_macos_arm64_exists: ${{ steps.check.outputs.backend_macos_arm64 }}
+      control_station_exists: ${{ steps.check.outputs.control_station }}
+      ethernet_view_exists: ${{ steps.check.outputs.ethernet_view }}
+    steps:
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Get latest successful run from build.yaml
+        id: get_run
+        run: |
+          echo "🧿 Looking up build.yaml workflow..."
+          WORKFLOW_RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/build.yaml")
+
+          echo "🧿 API Response:"
+          echo "$WORKFLOW_RESPONSE" | jq '.'
+
+          WORKFLOW_ID=$(echo "$WORKFLOW_RESPONSE" | jq -r '.id // empty')
+
+          echo "🧿 Workflow ID: $WORKFLOW_ID"
+
+          echo "Finding latest successful run on production branch..."
+          RUN_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$WORKFLOW_ID/runs?branch=production&status=success&per_page=1" | \
+            jq -r '.workflow_runs[0].id // empty')
+
+          if [ -z "$RUN_ID" ]; then
+            echo "✖ No successful workflow run found"
+          else
+            echo "✓ Found workflow run ID: $RUN_ID"
+          fi
+
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      - name: Check artifacts
+        id: check
+        run: |
+          RUN_ID="${{ steps.get_run.outputs.run_id }}"
+
+          if [ -z "$RUN_ID" ]; then
+            echo "✖ No workflow run found - all artifacts missing"
+            echo "all_exist=false" >> $GITHUB_OUTPUT
+            echo "backend_linux=false" >> $GITHUB_OUTPUT
+            echo "backend_windows=false" >> $GITHUB_OUTPUT
+            echo "backend_macos_intel=false" >> $GITHUB_OUTPUT
+            echo "backend_macos_arm64=false" >> $GITHUB_OUTPUT
+            echo "control_station=false" >> $GITHUB_OUTPUT
+            echo "ethernet_view=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "🧿 Fetching artifacts from run $RUN_ID..."
+          ARTIFACTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts" | \
+            jq -r '.artifacts[].name')
+
+          echo "📦 Artifacts found in workflow run:"
+          echo "$ARTIFACTS" | while read artifact; do
+            echo "  - $artifact"
+          done
+
+          check() { 
+            if echo "$ARTIFACTS" | grep -q "^$1$"; then
+              echo "true"
+            else
+              echo "false"
+            fi
+          }
+
+          echo ""
+          echo "🧿 Verifying required artifacts:"
+          BACKEND_LINUX=$(check backend-linux)
+          echo "backend_linux=$BACKEND_LINUX" >> $GITHUB_OUTPUT
+
+          BACKEND_WINDOWS=$(check backend-windows)
+          echo "backend_windows=$BACKEND_WINDOWS" >> $GITHUB_OUTPUT
+
+          BACKEND_MACOS_INTEL=$(check backend-macos-intel)
+          echo "backend_macos_intel=$BACKEND_MACOS_INTEL" >> $GITHUB_OUTPUT
+
+          BACKEND_MACOS_ARM64=$(check backend-macos-arm64)
+          echo "backend_macos_arm64=$BACKEND_MACOS_ARM64" >> $GITHUB_OUTPUT
+
+          CONTROL_STATION=$(check control-station)
+          echo "control_station=$CONTROL_STATION" >> $GITHUB_OUTPUT
+
+          ETHERNET_VIEW=$(check ethernet-view)
+          echo "ethernet_view=$ETHERNET_VIEW" >> $GITHUB_OUTPUT
+
+          COUNT=$(echo "$ARTIFACTS" | grep -cE "^(backend-linux|backend-windows|backend-macos-intel|backend-macos-arm64|control-station|ethernet-view)$" || echo "0")
+
+          echo "  Required artifacts found: $COUNT/6"
+          if [ "$COUNT" -eq 6 ]; then
+            # ALL_EXIST="true"
+            ALL_EXIST="true"
+            echo "✓ All artifacts exist!"
+          else
+            # ALL_EXIST="false"
+            ALL_EXIST="false"
+            echo "✖ Some artifacts are missing"
+          fi
+
+          echo "all_exist=$ALL_EXIST" >> $GITHUB_OUTPUT
+
+  # Build artifacts using reusable workflow (placeholder for now)
+  build-artifacts:
+    name: Build Artifacts
+    needs: [determine-version, verify-artifacts]
+    if: needs.verify-artifacts.outputs.artifacts_exist != 'true'
+    uses: ./.github/workflows/build.yaml
+    with:
+      # prettier-ignore
+      build-backend: ${{ needs.verify-artifacts.outputs.backend_linux_exists != 'true' ||
+        needs.verify-artifacts.outputs.backend_windows_exists != 'true' ||
+        needs.verify-artifacts.outputs.backend_macos_intel_exists != 'true' ||
+        needs.verify-artifacts.outputs.backend_macos_arm64_exists != 'true' }}
+      build-control-station: ${{ needs.verify-artifacts.outputs.control_station_exists != 'true' }}
+      build-ethernet-view: ${{ needs.verify-artifacts.outputs.ethernet_view_exists != 'true' }}
+
+  build-electron:
+    name: Build Electron App
+    needs: [determine-version, verify-artifacts, build-artifacts]
+    runs-on: ${{ matrix.os }}
+    if: always() && needs.build-artifacts.result != 'failure'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Update package.json with release version
+      - name: Update version in package.json
+        working-directory: electron-app
+        shell: bash
+        run: |
+          npm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
+          echo "Updated version to:"
+          cat package.json | grep version
+
+      # Download ONLY the appropriate backend for this platform
+      - name: Download Linux backend
+        if: runner.os == 'Linux'
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: backend-linux
+          path: electron-app/binaries
+
+      - name: Download Windows backend
+        if: runner.os == 'Windows'
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: backend-windows
+          path: electron-app/binaries
+
+      # macOS needs both Intel and ARM64 for universal support
+      - name: Download macOS Intel backend
+        if: runner.os == 'macOS'
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: backend-macos-intel
+          path: electron-app/binaries
+
+      - name: Download macOS ARM64 backend
+        if: runner.os == 'macOS'
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: backend-macos-arm64
+          path: electron-app/binaries
+
+      # Download frontend builds from latest build
+      - name: Download control-station
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: control-station
+          path: electron-app/renderer/control-station
+
+      - name: Download ethernet-view
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: ethernet-view
+          path: electron-app/renderer/ethernet-view
+
+      - name: Set executable permissions (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x electron-app/binaries/*
+
+      - name: Install Electron dependencies
+        working-directory: electron-app
+        run: npm ci
+
+      - name: Build Electron distribution
+        working-directory: electron-app
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          ELECTRON_BUILDER_PUBLISH: never
+
+      - name: Display structure (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: electron-app
+        shell: pwsh
+        run: Get-ChildItem -Recurse dist/ | Select-Object FullName
+
+      - name: Display structure (Unix)
+        if: matrix.os != 'windows-latest'
+        working-directory: electron-app
+        run: ls -laR dist/
+
+      - name: Upload electron artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ runner.os }}
+          path: |
+            electron-app/dist/*.exe
+            electron-app/dist/*.AppImage
+            electron-app/dist/*.deb
+            electron-app/dist/*.dmg
+            electron-app/dist/*.zip
+            !electron-app/dist/*-unpacked
+            !electron-app/dist/mac
+            !electron-app/dist/win-unpacked
+            !electron-app/dist/linux-unpacked
+          if-no-files-found: error
+          retention-days: 7
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    needs: [build-electron, determine-version]
+    if: always() && needs.build-electron.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all electron artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: electron-*
+          path: dist
+          merge-multiple: true
+
+      - name: Display structure
+        run: ls -laR dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.determine-version.outputs.version }}
+          name: Hyperloop Control Station v${{ needs.determine-version.outputs.version }}
+          draft: ${{ needs.determine-version.outputs.is_draft }}
+          generate_release_notes: true
+          files: dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

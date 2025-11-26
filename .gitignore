@@ -21,3 +21,5 @@ CLAUDE*
 packet-sender/target/
 
 *.md
+
+*.code-workspace
