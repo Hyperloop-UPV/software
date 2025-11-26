@@ -65,7 +65,7 @@ jobs:
       # Download ONLY the appropriate backend for this platform
       - name: Download Linux backend
         if: runner.os == 'Linux'
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
@@ -75,7 +75,7 @@ jobs:
 
       - name: Download Windows backend
         if: runner.os == 'Windows'
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
@@ -86,7 +86,7 @@ jobs:
       # macOS needs both Intel and ARM64 for universal support
       - name: Download macOS Intel backend
         if: runner.os == 'macOS'
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
@@ -96,7 +96,7 @@ jobs:
 
       - name: Download macOS ARM64 backend
         if: runner.os == 'macOS'
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
@@ -106,7 +106,7 @@ jobs:
 
       # Download frontend builds from latest build
       - name: Download control-station
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
@@ -115,7 +115,7 @@ jobs:
           path: electron-app/renderer/control-station
 
       - name: Download ethernet-view
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production

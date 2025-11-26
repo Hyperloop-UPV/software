@@ -128,7 +128,7 @@ jobs:
     steps:
       - name: Download backend from latest build
         id: download
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
@@ -357,7 +357,7 @@ jobs:
     steps:
       - name: Download control-station from latest build
         id: download
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
@@ -436,7 +436,7 @@ jobs:
     steps:
       - name: Download ethernet-view from latest build
         id: download
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: build.yaml
           branch: production
