@@ -1,0 +1,79 @@
+{
+  "name": "hyperloop-control-station",
+  "version": "1.0.0",
+  "description": "Hyperloop UPV Control Station",
+  "main": "main.js",
+  "author": {
+    "name": "Hyperloop UPV",
+    "email": "max766667@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HyperloopUPV-H8/software.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.hyperloop.controlstation",
+    "publish": null,
+    "productName": "Hyperloop-Control-Station",
+    "directories": {
+      "output": "dist"
+    },
+    "extraResources": [
+      {
+        "from": "binaries/",
+        "to": "binaries/",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../backend/cmd/dev-config.toml",
+        "to": "config.toml"
+      }
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "icon.png",
+      "category": "Utility"
+    }
+  }
+}

@@ -103,8 +103,25 @@ func main() {
 
 	// update() // FIXME: Updater disabled due to cross-platform and reliability issues
 
-	traceFile := initTrace(*traceLevel, *traceFile)
-	defer traceFile.Close()
+	tracePath := *traceFile
+	if tracePath == "" {
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			// fallback to current directory if user config dir is unavailable
+			configDir = "."
+		}
+		traceDir := filepath.Join(configDir, "hyperloop-control-station")
+		// Ensure directory exists
+		_ = os.MkdirAll(traceDir, 0o755)
+		// Use current time in filename to avoid collisions
+		timestamp := time.Now().Format("20060102T150405")
+		tracePath = filepath.Join(traceDir, fmt.Sprintf("trace-%s.json", timestamp))
+	}
+
+	traceFile := initTrace(*traceLevel, tracePath)
+	if traceFile != nil {
+		defer traceFile.Close()
+	}
 
 	pidPath := path.Join(os.TempDir(), "backendPid")
 

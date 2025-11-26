@@ -1,0 +1,595 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        default: ''
+      draft:
+        description: 'Create as draft release'
+        type: boolean
+        default: true
+  release:
+    types: [created]
+
+jobs:
+  build-backend:
+    name: Build Backend
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+            container:
+              image: golang:alpine
+            setup: |
+              apk update && apk add --no-cache libpcap-dev musl-dev gcc go bash
+            build_cmd: |
+              cd backend/cmd
+              CGO_ENABLED=1 GOARCH=amd64 GOOS=linux go build -ldflags '-linkmode external -extldflags "-static"' -o ../output/backend-linux-amd64
+            artifact_name: backend-linux
+            
+          - os: windows-latest
+            name: windows
+            setup: |
+              echo "Setting up Windows environment"
+            build_cmd: |
+              cd backend\cmd
+              $env:CGO_ENABLED="1"
+              $env:GOARCH="amd64"
+              $env:GOOS="windows"
+              go build -o ..\output\backend-windows-amd64.exe
+            artifact_name: backend-windows
+            
+          - os: macos-latest
+            name: macos
+            setup: |
+              brew install libpcap
+            build_cmd: |
+              cd backend/cmd
+              CGO_ENABLED=1 GOARCH=amd64 GOOS=darwin go build -o ../output/backend-macos-amd64
+              CGO_ENABLED=1 GOARCH=arm64 GOOS=darwin go build -o ../output/backend-macos-arm64
+            artifact_name: backend-macos
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup environment
+        run: ${{ matrix.setup }}
+      
+      - name: Setup Go
+        if: matrix.os != 'ubuntu-latest'
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+          cache-dependency-path: backend/go.sum
+      
+      - name: Create output directory (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: mkdir -p backend/output
+        shell: sh
+        
+      - name: Create output directory (macOS)
+        if: matrix.os == 'macos-latest'
+        run: mkdir -p backend/output
+        shell: bash
+        
+      - name: Create output directory (Windows)
+        if: matrix.os == 'windows-latest'
+        run: mkdir -p backend/output
+        shell: bash
+      
+      - name: Build backend (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: sh
+        
+      - name: Build backend (macOS)
+        if: matrix.os == 'macos-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: bash
+        
+      - name: Build backend (Windows)
+        if: matrix.os == 'windows-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: pwsh
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: backend/output/*
+          retention-days: 7
+          compression-level: 9
+
+  build-frontend:
+    name: Build Frontends
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Build common front dependencies
+        working-directory: ./common-front
+        run: |
+          npm install
+          npm run build
+      
+      - name: Build ethernet view
+        working-directory: ./ethernet-view
+        run: |
+          npm install
+          npm run build
+          
+      - name: Upload ethernet view artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethernet-view
+          path: ethernet-view/static/*
+          retention-days: 7
+          compression-level: 9
+          
+      - name: Build control station
+        working-directory: ./control-station
+        run: |
+          npm install
+          npm run build
+          
+      - name: Upload control station artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-station
+          path: control-station/static/*
+          retention-days: 7
+          compression-level: 9
+
+  build-updater:
+    name: Build Updater
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+            build_cmd: |
+              CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o updater/output/updater-linux-amd64 ./updater
+            artifact_name: updater-linux
+            
+          - os: windows-latest
+            name: windows
+            build_cmd: |
+              $Env:CGO_ENABLED='0'
+              $Env:GOOS='windows'
+              $Env:GOARCH='amd64'
+              go build -o updater\output\updater-windows-amd64.exe ./updater
+            artifact_name: updater-windows
+            
+          - os: macos-latest
+            name: macos
+            build_cmd: |
+              CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o updater/output/updater-macos-amd64 ./updater
+              CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o updater/output/updater-macos-arm64 ./updater
+            artifact_name: updater-macos
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Mark workspace as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+        shell: bash
+      
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+          cache-dependency-path: updater/go.sum
+      
+      - name: Ensure dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: updater
+        run: go mod tidy
+        shell: bash
+        
+      - name: Ensure dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: updater
+        run: go mod tidy
+        shell: bash
+        
+      - name: Ensure dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: updater
+        run: go mod tidy
+        shell: pwsh
+      
+      - name: Create output directory (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: mkdir -p updater/output
+        shell: bash
+        
+      - name: Create output directory (macOS)
+        if: matrix.os == 'macos-latest'
+        run: mkdir -p updater/output
+        shell: bash
+        
+      - name: Create output directory (Windows)
+        if: matrix.os == 'windows-latest'
+        run: mkdir -p updater/output
+        shell: bash
+      
+      - name: Build updater (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: bash
+        
+      - name: Build updater (macOS)
+        if: matrix.os == 'macos-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: bash
+        
+      - name: Build updater (Windows)
+        if: matrix.os == 'windows-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: pwsh
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: updater/output/*
+          retention-days: 7
+          compression-level: 9
+
+  build-testadj:
+    name: Build testadj executable
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+            setup: |
+              python3 -m pip install pyinstaller
+            build_cmd: |
+              cd backend/cmd
+              pyinstaller --onefile --name testadj-linux testadj.py
+            artifact_name: testadj-linux
+            artifact_path: backend/cmd/dist/testadj-linux
+            
+          - os: windows-latest
+            name: windows
+            setup: |
+              python -m pip install pyinstaller
+            build_cmd: |
+              cd backend\cmd
+              pyinstaller --onefile --name testadj-windows testadj.py
+            artifact_name: testadj-windows
+            artifact_path: backend\cmd\dist\testadj-windows.exe
+            
+          - os: macos-latest
+            name: macos
+            setup: |
+              python3 -m pip install pyinstaller
+            build_cmd: |
+              cd backend/cmd
+              pyinstaller --onefile --name testadj-macos testadj.py
+            artifact_name: testadj-macos
+            artifact_path: backend/cmd/dist/testadj-macos
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      
+      - name: Setup environment
+        run: ${{ matrix.setup }}
+        shell: bash
+      
+      - name: Build testadj (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: bash
+        
+      - name: Build testadj (macOS)
+        if: matrix.os == 'macos-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: bash
+        
+      - name: Build testadj (Windows)
+        if: matrix.os == 'windows-latest'
+        run: ${{ matrix.build_cmd }}
+        shell: pwsh
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          retention-days: 7
+          compression-level: 9
+
+  prepare-common-files:
+    name: Prepare Common Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create common files directory
+        run: mkdir -p common-files
+      
+      - name: Copy config.toml
+        run: cp backend/cmd/config.toml common-files/
+      
+      
+      - name: Copy README.md
+        run: cp README.md common-files/
+      
+      - name: Create VERSION.txt
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "$VERSION" > common-files/VERSION.txt
+      
+      - name: Upload common files artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: common-files
+          path: common-files/*
+          retention-days: 7
+          compression-level: 9
+
+  package-release:
+    name: Package Release
+    needs: [build-backend, build-frontend, build-updater, build-testadj, prepare-common-files]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create release directories for each platform
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          
+          # Create directory structure for each platform
+          mkdir -p release-linux
+          mkdir -p release-windows
+          mkdir -p release-macos
+          mkdir -p release-macos-arm64
+      
+      - name: Organize Linux release files
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          
+          # Copy Linux backend
+          cp artifacts/backend-linux/backend-linux-amd64 release-linux/backend
+          
+          # Copy Linux updater
+          cp artifacts/updater-linux/updater-linux-amd64 release-linux/updater
+          
+          # Copy Linux testadj
+          cp artifacts/testadj-linux/testadj-linux release-linux/testadj
+          
+          # Copy frontends
+          mkdir -p release-linux/ethernet-view
+          mkdir -p release-linux/control-station
+          cp -r artifacts/ethernet-view/* release-linux/ethernet-view/
+          cp -r artifacts/control-station/* release-linux/control-station/
+          
+          # Copy common files
+          cp -r artifacts/common-files/* release-linux/
+          
+          # Set executable permissions
+          chmod +x release-linux/backend release-linux/updater release-linux/testadj
+          
+          # Create Linux release archive
+          cd release-linux
+          tar -czf ../linux-$VERSION.tar.gz .
+      
+      - name: Organize Windows release files
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          
+          # Copy Windows backend
+          cp artifacts/backend-windows/backend-windows-amd64.exe release-windows/backend.exe
+          
+          # Copy Windows updater
+          cp artifacts/updater-windows/updater-windows-amd64.exe release-windows/updater.exe
+          
+          # Copy Windows testadj
+          cp artifacts/testadj-windows/testadj-windows.exe release-windows/testadj.exe
+          
+          # Copy frontends
+          mkdir -p release-windows/ethernet-view
+          mkdir -p release-windows/control-station
+          cp -r artifacts/ethernet-view/* release-windows/ethernet-view/
+          cp -r artifacts/control-station/* release-windows/control-station/
+          
+          # Copy common files
+          cp -r artifacts/common-files/* release-windows/
+          
+          # Create Windows release archive
+          cd release-windows
+          zip -r ../windows-$VERSION.zip .
+      
+      - name: Organize macOS Intel release files
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          
+          # Copy macOS Intel backend
+          cp artifacts/backend-macos/backend-macos-amd64 release-macos/backend
+          
+          # Copy macOS Intel updater
+          cp artifacts/updater-macos/updater-macos-amd64 release-macos/updater
+          
+          # Copy macOS testadj
+          cp artifacts/testadj-macos/testadj-macos release-macos/testadj
+          
+          # Copy frontends
+          mkdir -p release-macos/ethernet-view
+          mkdir -p release-macos/control-station
+          cp -r artifacts/ethernet-view/* release-macos/ethernet-view/
+          cp -r artifacts/control-station/* release-macos/control-station/
+          
+          # Copy common files
+          cp -r artifacts/common-files/* release-macos/
+          
+          # Set executable permissions
+          chmod +x release-macos/backend release-macos/updater release-macos/testadj
+          
+          # Create macOS Intel release archive
+          cd release-macos
+          tar -czf ../macos-intel-$VERSION.tar.gz .
+      
+      - name: Organize macOS ARM64 release files
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          
+          # Copy macOS ARM64 backend
+          cp artifacts/backend-macos/backend-macos-arm64 release-macos-arm64/backend
+          
+          # Copy macOS ARM64 updater
+          cp artifacts/updater-macos/updater-macos-arm64 release-macos-arm64/updater
+          
+          # Copy macOS testadj
+          cp artifacts/testadj-macos/testadj-macos release-macos-arm64/testadj
+          
+          # Copy frontends
+          mkdir -p release-macos-arm64/ethernet-view
+          mkdir -p release-macos-arm64/control-station
+          cp -r artifacts/ethernet-view/* release-macos-arm64/ethernet-view/
+          cp -r artifacts/control-station/* release-macos-arm64/control-station/
+          
+          # Copy common files
+          cp -r artifacts/common-files/* release-macos-arm64/
+          
+          # Set executable permissions
+          chmod +x release-macos-arm64/backend release-macos-arm64/updater release-macos-arm64/testadj
+          
+          # Create macOS ARM64 release archive
+          cd release-macos-arm64
+          tar -czf ../macos-arm64-$VERSION.tar.gz .
+      
+      - name: Upload release packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: releases
+          path: |
+            *.tar.gz
+            *.zip
+          retention-days: 7
+          compression-level: 9
+      
+      - name: Create Release
+        if: github.event_name == 'workflow_dispatch'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release ${{ github.event.inputs.version }}
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: false
+          
+      - name: Upload Linux package to release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./linux-${{ github.event.inputs.version }}.tar.gz
+          asset_name: linux-${{ github.event.inputs.version }}.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload Windows package to release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./windows-${{ github.event.inputs.version }}.zip
+          asset_name: windows-${{ github.event.inputs.version }}.zip
+          asset_content_type: application/zip
+          
+      - name: Upload macOS Intel package to release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./macos-intel-${{ github.event.inputs.version }}.tar.gz
+          asset_name: macos-intel-${{ github.event.inputs.version }}.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload macOS ARM64 package to release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./macos-arm64-${{ github.event.inputs.version }}.tar.gz
+          asset_name: macos-arm64-${{ github.event.inputs.version }}.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload Linux package to existing release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./linux-${{ github.event.release.tag_name }}.tar.gz
+          asset_name: linux-${{ github.event.release.tag_name }}.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload Windows package to existing release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./windows-${{ github.event.release.tag_name }}.zip
+          asset_name: windows-${{ github.event.release.tag_name }}.zip
+          asset_content_type: application/zip
+          
+      - name: Upload macOS Intel package to existing release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./macos-intel-${{ github.event.release.tag_name }}.tar.gz
+          asset_name: macos-intel-${{ github.event.release.tag_name }}.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload macOS ARM64 package to existing release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./macos-arm64-${{ github.event.release.tag_name }}.tar.gz
+          asset_name: macos-arm64-${{ github.event.release.tag_name }}.tar.gz
+          asset_content_type: application/gzip
