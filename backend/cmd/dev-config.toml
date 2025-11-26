@@ -85,3 +85,4 @@ max_size_mb = 100    # Maximum log file size in MB
 max_backups = 3      # Number of backup files to keep
 max_age_days = 7     # Maximum age of log files in days
 time_unit = "us"      # Time unit for log timestamps (ns, us, ms, s)    
+logging_path = "."

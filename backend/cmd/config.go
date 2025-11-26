@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/server"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/vehicle"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 )
 
 type App struct {
@@ -46,7 +47,8 @@ type TCP struct {
 }
 
 type Logging struct {
-	TimeUnit string `toml:"time_unit"`
+	TimeUnit    logger.TimeUnit `toml:"time_unit"`
+	LoggingPath string          `toml:"logging_path"`
 }
 
 type Config struct {
