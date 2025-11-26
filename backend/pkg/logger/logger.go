@@ -24,6 +24,8 @@ type Logger struct {
 	subloggers map[abstraction.LoggerName]abstraction.Logger
 
 	trace zerolog.Logger
+
+	onStart func()
 }
 
 /**************
@@ -83,7 +85,15 @@ func (logger *Logger) Start() error {
 	}
 
 	logger.trace.Info().Msg("started")
+
+	if logger.onStart != nil {
+		logger.onStart()
+	}
 	return nil
+}
+
+func (logger *Logger) SetOnStart(cb func()) {
+	logger.onStart = cb
 }
 
 // PushRecord works as a proxy for the PushRecord method of the subloggers

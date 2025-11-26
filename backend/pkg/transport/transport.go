@@ -119,44 +119,17 @@ func (transport *Transport) HandleServer(config tcp.ServerConfig, local string) 
 // handleTCPConn is used to handle the specific TCP connections to the boards. It detects errors caused
 // on concurrent reads and writes, so other routines should not worry about closing or handling errors
 func (transport *Transport) handleTCPConn(conn net.Conn) error {
-	if tcpConn, ok := conn.(*net.TCPConn); ok {
-		transport.logger.Trace().Str("remoteAddress", conn.RemoteAddr().String()).Msg("setting connection linger")
-		err := tcpConn.SetLinger(0)
-		if err != nil {
-			transport.errChan <- err
-			transport.logger.Error().Stack().Err(err).Str("remoteAddress", conn.RemoteAddr().String()).Msg("set linger")
-		}
+	transport.configureTCPConn(conn)
 
-		transport.logger.Trace().Str("remoteAddress", conn.RemoteAddr().String()).Msg("setting connection no delay")
-		err = tcpConn.SetNoDelay(true)
-		if err != nil {
-			transport.errChan <- err
-			transport.logger.Error().Stack().Err(err).Str("remoteAddress", conn.RemoteAddr().String()).Msg("set no delay")
-		}
-	}
-
-	target, ok := transport.ipToTarget[conn.RemoteAddr().(*net.TCPAddr).IP.String()]
-	if !ok {
-		conn.Close()
-		transport.logger.Warn().Str("remoteAddress", conn.RemoteAddr().(*net.TCPAddr).IP.String()).Msg("ip target not found")
-		err := ErrUnknownTarget{Remote: conn.RemoteAddr()}
-		transport.errChan <- err
+	target, err := transport.targetFromTCPConn(conn)
+	if err != nil {
 		return err
 	}
 
 	connectionLogger := transport.logger.With().Str("remoteAddress", conn.RemoteAddr().String()).Str("target", string(target)).Logger()
 	connectionLogger.Info().Msg("new connection")
 
-	if err := func() error {
-		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
-		if _, ok := transport.connections[target]; ok {
-			conn.Close()
-			connectionLogger.Debug().Msg("already connected")
-			return ErrTargetAlreadyConnected{Target: target}
-		}
-		return nil
-	}(); err != nil {
+	if err := transport.rejectIfConnectedTCPConn(target, conn, connectionLogger); err != nil {
 		transport.errChan <- err
 		return err
 	}
@@ -167,55 +140,124 @@ func (transport *Transport) handleTCPConn(conn net.Conn) error {
 		connectionLogger.Info().Msg("close")
 	}()
 
-	func() {
-		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
-		connectionLogger.Debug().Msg("added connection")
-		transport.connections[target] = conn
-	}()
-	defer func() {
-		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
-		connectionLogger.Debug().Msg("removed connection")
-		delete(transport.connections, target)
-	}()
+	cleanupConn := transport.registerTCPConn(target, conn, connectionLogger)
+	defer cleanupConn()
 
 	transport.api.ConnectionUpdate(target, true)
 	defer transport.api.ConnectionUpdate(target, false)
 
-	go func() {
-		for {
-			packet, err := transport.decoder.DecodeNext(conn)
-			if err != nil {
-				connectionLogger.Error().Stack().Err(err).Msg("decode")
-				transport.errChan <- err
-				transport.SendFault()
-				return
-			}
+	transport.readLoopTCPConn(conn, connectionLogger)
 
-			if transport.propagateFault && packet.Id() == 0 {
-				connectionLogger.Info().Msg("replicating packet with id 0 to all boards")
-				err := transport.handlePacketEvent(NewPacketMessage(packet))
-				if err != nil {
-					connectionLogger.Error().Err(err).Msg("failed to replicate packet")
-				}
-			}
-
-			from := conn.RemoteAddr().String()
-			to := conn.LocalAddr().String()
-
-			connectionLogger.Trace().Type("type", packet).Msg("packet")
-			transport.api.Notification(NewPacketNotification(packet, from, to, time.Now()))
-		}
-	}()
-
-	err := <-errChan
+	err = <-errChan
 	if err != nil {
 		connectionLogger.Error().Stack().Err(err).Msg("")
 		transport.errChan <- err
 	}
 	return err
 }
+
+// configureTCPConn sets TCP-level options like linger and no-delay.
+func (transport *Transport) configureTCPConn(conn net.Conn) {
+	tcpConn, ok := conn.(*net.TCPConn)
+	if !ok {
+		return
+	}
+
+	remote := conn.RemoteAddr().String()
+
+	transport.logger.Trace().Str("remoteAddress", remote).Msg("setting connection linger")
+	err := tcpConn.SetLinger(0)
+	if err != nil {
+		transport.errChan <- err
+		transport.logger.Error().Stack().Err(err).Str("remoteAddress", remote).Msg("set linger")
+	}
+
+	transport.logger.Trace().Str("remoteAddress", remote).Msg("setting connection no delay")
+	err = tcpConn.SetNoDelay(true)
+	if err != nil {
+		transport.errChan <- err
+		transport.logger.Error().Stack().Err(err).Str("remoteAddress", remote).Msg("set no delay")
+	}
+}
+
+// targetFromTCPConn maps the remote IP address of the connection to a TransportTarget
+// using the ipToTarget map.
+func (transport *Transport) targetFromTCPConn(conn net.Conn) (abstraction.TransportTarget, error) {
+	remoteAddr := conn.RemoteAddr().(*net.TCPAddr)
+	ip := remoteAddr.IP.String()
+
+	target, ok := transport.ipToTarget[ip]
+	if !ok {
+		conn.Close()
+		transport.logger.Warn().Str("remoteAddress", ip).Msg("ip target not found")
+		err := ErrUnknownTarget{Remote: conn.RemoteAddr()}
+		transport.errChan <- err
+		var zero abstraction.TransportTarget
+		return zero, err
+
+	}
+	return target, nil
+}
+
+// rejectIfConnectedTCPConn closes and rejects conn if target already has an active connection.
+func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger,) error {
+	transport.connectionsMx.Lock()
+	defer transport.connectionsMx.Unlock()
+
+	if _, ok := transport.connections[target]; ok {
+		conn.Close()
+		logger.Debug().Msg("already connected")
+		err := ErrTargetAlreadyConnected{Target: target}
+		transport.errChan <- err
+		return err
+	}
+	return nil
+}
+
+// registerTCPConn stores conn for target and returns a cleanup that removes it.
+func (transport *Transport) registerTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger) func() {
+	transport.connectionsMx.Lock()
+	logger.Debug().Msg("added connection")
+	transport.connections[target] = conn
+	transport.connectionsMx.Unlock()
+
+	return func() {
+		transport.connectionsMx.Lock()
+		logger.Debug().Msg("removed connection")
+		delete(transport.connections, target)
+		transport.connectionsMx.Unlock()
+	}
+}
+
+// readLoopTCPConn reads packets from conn and forwards notifications until an error occurs.
+func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger) {
+	from := conn.RemoteAddr().String()
+	to := conn.LocalAddr().String()
+	
+	go func() {
+		for {
+			packet, err := transport.decoder.DecodeNext(conn)
+			if err != nil {
+				logger.Error().Stack().Err(err).Msg("decode")
+				transport.errChan <- err
+				transport.SendFault()
+				return
+			}
+
+			if transport.propagateFault && packet.Id() == 0 {
+				logger.Info().Msg("replicating packet with id 0 to all boards")
+				err := transport.handlePacketEvent(NewPacketMessage(packet))
+				if err != nil {
+					logger.Error().Err(err).Msg("failed to replicate packet")
+				}
+			}
+
+			logger.Trace().Type("type", packet).Msg("packet")
+			transport.api.Notification(NewPacketNotification(packet, from, to, time.Now()))
+		}
+	}()
+}
+
 
 // SendMessage triggers an event to send something to the vehicle. Some messages
 // might additional means to pass information around (e.g. file read and write)
@@ -233,8 +275,10 @@ func (transport *Transport) SendMessage(message abstraction.TransportMessage) er
 		err = ErrUnrecognizedEvent{message.Event()}
 	}
 	// handlePacketEvent already sends the error through the channel, so this avoids duplicates
-	if _, ok := err.(ErrConnClosed); !ok {
-		transport.errChan <- err
+	if err != nil {
+		if _, ok := err.(ErrConnClosed); !ok {
+			transport.errChan <- err
+		}
 	}
 	return err
 }
@@ -326,14 +370,18 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 // handleFileWrite writes a file through tftp to the blcu
 func (transport *Transport) handleFileWrite(message FileWriteMessage) error {
 	_, err := transport.tftp.WriteFile(message.Filename(), tftp.BinaryMode, message)
-	transport.errChan <- err
+	if err != nil {
+		transport.errChan <- err
+	}
 	return err
 }
 
 // handleFileRead reads a file through tftp from the blcu
 func (transport *Transport) handleFileRead(message FileReadMessage) error {
 	_, err := transport.tftp.ReadFile(message.Filename(), tftp.BinaryMode, message)
-	transport.errChan <- err
+	if err != nil {
+		transport.errChan <- err
+	}
 	return err
 }
 

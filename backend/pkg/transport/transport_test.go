@@ -89,12 +89,17 @@ type MockBoardServer struct {
 
 func NewMockBoardServer(address string) *MockBoardServer {
 	logger := zerolog.Nop()
+
+	enc := presentation.NewEncoder(binary.BigEndian, logger)
+    dec := presentation.NewDecoder(binary.BigEndian, logger)
+    wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
+
 	return &MockBoardServer{
 		address:     address,
 		connections: make([]net.Conn, 0),
 		packetsRecv: make([]abstraction.Packet, 0),
-		encoder:     presentation.NewEncoder(binary.BigEndian, logger),
-		decoder:     presentation.NewDecoder(binary.BigEndian, logger),
+		encoder:     enc,
+		decoder:     dec,
 	}
 }
 
@@ -222,11 +227,18 @@ func (s *MockBoardServer) GetConnectionCount() int {
 
 // Test utilities
 func createTestTransport(t *testing.T) (*Transport, *TestTransportAPI) {
-	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	
+	// if NewTestWriter(t) is used: background goroutines may log after the test ends and cause a panic
+	//logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	logger := zerolog.New(zerolog.Nop()).With().Timestamp().Logger()
+
+	enc := presentation.NewEncoder(binary.BigEndian, logger)
+    dec := presentation.NewDecoder(binary.BigEndian, logger)
+    wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
+
+
 	transport := NewTransport(logger).
-		WithEncoder(presentation.NewEncoder(binary.BigEndian, logger)).
-		WithDecoder(presentation.NewDecoder(binary.BigEndian, logger))
+		WithEncoder(enc).
+		WithDecoder(dec)
 	
 	api := NewTestTransportAPI()
 	transport.SetAPI(api)
@@ -253,6 +265,20 @@ func waitForCondition(condition func() bool, timeout time.Duration, message stri
 		time.Sleep(50 * time.Millisecond)
 	}
 	return fmt.Errorf("timeout waiting for condition: %s", message)
+}
+
+// test wiring: register a trivial codec for a data packet id.
+func wireTestPacketCodec(enc *presentation.Encoder, dec *presentation.Decoder, id abstraction.PacketId) {
+    dataEnc := data.NewEncoder(binary.BigEndian)
+    dataDec := data.NewDecoder(binary.BigEndian)
+
+    // Empty descriptor = no payload values, just the id header.
+    var desc data.Descriptor
+    dataEnc.SetDescriptor(id, desc)
+    dataDec.SetDescriptor(id, desc)
+
+    enc.SetPacketEncoder(id, dataEnc)
+    dec.SetPacketDecoder(id, dataDec)
 }
 
 // Unit Tests
@@ -304,6 +330,42 @@ func TestTransport_SetTargetIp(t *testing.T) {
 	}
 	if target := transport.ipToTarget["192.168.1.101"]; target != abstraction.TransportTarget("ANOTHER_BOARD") {
 		t.Errorf("Expected ANOTHER_BOARD, got %s", target)
+	}
+}
+
+func TestTransport_InvalidInputs(t *testing.T) {
+	transport, _ := createTestTransport(t)
+
+	// Test invalid ID input
+	err := transport.SetIdTarget(0, "")
+	if err == nil {
+		t.Errorf("Expected error for invalid ID input, got nil")
+	}
+
+	// Test invalid IP input
+	err = transport.SetTargetIp("", "")
+	if err == nil {
+		t.Errorf("Expected error for invalid IP input, got nil")
+	}
+}
+
+func TestTransport_RemoveTargets(t *testing.T) {
+	transport, _ := createTestTransport(t)
+
+	// Add entries
+	transport.SetIdTarget(100, "TEST_BOARD")
+	transport.SetTargetIp("192.168.1.100", "TEST_BOARD")
+
+	// Remove entries
+	delete(transport.idToTarget, 100)
+	delete(transport.ipToTarget, "192.168.1.100")
+
+	// Verify removal
+	if _, exists := transport.idToTarget[100]; exists {
+		t.Errorf("Expected ID 100 to be removed, but it still exists")
+	}
+	if _, exists := transport.ipToTarget["192.168.1.100"]; exists {
+		t.Errorf("Expected IP 192.168.1.100 to be removed, but it still exists")
 	}
 }
 
@@ -437,7 +499,8 @@ func TestTransport_PacketSending(t *testing.T) {
 	
 	// Wait for connection
 	err = waitForCondition(func() bool {
-		return mockBoard.GetConnectionCount() > 0
+    	updates := api.GetConnectionUpdates()
+    	return len(updates) > 0 && updates[len(updates)-1].Target == target && updates[len(updates)-1].IsConnected
 	}, 2*time.Second, "Should establish connection")
 	if err != nil {
 		t.Fatal(err)
