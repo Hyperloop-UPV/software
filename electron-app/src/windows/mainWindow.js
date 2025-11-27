@@ -1,11 +1,10 @@
 import { BrowserWindow, app, dialog } from "electron";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
+import path from "path";
 import fs from "fs";
 import { createMenu } from "../menu/menu.js";
+import { getAppPath } from "../utils/paths.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const appPath = getAppPath();
 
 let mainWindow = null;
 let currentView = "ethernet-view";
@@ -17,7 +16,7 @@ function createWindow() {
     minWidth: 1280,
     minHeight: 720,
     webPreferences: {
-      preload: path.join(__dirname, "..", "..", "preload.js"),
+      preload: path.join(appPath, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -43,14 +42,7 @@ function createWindow() {
 
 function loadView(view) {
   currentView = view;
-  const viewPath = path.join(
-    __dirname,
-    "..",
-    "..",
-    "renderer",
-    view,
-    "index.html"
-  );
+  const viewPath = path.join(appPath, "renderer", view, "index.html");
 
   if (fs.existsSync(viewPath)) {
     mainWindow.loadFile(viewPath);

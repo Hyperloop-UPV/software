@@ -4,6 +4,7 @@ import { startBackend, stopBackend } from "./src/processes/backend.js";
 import { setupIpcHandlers } from "./src/ipc/handlers.js";
 import { getConfigManager } from "./src/config/configInstance.js";
 import { stopPacketSender } from "./src/processes/packetSender.js";
+import { logger } from "./src/utils/logger.js";
 
 // Setup IPC handlers
 setupIpcHandlers();
@@ -11,14 +12,13 @@ setupIpcHandlers();
 // App lifecycle
 app.whenReady().then(async () => {
   // Initialize ConfigManager and ensure config exists BEFORE starting backend
-  console.log("Initializing configuration...");
+  logger.electron.info("Initializing configuration...");
   await getConfigManager();
-  console.log("Configuration ready");
+  logger.electron.info("Configuration ready");
 
   startBackend();
-  setTimeout(() => {
-    createWindow();
-  }, 1000);
+
+  createWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -39,6 +39,6 @@ app.on("before-quit", () => {
 });
 
 process.on("uncaughtException", (error) => {
-  console.error("Uncaught exception:", error);
+  logger.electron.error("Uncaught exception:", error);
   dialog.showErrorBox("Error", error.message);
 });

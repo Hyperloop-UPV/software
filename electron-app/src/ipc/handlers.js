@@ -6,6 +6,8 @@ import {
 } from "../config/configInstance.js";
 import { loadView, getCurrentView } from "../windows/mainWindow.js";
 import { getMainWindow } from "../windows/mainWindow.js";
+import { restartBackend } from "../processes/backend.js";
+import { logger } from "../utils/logger.js";
 
 function setupIpcHandlers() {
   ipcMain.handle("get-current-view", () => getCurrentView());
@@ -17,10 +19,11 @@ function setupIpcHandlers() {
 
   ipcMain.handle("save-config", async (event, config) => {
     try {
-      writeConfig(config);
+      await writeConfig(config);
+      restartBackend();
       return true;
     } catch (error) {
-      console.error("Error saving config:", error);
+      logger.electron.error("Error saving config:", error);
       throw error;
     }
   });
@@ -29,7 +32,7 @@ function setupIpcHandlers() {
     try {
       return await readConfig();
     } catch (error) {
-      console.error("Error reading config:", error);
+      logger.electron.error("Error reading config:", error);
       throw error;
     }
   });
@@ -37,9 +40,10 @@ function setupIpcHandlers() {
   ipcMain.handle("import-config", async () => {
     try {
       await importConfig();
+      restartBackend();
       return true;
     } catch (error) {
-      console.error("Error importing config:", error);
+      logger.electron.error("Error importing config:", error);
       throw error;
     }
   });
@@ -58,7 +62,7 @@ function setupIpcHandlers() {
 
       return result.filePaths[0] || null;
     } catch (error) {
-      console.error("Error selecting folder:", error);
+      logger.electron.error("Error selecting folder:", error);
       throw error;
     }
   });

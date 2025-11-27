@@ -5,6 +5,19 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/**
+ * Get the app root path (electron-app directory)
+ * Works correctly in both development and production
+ */
+function getAppPath() {
+  if (!app.isPackaged) {
+    // Development: electron-app directory is 2 levels up from src/utils/paths.js
+    return path.join(__dirname, "..", "..");
+  }
+  // Production: use app.getAppPath() which points to the app root
+  return app.getAppPath();
+}
+
 function getBinaryPath(name) {
   const platform = process.platform;
   const arch = process.arch;
@@ -26,9 +39,7 @@ function getBinaryPath(name) {
 
   if (!app.isPackaged) {
     return path.join(
-      __dirname,
-      "..",
-      "..",
+      getAppPath(),
       "binaries",
       `${name}-${goos}-${goarch}${ext}`
     );
@@ -44,7 +55,7 @@ function getBinaryPath(name) {
 function getUserConfigPath() {
   if (!app.isPackaged) {
     // Development: use local config.toml in project root
-    return path.join(__dirname, "..", "..", "config.toml");
+    return path.join(getAppPath(), "config.toml");
   }
 
   // Production: user config in userData directory
@@ -56,19 +67,11 @@ function getUserConfigPath() {
 function getTemplatePath() {
   if (!app.isPackaged) {
     // Development: use backend config.toml as template
-    return path.join(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "backend",
-      "cmd",
-      "dev-config.toml"
-    );
+    return path.join(getAppPath(), "..", "backend", "cmd", "dev-config.toml");
   }
 
   // Production: default config.toml is bundled in resources
   return path.join(process.resourcesPath, "config.toml");
 }
 
-export { getBinaryPath, getUserConfigPath, getTemplatePath };
+export { getAppPath, getBinaryPath, getUserConfigPath, getTemplatePath };
