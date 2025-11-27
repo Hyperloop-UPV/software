@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import TOML from "@iarna/toml";
+import { logger } from "../utils/logger.js";
 
 /**
  * Updates a single TOML value while preserving comments and formatting
@@ -130,7 +131,9 @@ class ConfigManager {
     if (!fs.existsSync(this.userConfigPath)) {
       if (fs.existsSync(this.templatePath)) {
         fs.copyFileSync(this.templatePath, this.userConfigPath);
-        console.log(`Created config from template: ${this.userConfigPath}`);
+        logger.config.info(
+          `Created config from template: ${this.userConfigPath}`
+        );
       } else {
         throw new Error(`Template not found: ${this.templatePath}`);
       }
@@ -145,7 +148,7 @@ class ConfigManager {
       const content = this.readRaw();
       return TOML.parse(content);
     } catch (error) {
-      console.error("Error reading config:", error);
+      logger.config.error("Error reading config:", error);
       throw new Error(`Failed to read config: ${error.message}`);
     }
   }
@@ -165,10 +168,10 @@ class ConfigManager {
       let content = this.readRaw();
       content = updateTomlFromObject(content, newConfigObject);
       fs.writeFileSync(this.userConfigPath, content, "utf-8");
-      console.log("Config updated successfully");
+      logger.config.info("Config updated successfully");
       return true;
     } catch (error) {
-      console.error("Error updating config:", error);
+      logger.config.error("Error updating config:", error);
       throw new Error(`Failed to update config: ${error.message}`);
     }
   }
@@ -181,10 +184,10 @@ class ConfigManager {
       let content = fs.readFileSync(this.userConfigPath, "utf-8");
       content = updateTomlValue(content, section, key, value);
       fs.writeFileSync(this.userConfigPath, content, "utf-8");
-      console.log(`Updated ${section}.${key} = ${value}`);
+      logger.config.info(`Updated ${section}.${key} = ${value}`);
       return true;
     } catch (error) {
-      console.error("Error updating value:", error);
+      logger.config.error("Error updating value:", error);
       throw new Error(`Failed to update value: ${error.message}`);
     }
   }
@@ -198,10 +201,10 @@ class ConfigManager {
         throw new Error("Template file not found");
       }
       fs.copyFileSync(this.templatePath, this.userConfigPath);
-      console.log("Config reset to template");
+      logger.config.info("Config reset to template");
       return true;
     } catch (error) {
-      console.error("Error resetting config:", error);
+      logger.config.error("Error resetting config:", error);
       throw new Error(`Failed to reset config: ${error.message}`);
     }
   }
@@ -214,10 +217,10 @@ class ConfigManager {
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const backupPath = `${this.userConfigPath}.backup-${timestamp}`;
       fs.copyFileSync(this.userConfigPath, backupPath);
-      console.log(`Config backed up to: ${backupPath}`);
+      logger.config.info(`Config backed up to: ${backupPath}`);
       return backupPath;
     } catch (error) {
-      console.error("Error backing up config:", error);
+      logger.config.error("Error backing up config:", error);
       throw new Error(`Failed to backup config: ${error.message}`);
     }
   }

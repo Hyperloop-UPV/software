@@ -85,6 +85,15 @@ debug = false`;
     expect(result).toContain('    key = "updated" # important comment');
   });
 
+  it("should work with CR/LF line endings", () => {
+    const toml = `key = "value"\r\nother = 123`;
+
+    const result = updateTomlValue(toml, null, "other", 500);
+
+    expect(result).toContain("other = 500");
+    expect(result).toContain('key = "value"');
+  });
+
   it("should handle array values", () => {
     const toml = `items = ["a", "b"]`;
 

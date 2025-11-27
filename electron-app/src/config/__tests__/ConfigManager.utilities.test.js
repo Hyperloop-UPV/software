@@ -33,7 +33,9 @@ host = "localhost"`;
         templatePath,
         userConfigPath
       );
-      expect(consoleSpy).toHaveBeenCalledWith("Config reset to template");
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Config reset to template")
+      );
 
       consoleSpy.mockRestore();
     });
@@ -97,7 +99,7 @@ host = "localhost"`;
       const manager = new ConfigManager(userConfigPath, templatePath);
       const backup1 = manager.backup();
 
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const backup2 = manager.backup();
 

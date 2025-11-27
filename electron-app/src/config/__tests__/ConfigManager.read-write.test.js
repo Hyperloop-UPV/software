@@ -82,7 +82,9 @@ host = "localhost"`;
 
       expect(result).toBe(true);
       expect(fs.writeFileSync).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith("Config updated successfully");
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Config updated successfully")
+      );
 
       consoleSpy.mockRestore();
     });

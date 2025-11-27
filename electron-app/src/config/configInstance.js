@@ -1,4 +1,5 @@
 import { getUserConfigPath, getTemplatePath } from "../utils/paths.js";
+import { logger } from "../utils/logger.js";
 
 let configManager = null;
 
@@ -14,9 +15,9 @@ async function getConfigManager() {
     const templatePath = getTemplatePath();
 
     configManager = new ConfigManager(userConfigPath, templatePath);
-    console.log("ConfigManager initialized");
-    console.log("  User config:", userConfigPath);
-    console.log("  Template:", templatePath);
+    logger.config.info("ConfigManager initialized");
+    logger.config.info("User config:", userConfigPath);
+    logger.config.info("Template:", templatePath);
   }
 
   return configManager;
@@ -43,7 +44,6 @@ async function writeConfig(configObject) {
  */
 async function importConfig() {
   const { dialog } = await import("electron");
-  const fs = await import("fs");
 
   try {
     const result = await dialog.showOpenDialog({
@@ -65,8 +65,11 @@ async function importConfig() {
     // Backup current config before importing
     manager.backup();
 
-    // Copy imported file to user config location
-    fs.copyFileSync(importPath, manager.userConfigPath);
+    // Read the imported config
+    const importedConfig = manager.read(importPath);
+
+    // Update the current config with the imported config
+    manager.update(importedConfig);
 
     // Validate the imported config
     const validation = manager.validate();
@@ -74,10 +77,10 @@ async function importConfig() {
       throw new Error(`Invalid TOML file: ${validation.error}`);
     }
 
-    console.log("Config imported successfully from:", importPath);
+    logger.config.info("Config imported successfully from:", importPath);
     return true;
   } catch (error) {
-    console.error("Error importing config:", error);
+    logger.config.error("Error importing config:", error);
     throw error;
   }
 }
