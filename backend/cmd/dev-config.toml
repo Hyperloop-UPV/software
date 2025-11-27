@@ -14,7 +14,7 @@ automatic_window_opening = "" # Leave blank to open no windows (<blank>, etherne
 
 # Vehicle Configuration
 [vehicle]
-boards = ["HVSCU", "HVSCU-cabinet", "PCU", "LCU", "BCU", "BMSL"]
+boards = ["HVSCU", "HVSCU-Cabinet", "PCU", "LCU", "BCU", "BMSL"]
 
 # ADJ (Architecture Description JSON) Configuration
 [adj]

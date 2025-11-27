@@ -21,6 +21,7 @@
     "dist:linux": "electron-builder --linux"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "electron-store": "^8.1.0"
   },
   "devDependencies": {
