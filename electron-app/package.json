@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Hyperloop UPV Control Station",
   "main": "main.js",
+  "type": "module",
   "author": {
     "name": "Hyperloop UPV",
     "email": "max766667@gmail.com"
@@ -18,15 +19,18 @@
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "test": "vitest run"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "electron-store": "^8.1.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.14",
     "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "vitest": "^4.0.14"
   },
   "build": {
     "appId": "com.hyperloop.controlstation",

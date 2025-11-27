@@ -66,7 +66,7 @@ const DEFAULT_CONFIG: ConfigData = {
     backoff_factor: 2,
     enable_progress: true,
   },
-  logger: {
+  logging: {
     time_unit: "us",
     logging_path: "",
   },
@@ -556,19 +556,18 @@ export const ConfigPopup = ({ isOpen, onClose }: Props) => {
               </div>
             </section>
 
-            {/* Logger Configuration */}
-            {/* Logger Configuration */}
+            {/* Logging Configuration */}
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>Logger Configuration</h3>
               <div className={styles.field}>
                 <label className={styles.label}>Time Unit</label>
                 <select
                   className={styles.select}
-                  value={config.logger.time_unit}
+                  value={config.logging.time_unit}
                   onChange={(e) =>
                     updateConfig((prev) => ({
                       ...prev,
-                      logger: { ...prev.logger, time_unit: e.target.value },
+                      logging: { ...prev.logging, time_unit: e.target.value },
                     }))
                   }
                   disabled={isDisabled}
@@ -585,12 +584,12 @@ export const ConfigPopup = ({ isOpen, onClose }: Props) => {
                 <div className={styles.folderPickerContainer}>
                   <TextInput
                     isValid={true}
-                    value={config.logger.logging_path}
+                    value={config.logging.logging_path}
                     onChange={(e) =>
                       updateConfig((prev) => ({
                         ...prev,
-                        logger: {
-                          ...prev.logger,
+                        logging: {
+                          ...prev.logging,
                           logging_path: e.target.value,
                         },
                       }))
@@ -609,8 +608,8 @@ export const ConfigPopup = ({ isOpen, onClose }: Props) => {
                           if (folderPath) {
                             updateConfig((prev) => ({
                               ...prev,
-                              logger: {
-                                ...prev.logger,
+                              logging: {
+                                ...prev.logging,
                                 logging_path: folderPath,
                               },
                             }));

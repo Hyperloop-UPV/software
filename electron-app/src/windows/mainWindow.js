@@ -1,7 +1,11 @@
-const { BrowserWindow, app, dialog } = require("electron");
-const path = require("path");
-const fs = require("fs");
-const { createMenu } = require("../menu/menu");
+import { BrowserWindow, app, dialog } from "electron";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import { createMenu } from "../menu/menu.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let mainWindow = null;
 let currentView = "ethernet-view";
@@ -69,4 +73,4 @@ function getMainWindow() {
   return mainWindow;
 }
 
-module.exports = { createWindow, loadView, getCurrentView, getMainWindow };
+export { createWindow, loadView, getCurrentView, getMainWindow };

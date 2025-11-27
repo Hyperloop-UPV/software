@@ -1,10 +1,10 @@
-const { Menu, dialog, app } = require("electron");
-const { getBinaryPath } = require("../utils/paths");
-const {
+import { Menu, dialog, app } from "electron";
+import { getBinaryPath } from "../utils/paths.js";
+import {
   startPacketSender,
   getPacketSenderProcess,
-} = require("../processes/packetSender");
-const fs = require("fs");
+} from "../processes/packetSender.js";
+import fs from "fs";
 
 function createMenu(mainWindow) {
   const template = [
@@ -31,7 +31,7 @@ function createMenu(mainWindow) {
           label: "Control Station",
           accelerator: "CmdOrCtrl+1",
           click: () => {
-            const { loadView } = require("../windows/mainWindow");
+            loadView("control-station");
             loadView("control-station");
           },
         },
@@ -39,7 +39,7 @@ function createMenu(mainWindow) {
           label: "Ethernet View",
           accelerator: "CmdOrCtrl+2",
           click: () => {
-            const { loadView } = require("../windows/mainWindow");
+            loadView("ethernet-view");
             loadView("ethernet-view");
           },
         },
@@ -76,7 +76,7 @@ function createMenu(mainWindow) {
         {
           label: "Stop Packet Sender",
           click: () => {
-            const { stopPacketSender } = require("../processes/packetSender");
+            stopPacketSender();
             const packetSenderProcess = getPacketSenderProcess();
             if (packetSenderProcess && !packetSenderProcess.killed) {
               stopPacketSender();
@@ -108,4 +108,4 @@ function createMenu(mainWindow) {
   Menu.setApplicationMenu(menu);
 }
 
-module.exports = { createMenu };
+export { createMenu };

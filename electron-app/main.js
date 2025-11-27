@@ -1,20 +1,27 @@
-const { app, dialog } = require("electron");
-const { createWindow } = require("./src/windows/mainWindow");
-const { startBackend } = require("./src/processes/backend");
-const { setupIpcHandlers } = require("./src/ipc/handlers");
+import { app, dialog } from "electron";
+import { createWindow } from "./src/windows/mainWindow.js";
+import { startBackend, stopBackend } from "./src/processes/backend.js";
+import { setupIpcHandlers } from "./src/ipc/handlers.js";
+import { getConfigManager } from "./src/config/configInstance.js";
+import { stopPacketSender } from "./src/processes/packetSender.js";
 
 // Setup IPC handlers
 setupIpcHandlers();
 
 // App lifecycle
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Initialize ConfigManager and ensure config exists BEFORE starting backend
+  console.log("Initializing configuration...");
+  await getConfigManager();
+  console.log("Configuration ready");
+
   startBackend();
   setTimeout(() => {
     createWindow();
-  }, 2000);
+  }, 1000);
 
   app.on("activate", () => {
-    if (require("electron").BrowserWindow.getAllWindows().length === 0) {
+    if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
@@ -27,8 +34,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  const { stopBackend } = require("./src/processes/backend");
-  const { stopPacketSender } = require("./src/processes/packetSender");
   stopBackend();
   stopPacketSender();
 });

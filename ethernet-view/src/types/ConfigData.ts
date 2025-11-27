@@ -31,7 +31,7 @@ export type ConfigData = {
     backoff_factor: number;
     enable_progress: boolean;
   };
-  logger: {
+  logging: {
     time_unit: string;
     logging_path: string;
   };

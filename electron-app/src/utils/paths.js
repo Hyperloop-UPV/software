@@ -1,5 +1,9 @@
-const { app } = require("electron");
-const path = require("path");
+import { app } from "electron";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function getBinaryPath(name) {
   const platform = process.platform;
@@ -37,24 +41,34 @@ function getBinaryPath(name) {
   );
 }
 
-function getConfigPath() {
+function getUserConfigPath() {
   if (!app.isPackaged) {
+    // Development: use local config.toml in project root
     return path.join(__dirname, "..", "..", "config.toml");
   }
 
+  // Production: user config in userData directory
   const userConfigDir = app.getPath("userData");
   const configsDir = path.join(userConfigDir, "configs");
-  const configPath = path.join(configsDir, "config.toml");
-
-  if (!require("fs").existsSync(configPath)) {
-    const defaultConfigPath = path.join(process.resourcesPath, "config.toml");
-    if (require("fs").existsSync(defaultConfigPath)) {
-      require("fs").mkdirSync(configsDir, { recursive: true });
-      require("fs").copyFileSync(defaultConfigPath, configPath);
-    }
-  }
-
-  return configPath;
+  return path.join(configsDir, "config.toml");
 }
 
-module.exports = { getBinaryPath, getConfigPath };
+function getTemplatePath() {
+  if (!app.isPackaged) {
+    // Development: use backend config.toml as template
+    return path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "backend",
+      "cmd",
+      "dev-config.toml"
+    );
+  }
+
+  // Production: default config.toml is bundled in resources
+  return path.join(process.resourcesPath, "config.toml");
+}
+
+export { getBinaryPath, getUserConfigPath, getTemplatePath };

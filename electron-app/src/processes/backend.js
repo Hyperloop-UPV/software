@@ -1,15 +1,19 @@
-const { spawn } = require("child_process");
-const { dialog } = require("electron");
-const { getBinaryPath, getConfigPath } = require("../utils/paths");
-const fs = require("fs");
-const { app } = require("electron");
-const path = require("path");
+import { spawn } from "child_process";
+import { dialog } from "electron";
+import { getBinaryPath, getUserConfigPath } from "../utils/paths.js";
+import fs from "fs";
+import { app } from "electron";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let backendProcess = null;
 
 function startBackend() {
   const backendBin = getBinaryPath("backend");
-  const configPath = getConfigPath();
+  const configPath = getUserConfigPath();
 
   if (!fs.existsSync(backendBin)) {
     console.error(`Backend binary not found: ${backendBin}`);
@@ -64,4 +68,4 @@ function restartBackend() {
   startBackend();
 }
 
-module.exports = { startBackend, stopBackend, restartBackend };
+export { startBackend, stopBackend, restartBackend };

@@ -1,11 +1,11 @@
-const { ipcMain, dialog } = require("electron");
-const {
+import { ipcMain, dialog } from "electron";
+import {
   readConfig,
   writeConfig,
   importConfig,
-} = require("../config/configManager");
-const { loadView, getCurrentView } = require("../windows/mainWindow");
-const { getMainWindow } = require("../windows/mainWindow");
+} from "../config/configInstance.js";
+import { loadView, getCurrentView } from "../windows/mainWindow.js";
+import { getMainWindow } from "../windows/mainWindow.js";
 
 function setupIpcHandlers() {
   ipcMain.handle("get-current-view", () => getCurrentView());
@@ -27,7 +27,7 @@ function setupIpcHandlers() {
 
   ipcMain.handle("get-config", async () => {
     try {
-      return readConfig();
+      return await readConfig();
     } catch (error) {
       console.error("Error reading config:", error);
       throw error;
@@ -64,4 +64,4 @@ function setupIpcHandlers() {
   });
 }
 
-module.exports = { setupIpcHandlers };
+export { setupIpcHandlers };

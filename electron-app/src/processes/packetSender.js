@@ -1,6 +1,6 @@
-const { spawn } = require("child_process");
-const { getBinaryPath } = require("../utils/paths");
-const fs = require("fs");
+import { spawn } from "child_process";
+import { getBinaryPath } from "../utils/paths.js";
+import fs from "fs";
 
 let packetSenderProcess = null;
 
@@ -45,9 +45,13 @@ function restartPacketSender() {
   }
 }
 
-module.exports = {
+function getPacketSenderProcess() {
+  return packetSenderProcess;
+}
+
+export {
   startPacketSender,
   stopPacketSender,
   restartPacketSender,
-  getPacketSenderProcess: () => packetSenderProcess,
+  getPacketSenderProcess,
 };

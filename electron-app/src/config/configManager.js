@@ -1,218 +1,242 @@
-const fs = require("fs");
-const { dialog } = require("electron");
-const toml = require("@iarna/toml");
-const { getConfigPath } = require("../utils/paths");
-const { restartBackend } = require("../processes/backend");
+import fs from "fs";
+import path from "path";
+import TOML from "@iarna/toml";
 
-function getServerConfigSection() {
-  return `# Server Configuration
-[server.ethernet-view]
-address = "127.0.0.1:4040"
-static = "./ethernet-view"
+/**
+ * Updates a single TOML value while preserving comments and formatting
+ */
+function updateTomlValue(tomlContent, section, key, newValue) {
+  const lines = tomlContent.split(/\r?\n/);
+  let currentSection = null;
+  let updated = false;
 
-[server.ethernet-view.endpoints]
-pod_data = "/podDataStructure"
-order_data = "/orderStructures"
-programable_boards = "/uploadableBoards"
-connections = "/backend"
-files = "/"
+  const result = lines.map((line) => {
+    const trimmed = line.trim();
 
-[server.control-station]
-address = "127.0.0.1:4000"
-static = "./control-station"
+    // Track current section
+    const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      return line;
+    }
 
-[server.control-station.endpoints]
-pod_data = "/podDataStructure"
-order_data = "/orderStructures"
-programable_boards = "/uploadableBoards"
-connections = "/backend"
-files = "/"
-`;
-}
+    // Skip empty lines and pure comments
+    if (!trimmed || trimmed.startsWith("#")) {
+      return line;
+    }
 
-function readConfig(configFilePath = getConfigPath()) {
-  // Check if file exists, throw error if not
-  if (!fs.existsSync(configFilePath)) {
-    throw new Error(`Config file not found at: ${configFilePath}`);
-  }
+    // Check if we're in the right section (or no section needed)
+    const inRightSection = section
+      ? currentSection === section
+      : currentSection === null;
+    if (!inRightSection || updated) {
+      return line;
+    }
 
-  // Read config file
-  const content = fs.readFileSync(configFilePath, "utf8");
+    // Parse the line: key = value # comment
+    const match = line.match(
+      /^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*)(\s*=\s*)([^#]+?)((?:\s*#.*)?)$/
+    );
 
-  // Split at "DO NOT TOUCH" line
-  const splitIndex = content.indexOf("# <-- DO NOT TOUCH BELOW THIS LINE -->");
-  const editableContent =
-    splitIndex !== -1 ? content.substring(0, splitIndex) : content;
+    if (match && match[2] === key) {
+      const [, indent, , equals, , comment] = match;
 
-  // Parse TOML
-  const parsed = toml.parse(editableContent);
+      // Format value based on type
+      let formattedValue;
+      if (typeof newValue === "string") {
+        // Escape special characters
+        const escaped = newValue.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+        formattedValue = `"${escaped}"`;
+      } else if (typeof newValue === "boolean") {
+        formattedValue = newValue.toString();
+      } else if (Array.isArray(newValue)) {
+        // Simple array formatting
+        const items = newValue.map((v) =>
+          typeof v === "string" ? `"${v}"` : v
+        );
+        formattedValue = `[${items.join(", ")}]`;
+      } else if (newValue === null || newValue === undefined) {
+        // Skip null/undefined values
+        return line;
+      } else {
+        formattedValue = newValue;
+      }
 
-  // Map to ConfigData structure
-  const config = {
-    vehicle: {
-      boards: parsed.vehicle?.boards,
-    },
-    adj: {
-      branch: parsed.adj?.branch,
-    },
-    network: {
-      manual: parsed.network?.manual,
-    },
-    transport: {
-      propagate_fault: parsed.transport?.propagate_fault,
-    },
-    tcp: {
-      backoff_min_ms: parsed.tcp?.backoff_min_ms,
-      backoff_max_ms: parsed.tcp?.backoff_max_ms,
-      backoff_multiplier: parsed.tcp?.backoff_multiplier,
-      max_retries: parsed.tcp?.max_retries,
-      connection_timeout_ms: parsed.tcp?.connection_timeout_ms,
-      keep_alive_ms: parsed.tcp?.keep_alive_ms,
-    },
-    blcu: {
-      ip: parsed.blcu?.ip,
-      download_order_id: parsed.blcu?.download_order_id,
-      upload_order_id: parsed.blcu?.upload_order_id,
-    },
-    tftp: {
-      block_size: parsed.tftp?.block_size,
-      retries: parsed.tftp?.retries,
-      timeout_ms: parsed.tftp?.timeout_ms,
-      backoff_factor: parsed.tftp?.backoff_factor,
-      enable_progress: parsed.tftp?.enable_progress,
-    },
-    logger: {
-      time_unit: parsed.logger?.time_unit,
-      logging_path: parsed.logger?.logging_path,
-    },
-  };
+      updated = true;
+      return `${indent}${key}${equals}${formattedValue}${comment}`;
+    }
 
-  return config;
-}
-
-function writeConfig(config) {
-  const configPath = getConfigPath();
-
-  // Check if file exists, throw error if not
-  if (!fs.existsSync(configPath)) {
-    throw new Error(`Config file not found at: ${configPath}`);
-  }
-
-  // Read existing config file
-  const fullContent = fs.readFileSync(configPath, "utf8");
-  const splitIndex = fullContent.indexOf(
-    "\n# <-- DO NOT TOUCH BELOW THIS LINE -->"
-  );
-
-  const editableContent =
-    splitIndex !== -1 ? fullContent.substring(0, splitIndex) : fullContent;
-  const serverSection =
-    splitIndex !== -1
-      ? fullContent.substring(splitIndex)
-      : "\n" + getServerConfigSection();
-
-  // Parse existing TOML
-  let parsed = {};
-  try {
-    parsed = toml.parse(editableContent);
-  } catch (error) {
-    console.warn("Error parsing existing config, starting fresh:", error);
-  }
-
-  // Update with new values
-  parsed.vehicle = { boards: config.vehicle.boards };
-  parsed.adj = { branch: config.adj.branch, test: false };
-  parsed.network = { manual: config.network.manual };
-  parsed.transport = { propagate_fault: config.transport.propagate_fault };
-  parsed.tcp = {
-    backoff_min_ms: config.tcp.backoff_min_ms,
-    backoff_max_ms: config.tcp.backoff_max_ms,
-    backoff_multiplier: config.tcp.backoff_multiplier,
-    max_retries: config.tcp.max_retries,
-    connection_timeout_ms: config.tcp.connection_timeout_ms,
-    keep_alive_ms: config.tcp.keep_alive_ms,
-  };
-  parsed.blcu = {
-    ip: config.blcu.ip,
-    download_order_id: config.blcu.download_order_id,
-    upload_order_id: config.blcu.upload_order_id,
-  };
-  parsed.tftp = {
-    block_size: config.tftp.block_size,
-    retries: config.tftp.retries,
-    timeout_ms: config.tftp.timeout_ms,
-    backoff_factor: config.tftp.backoff_factor,
-    enable_progress: config.tftp.enable_progress,
-  };
-  parsed.logger = {
-    time_unit: config.logger.time_unit,
-    logging_path: config.logger.logging_path,
-  };
-
-  // Stringify back to TOML
-  const updatedContent = toml.stringify(parsed);
-
-  // Write the updated file
-  fs.writeFileSync(configPath, updatedContent + serverSection, "utf8");
-
-  console.log(`Config saved successfully to: ${configPath}`);
-
-  // Restart processes to apply new config
-  restartBackend();
-}
-
-function importConfig() {
-  return new Promise((resolve, reject) => {
-    // Lazy load getMainWindow to avoid circular dependency
-    const { getMainWindow } = require("../windows/mainWindow");
-    const mainWindow = getMainWindow();
-
-    // Show file dialog to select config file
-    dialog
-      .showOpenDialog(mainWindow, {
-        title: "Import Configuration File",
-        filters: [
-          { name: "TOML Files", extensions: ["toml"] },
-          { name: "All Files", extensions: ["*"] },
-        ],
-        properties: ["openFile"],
-      })
-      .then((result) => {
-        if (result.canceled) {
-          reject(new Error("Import cancelled"));
-          return;
-        }
-
-        const selectedPath = result.filePaths[0];
-
-        if (!fs.existsSync(selectedPath)) {
-          reject(new Error("Selected file does not exist"));
-          return;
-        }
-
-        try {
-          // Use readConfig to parse the selected file
-          const importedConfig = readConfig(selectedPath);
-
-          // Use writeConfig to write it to the actual config path
-          writeConfig(importedConfig);
-
-          const configPath = getConfigPath();
-          console.log(
-            `Config imported from: ${selectedPath} to: ${configPath}`
-          );
-
-          resolve(true);
-        } catch (error) {
-          console.error("Error importing config:", error);
-          reject(error);
-        }
-      })
-      .catch((error) => {
-        console.error("Error showing file dialog:", error);
-        reject(error);
-      });
+    return line;
   });
+
+  if (!updated) {
+    console.warn(
+      `Warning: Key "${key}" in section "${section || "root"}" not found`
+    );
+  }
+
+  return result.join("\n");
 }
 
-module.exports = { readConfig, writeConfig, importConfig };
+/**
+ * Updates TOML content from a complete config object
+ */
+function updateTomlFromObject(tomlContent, configObject, parentSection = null) {
+  let result = tomlContent;
+
+  for (const [key, value] of Object.entries(configObject)) {
+    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      // It's a section with nested values
+      if (!parentSection) {
+        // First level: treat as section
+        result = updateTomlFromObject(result, value, key);
+      } else {
+        // Nested sections (e.g., [database.connection])
+        const nestedSection = `${parentSection}.${key}`;
+        result = updateTomlFromObject(result, value, nestedSection);
+      }
+    } else {
+      // It's a primitive value - update it
+      result = updateTomlValue(result, parentSection, key, value);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Main ConfigManager class for Electron apps
+ */
+class ConfigManager {
+  constructor(userConfigPath, templatePath) {
+    this.userConfigPath = userConfigPath;
+    this.templatePath = templatePath;
+
+    // Ensure user config exists (copy from template on first run)
+    this.ensureConfigExists();
+  }
+
+  /**
+   * Ensure user config file exists
+   */
+  ensureConfigExists() {
+    // Create directory if it doesn't exist
+    const dir = path.dirname(this.userConfigPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Copy template if user config doesn't exist
+    if (!fs.existsSync(this.userConfigPath)) {
+      if (fs.existsSync(this.templatePath)) {
+        fs.copyFileSync(this.templatePath, this.userConfigPath);
+        console.log(`Created config from template: ${this.userConfigPath}`);
+      } else {
+        throw new Error(`Template not found: ${this.templatePath}`);
+      }
+    }
+  }
+
+  /**
+   * Read and parse config (for displaying in GUI)
+   */
+  read() {
+    try {
+      const content = this.readRaw();
+      return TOML.parse(content);
+    } catch (error) {
+      console.error("Error reading config:", error);
+      throw new Error(`Failed to read config: ${error.message}`);
+    }
+  }
+
+  /**
+   * Read raw TOML content
+   */
+  readRaw() {
+    return fs.readFileSync(this.userConfigPath, "utf-8");
+  }
+
+  /**
+   * Update config from complete config object (preserves comments)
+   */
+  update(newConfigObject) {
+    try {
+      let content = this.readRaw();
+      content = updateTomlFromObject(content, newConfigObject);
+      fs.writeFileSync(this.userConfigPath, content, "utf-8");
+      console.log("Config updated successfully");
+      return true;
+    } catch (error) {
+      console.error("Error updating config:", error);
+      throw new Error(`Failed to update config: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update a single value (preserves comments)
+   */
+  updateValue(section, key, value) {
+    try {
+      let content = fs.readFileSync(this.userConfigPath, "utf-8");
+      content = updateTomlValue(content, section, key, value);
+      fs.writeFileSync(this.userConfigPath, content, "utf-8");
+      console.log(`Updated ${section}.${key} = ${value}`);
+      return true;
+    } catch (error) {
+      console.error("Error updating value:", error);
+      throw new Error(`Failed to update value: ${error.message}`);
+    }
+  }
+
+  /**
+   * Reset config to template (lose all customizations)
+   */
+  resetToTemplate() {
+    try {
+      if (!fs.existsSync(this.templatePath)) {
+        throw new Error("Template file not found");
+      }
+      fs.copyFileSync(this.templatePath, this.userConfigPath);
+      console.log("Config reset to template");
+      return true;
+    } catch (error) {
+      console.error("Error resetting config:", error);
+      throw new Error(`Failed to reset config: ${error.message}`);
+    }
+  }
+
+  /**
+   * Backup current config
+   */
+  backup() {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const backupPath = `${this.userConfigPath}.backup-${timestamp}`;
+      fs.copyFileSync(this.userConfigPath, backupPath);
+      console.log(`Config backed up to: ${backupPath}`);
+      return backupPath;
+    } catch (error) {
+      console.error("Error backing up config:", error);
+      throw new Error(`Failed to backup config: ${error.message}`);
+    }
+  }
+
+  /**
+   * Validate config structure
+   */
+  validate() {
+    try {
+      const content = fs.readFileSync(this.userConfigPath, "utf-8");
+      TOML.parse(content); // Will throw if invalid
+      return { valid: true };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+      };
+    }
+  }
+}
+
+export { ConfigManager, updateTomlValue, updateTomlFromObject };
