@@ -36,6 +36,8 @@ var _ abstraction.Logger = &Logger{}
 // Used on subloggers to get the current timestamp for folder or file names
 var Timestamp = time.Now()
 
+var BasePath = "."
+
 func (Logger) HandlerName() string { return HandlerName }
 
 func NewLogger(keys map[abstraction.LoggerName]abstraction.Logger, baseLogger zerolog.Logger) *Logger {
@@ -163,4 +165,14 @@ func (logger *Logger) Stop() error {
 
 	logger.trace.Info().Msg("stopped")
 	return nil
+}
+
+// Configures the logger atributes before inicialicing it
+func ConfigureLogger(unit TimeUnit, basePath string) {
+
+	// Start the sublogger
+	SetFormatTimestamp(unit)
+
+	// Update base Path
+	BasePath = basePath
 }

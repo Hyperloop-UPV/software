@@ -176,7 +176,7 @@ func main() {
 		order_logger.Name: order_logger.NewLogger(),
 	}
 
-	logger.SetFormatTimestamp(logger.TimeUnit(config.Logging.TimeUnit)) // MUST be before creating subloggers
+	logger.ConfigureLogger(config.Logging.TimeUnit, config.Logging.LoggingPath)
 	loggerHandler := logger.NewLogger(subloggers, trace.Logger)
 
 	// <--- order transfer --->

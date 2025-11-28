@@ -17,6 +17,8 @@ use crate::network::PacketSender;
 #[command(name = "packet-sender")]
 #[command(about = "Hyperloop packet sender for testing backend and frontend", long_about = None)]
 struct Cli {
+
+    /// TODO: TO CHANGE = GO'S os.UserCacheDir()
     /// Path to ADJ directory (defaults to ../backend/cmd/adj)
     #[arg(short, long, default_value = "../backend/cmd/adj")]
     adj_path: PathBuf,
