@@ -17,8 +17,8 @@ Desktop application built with Electron that manages the Hyperloop pod control s
 
 When running in development mode (unpackaged), the application creates temporary files and directories in the project root:
 
-- `config.toml` - User configuration file created on first run. This file is generated from the template at `backend/cmd/dev-config.toml` and stores your local configuration settings.
-  **Note: Uses config.toml in production**.
+- `config.toml` - User configuration file created on first run. This file is generated from the template at `backend/cmd/dev-config.toml` and stores your local configuration settings.  
+  **Note: Uses `backend/cmd/config.toml` in production**.
 
 - `config.toml.backup-{timestamp}` - Automatic backup files created when importing a configuration. These timestamped backups help recover previous configurations if needed.
 
@@ -66,7 +66,8 @@ npm start
 
 ## Build for production
 
-This script creates distributables and executables.
+This script creates distributables and executables.  
+**Note**: You must run `npm run build` for this script to work correctly.
 
 ```
 npm run dist:win    # Windows
@@ -78,7 +79,7 @@ npm run dist:linux  # Linux
 
 ```
 - `npm start` - Run application in development mode
-- `npm run build` - Build all frontend views
+- `npm run build` - Build all frontend views and backend
 - `npm run dist` - Build production executable
 - `npm test` - Run tests
 
