@@ -18,7 +18,7 @@ Contains all modules for the Electron main process, which runs in a Node.js envi
 ## Key Concepts
 
 - **Main Process**: Code runs in Electron's main process (Node.js environment)
-- **Modular Architecture**: All modules use ES6 imports/exports
+- **Modular Architecture**: All modules use ES6 imports/exports, except preload.js and it can't be changed due to Electron's limitations
 - **System Operations**: Handles process spawning, file system access, and IPC
 
 ## Dependencies
