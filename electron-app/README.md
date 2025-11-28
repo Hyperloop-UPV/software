@@ -82,8 +82,10 @@ npm run dist:linux  # Linux
 - `npm start` - Run application in development mode
 - `npm run dist` - Build production executable
 - `npm test` - Run tests
-
 ...and many custom variations (see package.json)
+
+# Only works and makes sense after running `npm run dist`
+- `npm run asar:{platform}` - Shows .asar application package content for [win, linux, mac] platforms
 ```
 
 ## Architecture
