@@ -143,9 +143,9 @@ class ConfigManager {
   /**
    * Read and parse config (for displaying in GUI)
    */
-  read() {
+  read(configPath) {
     try {
-      const content = this.readRaw();
+      const content = this.readRaw(configPath);
       return TOML.parse(content);
     } catch (error) {
       logger.config.error("Error reading config:", error);
@@ -156,8 +156,8 @@ class ConfigManager {
   /**
    * Read raw TOML content
    */
-  readRaw() {
-    return fs.readFileSync(this.userConfigPath, "utf-8");
+  readRaw(configPath = this.userConfigPath) {
+    return fs.readFileSync(configPath, "utf-8");
   }
 
   /**
