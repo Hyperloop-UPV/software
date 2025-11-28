@@ -60,7 +60,7 @@ npm install
 # Build backend and frontends
 npm run build
 
-# Run in development mode
+# Run in development mode (you MUST run `npm run build` BEFORE!)
 npm start
 ```
 
@@ -78,8 +78,8 @@ npm run dist:linux  # Linux
 ## Available Scripts
 
 ```
-- `npm start` - Run application in development mode
 - `npm run build` - Build all frontend views and backend
+- `npm start` - Run application in development mode
 - `npm run dist` - Build production executable
 - `npm test` - Run tests
 
