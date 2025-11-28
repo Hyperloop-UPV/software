@@ -14,10 +14,12 @@ Manages application configuration using TOML files. Provides a singleton ConfigM
 
 ## Configuration Flow
 
-1. **Template**: `backend/cmd/dev-config.toml` serves as the template
-2. **User Config**: Created in `userData/configs/config.toml` on first run
-3. **Updates**: User changes are written while preserving comments
-4. **Backend**: Configuration is passed to the backend process on startup
+1. **Template**:
+   - **Development**: `backend/cmd/dev-config.toml`
+   - **Production**: `/resources/config.toml` that copied from `backend/cmd/config.toml`
+3. **User Config**: Created in `{UserConfigDir}/hyperloop-control-station/configs/config.toml` on first run
+4. **Updates**: User changes are written while preserving comments
+5. **Backend**: Configuration is passed to the backend process on startup
 
 ## Functions
 
@@ -69,6 +71,7 @@ Opens a file dialog to import a configuration file. Backs up current config befo
 
 ## See Also
 
+- ["../../README.md"](../../README.md) - General information about the app
 - [\_\_tests\_\_/README.md](__tests__/README.md) - Automatic config manager tests
 - [../ipc/README.md](../ipc/README.md) - IPC handlers that expose config operations
 - [../utils/README.md](../utils/README.md) - Utility functions (path resolution)
