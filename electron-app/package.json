@@ -52,7 +52,7 @@
   "build": {
     "appId": "com.hyperloop.controlstation",
     "publish": null,
-    "productName": "HyperloopControlStation",
+    "productName": "Hyperloop-Control-Station",
     "directories": {
       "output": "dist"
     },
