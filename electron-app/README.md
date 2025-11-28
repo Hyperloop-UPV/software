@@ -9,16 +9,51 @@ Desktop application built with Electron that manages the Hyperloop pod control s
 ## Project Structure
 
 - `src/` - Source code for Electron main process
-- `renderer/` - Frontend views (control-station, ethernet-view)
-- `binaries/` - Compiled backend executables
-- `dist/` - Build output (generated)
 - `main.js` - Electron main process entry point
 - `preload.js` - Preload script for secure IPC
-- `config.toml` - Application configuration
 - `build.mjs` - Script used for building other projects (base for package.json scripts)
 
+## Development Mode - Temporary Files
+
+When running in development mode (unpackaged), the application creates temporary files and directories in the project root:
+
+- `config.toml` - User configuration file created on first run. This file is generated from the template at `backend/cmd/dev-config.toml` and stores your local configuration settings.
+  **Note: Uses config.toml in production**.
+
+- `config.toml.backup-{timestamp}` - Automatic backup files created when importing a configuration. These timestamped backups help recover previous configurations if needed.
+
+- `binaries/` - Directory containing compiled backend executables for your platform. These are generated during the build process, when running `npm run build`.
+
+- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `npm run build`.
+
+- `dist/` - Build output directory containing compiled and packaged application files. Generated during build and distribution processes, when running `npm run dist`.
+
+**Note**: These files and directories are created in the `electron-app/` directory root during development. In production (packaged) mode:
+
+- **Configuration and Logs**: Stored in `{UserConfigDir}/hyperloop-control-station/` (using Go's `os.UserConfigDir()`)
+
+  - Config files and backups: `{UserConfigDir}/hyperloop-control-station/configs/`
+  - Trace/log files: `{UserConfigDir}/hyperloop-control-station/trace-*.json`
+
+- **ADJ Module**: Stored in `{UserCacheDir}/hyperloop-control-station/adj/` (using Go's `os.UserCacheDir()`)
+
+- Binaries and resources are bundled within the application package.
+
+Typical locations:
+
+- **Windows**:
+  - UserConfigDir: `%APPDATA%\`
+  - UserCacheDir: `%LOCALAPPDATA%\`
+- **macOS**:
+  - UserConfigDir: `~/Library/Application Support/`
+  - UserCacheDir: `~/Library/Caches/`
+- **Linux**:
+  - UserConfigDir: `~/.config/`
+  - UserCacheDir: `~/.cache/`
+
 ## Quick Start
-~~~
+
+```
 # Install dependencies
 npm install
 
@@ -26,26 +61,29 @@ npm install
 npm run build
 
 # Run in development mode
-npm start 
-~~~
+npm start
+```
 
 ## Build for production
+
 This script creates distributables and executables.
-~~~
+
+```
 npm run dist:win    # Windows
 npm run dist:mac    # macOS
 npm run dist:linux  # Linux
-~~~
+```
 
 ## Available Scripts
-~~~
+
+```
 - `npm start` - Run application in development mode
 - `npm run build` - Build all frontend views
 - `npm run dist` - Build production executable
 - `npm test` - Run tests
 
 ...and many custom variations (see package.json)
-~~~
+```
 
 ## Architecture
 

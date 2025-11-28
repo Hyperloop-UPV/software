@@ -65,7 +65,7 @@
         ]
       },
       {
-        "from": "../backend/cmd/dev-config.toml",
+        "from": "../backend/cmd/config.toml",
         "to": "config.toml"
       }
     ],
