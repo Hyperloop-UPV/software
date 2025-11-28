@@ -20,6 +20,5 @@ CLAUDE*
 # Rust build artifacts
 packet-sender/target/
 
-*.md
-
+# VS Code Workspace
 *.code-workspace
