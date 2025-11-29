@@ -11,6 +11,7 @@ import {
   getPacketSenderProcess,
 } from "../processes/packetSender.js";
 import fs from "fs";
+import { loadView } from "../windows/mainWindow.js";
 
 /**
  * Creates and sets the application menu with File, View, Tools, and Help sections.
