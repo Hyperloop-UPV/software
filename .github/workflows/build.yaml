@@ -221,9 +221,9 @@ jobs:
           echo "=== download-backend outcomes ==="
           echo "needs.download-backend.outcome: ${{ needs.download-backend.outcome }}"
     outputs:
-      outcome: ${{ steps.read.outcome }}
-      any_needs_rebuild: ${{ steps.check-rebuild.outputs.any_needs_rebuild }}
-      result: ${{ steps.read.outputs.result }}
+      outcome: ${{ steps.read.outcome != '' && steps.read.outcome || 'skipped' }}
+      any_needs_rebuild: ${{ steps.check-rebuild.outputs.any_needs_rebuild != '' && steps.check-rebuild.outputs.any_needs_rebuild || steps.set-defaults.outputs.any_needs_rebuild || 'false' }}
+      result: ${{ steps.read.outputs.result != '' && steps.read.outputs.result || steps.set-defaults.outputs.result || '{"downloaded":{"linux":false,"windows":false,"macos-intel":false,"macos-arm64":false}}' }}
 
   # Build Go backends on native platforms
   # only if backend changed or download-backend failed
