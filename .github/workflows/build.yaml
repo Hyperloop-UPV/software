@@ -367,7 +367,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: success
+          workflow_conclusion: any
           name: control-station
           path: control-station-artifacts
           if_no_artifact_found: fail
