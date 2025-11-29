@@ -157,24 +157,30 @@ jobs:
   # Aggregate download results
   aggregate-downloads:
     name: Aggregate Download Results
-    # It is important to use != 'true' and not == 'false' because if they are no defined
-    # values for inputs they will be undefined which gives false for any condition
-    if: |
-      always() &&
-        (
-          needs.detect-changes.outputs.backend_needs_rebuild != 'true' &&
-          inputs.build-backend != 'true'
-        )
+    # Always run to ensure outputs are always available
+    if: always()
     needs: [detect-changes, download-backend]
     runs-on: ubuntu-latest
     steps:
+      - name: Set defaults if backend changed
+        id: set-defaults
+        run: |
+          # If backend changed or build-backend is explicitly requested, set defaults and skip aggregation
+          if [ "${{ needs.detect-changes.outputs.backend_needs_rebuild }}" = "true" ] || [ "${{ inputs.build-backend }}" = "true" ]; then
+            echo "any_needs_rebuild=false" >> $GITHUB_OUTPUT
+            echo 'result={"downloaded":{"linux":false,"windows":false,"macos-intel":false,"macos-arm64":false}}' >> $GITHUB_OUTPUT
+            echo "Backend changed or build requested, using defaults"
+          fi
+        shell: bash
+
       - uses: cloudposse/github-action-matrix-outputs-read@v1
         id: read
+        if: needs.detect-changes.outputs.backend_needs_rebuild != 'true' && inputs.build-backend != 'true'
         with:
           matrix-step-name: download-backend
 
       - name: Check if any platform needs rebuild
-        if: always()
+        if: needs.detect-changes.outputs.backend_needs_rebuild != 'true' && inputs.build-backend != 'true'
         id: check-rebuild
         run: |
           # Parse the result JSON to check if any download failed
