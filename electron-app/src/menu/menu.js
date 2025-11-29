@@ -1,3 +1,9 @@
+/**
+ * @module menu
+ * @description Application menu creation and management for the Electron application.
+ * Defines menu structure with File, View, Tools, and Help sections with keyboard shortcuts and actions.
+ */
+
 import { Menu, dialog, app } from "electron";
 import { getBinaryPath } from "../utils/paths.js";
 import {
@@ -6,6 +12,14 @@ import {
 } from "../processes/packetSender.js";
 import fs from "fs";
 
+/**
+ * Creates and sets the application menu with File, View, Tools, and Help sections.
+ * Includes menu items for reloading, exiting, switching views, toggling DevTools, and managing packet sender.
+ * @param {import("electron").BrowserWindow} mainWindow - The main browser window instance to attach menu actions to.
+ * @returns {void}
+ * @example
+ * createMenu(mainWindow);
+ */
 function createMenu(mainWindow) {
   const template = [
     {

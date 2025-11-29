@@ -100,6 +100,7 @@ npm run dist:linux  # Linux
 - `electron` - Desktop application framework
 - `@iarna/toml` - TOML parser for configuration
 - `electron-store` - Persistent storage
+- `asar` - Library for working with .ASAR files
 
 ## See Also
 
