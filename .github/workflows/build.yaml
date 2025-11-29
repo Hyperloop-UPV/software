@@ -132,7 +132,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: ""
+          workflow_conclusion: "completed"
           name: backend-${{ matrix.platform }}
           path: backend-artifacts
           if_no_artifact_found: fail
@@ -367,7 +367,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: ""
+          workflow_conclusion: "completed"
           name: control-station
           path: control-station-artifacts
           if_no_artifact_found: fail
@@ -446,7 +446,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: ""
+          workflow_conclusion: "completed"
           name: ethernet-view
           path: ethernet-view-artifacts
           if_no_artifact_found: fail
