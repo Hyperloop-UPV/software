@@ -1,3 +1,9 @@
+/**
+ * @module utils
+ * @description Path utility functions for resolving application and resource paths.
+ * Handles path resolution for both development and production environments.
+ */
+
 import { app } from "electron";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -6,8 +12,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 /**
- * Get the app root path (electron-app directory)
- * Works correctly in both development and production
+ * Gets the application root path (electron-app directory).
+ * @returns {string} The absolute path to the application root directory.
+ * @example
+ * const appPath = getAppPath();
+ * console.log(`App is located at: ${appPath}`);
  */
 function getAppPath() {
   if (!app.isPackaged) {
@@ -18,6 +27,15 @@ function getAppPath() {
   return app.getAppPath();
 }
 
+/**
+ * Gets the path to a platform-specific binary executable.
+ * @param {string} name - The name of the binary (without extension or platform suffix).
+ * @returns {string} The absolute path to the binary executable file.
+ * @example
+ * const backendPath = getBinaryPath("backend");
+ * // Development: returns path like "electron-app/binaries/backend-windows-amd64.exe"
+ * // Production: returns path like "resources/binaries/backend-windows-amd64.exe"
+ */
 function getBinaryPath(name) {
   const platform = process.platform;
   const arch = process.arch;
@@ -52,6 +70,14 @@ function getBinaryPath(name) {
   );
 }
 
+/**
+ * Gets the path to the user configuration file.
+ * @returns {string} The absolute path to the user's config.toml file.
+ * @example
+ * const configPath = getUserConfigPath();
+ * // Development: returns "electron-app/config.toml"
+ * // Production: returns "userData/configs/config.toml"
+ */
 function getUserConfigPath() {
   if (!app.isPackaged) {
     // Development: use local config.toml in project root
@@ -64,6 +90,14 @@ function getUserConfigPath() {
   return path.join(configsDir, "config.toml");
 }
 
+/**
+ * Gets the path to the configuration template file.
+ * @returns {string} The absolute path to the configuration template file.
+ * @example
+ * const templatePath = getTemplatePath();
+ * // Development: returns "../backend/cmd/dev-config.toml"
+ * // Production: returns "resources/config.toml"
+ */
 function getTemplatePath() {
   if (!app.isPackaged) {
     // Development: use backend config.toml as template
