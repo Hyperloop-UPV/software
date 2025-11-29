@@ -9,7 +9,7 @@
 
 # Control Station general configuration
 [app]
-automatic_window_opening = "control-station" # Leave blank to open no windows (<blank>, ethernet-view, control-station, both)
+automatic_window_opening = "" # Leave blank to open no windows (<blank>, ethernet-view, control-station, both)
 
 # Vehicle Configuration
 [vehicle]
@@ -18,7 +18,7 @@ boards = ["BCU", "BMSL", "HVSCU", "HVSCU-Cabinet", "LCU", "PCU", "VCU", "BLCU"]
 # ADJ (Architecture Description JSON) Configuration
 [adj]
 branch = "main" # Leave blank when using ADJ as a submodule (like this: "")
-test = true     # Enable test mode
+test = false     # Enable test mode
 
 # Network Configuration
 [network]
