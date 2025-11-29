@@ -100,7 +100,7 @@ func main() {
 		}
 		os.Exit(0)
 	}
-	// test
+
 	// update() // FIXME: Updater disabled due to cross-platform and reliability issues
 
 	tracePath := *traceFile
