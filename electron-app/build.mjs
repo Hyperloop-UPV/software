@@ -211,7 +211,7 @@ if (buildCommonFront) {
   logger.info("📦 Building common-front...");
   logger.step(`Building ${colors.magenta}common-front${colors.reset}...`);
   // Install dependencies
-  run("npm install", join(root, "common-front"));
+  run("npm ci", join(root, "common-front"));
   // Build the library
   run("npm run build", join(root, "common-front"));
 }
@@ -222,7 +222,7 @@ if (buildControlStation) {
   logger.info("📦 Building control-station...");
   logger.step(`Building ${colors.magenta}control-station${colors.reset}...`);
   // Install dependencies
-  run("npm install", join(root, "control-station"));
+  run("npm ci", join(root, "control-station"));
   // Build the application
   run("npm run build", join(root, "control-station"));
 
@@ -246,7 +246,7 @@ if (buildEthernetView) {
   logger.info("📦 Building ethernet-view...");
   logger.step(`Building ${colors.magenta}ethernet-view${colors.reset}...`);
   // Install dependencies
-  run("npm install", join(root, "ethernet-view"));
+  run("npm ci", join(root, "ethernet-view"));
   // Build the application
   run("npm run build", join(root, "ethernet-view"));
 
@@ -269,7 +269,7 @@ if (buildControlStation || buildEthernetView) {
   console.log();
   logger.info("📦 Installing Electron dependencies...");
   // Install Electron app dependencies
-  run("npm install", __dirname);
+  run("npm ci", __dirname);
 }
 
 console.log();
