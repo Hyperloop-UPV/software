@@ -78,3 +78,7 @@ coverage
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
+
+# Config and config backups
+config.toml
+config.toml.backup-*
