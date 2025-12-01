@@ -41,6 +41,7 @@ Run these commands from the `frontend` folder:
 - **`pnpm build`** - Build all packages
 - **`pnpm lint`** - Lint all packages
 - **`pnpm format`** - Format code using Prettier
+- **`pnpm preview`** - Preview built versions (requires `pnpm build` run first)
 
 ### Installing Dependencies
 
