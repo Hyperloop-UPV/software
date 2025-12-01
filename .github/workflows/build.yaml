@@ -132,7 +132,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: success
+          workflow_conclusion: "completed"
           name: backend-${{ matrix.platform }}
           path: backend-artifacts
           if_no_artifact_found: fail
@@ -157,24 +157,30 @@ jobs:
   # Aggregate download results
   aggregate-downloads:
     name: Aggregate Download Results
-    # It is important to use != 'true' and not == 'false' because if they are no defined
-    # values for inputs they will be undefined which gives false for any condition
-    if: |
-      always() &&
-        (
-          needs.detect-changes.outputs.backend_needs_rebuild != 'true' &&
-          inputs.build-backend != 'true'
-        )
+    # Always run to ensure outputs are always available
+    if: always()
     needs: [detect-changes, download-backend]
     runs-on: ubuntu-latest
     steps:
+      - name: Set defaults if backend changed
+        id: set-defaults
+        run: |
+          # If backend changed or build-backend is explicitly requested, set defaults and skip aggregation
+          if [ "${{ needs.detect-changes.outputs.backend_needs_rebuild }}" = "true" ] || [ "${{ inputs.build-backend }}" = "true" ]; then
+            echo "any_needs_rebuild=false" >> $GITHUB_OUTPUT
+            echo 'result={"downloaded":{"linux":false,"windows":false,"macos-intel":false,"macos-arm64":false}}' >> $GITHUB_OUTPUT
+            echo "Backend changed or build requested, using defaults"
+          fi
+        shell: bash
+
       - uses: cloudposse/github-action-matrix-outputs-read@v1
         id: read
+        if: needs.detect-changes.outputs.backend_needs_rebuild != 'true' && inputs.build-backend != 'true'
         with:
           matrix-step-name: download-backend
 
       - name: Check if any platform needs rebuild
-        if: always()
+        if: needs.detect-changes.outputs.backend_needs_rebuild != 'true' && inputs.build-backend != 'true'
         id: check-rebuild
         run: |
           # Parse the result JSON to check if any download failed
@@ -215,9 +221,9 @@ jobs:
           echo "=== download-backend outcomes ==="
           echo "needs.download-backend.outcome: ${{ needs.download-backend.outcome }}"
     outputs:
-      outcome: ${{ steps.read.outcome }}
-      any_needs_rebuild: ${{ steps.check-rebuild.outputs.any_needs_rebuild }}
-      result: ${{ steps.read.outputs.result }}
+      outcome: ${{ steps.read.outcome != '' && steps.read.outcome || 'skipped' }}
+      any_needs_rebuild: ${{ steps.check-rebuild.outputs.any_needs_rebuild != '' && steps.check-rebuild.outputs.any_needs_rebuild || steps.set-defaults.outputs.any_needs_rebuild || 'false' }}
+      result: ${{ steps.read.outputs.result != '' && steps.read.outputs.result || steps.set-defaults.outputs.result || '{"downloaded":{"linux":false,"windows":false,"macos-intel":false,"macos-arm64":false}}' }}
 
   # Build Go backends on native platforms
   # only if backend changed or download-backend failed
@@ -361,7 +367,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: success
+          workflow_conclusion: "completed"
           name: control-station
           path: control-station-artifacts
           if_no_artifact_found: fail
@@ -440,7 +446,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: success
+          workflow_conclusion: "completed"
           name: ethernet-view
           path: ethernet-view-artifacts
           if_no_artifact_found: fail
