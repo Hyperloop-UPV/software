@@ -1,0 +1,43 @@
+{
+  "editor.formatOnSave": true,
+
+  // JSON files
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // TypeScript/JavaScript files
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // CSS/SCSS files
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Go files
+  "[go]": {
+    "editor.defaultFormatter": "golang.go"
+  },
+
+  // Go settings
+  "go.lintTool": "staticcheck", // Use staticcheck as linter
+  "go.lintOnSave": "package", // Lint on save: "off", "package", or "workspace"
+  "go.lintFlags": ["-checks=all"], // Which checks to run
+
+  // Prettier settings
+  "prettier.useEditorConfig": false
+}
