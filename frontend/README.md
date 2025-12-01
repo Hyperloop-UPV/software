@@ -12,6 +12,15 @@ The project is configured to enforce pnpm usage. If you don't have pnpm installe
 npm install -g pnpm
 ```
 
+OR
+
+```bash
+npm install --global corepack@latest
+corepack enable pnpm
+```
+
+For other cases, read: [Official pnpm installation guide](https://pnpm.io/installation)
+
 ## Getting Started
 
 All commands should be executed from the `frontend` folder.
@@ -35,10 +44,10 @@ Run these commands from the `frontend` folder:
 
 ### Installing Dependencies
 
-To add a new dependency to a specific package, use:
+To add a new dependency to a specific project, use:
 
 ```bash
-pnpm add <package-name> --filter <package-name>
+pnpm add <package-name> --filter <project-name>
 ```
 
 For example, to add a dependency to `testing-view`:
@@ -50,7 +59,7 @@ pnpm add <package-name> --filter testing-view
 To add a dev dependency:
 
 ```bash
-pnpm add -D <package-name> --filter <package-name>
+pnpm add -D <package-name> --filter <project-name>
 ```
 
 ### Installing shadcn/ui Components
@@ -58,13 +67,13 @@ pnpm add -D <package-name> --filter <package-name>
 To install shadcn/ui components, use `pnpm dlx` (pnpm's equivalent to npx) with the `-c` flag to specify the components configuration file location:
 
 ```bash
-pnpm dlx shadcn@latest add <component-name> -c frontend-kit/ui/components.json
+pnpm dlx shadcn@latest add <component-name> -c frontend-kit/ui
 ```
 
 For example, to add a button component:
 
 ```bash
-pnpm dlx shadcn@latest add button -c frontend-kit/ui/components.json
+pnpm dlx shadcn@latest add button -c frontend-kit/ui
 ```
 
 The components will be installed in `frontend-kit/ui/src/components/shadcn/`.
@@ -75,7 +84,7 @@ This monorepo contains:
 
 - **`frontend-kit/`** - Shared UI components and utilities
   - `ui/` - shadcn/ui components and custom components
-  - `core/` - Core utilities and WebSocket functionality
+  - `core/` - Core utilities
   - `esling-config/` - Shared ESLint configurations
   - `typescript-config/` - Shared TypeScript configurations
 - **`testing-view/`** - Testing application
