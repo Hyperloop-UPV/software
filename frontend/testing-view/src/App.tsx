@@ -8,10 +8,10 @@ function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   const connectToWebSocket = useCallback(() => {
-    console.time("connect to websocket");
+    console.time("[TEST] connect to websocket");
     connect();
-    console.timeEnd("connect to websocket");
-  }, [connect]);
+    console.timeEnd("[TEST] connect to websocket");
+  }, []);
 
   useEffect(() => {
     connectToWebSocket();

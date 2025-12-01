@@ -27,7 +27,14 @@ importers:
         specifier: 5.7.3
         version: 5.7.3
 
-  frontend-kit/core: {}
+  frontend-kit/core:
+    devDependencies:
+      '@workspace/eslint-config':
+        specifier: workspace:*
+        version: link:../esling-config
+      eslint:
+        specifier: ^9.39.1
+        version: 9.39.1(jiti@2.6.1)
 
   frontend-kit/esling-config:
     devDependencies:

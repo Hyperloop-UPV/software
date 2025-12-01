@@ -19,7 +19,7 @@ export const config = [
   },
   {
     plugins: {
-      // onlyWarn,
+      onlyWarn,
     },
   },
   {

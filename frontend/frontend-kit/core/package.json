@@ -3,13 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "preinstall": "npx only-allow pnpm"
+    "preinstall": "npx only-allow pnpm",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.24.0",
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "eslint": "^9.39.1"
+  },
   "exports": {
     ".": "./src/index.ts"
   }
