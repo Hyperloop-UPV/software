@@ -1,3 +1,3 @@
 export function connect() {
-  console.log("connecting to websocket");
+  console.log("[TEST] connecting to websocket");
 }

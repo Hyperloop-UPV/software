@@ -1,1 +1,1 @@
-export { default as CustomComponent } from "./CustomComponent";
+export { CustomComponent } from "./custom-component";
