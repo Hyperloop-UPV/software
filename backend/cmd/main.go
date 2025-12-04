@@ -76,7 +76,7 @@ const (
 
 var configFile = flag.String("config", "config.toml", "path to configuration file")
 var traceLevel = flag.String("trace", "info", "set the trace level (\"fatal\", \"error\", \"warn\", \"info\", \"debug\", \"trace\")")
-var traceFile = flag.String("log", "trace.json", "set the trace log file")
+var traceFile = flag.String("log", "", "set the trace log file")
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 var enableSNTP = flag.Bool("sntp", false, "enables a simple SNTP server on port 123")
 var networkDevice = flag.Int("dev", -1, "index of the network device to use, overrides device prompt")

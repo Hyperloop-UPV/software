@@ -8,8 +8,8 @@ backend/cmd/cmd
 
 # Code Editor
 .idea/
-.vscode/
-.prettierrc
+.vscode/*
+!.vscode/settings.json
 
 # Claude
 CLAUDE*
