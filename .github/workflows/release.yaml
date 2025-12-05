@@ -43,16 +43,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            arch: x64
-          - os: ubuntu-latest
-            arch: x64
-          - os: macos-latest
-            arch: x64
-          - os: macos-latest
-            arch: arm64
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-15-intel]
     steps:
+      - name: Debug all contexts
+        run: |
+          echo "=== Runner Context ==="
+          echo "runner.os: ${{ runner.os }}"
+          echo "runner.arch: ${{ runner.arch }}"
+          echo "runner.name: ${{ runner.name }}"
+          echo "runner.temp: ${{ runner.temp }}"
+          echo "runner.workspace: ${{ runner.workspace }}"
+          echo ""
+          echo "=== Matrix Context ==="
+          echo "matrix.os: ${{ matrix.os }}"
+          echo "matrix.platform: ${{ matrix.platform }}"
+          echo "matrix.arch: ${{ matrix.arch }}"
+          echo ""
+          echo "=== Environment Variables ==="
+          echo "RUNNER_OS: $RUNNER_OS"
+          echo "RUNNER_ARCH: $RUNNER_ARCH"
+          echo "RUNNER_NAME: $RUNNER_NAME"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -92,7 +103,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download macOS Intel backend
-        if: runner.os == 'macos-latest' && runner.arch == 'amd64'
+        if: runner.os == 'macos-latest' && runner.arch == 'x64'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
