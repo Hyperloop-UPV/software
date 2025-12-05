@@ -83,7 +83,7 @@ jobs:
 
       # Download ONLY the appropriate backend for this platform
       - name: Download Linux backend
-        if: runner.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -93,7 +93,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download Windows backend
-        if: runner.os == 'windows-latest'
+        if: runner.os == 'Windows'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -103,7 +103,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download macOS Intel backend
-        if: runner.os == 'macos-latest' && runner.arch == 'x64'
+        if: runner.os == 'macOS' && runner.arch == 'X64'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -113,7 +113,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download macOS ARM64 backend
-        if: runner.os == 'macos-latest' && runner.arch == 'arm64'
+        if: runner.os == 'macOS' && runner.arch == 'ARM64'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
