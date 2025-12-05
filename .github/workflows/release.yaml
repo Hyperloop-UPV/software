@@ -39,11 +39,26 @@ jobs:
   build-electron:
     name: Build Electron App
     needs: determine-version
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform }} - ${{ matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: amd64
+
+          - os: windows-latest
+            platform: windows
+            arch: amd64
+
+          - os: macos-latest
+            platform: macos
+            arch: amd64
+
+          - os: macos-latest
+            platform: macos
+            arch: arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,7 +79,7 @@ jobs:
 
       # Download ONLY the appropriate backend for this platform
       - name: Download Linux backend
-        if: runner.os == 'Linux'
+        if: runner.platform == 'linux'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -74,7 +89,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download Windows backend
-        if: runner.os == 'Windows'
+        if: runner.platform == 'windows'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -85,7 +100,7 @@ jobs:
 
       # macOS needs both Intel and ARM64 for universal support
       - name: Download macOS Intel backend
-        if: runner.os == 'macOS'
+        if: runner.platform == 'macos' && runner.arch == 'amd64'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -95,7 +110,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download macOS ARM64 backend
-        if: runner.os == 'macOS'
+        if: runner.platform == 'macos' && runner.arch == 'arm64'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -134,19 +149,8 @@ jobs:
       # Run npm run dist for non-macOS platforms
       # As they correctly detect the architecture automatically
       - name: Build Electron distribution
-        if: matrix.os != 'macos-latest'
         working-directory: electron-app
         run: npm run dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          ELECTRON_BUILDER_PUBLISH: never
-
-      # macOS: force universal architecture build
-      - name: Build Electron distribution (macOS universal)
-        if: matrix.os == 'macos-latest'
-        working-directory: electron-app
-        run: npm run dist:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false

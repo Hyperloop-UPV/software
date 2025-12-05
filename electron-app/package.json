@@ -18,7 +18,7 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac --universal",
+    "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "test": "vitest run",
     "build": "node build.mjs",
