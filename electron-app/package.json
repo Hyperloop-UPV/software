@@ -82,7 +82,8 @@
         "nsis",
         "portable"
       ],
-      "icon": "icon.ico"
+      "icon": "icon.ico",
+      "artifactName": "${productName}-${version}-windows-${arch}.${ext}"
     },
     "mac": {
       "target": [
@@ -90,7 +91,8 @@
         "zip"
       ],
       "icon": "icon.icns",
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "artifactName": "${productName}-${version}-macos-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -98,7 +100,8 @@
         "deb"
       ],
       "icon": "icon.png",
-      "category": "Utility"
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     }
   }
 }

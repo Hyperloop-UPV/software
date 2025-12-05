@@ -41,7 +41,7 @@ jobs:
     needs: determine-version
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest, macos-15-intel]
     steps:
@@ -152,7 +152,6 @@ jobs:
       # Run npm run dist for non-macOS platforms
       # As they correctly detect the architecture automatically
       - name: Build Electron distribution
-        if: runner.os != 'macos-latest'
         working-directory: electron-app
         run: npm run dist
         env:
@@ -160,23 +159,14 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           ELECTRON_BUILDER_PUBLISH: never
 
-      - name: Build Electron distribution
-        if: runner.os == 'macos-latest'
-        working-directory: electron-app
-        run: npm run dist:mac -- --${{ runner.arch }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          ELECTRON_BUILDER_PUBLISH: never
-
       - name: Display structure (Windows)
-        if: runner.os == 'windows-latest'
+        if: runner.os == 'Windows'
         working-directory: electron-app
         shell: pwsh
         run: Get-ChildItem -Recurse dist/ | Select-Object FullName
 
       - name: Display structure (Unix)
-        if: runner.os != 'windows-latest'
+        if: runner.os != 'Windows'
         working-directory: electron-app
         run: ls -laR dist/
 
