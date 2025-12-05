@@ -39,7 +39,7 @@ jobs:
   build-electron:
     name: Build Electron App
     needs: determine-version
-    runs-on: ${{ matrix.platform }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
