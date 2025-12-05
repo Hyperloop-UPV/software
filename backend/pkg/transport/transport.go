@@ -53,14 +53,14 @@ type Transport struct {
 // applying exponential backoff between attempts.
 func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string) error {
 	client := tcp.NewClient(remote, config, transport.logger)
-	defer transport.logger.Warn().Str("remoteAddress", remote).Msg("abort connection")
+	clientLogger := transport.logger.With().Str("remoteAddress", remote).Logger() 
+	defer clientLogger.Warn().Msg("abort connection")
 	var hasConnected = false
 
 	for {
 		conn, err := client.Dial()
 		if err != nil {
-			transport.logger.Debug().Stack().Err(err).Str("remoteAddress", remote).Msg("dial failed")
-
+			clientLogger.Debug().Stack().Err(err).Msg("dial failed")
 			// Only return if reconnection is disabled
 			if !config.TryReconnect {
 				if hasConnected {
@@ -73,7 +73,7 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 			// For ErrTooManyRetries, we still want to continue retrying
 			// The client will reset its retry counter on the next Dial() call
 			if _, ok := err.(tcp.ErrTooManyRetries); ok {
-				transport.logger.Warn().Str("remoteAddress", remote).Msg("reached max retries, will continue attempting to reconnect")
+				clientLogger.Warn().Msg("reached max retries, will continue attempting to reconnect")
 				// Add a longer delay before restarting the retry cycle
 				time.Sleep(config.ConnectionBackoffFunction(config.MaxConnectionRetries))
 			}
@@ -85,12 +85,12 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 
 		err = transport.handleTCPConn(conn)
 		if errors.Is(err, error(ErrTargetAlreadyConnected{})) {
-			transport.logger.Warn().Stack().Err(err).Str("remoteAddress", remote).Msg("multiple connections for same target")
+			clientLogger.Warn().Stack().Err(err).Msg("multiple connections for same target")
 			transport.errChan <- err
 			return err
 		}
 		if err != nil {
-			transport.logger.Debug().Stack().Err(err).Str("remoteAddress", remote).Msg("connection lost")
+			clientLogger.Debug().Stack().Err(err).Msg("connection lost")
 			if !config.TryReconnect {
 				transport.SendFault()
 				transport.errChan <- err
@@ -299,20 +299,19 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 		transport.connectionsMx.Lock()
 		defer transport.connectionsMx.Unlock()
 		for target, conn := range transport.connections {
-			eventLogger := eventLogger.With().Str("target", string(target)).Logger()
-
+			targetName := string(target)
 			totalWritten := 0
 			for totalWritten < len(data) {
 				n, err := conn.Write(data[totalWritten:])
-				eventLogger.Trace().Int("amount", n).Msg("written chunk")
+				eventLogger.Trace().Str("target", targetName).Int("amount", n).Msg("written chunk")
 				totalWritten += n
 				if err != nil {
-					eventLogger.Error().Stack().Err(err).Msg("write")
+					eventLogger.Error().Str("target", targetName).Stack().Err(err).Msg("write")
 					transport.errChan <- err
 					return err
 				}
 			}
-			eventLogger.Info().Msg("sent")
+			eventLogger.Info().Str("target", targetName).Msg("sent")
 		}
 		return nil
 	}
@@ -332,7 +331,7 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 		defer transport.connectionsMx.Unlock()
 		conn, ok := transport.connections[target]
 		if !ok {
-			eventLogger.Warn().Msg("target not connected")
+			eventLogger.Warn().Msg("target not connected")	
 
 			err := ErrConnClosed{Target: target}
 			return nil, err
