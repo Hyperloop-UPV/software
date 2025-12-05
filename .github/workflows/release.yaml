@@ -42,23 +42,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-            arch: amd64
-
-          - os: windows-latest
-            platform: windows
-            arch: amd64
-
-          - os: macos-latest
-            platform: macos
-            arch: amd64
-
-          - os: macos-latest
-            platform: macos
-            arch: arm64
+      include:
+        - os: windows-latest
+          arch: x64
+        - os: ubuntu-latest
+          arch: x64
+        - os: macos-latest
+          arch: x64
+        - os: macos-latest
+          arch: arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -79,7 +71,7 @@ jobs:
 
       # Download ONLY the appropriate backend for this platform
       - name: Download Linux backend
-        if: runner.platform == 'linux'
+        if: runner.os == 'ubuntu-latest'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -89,7 +81,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download Windows backend
-        if: runner.platform == 'windows'
+        if: runner.os == 'windows-latest'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -98,9 +90,8 @@ jobs:
           name: backend-windows
           path: electron-app/binaries
 
-      # macOS needs both Intel and ARM64 for universal support
       - name: Download macOS Intel backend
-        if: runner.platform == 'macos' && runner.arch == 'amd64'
+        if: runner.os == 'macos-latest' && runner.arch == 'amd64'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -110,7 +101,7 @@ jobs:
           path: electron-app/binaries
 
       - name: Download macOS ARM64 backend
-        if: runner.platform == 'macos' && runner.arch == 'arm64'
+        if: runner.os == 'macos-latest' && runner.arch == 'arm64'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
@@ -149,6 +140,7 @@ jobs:
       # Run npm run dist for non-macOS platforms
       # As they correctly detect the architecture automatically
       - name: Build Electron distribution
+        if: runner.os != 'macos-latest'
         working-directory: electron-app
         run: npm run dist
         env:
@@ -156,21 +148,30 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           ELECTRON_BUILDER_PUBLISH: never
 
+      - name: Build Electron distribution
+        if: runner.os == 'macos-latest'
+        working-directory: electron-app
+        run: npm run dist:mac -- --${{ runner.arch }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          ELECTRON_BUILDER_PUBLISH: never
+
       - name: Display structure (Windows)
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'windows-latest'
         working-directory: electron-app
         shell: pwsh
         run: Get-ChildItem -Recurse dist/ | Select-Object FullName
 
       - name: Display structure (Unix)
-        if: matrix.os != 'windows-latest'
+        if: runner.os != 'windows-latest'
         working-directory: electron-app
         run: ls -laR dist/
 
       - name: Upload electron artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: electron-${{ runner.os }}
+          name: electron-${{ runner.os }}-${{ runner.arch }}
           path: |
             electron-app/dist/*.exe
             electron-app/dist/*.AppImage
