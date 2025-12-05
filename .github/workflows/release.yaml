@@ -42,15 +42,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      include:
-        - os: windows-latest
-          arch: x64
-        - os: ubuntu-latest
-          arch: x64
-        - os: macos-latest
-          arch: x64
-        - os: macos-latest
-          arch: arm64
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x64
+          - os: ubuntu-latest
+            arch: x64
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
