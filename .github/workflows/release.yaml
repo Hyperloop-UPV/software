@@ -131,9 +131,22 @@ jobs:
         working-directory: electron-app
         run: npm ci
 
+      # Run npm run dist for non-macOS platforms
+      # As they correctly detect the architecture automatically
       - name: Build Electron distribution
+        if: matrix.os != 'macos-latest'
         working-directory: electron-app
         run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          ELECTRON_BUILDER_PUBLISH: never
+
+      # macOS: force universal architecture build
+      - name: Build Electron distribution (macOS universal)
+        if: matrix.os == 'macos-latest'
+        working-directory: electron-app
+        run: npm run dist:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false

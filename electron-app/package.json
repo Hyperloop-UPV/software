@@ -89,7 +89,6 @@
         "dmg",
         "zip"
       ],
-      "arch": "universal",
       "icon": "icon.icns",
       "category": "public.app-category.utilities"
     },
