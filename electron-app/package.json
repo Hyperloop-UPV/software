@@ -82,8 +82,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "icon.ico",
-      "artifactName": "${productName}-${version}-windows-${arch}.${ext}"
+      "icon": "icon.ico"
     },
     "mac": {
       "target": [
