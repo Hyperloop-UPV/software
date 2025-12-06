@@ -149,8 +149,6 @@ jobs:
         working-directory: electron-app
         run: npm ci
 
-      # Run npm run dist for non-macOS platforms
-      # As they correctly detect the architecture automatically
       - name: Build Electron distribution
         working-directory: electron-app
         run: npm run dist
