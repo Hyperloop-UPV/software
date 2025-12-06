@@ -6,24 +6,20 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"os/signal"
+	"time"
 
-	"encoding/json"
 	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/exec"
-	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 
 	"strings"
-	"time"
-
-	"github.com/hashicorp/go-version"
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
@@ -706,121 +702,6 @@ func getUDPFilter(addrs []net.IP, backendAddr net.IP, port uint16) string {
 	dstUdpAddrsStr := strings.Join(dstUdpAddrs, " or ")
 
 	return fmt.Sprintf("(%s) and (%s) and (%s or (dst host %s))", udpPort, srcUdpAddrsStr, dstUdpAddrsStr, backendAddr)
-}
-
-type GitHubRelease struct {
-	TagName string `json:"tag_name"`
-}
-
-func getLatestVersionFromGitHub() (string, error) {
-	resp, err := http.Get("https://api.github.com/repos/HyperloopUPV-H8/software/releases/latest")
-	if err != nil {
-		return "", fmt.Errorf("unable to connect to the internet: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var release GitHubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return "", fmt.Errorf("error decoding GitHub response: %w", err)
-	}
-
-	version := strings.TrimPrefix(release.TagName, "v")
-	return version, nil
-}
-
-// FIXME: Updater system disabled due to multiple critical issues
-// See GitHub issue for full details on problems and proposed solutions
-func update() {
-	versionFile := "VERSION.txt"
-	versionData, err := os.ReadFile(versionFile)
-	if err == nil {
-		currentVersion = strings.TrimSpace(string(versionData))
-	} else {
-		fmt.Fprintf(os.Stderr, "Error reading version file (%s): %v\n", versionFile, err)
-		return
-	}
-
-	execPath, err := os.Executable()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
-		os.Exit(1)
-	}
-
-	execDir := filepath.Dir(execPath)
-
-	latestVersionStr, latestErr := getLatestVersionFromGitHub()
-	backendPath := filepath.Join(execDir, "..", "..", "backend")
-	_, statErr := os.Stat(backendPath)
-	backendExists := statErr == nil
-
-	if backendExists {
-		fmt.Println("Backend folder detected.")
-		fmt.Print("Do you want to update? (y/n): ")
-		var response string
-		fmt.Scanln(&response)
-		if strings.ToLower(response) == "y" {
-			fmt.Println("Launching updater to update the backend...")
-			updaterPath := filepath.Join(execDir, "..", "..", "updater")
-			cmd := exec.Command("go", "build", "-o", filepath.Join(updaterPath, "updater.exe"), updaterPath)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error building updater: %v\n", err)
-				os.Exit(1)
-			}
-			updaterExe := filepath.Join(updaterPath, "updater.exe")
-			cmd = exec.Command(updaterExe)
-			cmd.Dir = updaterPath
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error launching updater: %v\n", err)
-				os.Exit(1)
-			}
-			os.Exit(0)
-		} else {
-			fmt.Println("Skipping update. Proceeding with the current version.")
-		}
-	} else {
-		// Solo updatear si se tienen ambas versiones y latest > current
-		current, currErr := version.NewVersion(currentVersion)
-		latest, lastErr := version.NewVersion(latestVersionStr)
-		if currErr != nil || lastErr != nil || latestErr != nil {
-			fmt.Println("Warning: Could not determine versions. Skipping update. Proceeding with the current version:", currentVersion)
-		} else if latest.GreaterThan(current) {
-			fmt.Printf("There is a new version available: %s (current version: %s)\n", latest, current)
-			fmt.Print("Do you want to update? (y/n): ")
-			var response string
-			fmt.Scanln(&response)
-			if strings.ToLower(response) == "y" {
-				fmt.Println("Launching updater to update the backend...")
-				updaterExe := filepath.Join(execDir, "updater")
-				if runtime.GOOS == "windows" {
-					updaterExe += ".exe"
-				}
-				if _, err := os.Stat(updaterExe); err == nil {
-					cmd := exec.Command(updaterExe)
-					cmd.Dir = execDir
-					cmd.Stdout = os.Stdout
-					cmd.Stderr = os.Stderr
-					if err := cmd.Run(); err != nil {
-						fmt.Fprintf(os.Stderr, "Error launching updater: %v\n", err)
-						os.Exit(1)
-					}
-					os.Exit(0)
-				} else {
-					fmt.Fprintf(os.Stderr, "Updater not found: %s\n", updaterExe)
-					fmt.Println("Skipping update. Proceeding with the current version.")
-				}
-			} else {
-				fmt.Println("Skipping update. Proceeding with the current version.")
-			}
-		} else {
-			fmt.Printf("You are using the latest version: %s\n", current)
-		}
-	}
-
-	return
 }
 
 // H09 -- Zürich    -- PM Juan Martínez, Marc Sanchis -- Winners
