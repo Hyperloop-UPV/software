@@ -75,6 +75,14 @@ npm run dist:mac    # macOS
 npm run dist:linux  # Linux
 ```
 
+### macOS Requirements
+
+On macOS, the backend requires the loopback address `127.0.0.9` to be configured. If you encounter a "can't assign requested address" error when starting the backend, run:
+
+```
+sudo ipconfig set en0 INFORM 127.0.0.9
+```
+
 ## Available Scripts
 
 ```

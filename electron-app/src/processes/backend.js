@@ -22,6 +22,9 @@ const appPath = getAppPath();
 // Store the backend process instance
 let backendProcess = null;
 
+// Store error messages (keep last 10 lines to avoid memory issues)
+let lastBackendError = null;
+
 /**
  * Starts the backend process by spawning the backend binary with the user configuration.
  * @returns {void}
@@ -57,6 +60,14 @@ function startBackend() {
     logger.backend.info(`${data.toString().trim()}`);
   });
 
+  // Capture stderr output (where Go errors/panics are written)
+  backendProcess.stderr.on("data", (data) => {
+    const errorMsg = data.toString().trim();
+    logger.backend.error(errorMsg);
+    // Store the last error message
+    lastBackendError = errorMsg;
+  });
+
   // Handle spawn errors
   backendProcess.on("error", (error) => {
     logger.backend.error(`Failed to start backend: ${error.message}`);
@@ -71,10 +82,18 @@ function startBackend() {
     logger.backend.info(`Backend process exited with code ${code}`);
     // Show error dialog if process crashed (non-zero exit code)
     if (code !== 0 && code !== null) {
-      dialog.showErrorBox(
-        "Backend Crashed",
-        `Backend exited with code ${code}`
-      );
+      // Build error message with actual error details
+      let errorMessage = `Backend exited with code ${code}`;
+
+      if (lastBackendError) {
+        errorMessage += `\n\n${lastBackendError}`;
+      } else {
+        errorMessage += "\n\n(No error output captured)";
+      }
+
+      dialog.showErrorBox("Backend Crashed", errorMessage);
+      // Clear error message after showing
+      lastBackendError = null;
     }
   });
 }
