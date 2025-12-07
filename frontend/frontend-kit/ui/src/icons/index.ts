@@ -18,5 +18,8 @@ export {
   SunMoon,
   Unplug,
   X,
+  Play,
+  ChevronDown,
+  Pencil,
   type LucideIcon,
 } from "lucide-react";
