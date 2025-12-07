@@ -291,12 +291,14 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 
 	if message.Id() == 0 {
 		eventLogger.Info().Msg("broadcasting packet id 0")
-		data, err := transport.encoder.Encode(message.Packet)
+		buf, err := transport.encoder.Encode(message.Packet)
 		if err != nil {
 			eventLogger.Error().Stack().Err(err).Msg("encode")
 			transport.errChan <- err
 			return err
 		}
+		defer transport.encoder.ReleaseBuffer(buf)
+		data := buf.Bytes()
 
 		transport.connectionsMx.Lock()
 		defer transport.connectionsMx.Unlock()
@@ -345,12 +347,14 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 		return err
 	}
 
-	data, err := transport.encoder.Encode(message.Packet)
+	buf, err := transport.encoder.Encode(message.Packet)
 	if err != nil {
 		eventLogger.Error().Stack().Err(err).Msg("encode")
 		transport.errChan <- err
 		return err
 	}
+	defer transport.encoder.ReleaseBuffer(buf)
+	data := buf.Bytes()
 
 	totalWritten := 0
 	for totalWritten < len(data) {
