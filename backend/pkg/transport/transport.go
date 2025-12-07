@@ -31,7 +31,7 @@ type Transport struct {
 	decoder *presentation.Decoder
 	encoder *presentation.Encoder
 
-	connectionsMx *sync.Mutex
+	connectionsMx *sync.RWMutex
 	connections   map[abstraction.TransportTarget]net.Conn
 
 	ipToTarget map[string]abstraction.TransportTarget
@@ -300,8 +300,8 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 		defer transport.encoder.ReleaseBuffer(buf)
 		data := buf.Bytes()
 
-		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
+		transport.connectionsMx.RLock()
+		defer transport.connectionsMx.RUnlock()
 		for target, conn := range transport.connections {
 			targetName := string(target)
 			totalWritten := 0
@@ -331,8 +331,8 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 	eventLogger.Info().Msg("sending")
 
 	conn, err := func() (net.Conn, error) {
-		transport.connectionsMx.Lock()
-		defer transport.connectionsMx.Unlock()
+		transport.connectionsMx.RLock()
+		defer transport.connectionsMx.RUnlock()
 		conn, ok := transport.connections[target]
 		if !ok {
 			eventLogger.Warn().Msg("target not connected")	
