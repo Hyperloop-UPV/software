@@ -418,6 +418,14 @@ func (transport *Transport) HandleUDPServer(server *udp.Server) {
 	}
 }
 
+func (transport *Transport) replicateFault(packet abstraction.Packet, logger zerolog.Logger) {
+	logger.Info().Msg("replicating packet with id 0 to all boards")
+	err := transport.handlePacketEvent(NewPacketMessage(packet))
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to replicate packet")
+	}
+}
+
 // handleUDPPacket handles a single UDP packet received by the UDP server
 func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 	srcAddr := fmt.Sprintf("%s:%d", udpPacket.SourceIP, udpPacket.SourcePort)
@@ -448,11 +456,7 @@ func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 	
 	// Intercept packets with id == 0 and replicate
 	if transport.propagateFault && packet.Id() == 0 {
-		transport.logger.Info().Msg("replicating packet with id 0 to all boards")
-		err := transport.handlePacketEvent(NewPacketMessage(packet))
-		if err != nil {
-			transport.logger.Error().Err(err).Msg("failed to replicate packet")
-		}
+		transport.replicateFault(packet, transport.logger)
 	}
 	
 	// Send notification
@@ -476,13 +480,10 @@ func (transport *Transport) handleConversation(socket network.Socket, reader io.
 
 			// Intercept packets with id == 0 and replicate
 			if transport.propagateFault && packet.Id() == 0 {
-				conversationLogger.Info().Msg("replicating packet with id 0 to all boards")
-				err := transport.handlePacketEvent(NewPacketMessage(packet))
-				if err != nil {
-					conversationLogger.Error().Err(err).Msg("failed to replicate packet")
-				}
+				transport.replicateFault(packet, transport.logger)
 			}
 
+			// Send notification
 			transport.api.Notification(NewPacketNotification(packet, srcAddr, dstAddr, time.Now()))
 		}
 	}()
