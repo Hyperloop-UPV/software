@@ -162,7 +162,7 @@ export const CommandsTab = ({
                         >
                           {/* Command Info Block */}
                           <div className="flex items-center gap-2 p-2">
-                            {/* Run button - LEFT SIDE */}
+                            {/* Run button */}
                             <Button
                               variant={
                                 cmd.dangerous ? "destructive" : "default"
