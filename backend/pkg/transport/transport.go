@@ -45,6 +45,8 @@ type Transport struct {
 
 	logger zerolog.Logger
 
+	byteReaderPool sync.Pool
+
 	errChan chan error
 }
 
@@ -418,8 +420,16 @@ func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 	dstAddr := fmt.Sprintf("%s:%d", udpPacket.DestIP, udpPacket.DestPort)
 	
 	// Create a reader from the payload
-	reader := bytes.NewReader(udpPacket.Payload)
-	
+	readerAny := transport.byteReaderPool.Get()
+	var reader *bytes.Reader
+	if readerAny != nil {
+		reader = readerAny.(*bytes.Reader)
+		reader.Reset(udpPacket.Payload)
+	} else {
+		reader = bytes.NewReader(udpPacket.Payload)
+	}
+	defer transport.byteReaderPool.Put(reader)
+
 	// Decode the packet
 	packet, err := transport.decoder.DecodeNext(reader)
 	if err != nil {
