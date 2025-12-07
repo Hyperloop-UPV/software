@@ -37,7 +37,10 @@ export const RightSidebar = ({
   return (
     <div className="bg-background flex h-full flex-col border-l outline-none">
       {/* Tabs */}
-      <Tabs defaultValue="packets" className="flex min-h-0 flex-1 flex-col">
+      <Tabs
+        defaultValue="commands"
+        className="flex min-h-0 flex-1 flex-col gap-0"
+      >
         <TabsList className="flex w-full gap-2 rounded-none">
           <TabsTrigger value="packets">Packets</TabsTrigger>
           <TabsTrigger value="commands">Commands</TabsTrigger>
