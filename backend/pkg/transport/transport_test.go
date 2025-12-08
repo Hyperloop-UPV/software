@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/sniffer"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
@@ -1104,6 +1105,36 @@ func TestHandleSniffer_Dispatches(t *testing.T) {
 
 	// No notifications expected; just ensure no panic/block.
 	_ = api
+}
+
+func TestHandleConversation_DispatchesAndStopsOnError(t *testing.T) {
+	tr, api := createTestTransport(t)
+
+	pkt := data.NewPacket(100)
+	pkt.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(pkt)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+	defer tr.encoder.ReleaseBuffer(buf)
+
+	socket := network.Socket{
+		SrcIP:   "127.0.0.1",
+		SrcPort: 8000,
+		DstIP:   "127.0.0.1",
+		DstPort: 8001,
+	}
+
+	reader := bytes.NewReader(buf.Bytes())
+	tr.handleConversation(socket, reader)
+
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) >= 1 }, time.Second, "packet notification"); err != nil {
+		t.Fatal(err)
+	}
+	// After the first packet, DecodeNext will hit EOF and SendFault will result in an error notification.
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) >= 2 }, 2*time.Second, "error notification"); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // Helper function to mimic errors.As behavior
