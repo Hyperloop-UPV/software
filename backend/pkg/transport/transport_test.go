@@ -15,6 +15,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
 	"github.com/rs/zerolog"
@@ -531,30 +532,34 @@ func TestReplicateFaultBroadcast(t *testing.T) {
 	}
 }
 
-func TestSendFault(t *testing.T) {
+func TestHandleUDPPacket_Success(t *testing.T) {
 	tr, api := createTestTransport(t)
-	// attach a dummy connection to allow broadcast of id 0
-	c1, c2 := net.Pipe()
-	done := make(chan struct{})
-	go func() {
-    	defer close(done)
-    	io.Copy(io.Discard, c2)
-	}()
+	tr.SetpropagateFault(false)
 
-	tr.connectionsMx.Lock()
-	tr.connections["TARGET"] = c1
-	tr.connectionsMx.Unlock()
-
-	tr.SendFault()
-
-	// ensure no error notifications
-	if len(api.GetNotifications()) != 0 {
-		t.Fatalf("expected no error notifications from SendFault path")
+	pkt := data.NewPacket(100)
+	pkt.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(pkt)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
 	}
 
-	c1.Close()
-	<-done
-	c2.Close()
+	payload := append([]byte(nil), buf.Bytes()...)
+	tr.encoder.ReleaseBuffer(buf)
+
+	udpPkt := udp.Packet{
+		SourceIP:   net.ParseIP("127.0.0.1"),
+		SourcePort: 9999,
+		DestIP:     net.ParseIP("127.0.0.1"),
+		DestPort:   9998,
+		Payload:    payload,
+		Timestamp:  time.Unix(0, 0),
+	}
+
+	tr.handleUDPPacket(udpPkt)
+
+	if len(api.GetNotifications()) == 0 {
+		t.Fatalf("expected notification after UDP packet")
+	}
 }
 
 // Integration Tests
