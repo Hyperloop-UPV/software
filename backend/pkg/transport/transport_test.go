@@ -281,6 +281,19 @@ func getAvailablePort(t testing.TB) string {
 	return listener.Addr().String()
 }
 
+func getAvailableUDPPort(t testing.TB) uint16 {
+	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Failed to resolve UDP addr: %v", err)
+	}
+	conn, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		t.Fatalf("Failed to listen UDP: %v", err)
+	}
+	defer conn.Close()
+	return uint16(conn.LocalAddr().(*net.UDPAddr).Port)
+}
+
 // waitForCondition waits for a condition to be true within a timeout
 func waitForCondition(condition func() bool, timeout time.Duration, message string) error {
 	deadline := time.Now().Add(timeout)
@@ -880,6 +893,103 @@ func TestTransport_ReconnectionBehavior(t *testing.T) {
 		return false
 	}, 5*time.Second, "Should receive reconnection update")
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHandleServer_AcceptsAndDispatches(t *testing.T) {
+	tr, api := createTestTransport(t)
+	target := abstraction.TransportTarget("SERVER_TARGET")
+	tr.SetTargetIp("127.0.0.1", target)
+	tr.SetIdTarget(100, target)
+
+	local := getAvailablePort(t)
+	cfg := tcp.NewServerConfig()
+	ctx, cancel := context.WithCancel(context.Background())
+	cfg.Context = ctx
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		_ = tr.HandleServer(cfg, local)
+		close(done)
+	}()
+
+	var conn net.Conn
+	var err error
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		conn, err = net.Dial("tcp", local)
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if conn == nil {
+		t.Fatalf("failed to dial server: %v", err)
+	}
+	defer conn.Close()
+
+	packet := data.NewPacket(100)
+	packet.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(packet)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+	defer tr.encoder.ReleaseBuffer(buf)
+
+	if _, err := conn.Write(buf.Bytes()); err != nil {
+		t.Fatalf("failed to write packet: %v", err)
+	}
+
+	if err := waitForCondition(func() bool {
+		return len(api.GetNotifications()) > 0
+	}, 2*time.Second, "Should receive notification from server connection"); err != nil {
+		t.Fatal(err)
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(500 * time.Millisecond):
+	}
+}
+
+func TestHandleUDPServer_Dispatches(t *testing.T) {
+	tr, api := createTestTransport(t)
+	tr.SetpropagateFault(false)
+
+	port := getAvailableUDPPort(t)
+	logger := zerolog.Nop()
+	server := udp.NewServer("127.0.0.1", port, &logger)
+	if err := server.Start(); err != nil {
+		t.Fatalf("failed to start UDP server: %v", err)
+	}
+	defer server.Stop()
+
+	go tr.HandleUDPServer(server)
+
+	packet := data.NewPacket(100)
+	packet.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(packet)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+	defer tr.encoder.ReleaseBuffer(buf)
+
+	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: int(port)})
+	if err != nil {
+		t.Fatalf("failed to dial UDP server: %v", err)
+	}
+	defer conn.Close()
+
+	if _, err := conn.Write(buf.Bytes()); err != nil {
+		t.Fatalf("failed to send UDP packet: %v", err)
+	}
+
+	if err := waitForCondition(func() bool {
+		return len(api.GetNotifications()) > 0
+	}, 2*time.Second, "Should receive notification from UDP server"); err != nil {
 		t.Fatal(err)
 	}
 }
