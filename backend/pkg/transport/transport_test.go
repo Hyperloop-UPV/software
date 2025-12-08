@@ -258,6 +258,7 @@ func createTestTransport(t *testing.T) (*Transport, *TestTransportAPI) {
 	enc := presentation.NewEncoder(binary.BigEndian, logger)
     dec := presentation.NewDecoder(binary.BigEndian, logger)
     wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
+	wireTestPacketCodec(enc, dec, abstraction.PacketId(0))
 
 
 	transport := NewTransport(logger).
@@ -493,6 +494,67 @@ func TestRejectIfConnectedTCPConn(t *testing.T) {
 	if _, werr := conn.Write([]byte("test")); werr == nil {
 		t.Fatalf("expected write to fail on closed conn")
 	}
+}
+
+func TestHandlePacketEvent_TargetNotConnected(t *testing.T) {
+	tr, _ := createTestTransport(t)
+	tr.SetpropagateFault(false)
+	tr.idToTarget[42] = "TARGET"
+	// encoder/decoder wired only for id 100; id 42 will cause ErrUnexpectedId in encoder
+	pkt := data.NewPacket(42)
+	err := tr.handlePacketEvent(NewPacketMessage(pkt))
+	if err == nil {
+		t.Fatalf("expected error for missing encoder/connection")
+	}
+}
+
+func TestReplicateFaultBroadcast(t *testing.T) {
+	tr, api := createTestTransport(t)
+	tr.SetpropagateFault(true)
+	// create a connection to receive broadcast
+	c1, c2 := net.Pipe()
+	tr.connectionsMx.Lock()
+	tr.connections["TARGET"] = c1
+	tr.connectionsMx.Unlock()
+	defer c1.Close()
+	defer c2.Close()
+
+	go tr.replicateFault(data.NewPacket(0), tr.logger)
+
+	buf := make([]byte, 2)
+	if _, err := io.ReadFull(c2, buf); err != nil {
+		t.Fatalf("expected broadcast data, got err %v", err)
+	}
+	// ensure no error notifications
+	if len(api.GetNotifications()) != 0 {
+		t.Fatalf("expected no notifications during replicateFault")
+	}
+}
+
+func TestSendFault(t *testing.T) {
+	tr, api := createTestTransport(t)
+	// attach a dummy connection to allow broadcast of id 0
+	c1, c2 := net.Pipe()
+	done := make(chan struct{})
+	go func() {
+    	defer close(done)
+    	io.Copy(io.Discard, c2)
+	}()
+
+	tr.connectionsMx.Lock()
+	tr.connections["TARGET"] = c1
+	tr.connectionsMx.Unlock()
+
+	tr.SendFault()
+
+	// ensure no error notifications
+	if len(api.GetNotifications()) != 0 {
+		t.Fatalf("expected no error notifications from SendFault path")
+	}
+
+	c1.Close()
+	<-done
+	c2.Close()
 }
 
 // Integration Tests
