@@ -50,6 +50,9 @@ type Transport struct {
 	errChan chan error
 }
 
+// For tests
+var zeroTime time.Time
+
 // HandleClient connects to the specified client and handles its messages. This method blocks.
 // This method will continuously try to reconnect to the client if it disconnects,
 // applying exponential backoff between attempts.

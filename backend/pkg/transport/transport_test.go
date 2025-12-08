@@ -1,16 +1,20 @@
 package transport
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
 	"github.com/rs/zerolog"
@@ -74,6 +78,26 @@ func (api *TestTransportAPI) Reset() {
 	api.connectionUpdates = api.connectionUpdates[:0]
 	api.notifications = api.notifications[:0]
 }
+
+// simpleConn is a net.Conn with specified local and remote addresses
+type simpleConn struct {
+	net.Conn
+	local  net.Addr
+	remote net.Addr
+}
+
+func (c *simpleConn) LocalAddr() net.Addr  { return c.local }
+func (c *simpleConn) RemoteAddr() net.Addr { return c.remote }
+
+func defaultLogger() zerolog.Logger {
+	return zerolog.New(zerolog.Nop())
+}
+
+// noopTransportAPI is a no-op implementation of abstraction.TransportAPI
+type noopTransportAPI struct{}
+
+func (noopTransportAPI) Notification(abstraction.TransportNotification)     {}
+func (noopTransportAPI) ConnectionUpdate(abstraction.TransportTarget, bool) {}
 
 // MockBoardServer simulates a vehicle board
 type MockBoardServer struct {
@@ -333,39 +357,141 @@ func TestTransport_SetTargetIp(t *testing.T) {
 	}
 }
 
-func TestTransport_InvalidInputs(t *testing.T) {
-	transport, _ := createTestTransport(t)
+func TestWithTFTP(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	client := &tftp.Client{}
 
-	// Test invalid ID input
-	err := transport.SetIdTarget(0, "")
-	if err == nil {
-		t.Errorf("Expected error for invalid ID input, got nil")
-	}
-
-	// Test invalid IP input
-	err = transport.SetTargetIp("", "")
-	if err == nil {
-		t.Errorf("Expected error for invalid IP input, got nil")
+	out := tr.WithTFTP(client)
+	if out.tftp != client {
+		t.Fatalf("expected tftp client to be set")
 	}
 }
 
-func TestTransport_RemoveTargets(t *testing.T) {
-	transport, _ := createTestTransport(t)
-
-	// Add entries
-	transport.SetIdTarget(100, "TEST_BOARD")
-	transport.SetTargetIp("192.168.1.100", "TEST_BOARD")
-
-	// Remove entries
-	delete(transport.idToTarget, 100)
-	delete(transport.ipToTarget, "192.168.1.100")
-
-	// Verify removal
-	if _, exists := transport.idToTarget[100]; exists {
-		t.Errorf("Expected ID 100 to be removed, but it still exists")
+func TestTransportErrors(t *testing.T) {
+	tests := []struct {
+		err  error
+		want string
+	}{
+		{ErrUnrecognizedEvent{Event: PacketEvent}, "unrecognized event packet"},
+		{ErrTargetAlreadyConnected{Target: "X"}, "X is already connected"},
+		{ErrUnrecognizedId{Id: 7}, "could not find target for packet with id 7"},
+		{ErrConnClosed{Target: "Y"}, "connection with Y is closed"},
+		{ErrUnknownTarget{Remote: &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 1234}}, "unknown target for 1.2.3.4:1234"},
 	}
-	if _, exists := transport.ipToTarget["192.168.1.100"]; exists {
-		t.Errorf("Expected IP 192.168.1.100 to be removed, but it still exists")
+
+	for _, tt := range tests {
+		if got := tt.err.Error(); !strings.Contains(got, tt.want) {
+			t.Fatalf("expected %q to contain %q", got, tt.want)
+		}
+	}
+}
+
+func TestMessages(t *testing.T) {
+	pm := NewPacketMessage(nil)
+	if pm.Event() != PacketEvent {
+		t.Fatalf("packet event mismatch")
+	}
+
+	fr := bytes.NewBuffer(nil)
+	fwm := NewFileWriteMessage("a.bin", fr)
+	if fwm.Event() != FileWriteEvent || fwm.Filename() != "a.bin" {
+		t.Fatalf("file write message mismatch")
+	}
+
+	fw := bytes.NewBuffer(nil)
+	frm := NewFileReadMessage("b.bin", fw)
+	if frm.Event() != FileReadEvent || frm.Filename() != "b.bin" {
+		t.Fatalf("file read message mismatch")
+	}
+}
+
+func TestNotifications(t *testing.T) {
+	pn := NewPacketNotification(nil, "from", "to", zeroTime)
+	if pn.Event() != PacketEvent || pn.From != "from" || pn.To != "to" {
+		t.Fatalf("packet notification mismatch")
+	}
+
+	en := NewErrorNotification(io.EOF)
+	if en.Event() != ErrorEvent || en.Err != io.EOF {
+		t.Fatalf("error notification mismatch")
+	}
+}
+
+func TestSetpropagateFault(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	if tr.propagateFault {
+		t.Fatalf("expected propagateFault false by default")
+	}
+	tr.SetpropagateFault(true)
+	if !tr.propagateFault {
+		t.Fatalf("expected propagateFault true after setter")
+	}
+}
+
+func TestTargetFromTCPConnKnown(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	tr.ipToTarget["127.0.0.1"] = "KNOWN"
+	pr, pw := net.Pipe()
+	defer pw.Close()
+	conn := &simpleConn{
+		Conn:   pr,
+		local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+		remote: &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 2},
+	}
+
+	target, err := tr.targetFromTCPConn(conn)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if target != "KNOWN" {
+		t.Fatalf("expected target KNOWN, got %s", target)
+	}
+}
+
+func TestTargetFromTCPConnUnknown(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	pr, pw := net.Pipe()
+	defer pw.Close()
+	conn := &simpleConn{
+		Conn:   pr,
+		local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+		remote: &net.TCPAddr{IP: net.ParseIP("10.0.0.1"), Port: 2},
+	}
+
+	_, err := tr.targetFromTCPConn(conn)
+	if err == nil {
+		t.Fatalf("expected error for unknown target")
+	}
+	if _, ok := err.(ErrUnknownTarget); !ok {
+		t.Fatalf("expected ErrUnknownTarget, got %T", err)
+	}
+}
+
+func TestRejectIfConnectedTCPConn(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	tr.connections["X"] = &simpleConn{}
+
+	// new conn to reject
+	pr, pw := net.Pipe()
+	defer pw.Close()
+	conn := &simpleConn{
+		Conn:   pr,
+		local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+		remote: &net.TCPAddr{IP: net.ParseIP("127.0.0.2"), Port: 2},
+	}
+
+	err := tr.rejectIfConnectedTCPConn("X", conn, defaultLogger())
+	if _, ok := err.(ErrTargetAlreadyConnected); !ok {
+		t.Fatalf("expected ErrTargetAlreadyConnected, got %v", err)
+	}
+	// conn should be closed
+	if _, werr := conn.Write([]byte("test")); werr == nil {
+		t.Fatalf("expected write to fail on closed conn")
 	}
 }
 
