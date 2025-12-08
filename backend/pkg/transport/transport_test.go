@@ -15,6 +15,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
+	tftpv3 "github.com/pin/tftp/v3"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
@@ -991,6 +992,76 @@ func TestHandleUDPServer_Dispatches(t *testing.T) {
 		return len(api.GetNotifications()) > 0
 	}, 2*time.Second, "Should receive notification from UDP server"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestHandleFileWriteRead_WithRealTFTP(t *testing.T) {
+	readHandler := func(filename string, rf io.ReaderFrom) error {
+		_, err := rf.ReadFrom(bytes.NewBufferString("from-server"))
+		return err
+	}
+	writeBuf := &bytes.Buffer{}
+	writeHandler := func(filename string, wt io.WriterTo) error {
+		_, err := wt.WriteTo(writeBuf)
+		return err
+	}
+	server := tftpv3.NewServer(readHandler, writeHandler)
+	addr := fmt.Sprintf("127.0.0.1:%d", getAvailableUDPPort(t))
+	go func() {
+		_ = server.ListenAndServe(addr)
+	}()
+	defer server.Shutdown()
+	time.Sleep(20 * time.Millisecond)
+
+	client, err := tftp.NewClient(addr)
+	if err != nil {
+		t.Fatalf("failed to create tftp client: %v", err)
+	}
+
+	tr := NewTransport(defaultLogger()).WithTFTP(client)
+	tr.SetAPI(NewTestTransportAPI())
+
+	if err := tr.handleFileWrite(NewFileWriteMessage("file.bin", bytes.NewBufferString("hello"))); err != nil {
+		t.Fatalf("handleFileWrite error: %v", err)
+	}
+	if writeBuf.String() != "hello" {
+		t.Fatalf("expected written data 'hello', got %q", writeBuf.String())
+	}
+
+	out := &bytes.Buffer{}
+	if err := tr.handleFileRead(NewFileReadMessage("file.bin", out)); err != nil {
+		t.Fatalf("handleFileRead error: %v", err)
+	}
+	if out.String() != "from-server" {
+		t.Fatalf("expected read data 'from-server', got %q", out.String())
+	}
+}
+
+func TestHandleFileWriteRead_ErrorPath(t *testing.T) {
+	// Point to an unused UDP port to force WriteFile/ReadFile errors.
+	addr := fmt.Sprintf("127.0.0.1:%d", getAvailableUDPPort(t))
+	client, err := tftp.NewClient(addr, tftp.WithTimeout(50*time.Millisecond), tftp.WithRetries(1))
+	if err != nil {
+		t.Fatalf("failed to create tftp client: %v", err)
+	}
+
+	tr := NewTransport(defaultLogger()).WithTFTP(client)
+	api := NewTestTransportAPI()
+	tr.SetAPI(api)
+
+	if err := tr.handleFileWrite(NewFileWriteMessage("file.bin", bytes.NewBufferString("hello"))); err == nil {
+		t.Fatalf("expected error writing to unreachable TFTP server")
+	}
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) > 0 }, time.Second, "error notification"); err != nil {
+		t.Fatalf("expected error notification")
+	}
+
+	api.Reset()
+	if err := tr.handleFileRead(NewFileReadMessage("file.bin", &bytes.Buffer{})); err == nil {
+		t.Fatalf("expected error reading from unreachable TFTP server")
+	}
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) > 0 }, time.Second, "error notification"); err != nil {
+		t.Fatalf("expected error notification")
 	}
 }
 
