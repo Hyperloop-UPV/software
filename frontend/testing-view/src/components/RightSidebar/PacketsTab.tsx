@@ -1,6 +1,5 @@
 import { Button } from "@workspace/ui";
-import { MOCK_PACKETS, MOCK_PACKET_TYPES } from "../../mocks/data";
-import type { Packet } from "../../mocks/data";
+import type { Packet } from "../../types/Packet";
 
 interface PacketsTabProps {
   visiblePackets: Packet[];
@@ -33,22 +32,19 @@ export const PacketsTab = ({
 
       <div className="space-y-2">
         {visiblePackets.map((packet) => {
-          const packetType = MOCK_PACKET_TYPES.find(
-            (pt) => pt.id === packet.packetTypeId,
-          );
           return (
             <div key={packet.id} className="rounded border p-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-mono font-semibold">
-                  {packetType?.type}
+                <span className="font-mono font-semibold">{packet.name}</span>
+                <span className="text-muted-foreground">
+                  {packet.description}
                 </span>
                 <span className="text-muted-foreground">
                   {packet.timestamp}
                 </span>
               </div>
               <div className="text-muted-foreground mt-1">
-                {packet.source} → {packet.destination} | {packetType?.size}B |{" "}
-                {packet.status}
+                {packet.value} {packet.unit}
               </div>
             </div>
           );

@@ -1,21 +1,8 @@
-// Command Types
-export interface Command {
-  id: string;
-  name: string;
-  description: string;
-  parameters?: {
-    name: string;
-    type: "string" | "number" | "boolean";
-    required: boolean;
-    default?: string | number | boolean;
-  }[];
-  dangerous?: boolean;
-}
-
-export type ECUCategory = "BCU" | "PCU" | "LCU" | "HVSCU" | "BMSL" | "VCU";
+import type { BoardName } from "../types/BoardName";
+import type { Command } from "../types/Command";
 
 // Mock Commands - Structured by ECU
-export const MOCK_COMMANDS: Record<ECUCategory, Command[]> = {
+export const MOCK_COMMANDS: Record<BoardName, Command[]> = {
   BCU: [
     {
       id: "bcu_read_voltage",
@@ -361,14 +348,14 @@ export const getAllCommands = (): Command[] => {
 };
 
 // Helper to get commands by ECU
-export const getCommandsByECU = (ecu: ECUCategory): Command[] => {
-  return MOCK_COMMANDS[ecu];
+export const getCommandsByBoard = (board: BoardName): Command[] => {
+  return MOCK_COMMANDS[board];
 };
 
 // Get all ECU categories
-export const ECU_CATEGORIES: ECUCategory[] = Object.keys(
+export const BOARD_NAMES: BoardName[] = Object.keys(
   MOCK_COMMANDS,
-) as ECUCategory[];
+) as BoardName[];
 
 // Get total command count
 export const getTotalCommandCount = (): number => {
