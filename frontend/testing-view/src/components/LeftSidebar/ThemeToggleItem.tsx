@@ -1,9 +1,8 @@
-import { SidebarMenuButton, SidebarMenuItem } from "@workspace/ui";
+import { SidebarMenuButton } from "@workspace/ui";
 import { useDarkMode } from "@workspace/ui/hooks";
-import { Moon, Sun, SunMoon } from "@workspace/ui/icons";
-import React from "react";
+import { SunMoon } from "@workspace/ui/icons";
 
-const NavDarkModeToggle = () => {
+const ThemeToggleItem = () => {
   const { toggleDarkMode, isDarkMode } = useDarkMode();
 
   const tooltip = isDarkMode ? "Enable Light Mode" : "Enable Dark Mode";
@@ -16,4 +15,4 @@ const NavDarkModeToggle = () => {
   );
 };
 
-export default NavDarkModeToggle;
+export default ThemeToggleItem;

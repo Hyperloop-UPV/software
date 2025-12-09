@@ -9,8 +9,8 @@ import {
 import { PacketsTab } from "./PacketsTab";
 import { CommandsTab } from "./CommandsTab";
 import { MessagesList } from "./MessagesList";
-import type { Packet } from "../../mocks/data";
-import type { Command } from "../../mocks/commands";
+import type { Packet } from "../../types/Packet";
+import type { Command } from "../../types/Command";
 import { X } from "@workspace/ui/icons";
 
 interface RightSidebarProps {

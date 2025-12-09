@@ -7,7 +7,8 @@ import {
   Checkbox,
   Button,
 } from "@workspace/ui";
-import { MOCK_PACKETS, MOCK_PACKET_TYPES } from "../../mocks/data";
+import { MOCK_PACKETS } from "../../mocks/packets";
+import type { Packet } from "../../types/Packet";
 
 interface PacketsFilterDialogProps {
   open: boolean;
@@ -34,8 +35,13 @@ export const PacketsFilterDialog = ({
           <DialogDescription>Select which packets to display</DialogDescription>
         </DialogHeader>
 
-        <div className="">
-          {MOCK_PACKETS.map((packet) => {
+        {/* <div className="">
+          {Object.keys(MOCK_PACKETS).map((board) => {
+            return (
+              <div key={board}>
+            )
+          })}
+          {Object.keys(MOCK_PACKETS).map((board) => MOCK_PACKETS[board].map((packet) => {
             const packetType = MOCK_PACKET_TYPES.find(
               (pt) => pt.id === packet.packetTypeId,
             );
@@ -66,7 +72,7 @@ export const PacketsFilterDialog = ({
           <Button variant="outline" size="sm" onClick={onSelectAll}>
             Select All
           </Button>
-        </div>
+        </div> */}
       </DialogContent>
     </Dialog>
   );

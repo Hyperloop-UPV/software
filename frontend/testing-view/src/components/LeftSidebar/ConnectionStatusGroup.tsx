@@ -7,18 +7,13 @@ import {
 } from "@workspace/ui";
 import { Plug, Unplug } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
-import React from "react";
+import type { Connection } from "../../types/Connection";
 
-interface NavConnectionsProps {
+interface ConnectionStatusGroupProps {
   connections: Connection[];
 }
 
-type Connection = {
-  name: string;
-  isConnected: boolean;
-};
-
-const NavConnections = ({ connections }: NavConnectionsProps) => {
+const ConnectionStatusGroup = ({ connections }: ConnectionStatusGroupProps) => {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Connections</SidebarGroupLabel>
@@ -43,4 +38,4 @@ const NavConnections = ({ connections }: NavConnectionsProps) => {
   );
 };
 
-export default NavConnections;
+export default ConnectionStatusGroup;

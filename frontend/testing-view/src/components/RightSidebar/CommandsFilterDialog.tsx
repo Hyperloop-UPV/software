@@ -10,7 +10,9 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@workspace/ui";
-import { MOCK_COMMANDS, ECU_CATEGORIES } from "../../mocks/commands";
+import { MOCK_COMMANDS } from "../../mocks/commands";
+import { BOARD_NAMES } from "../../mocks/commands";
+import type { Command } from "../../types/Command";
 import { ChevronRight } from "@workspace/ui/icons";
 import { useState, useEffect, useRef } from "react";
 
@@ -86,7 +88,7 @@ export const CommandsFilterDialog = ({
         </DialogHeader>
 
         <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-2">
-          {ECU_CATEGORIES.map((category) => {
+          {BOARD_NAMES.map((category) => {
             const commands = MOCK_COMMANDS[category];
             const isExpanded = expandedCategories.has(category);
             const { checked, indeterminate } = getCategoryState(category);

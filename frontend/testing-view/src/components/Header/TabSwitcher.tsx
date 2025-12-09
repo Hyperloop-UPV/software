@@ -16,7 +16,7 @@ import {
   Plus,
 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
-import { useTabStore } from "@workspace/ui/store";
+import { useTabStore } from "../../store/useTabStore";
 
 const TabSwitcher = () => {
   const { isMobile } = useSidebar();

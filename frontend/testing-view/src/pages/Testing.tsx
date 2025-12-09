@@ -8,13 +8,15 @@ import {
 } from "@workspace/ui";
 import { connect } from "@workspace/core";
 import { useCallback, useEffect, useState } from "react";
-import { useTabStore } from "@workspace/ui/store";
-import { MOCK_PACKETS } from "../mocks/data";
+import { useTabStore } from "../store/useTabStore";
+import { MOCK_PACKETS } from "../mocks/packets";
 
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
 import { PacketsFilterDialog } from "../components/RightSidebar/PacketsFilterDialog";
 import { CommandsFilterDialog } from "../components/RightSidebar/CommandsFilterDialog";
 import { getAllCommands, MOCK_COMMANDS } from "../mocks/commands";
+import type { BoardName } from "../types/BoardName";
+import type { Packet } from "../types/Packet";
 
 export const Testing = () => {
   const { activeTab } = useTabStore();
@@ -24,31 +26,11 @@ export const Testing = () => {
   const [visibleCommandIds, setVisibleCommandIds] = useState<string[]>(
     getAllCommands().map((cmd) => cmd.id),
   );
-  const [visiblePacketIds, setVisiblePacketIds] = useState<string[]>(
-    MOCK_PACKETS.map((pkt) => pkt.id),
-  );
+  const [visiblePacketIds, setVisiblePacketIds] = useState<string[]>([]);
 
   // Dialog states
   const [isPacketsDialogOpen, setIsPacketsDialogOpen] = useState(false);
   const [isCommandsDialogOpen, setIsCommandsDialogOpen] = useState(false);
-
-  const connectToWebSocket = useCallback(() => {
-    console.time("[TEST] connect to websocket");
-    connect();
-    console.timeEnd("[TEST] connect to websocket");
-  }, []);
-
-  useEffect(() => {
-    connectToWebSocket();
-  }, [connectToWebSocket]);
-
-  const handlePanelResize = useCallback((size: number) => {
-    if (size < 15) {
-      setIsSidebarVisible(false);
-    } else if (size > 20) {
-      setIsSidebarVisible(true);
-    }
-  }, []);
 
   const toggleCommand = (cmdId: string) => {
     setVisibleCommandIds((prev) =>
@@ -69,9 +51,7 @@ export const Testing = () => {
   const visibleCommands = getAllCommands().filter((cmd) =>
     visibleCommandIds.includes(cmd.id),
   );
-  const visiblePackets = MOCK_PACKETS.filter((pkt) =>
-    visiblePacketIds.includes(pkt.id),
-  );
+  const visiblePackets = [] as Packet[];
 
   if (!activeTab) {
     return <p>No active tab</p>;
@@ -86,7 +66,7 @@ export const Testing = () => {
         visiblePacketIds={visiblePacketIds}
         onTogglePacket={togglePacket}
         onClearAll={() => setVisiblePacketIds([])}
-        onSelectAll={() => setVisiblePacketIds(MOCK_PACKETS.map((p) => p.id))}
+        onSelectAll={() => setVisiblePacketIds([])}
       />
 
       <CommandsFilterDialog
@@ -133,17 +113,12 @@ export const Testing = () => {
           {isSidebarVisible && (
             <>
               <ResizableHandle withHandle />
-              <ResizablePanel
-                defaultSize={40}
-                minSize={15}
-                maxSize={70}
-                onResize={handlePanelResize}
-              >
+              <ResizablePanel defaultSize={40} minSize={15} maxSize={70}>
                 <RightSidebar
                   visibleCommands={visibleCommands}
                   totalCommands={getAllCommands().length}
                   visiblePackets={visiblePackets}
-                  totalPackets={MOCK_PACKETS.length}
+                  totalPackets={0}
                   onClose={() => setIsSidebarVisible(false)}
                   onOpenPacketsFilter={() => setIsPacketsDialogOpen(true)}
                   onOpenCommandsFilter={() => setIsCommandsDialogOpen(true)}

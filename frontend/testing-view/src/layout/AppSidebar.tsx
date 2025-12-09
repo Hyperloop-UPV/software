@@ -2,43 +2,27 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarHeader,
-  SidebarMenuButton,
   SidebarRail,
-  SidebarTrigger,
 } from "@workspace/ui/components";
-import { FlaskConical, ScrollText, Camera } from "@workspace/ui/icons";
-import NavMain from "../components/NavMain";
-import NavConnections from "../components/NavConnections";
-import NavSettings from "../components/NavSettings";
-import NavDarkModeToggle from "../components/NavDarkModeToggle";
+import NavigationGroup from "../components/LeftSidebar/NavigationGroup";
+import ConnectionStatusGroup from "../components/LeftSidebar/ConnectionStatusGroup";
+import SettingsItem from "../components/LeftSidebar/SettingsItem";
+import ThemeToggleItem from "../components/LeftSidebar/ThemeToggleItem";
+import { MOCK_CONNECTIONS } from "../mocks/connections";
+import { PAGES_ARRAY } from "../constants/pages";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {}
-
-const data = {
-  navMain: [
-    { title: "Testing", icon: FlaskConical, url: "/", isActive: true },
-    { title: "Logs", icon: ScrollText, url: "/logs" },
-    { title: "Camera View", icon: Camera, url: "/camera-view" },
-  ],
-  navConnections: [
-    { name: "Backend", isConnected: true },
-    { name: "VLCU", isConnected: false },
-    { name: "BLU", isConnected: true },
-  ],
-};
 
 const AppSidebar = ({ ...props }: AppSidebarProps) => {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavConnections connections={data.navConnections} />
+        <NavigationGroup items={PAGES_ARRAY} />
+        <ConnectionStatusGroup connections={MOCK_CONNECTIONS} />
       </SidebarContent>
       <SidebarFooter>
-        <NavDarkModeToggle />
-        <NavSettings />
+        <ThemeToggleItem />
+        <SettingsItem />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

@@ -1,8 +1,7 @@
 import { SidebarMenuButton } from "@workspace/ui";
 import { Settings } from "@workspace/ui/icons";
-import React from "react";
 
-const NavSettings = () => {
+const SettingsItem = () => {
   return (
     <SidebarMenuButton tooltip="Settings">
       <Settings />
@@ -11,4 +10,4 @@ const NavSettings = () => {
   );
 };
 
-export default NavSettings;
+export default SettingsItem;

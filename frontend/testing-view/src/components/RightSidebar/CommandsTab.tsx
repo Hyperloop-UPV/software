@@ -8,8 +8,9 @@ import {
 } from "@workspace/ui";
 import { ChevronDown, ChevronRight, Pencil, Play } from "@workspace/ui/icons";
 import { useState } from "react";
-import { MOCK_COMMANDS, ECU_CATEGORIES } from "../../mocks/commands";
-import type { Command } from "../../mocks/commands";
+import { MOCK_COMMANDS } from "../../mocks/commands";
+import { BOARD_NAMES } from "../../mocks/commands";
+import type { Command } from "../../types/Command";
 
 interface CommandsTabProps {
   visibleCommands: Command[];
@@ -82,7 +83,7 @@ export const CommandsTab = ({
   };
 
   // Group visible commands by category
-  const groupedCommands = ECU_CATEGORIES.reduce(
+  const groupedCommands = BOARD_NAMES.reduce(
     (acc, category) => {
       const categoryCommands = visibleCommands.filter((cmd) =>
         MOCK_COMMANDS[category].some((c) => c.id === cmd.id),
