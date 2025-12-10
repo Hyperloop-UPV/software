@@ -1,7 +1,8 @@
 import type { BoardName } from "../types/BoardName";
 import type { Packet } from "../types/Packet";
+import type { PacketsBoardName } from "../types/TabFilter";
 
-export const MOCK_PACKETS: Record<BoardName, Packet[]> = {
+export const MOCK_PACKETS: Record<PacketsBoardName, Packet[]> = {
   BCU: [
     {
       id: "bcu_pack_voltage",
@@ -257,6 +258,17 @@ export const MOCK_PACKETS: Record<BoardName, Packet[]> = {
       unit: "",
       timestamp: "12:34:56.712",
       value: "SPORT",
+    },
+  ],
+
+  "HVSCU-Cabinet": [
+    {
+      id: "hvscu_cabinet_temperature",
+      name: "Cabinet Temperature",
+      description: "Cabinet temperature",
+      unit: "°C",
+      timestamp: "12:34:56.734",
+      value: 25.3,
     },
   ],
 };

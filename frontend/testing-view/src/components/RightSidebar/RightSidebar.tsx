@@ -1,84 +1,118 @@
-import { useRef, useEffect } from "react";
+import { useState } from "react";
 import {
   Button,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
 } from "@workspace/ui";
-import { PacketsTab } from "./PacketsTab";
-import { CommandsTab } from "./CommandsTab";
-import { MessagesList } from "./MessagesList";
-import type { Packet } from "../../types/Packet";
-import type { Command } from "../../types/Command";
-import { X } from "@workspace/ui/icons";
+import { CommandsFilterDialog } from "./Commands/CommandsFilterDialog";
+import { PacketsFilterDialog } from "./Packets/PacketsFilterDialog";
+import { X, ChevronDown } from "@workspace/ui/icons";
+import MessagesSection from "./Sections/MessagesSection";
+import TabsSection from "./Sections/TabsSection";
 
 interface RightSidebarProps {
-  visibleCommands: Command[];
-  totalCommands: number;
-  visiblePackets: Packet[];
-  totalPackets: number;
   onClose: () => void;
-  onOpenPacketsFilter: () => void;
-  onOpenCommandsFilter: () => void;
-  isVisible: boolean;
 }
 
-export const RightSidebar = ({
-  visibleCommands,
-  totalCommands,
-  visiblePackets,
-  totalPackets,
-  onClose,
-  onOpenPacketsFilter,
-  onOpenCommandsFilter,
-  isVisible,
-}: RightSidebarProps) => {
+export const RightSidebar = ({ onClose }: RightSidebarProps) => {
+  const [isTabsVisible, setIsTabsVisible] = useState(true);
+  const [isMessagesVisible, setIsMessagesVisible] = useState(true);
+
+  // Both collapsed - show both headers
+  if (!isTabsVisible && !isMessagesVisible) {
+    return (
+      <div className="bg-background flex h-full flex-col border-l">
+        <CollapsedHeader
+          title="Commands / Packets"
+          onExpand={() => setIsTabsVisible(true)}
+          onClose={onClose}
+        />
+        <CollapsedHeader
+          title="Messages"
+          onExpand={() => setIsMessagesVisible(true)}
+        />
+      </div>
+    );
+  }
+
+  // Only tabs visible
+  if (isTabsVisible && !isMessagesVisible) {
+    return (
+      <div className="bg-background flex h-full flex-col border-l">
+        <TabsSection
+          onCollapse={() => setIsTabsVisible(false)}
+          onClose={onClose}
+        />
+        <CollapsedHeader
+          title="Messages"
+          onExpand={() => setIsMessagesVisible(true)}
+        />
+        <CommandsFilterDialog />
+        <PacketsFilterDialog />
+      </div>
+    );
+  }
+
+  // Only messages visible
+  if (!isTabsVisible && isMessagesVisible) {
+    return (
+      <div className="bg-background flex h-full flex-col border-l">
+        <CollapsedHeader
+          title="Commands / Packets"
+          onExpand={() => setIsTabsVisible(true)}
+          onClose={onClose}
+        />
+        <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
+        <CommandsFilterDialog />
+        <PacketsFilterDialog />
+      </div>
+    );
+  }
+
+  // Both visible - resizable
   return (
-    <div className="bg-background flex h-full flex-col border-l outline-none">
-      {/* Tabs */}
-      <Tabs
-        defaultValue="commands"
-        className="flex min-h-0 flex-1 flex-col gap-0"
-      >
-        <TabsList className="flex w-full gap-2 rounded-none">
-          <TabsTrigger value="packets">Packets</TabsTrigger>
-          <TabsTrigger value="commands">Commands</TabsTrigger>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="flex h-6 w-6"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </TabsList>
-
-        <TabsContent
-          value="packets"
-          className="mt-0 flex-1 overflow-y-auto p-4"
-        >
-          <PacketsTab
-            visiblePackets={visiblePackets}
-            totalPackets={totalPackets}
-            onOpenFilter={onOpenPacketsFilter}
+    <div className="bg-background flex h-full flex-col border-l">
+      <ResizablePanelGroup direction="vertical">
+        <ResizablePanel defaultSize={60} minSize={20}>
+          <TabsSection
+            onCollapse={() => setIsTabsVisible(false)}
+            onClose={onClose}
           />
-        </TabsContent>
+        </ResizablePanel>
 
-        <TabsContent
-          value="commands"
-          className="mt-0 flex-1 overflow-y-auto p-4"
-        >
-          <CommandsTab
-            visibleCommands={visibleCommands}
-            totalCommands={totalCommands}
-            onOpenFilter={onOpenCommandsFilter}
-          />
-        </TabsContent>
-      </Tabs>
+        <ResizableHandle withHandle />
 
-      {/* Messages */}
-      <MessagesList />
+        <ResizablePanel defaultSize={40} minSize={15}>
+          <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+
+      <CommandsFilterDialog />
+      <PacketsFilterDialog />
     </div>
   );
 };
+
+// Collapsed header component
+const CollapsedHeader = ({
+  title,
+  onExpand,
+  onClose,
+}: {
+  title: string;
+  onExpand: () => void;
+  onClose?: () => void;
+}) => (
+  <div className="flex items-center border-b p-2">
+    <Button onClick={onExpand} variant="ghost" size="sm">
+      <ChevronDown className="text-foreground h-4 w-4" />
+    </Button>
+    <span className="text-foreground text-sm font-semibold">{title}</span>
+    {onClose && (
+      <Button onClick={onClose} variant="ghost" size="icon" className="ml-auto">
+        <X className="text-foreground h-3 w-3" />
+      </Button>
+    )}
+  </div>
+);

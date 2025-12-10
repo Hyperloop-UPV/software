@@ -1,11 +1,6 @@
 import { create } from "zustand";
 import { DEFAULT_TABS } from "../constants/defaultTabs";
-
-export interface Tab {
-  name: string;
-  id: string;
-  description: string;
-}
+import type { Tab } from "../types/Tab";
 
 interface TabStore {
   activeTab: Tab | null;
@@ -34,5 +29,6 @@ export const useTabStore = create<TabStore>((set) => ({
 
 // Helper function to get active tab ID
 export const getActiveTabId = (): string | null => {
-  return useTabStore.getState().activeTab?.id ?? null;
+  const activeTab = useTabStore.getState().activeTab;
+  return activeTab?.id ?? null;
 };

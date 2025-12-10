@@ -37,15 +37,17 @@ const TabSwitcher = () => {
           )}
         >
           <div className="bg-primary text-primary-foreground flex aspect-square size-6 items-center justify-center rounded-md">
-            <SquareLibrary className="size-3.5" />
+            <SquareLibrary className="text-primary-foreground size-3.5" />
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium">{activeTab.name}</span>
+            <span className="text-foreground truncate font-medium">
+              {activeTab.name}
+            </span>
             <span className="text-muted-foreground truncate text-xs">
               {activeTab.description}
             </span>
           </div>
-          <ChevronsUpDown className="ml-auto size-4" />
+          <ChevronsUpDown className="text-foreground ml-auto size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -64,16 +66,16 @@ const TabSwitcher = () => {
             className="gap-2 p-2"
           >
             <div className="flex size-6 items-center justify-center rounded-md border">
-              <Folder className="size-3.5 shrink-0" />
+              <Folder className="text-foreground size-3.5 shrink-0" />
             </div>
             {tab.name}
-            <DropdownMenuShortcut>⌘ {index + 1}</DropdownMenuShortcut>
+            {/* <DropdownMenuShortcut>⌘ {index + 1}</DropdownMenuShortcut> */}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem className="gap-2 p-2">
           <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-            <Plus className="size-4" />
+            <Plus className="text-foreground size-4" />
           </div>
           <div className="text-muted-foreground font-medium">Add tab</div>
         </DropdownMenuItem>

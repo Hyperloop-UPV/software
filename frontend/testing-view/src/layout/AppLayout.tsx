@@ -5,6 +5,7 @@ import Footer from "./Footer";
 import AppSidebar from "./AppSidebar";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
 import Header from "./Header";
+import { useColorScheme } from "../hooks/useColorScheme";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { isDarkMode } = useDarkMode();
+  const { colorScheme } = useColorScheme();
 
   return (
     <div className="h-full w-full [--header-height:calc(--spacing(14))]">
@@ -20,6 +22,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           className={cn(
             "bg-background flex h-full w-full",
             isDarkMode ? "dark" : "",
+            colorScheme,
           )}
         >
           <AppSidebar />

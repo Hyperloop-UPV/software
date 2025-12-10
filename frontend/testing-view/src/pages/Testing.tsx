@@ -12,46 +12,12 @@ import { useTabStore } from "../store/useTabStore";
 import { MOCK_PACKETS } from "../mocks/packets";
 
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
-import { PacketsFilterDialog } from "../components/RightSidebar/PacketsFilterDialog";
-import { CommandsFilterDialog } from "../components/RightSidebar/CommandsFilterDialog";
-import { getAllCommands, MOCK_COMMANDS } from "../mocks/commands";
-import type { BoardName } from "../types/BoardName";
-import type { Packet } from "../types/Packet";
+import { PacketsFilterDialog } from "../components/RightSidebar/Packets/PacketsFilterDialog";
+import { CommandsFilterDialog } from "../components/RightSidebar/Commands/CommandsFilterDialog";
 
 export const Testing = () => {
   const { activeTab } = useTabStore();
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-
-  // Filter states
-  const [visibleCommandIds, setVisibleCommandIds] = useState<string[]>(
-    getAllCommands().map((cmd) => cmd.id),
-  );
-  const [visiblePacketIds, setVisiblePacketIds] = useState<string[]>([]);
-
-  // Dialog states
-  const [isPacketsDialogOpen, setIsPacketsDialogOpen] = useState(false);
-  const [isCommandsDialogOpen, setIsCommandsDialogOpen] = useState(false);
-
-  const toggleCommand = (cmdId: string) => {
-    setVisibleCommandIds((prev) =>
-      prev.includes(cmdId)
-        ? prev.filter((id) => id !== cmdId)
-        : [...prev, cmdId],
-    );
-  };
-
-  const togglePacket = (pktId: string) => {
-    setVisiblePacketIds((prev) =>
-      prev.includes(pktId)
-        ? prev.filter((id) => id !== pktId)
-        : [...prev, pktId],
-    );
-  };
-
-  const visibleCommands = getAllCommands().filter((cmd) =>
-    visibleCommandIds.includes(cmd.id),
-  );
-  const visiblePackets = [] as Packet[];
 
   if (!activeTab) {
     return <p>No active tab</p>;
@@ -59,26 +25,9 @@ export const Testing = () => {
 
   return (
     <>
-      {/* Dialogs */}
-      <PacketsFilterDialog
-        open={isPacketsDialogOpen}
-        onOpenChange={setIsPacketsDialogOpen}
-        visiblePacketIds={visiblePacketIds}
-        onTogglePacket={togglePacket}
-        onClearAll={() => setVisiblePacketIds([])}
-        onSelectAll={() => setVisiblePacketIds([])}
-      />
+      <CommandsFilterDialog />
 
-      <CommandsFilterDialog
-        open={isCommandsDialogOpen}
-        onOpenChange={setIsCommandsDialogOpen}
-        visibleCommandIds={visibleCommandIds}
-        onToggleCommand={toggleCommand}
-        onClearAll={() => setVisibleCommandIds([])}
-        onSelectAll={() =>
-          setVisibleCommandIds(getAllCommands().map((c) => c.id))
-        }
-      />
+      <PacketsFilterDialog />
 
       {/* Main Layout */}
       <div className="relative h-full w-full">
@@ -114,16 +63,7 @@ export const Testing = () => {
             <>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={40} minSize={15} maxSize={70}>
-                <RightSidebar
-                  visibleCommands={visibleCommands}
-                  totalCommands={getAllCommands().length}
-                  visiblePackets={visiblePackets}
-                  totalPackets={0}
-                  onClose={() => setIsSidebarVisible(false)}
-                  onOpenPacketsFilter={() => setIsPacketsDialogOpen(true)}
-                  onOpenCommandsFilter={() => setIsCommandsDialogOpen(true)}
-                  isVisible={isSidebarVisible}
-                />
+                <RightSidebar onClose={() => setIsSidebarVisible(false)} />
               </ResizablePanel>
             </>
           )}

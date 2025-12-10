@@ -5,16 +5,13 @@ import type { Message } from "../../types/Message";
 export const MessagesList = () => {
   return (
     <div className="shrink-0 border-t">
-      <div className="max-h-64 space-y-3 overflow-y-auto p-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold">Messages</h3>
+      <div className="space-y-3 p-4">
+        <div className="flex items-center justify-end">
           <Button variant="ghost" size="sm" className="h-6 text-xs">
             Clear
           </Button>
         </div>
-        <p className="text-muted-foreground text-sm">
-          System logs and notifications
-        </p>
+
         <div className="space-y-2">
           {MOCK_MESSAGES.map((msg) => (
             <div

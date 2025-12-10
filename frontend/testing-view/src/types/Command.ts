@@ -1,7 +1,7 @@
+import type { Item } from "./Item";
+
 // Command Types
-export interface Command {
-  id: string;
-  name: string;
+export interface Command extends Item {
   description: string;
   parameters?: {
     name: string;

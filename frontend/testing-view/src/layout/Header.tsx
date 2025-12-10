@@ -10,12 +10,12 @@ const Header = () => {
 
   return (
     <header className="h-(--header-height) flex shrink-0 items-center gap-2 border-b px-4">
-      <SidebarTrigger className="-ml-1" />
+      <SidebarTrigger className="text-foreground -ml-1" />
       <Separator
         orientation="vertical"
-        className="mr-2 data-[orientation=vertical]:h-4"
+        className="text-foreground mr-2 data-[orientation=vertical]:h-4"
       />
-      <h1 className="text-xl font-bold">{pageTitle}</h1>
+      <h1 className="text-foreground text-xl font-bold">{pageTitle}</h1>
       {isTestingPage && (
         <div className="ml-auto flex items-center gap-2">
           <Separator

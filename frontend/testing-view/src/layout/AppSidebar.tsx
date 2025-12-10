@@ -10,6 +10,7 @@ import SettingsItem from "../components/LeftSidebar/SettingsItem";
 import ThemeToggleItem from "../components/LeftSidebar/ThemeToggleItem";
 import { MOCK_CONNECTIONS } from "../mocks/connections";
 import { PAGES_ARRAY } from "../constants/pages";
+import ColorSchemeToggle from "../components/LeftSidebar/ColorSchemeToggle";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
@@ -21,6 +22,7 @@ const AppSidebar = ({ ...props }: AppSidebarProps) => {
         <ConnectionStatusGroup connections={MOCK_CONNECTIONS} />
       </SidebarContent>
       <SidebarFooter>
+        <ColorSchemeToggle />
         <ThemeToggleItem />
         <SettingsItem />
       </SidebarFooter>
