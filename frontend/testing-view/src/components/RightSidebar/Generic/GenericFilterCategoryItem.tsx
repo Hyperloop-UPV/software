@@ -5,7 +5,7 @@ import {
   CollapsibleContent,
   Checkbox,
 } from "@workspace/ui";
-import { ChevronRight } from "@workspace/ui/icons";
+import { ChevronDown, ChevronLeft, ChevronRight } from "@workspace/ui/icons";
 import { GenericFilterItem } from "./GenericFilterItem";
 
 interface GenericFilterCategoryItemProps {
@@ -53,9 +53,15 @@ export const GenericFilterCategoryItem = ({
                 ({checkedCount}/{totalCount})
               </span>
             </span>
-            <ChevronRight
-              className={`text-muted-foreground h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
-            />
+            {isExpanded ? (
+              <ChevronDown
+                className={`text-muted-foreground h-4 w-4 transition-transform duration-200`}
+              />
+            ) : (
+              <ChevronLeft
+                className={`text-muted-foreground h-4 w-4 transition-transform duration-200`}
+              />
+            )}
           </CollapsibleTrigger>
         </div>
 

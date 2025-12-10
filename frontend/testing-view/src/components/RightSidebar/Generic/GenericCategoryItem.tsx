@@ -4,7 +4,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@workspace/ui";
-import { ChevronRight } from "@workspace/ui/icons";
+import { ChevronDown, ChevronLeft, ChevronRight } from "@workspace/ui/icons";
 
 interface GenericCategoryItemProps<T> {
   category: string;
@@ -31,9 +31,15 @@ export const GenericCategoryItem = <T,>({
                   ({items.length})
                 </span>
               </span>
-              <ChevronRight
-                className={`text-muted-foreground h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
-              />
+              {isExpanded ? (
+                <ChevronDown
+                  className={`text-muted-foreground h-4 w-4 transition-transform duration-200`}
+                />
+              ) : (
+                <ChevronLeft
+                  className={`text-muted-foreground h-4 w-4 transition-transform duration-200`}
+                />
+              )}
             </CollapsibleTrigger>
 
             <CollapsibleContent>

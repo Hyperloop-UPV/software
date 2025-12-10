@@ -31,18 +31,22 @@ export const GenericFilterDialog = ({
 }: GenericFilterDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="min-w-1/3 w-fit">
+      <DialogContent className="min-w-2/5 max-h-full w-fit overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <div className="flex">
-          <Button onClick={onClearAll}>Clear All</Button>
-          <Button onClick={onSelectAll}>Select All</Button>
+        <div className="flex justify-end gap-2">
+          <Button size="sm" onClick={onClearAll}>
+            Clear All
+          </Button>
+          <Button size="sm" onClick={onSelectAll}>
+            Select All
+          </Button>
         </div>
 
-        <div>
+        <div className="space-y-1">
           {categories.map((category) => (
             <FilterCategoryComponent key={category} category={category} />
           ))}

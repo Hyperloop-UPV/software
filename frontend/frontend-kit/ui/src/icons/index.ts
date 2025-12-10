@@ -23,5 +23,6 @@ export {
   Pencil,
   ChevronUp,
   Palette,
+  ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
