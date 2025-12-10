@@ -38,7 +38,7 @@ export const Testing = () => {
               <h2 className="text-foreground text-2xl font-bold">
                 {activeTab.name}
               </h2>
-              <Badge variant="destructive" className="py-xs px-sm text-sm">
+              <Badge className="py-xs px-sm text-sm">
                 <Spinner className="mr-xs" />
                 <span>{activeTab.description}</span>
                 <Spinner className="ml-xs" />
@@ -47,7 +47,7 @@ export const Testing = () => {
               {!isSidebarVisible && (
                 <Button
                   onClick={() => setIsSidebarVisible(true)}
-                  className="absolute right-4 top-4"
+                  className="text-foreground absolute right-4 top-4"
                   variant="outline"
                   size="icon"
                 >

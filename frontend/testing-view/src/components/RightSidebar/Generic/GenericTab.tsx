@@ -19,15 +19,20 @@ export const GenericTab = <TCategory extends string>({
   CategoryComponent,
 }: GenericTabProps<TCategory>) => {
   return (
-    <div>
-      <div className="flex">
-        <h3 className="text-foreground">
-          {title} ({selectedCount} / {totalCount})
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2 border-b pb-3">
+        <h3 className="text-foreground text-lg font-semibold">
+          {title}
+          <span className="text-muted-foreground ml-2 text-sm font-normal">
+            {selectedCount} / {totalCount}
+          </span>
         </h3>
-        <Button onClick={onFilterClick}>Filter</Button>
+        <Button onClick={onFilterClick} size="sm" variant="outline">
+          Filter
+        </Button>
       </div>
 
-      <div>
+      <div className="space-y-1">
         {categories.map((category) => (
           <CategoryComponent key={category} category={category} />
         ))}

@@ -35,8 +35,8 @@ export const GenericFilterCategoryItem = ({
 
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <div className="border">
-        <div className="flex">
+      <div className="bg-card overflow-hidden rounded-lg border">
+        <div className="hover:bg-accent/30 flex items-center gap-3 p-3 transition-colors">
           <Checkbox
             checked={
               categoryState.indeterminate
@@ -46,18 +46,21 @@ export const GenericFilterCategoryItem = ({
             onCheckedChange={(checked) => onToggleCategory(checked as boolean)}
           />
 
-          <CollapsibleTrigger className="flex">
-            <span className="text-foreground">
-              {category} ({checkedCount}/{totalCount})
+          <CollapsibleTrigger className="flex flex-1 items-center justify-between">
+            <span className="text-foreground text-sm font-medium">
+              {category}
+              <span className="text-muted-foreground ml-2 text-xs">
+                ({checkedCount}/{totalCount})
+              </span>
             </span>
             <ChevronRight
-              className={`text-foreground ${isExpanded ? "rotate-90" : ""}`}
+              className={`text-muted-foreground h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
             />
           </CollapsibleTrigger>
         </div>
 
         <CollapsibleContent>
-          <div>
+          <div className="bg-muted/20 space-y-1 border-t p-2">
             {allItems.map((item) => (
               <GenericFilterItem
                 key={item.id}

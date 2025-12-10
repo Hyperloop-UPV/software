@@ -23,18 +23,21 @@ export const GenericCategoryItem = <T,>({
     <>
       {items.length > 0 && (
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-          <div className="border">
-            <CollapsibleTrigger className="flex">
-              <span className="text-foreground">
-                {category} ({items.length})
+          <div className="bg-card hover:border-primary/50 overflow-hidden rounded-lg border transition-colors">
+            <CollapsibleTrigger className="hover:bg-accent/50 flex w-full items-center justify-between p-2.5 transition-colors">
+              <span className="text-foreground text-sm font-medium">
+                {category}
+                <span className="text-muted-foreground ml-2 text-xs">
+                  ({items.length})
+                </span>
               </span>
               <ChevronRight
-                className={`text-foreground ${isExpanded ? "rotate-90" : ""}`}
+                className={`text-muted-foreground h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
               />
             </CollapsibleTrigger>
 
             <CollapsibleContent>
-              <div>
+              <div className="bg-muted/30 border-t">
                 {items.map((item, index) => (
                   <ItemComponent key={index} item={item} />
                 ))}
