@@ -4,7 +4,6 @@ import {
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuItem,
-  DropdownMenuShortcut,
   DropdownMenuSeparator,
   Button,
   useSidebar,
@@ -59,7 +58,7 @@ const TabSwitcher = () => {
         <DropdownMenuLabel className="text-muted-foreground text-xs">
           Tabs
         </DropdownMenuLabel>
-        {tabs.map((tab, index) => (
+        {tabs.map((tab) => (
           <DropdownMenuItem
             key={tab.id}
             onClick={() => setActiveTab(tab)}

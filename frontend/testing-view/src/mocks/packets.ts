@@ -1,4 +1,3 @@
-import type { BoardName } from "../types/BoardName";
 import type { Packet } from "../types/Packet";
 import type { PacketsBoardName } from "../types/TabFilter";
 

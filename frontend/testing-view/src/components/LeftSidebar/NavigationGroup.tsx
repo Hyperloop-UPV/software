@@ -1,14 +1,11 @@
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@workspace/ui/components";
-import { ChevronRight, type LucideIcon } from "@workspace/ui/icons";
+import { type LucideIcon } from "@workspace/ui/icons";
 import { Link } from "react-router";
 
 interface NavigationGroupProps {

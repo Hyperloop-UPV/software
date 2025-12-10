@@ -2,7 +2,7 @@ import type { BoardName } from "./BoardName";
 
 export type PacketsBoardName = BoardName | "HVSCU-Cabinet";
 
-type FilterKey = string;
+export type FilterKey = string;
 export type CommandsFilterKey = BoardName;
 export type PacketsFilterKey = PacketsBoardName;
 

@@ -6,10 +6,8 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@workspace/ui";
-import { connect } from "@workspace/core";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useTabStore } from "../store/useTabStore";
-import { MOCK_PACKETS } from "../mocks/packets";
 
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
 import { PacketsFilterDialog } from "../components/RightSidebar/Packets/PacketsFilterDialog";
