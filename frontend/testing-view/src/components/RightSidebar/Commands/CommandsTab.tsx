@@ -2,7 +2,6 @@ import { useCommandsStore } from "../../../store/useCommandsStore";
 import { BOARD_NAMES, MOCK_COMMANDS } from "../../../mocks/commands";
 import { GenericTab } from "../Generic/GenericTab";
 import { CommandsCategoryItem } from "./CommandsCategoryItem";
-import type { BoardName } from "../../../types/BoardName";
 
 export const CommandsTab = () => {
   const { getSelected, openFilterDialog } = useCommandsStore();

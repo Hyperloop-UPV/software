@@ -1,27 +1,33 @@
 import { DEFAULT_TABS } from "../constants/defaultTabs";
-import { BOARD_NAMES } from "../mocks/commands";
-import type { TabFilter } from "../store/useCommandsStore";
-import type { Tab } from "../store/useTabStore";
+import type { FilterKey, TabFilter } from "../types/TabFilter";
 
-export const generateInitialFilters = (
-  defaultIds: TabFilter,
-): Record<string, TabFilter> => {
+export const generateInitialFilters = <T extends FilterKey>(
+  defaultIds: TabFilter<T>,
+): Record<string, TabFilter<T>> => {
   return DEFAULT_TABS.reduce(
     (acc, tab) => {
       acc[tab.id] = defaultIds;
       return acc;
     },
-    {} as Record<string, TabFilter>,
+    {} as Record<string, TabFilter<T>>,
   );
 };
 
-export const emptyFilter = BOARD_NAMES.reduce((acc, boardName) => {
-  acc[boardName] = [];
-  return acc;
-}, {} as TabFilter);
-
-export const fullFilter = (MOCK_DATA: TabFilter) =>
-  BOARD_NAMES.reduce((acc, boardName) => {
-    acc[boardName] = MOCK_DATA[boardName];
+export const emptyFilter = <T extends FilterKey>(
+  categories: readonly T[],
+): TabFilter<T> => {
+  return categories.reduce((acc, category) => {
+    acc[category] = [];
     return acc;
-  }, {} as TabFilter);
+  }, {} as TabFilter<T>);
+};
+
+export const fullFilter = <T extends FilterKey>(
+  categories: readonly T[],
+  mockData: TabFilter<T>,
+): TabFilter<T> => {
+  return categories.reduce((acc, category) => {
+    acc[category] = mockData[category];
+    return acc;
+  }, {} as TabFilter<T>);
+};

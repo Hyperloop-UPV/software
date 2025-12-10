@@ -1,6 +1,5 @@
 import { Button } from "@workspace/ui";
 import { MOCK_MESSAGES } from "../../mocks/messages";
-import type { Message } from "../../types/Message";
 
 export const MessagesList = () => {
   return (

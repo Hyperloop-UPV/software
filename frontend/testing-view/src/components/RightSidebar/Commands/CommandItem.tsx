@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  Button,
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@workspace/ui";
+import { Button, Collapsible, CollapsibleContent } from "@workspace/ui";
 import { ChevronDown, Play } from "@workspace/ui/icons";
 import type { Command } from "../../../types/Command";
 

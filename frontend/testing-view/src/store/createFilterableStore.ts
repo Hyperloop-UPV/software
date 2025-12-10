@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { getActiveTabId } from "./useTabStore";
-import { generateInitialFilters } from "../lib/utils";
+import { emptyFilter, generateInitialFilters } from "../lib/utils";
 import type { TabFilter } from "../types/TabFilter";
 import type { Item } from "../types/Item";
 
@@ -142,15 +142,12 @@ export const createFilterableStore = <
         const activeTabId = getActiveTabId();
         if (!activeTabId) return state;
 
-        const emptyFilter = categories.reduce((acc, category) => {
-          acc[category] = [];
-          return acc;
-        }, {} as TabFilter<TCategory>);
+        const filter = emptyFilter(categories);
 
         return {
           tabFilters: {
             ...state.tabFilters,
-            [activeTabId]: emptyFilter,
+            [activeTabId]: filter,
           },
         };
       }),

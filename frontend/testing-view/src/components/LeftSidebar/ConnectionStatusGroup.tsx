@@ -6,7 +6,6 @@ import {
   SidebarMenuItem,
 } from "@workspace/ui";
 import { Plug, Unplug } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
 import type { Connection } from "../../types/Connection";
 
 interface ConnectionStatusGroupProps {
