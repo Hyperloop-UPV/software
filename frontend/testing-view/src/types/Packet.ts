@@ -1,9 +1,9 @@
+import type { Item } from "./Item";
+
 /**
  * TODO Implement correct packet type from websocket
  */
-export interface Packet {
-  id: string;
-  name: string;
+export interface Packet extends Item {
   description: string;
   unit: string;
   timestamp: string;

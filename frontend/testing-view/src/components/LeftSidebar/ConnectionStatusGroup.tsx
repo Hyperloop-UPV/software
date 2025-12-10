@@ -22,11 +22,9 @@ const ConnectionStatusGroup = ({ connections }: ConnectionStatusGroupProps) => {
           <SidebarMenuItem key={connection.name}>
             <SidebarMenuButton
               tooltip={connection.name}
-              className={cn(
-                connection.isConnected
-                  ? "text-green-600 hover:bg-green-600/10 hover:text-green-600"
-                  : "text-red-600 hover:bg-red-600/10 hover:text-red-600",
-              )}
+              className={
+                connection.isConnected ? "text-(--success)" : "text-(--error)"
+              }
             >
               {connection.isConnected ? <Plug /> : <Unplug />}
               {connection.name}

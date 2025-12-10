@@ -21,5 +21,7 @@ export {
   Play,
   ChevronDown,
   Pencil,
+  ChevronUp,
+  Palette,
   type LucideIcon,
 } from "lucide-react";

@@ -25,7 +25,7 @@ const NavigationGroup = ({ items }: NavigationGroupProps) => {
       <SidebarGroupLabel>Pages</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
-          <SidebarMenuItem>
+          <SidebarMenuItem key={item.url}>
             <SidebarMenuButton tooltip={item.title} asChild>
               <Link to={item.url}>
                 {item.icon && <item.icon />}

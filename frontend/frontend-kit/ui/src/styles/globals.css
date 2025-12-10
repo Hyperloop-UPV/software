@@ -18,6 +18,7 @@ body,
 }
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant pink (&:is(.pink *));
 
 :root {
   --background: #f9fafb;
@@ -52,6 +53,10 @@ body,
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Status colors */
+  --success: #16a34a;
+  --error: #dc2626;
 }
 
 :root {
@@ -97,6 +102,80 @@ body,
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+
+  /* Status colors */
+  --success: #4ade80;
+  --error: #f87171;
+}
+
+/* Pink theme (light) */
+.pink {
+  --background: #fff5f7; /* Very light pink, almost white */
+  --foreground: #9f1239; /* Stronger dark pink for better contrast */
+  --card: #ffffff; /* Pure white cards */
+  --card-foreground: #9f1239;
+  --popover: #ffffff;
+  --popover-foreground: #9f1239;
+  --primary: #db2777; /* Stronger, more vibrant pink */
+  --primary-foreground: #ffffff;
+  --secondary: #fce7f3; /* Light pink */
+  --secondary-foreground: #9f1239;
+  --muted: #fce7f3;
+  --muted-foreground: #be185d; /* Medium pink */
+  --accent: #fce7f3;
+  --accent-foreground: #9f1239;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: #f9a8d4; /* Light pink border */
+  --input: #ffffff; /* White inputs */
+  --ring: #db2777; /* Strong pink ring */
+  --sidebar: #ffffff; /* White sidebar */
+  --sidebar-foreground: #9f1239;
+  --sidebar-primary: #db2777;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fce7f3;
+  --sidebar-accent-foreground: #9f1239;
+  --sidebar-border: #f9a8d4;
+  --sidebar-ring: #db2777;
+
+  /* Status colors */
+  --success: #10b981; /* Keep green for success */
+  --error: #ef4444; /* Keep red for error */
+}
+
+/* Pink theme (dark) */
+.pink.dark {
+  --background: #1f0a14; /* Very dark pink-tinted background */
+  --foreground: #fce7f3; /* Light pink text */
+  --card: oklch(0.15 0.05 340); /* Dark pink-tinted card */
+  --card-foreground: #fce7f3;
+  --popover: oklch(0.15 0.05 340);
+  --popover-foreground: #fce7f3;
+  --primary: #f472b6; /* Strong vibrant pink */
+  --primary-foreground: #1f0a14;
+  --secondary: oklch(0.2 0.08 340);
+  --secondary-foreground: #fce7f3;
+  --muted: oklch(0.2 0.08 340);
+  --muted-foreground: #f9a8d4;
+  --accent: oklch(0.2 0.08 340);
+  --accent-foreground: #fce7f3;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.25 0.1 340);
+  --input: oklch(0.15 0.05 340);
+  --ring: #f472b6;
+  --sidebar: oklch(0.18 0.06 340);
+  --sidebar-foreground: #fce7f3;
+  --sidebar-primary: #f472b6;
+  --sidebar-primary-foreground: #1f0a14;
+  --sidebar-accent: oklch(0.2 0.08 340);
+  --sidebar-accent-foreground: #fce7f3;
+  --sidebar-border: oklch(0.25 0.1 340);
+  --sidebar-ring: #f472b6;
+
+  /* Status colors */
+  --success: #34d399;
+  --error: #f87171;
 }
 
 @theme inline {
