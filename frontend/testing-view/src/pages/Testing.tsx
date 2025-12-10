@@ -12,6 +12,7 @@ import { useTabStore } from "../store/useTabStore";
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
 import { PacketsFilterDialog } from "../components/RightSidebar/Packets/PacketsFilterDialog";
 import { CommandsFilterDialog } from "../components/RightSidebar/Commands/CommandsFilterDialog";
+import { ChevronLeft } from "@workspace/ui/icons";
 
 export const Testing = () => {
   const { activeTab } = useTabStore();
@@ -51,7 +52,9 @@ export const Testing = () => {
                   variant="outline"
                   size="icon"
                 >
-                  <span className="text-lg">→</span>
+                  <span className="text-lg">
+                    <ChevronLeft className="text-foreground h-4 w-4" />
+                  </span>
                 </Button>
               )}
             </div>
@@ -60,7 +63,7 @@ export const Testing = () => {
           {isSidebarVisible && (
             <>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={40} minSize={15} maxSize={70}>
+              <ResizablePanel defaultSize={40} minSize={20} maxSize={70}>
                 <RightSidebar onClose={() => setIsSidebarVisible(false)} />
               </ResizablePanel>
             </>

@@ -17,7 +17,7 @@ const TabsSection = ({
   onClose: () => void;
 }) => (
   <Tabs defaultValue="commands" className="flex h-full flex-col">
-    <TabsList className="flex w-full gap-2 rounded-none">
+    <TabsList className="flex w-full rounded-none">
       <Button onClick={onCollapse} variant="ghost" size="sm">
         <ChevronUp className="text-foreground h-4 w-4" />
       </Button>

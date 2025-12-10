@@ -5,12 +5,6 @@ export const MessagesList = () => {
   return (
     <div className="shrink-0 border-t">
       <div className="space-y-3 p-4">
-        <div className="flex items-center justify-end">
-          <Button variant="ghost" size="sm" className="h-6 text-xs">
-            Clear
-          </Button>
-        </div>
-
         <div className="space-y-2">
           {MOCK_MESSAGES.map((msg) => (
             <div

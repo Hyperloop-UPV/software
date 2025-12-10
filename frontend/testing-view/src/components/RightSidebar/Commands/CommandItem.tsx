@@ -34,7 +34,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
     <div className="border-b last:border-b-0">
       {hasParameters ? (
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-          <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center gap-1.5 px-2 py-1 transition-colors">
+          <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center gap-1.5 px-2 py-1.5 transition-colors">
             <Button
               onClick={handleRun}
               size="icon"
@@ -86,7 +86,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
           </CollapsibleContent>
         </Collapsible>
       ) : (
-        <div className="hover:bg-accent/30 flex items-center gap-1.5 px-2 py-1 transition-colors">
+        <div className="hover:bg-accent/30 flex items-center gap-1.5 px-2 py-1.5 transition-colors">
           <Button
             onClick={handleRun}
             size="icon"
