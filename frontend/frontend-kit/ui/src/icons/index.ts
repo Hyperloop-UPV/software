@@ -1,28 +1,13 @@
-export {
-  FlaskConical,
-  ScrollText,
-  Camera,
-  Settings,
-  PlayCircle,
-  PauseCircle,
-  RotateCcw,
-  ChevronRight,
-  ChevronsUpDown,
-  Plug,
-  Wrench,
-  Plus,
-  Folder,
-  SquareLibrary,
-  Moon,
-  Sun,
-  SunMoon,
-  Unplug,
-  X,
-  Play,
-  ChevronDown,
-  Pencil,
-  ChevronUp,
-  Palette,
-  ChevronLeft,
-  type LucideIcon,
-} from "lucide-react";
+export { type LucideIcon } from "lucide-react";
+
+export * from "./accessibility";
+export * from "./account";
+export * from "./arrows";
+export * from "./design";
+export * from "./devices";
+export * from "./files";
+export * from "./gaming";
+export * from "./math";
+export * from "./photography";
+export * from "./science";
+export * from "./text";
