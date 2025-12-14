@@ -5,7 +5,7 @@ import {
   CollapsibleContent,
   Checkbox,
 } from "@workspace/ui";
-import { ChevronDown, ChevronLeft, ChevronRight } from "@workspace/ui/icons";
+import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 import { GenericFilterItem } from "./GenericFilterItem";
 
 interface GenericFilterCategoryItemProps {

@@ -4,7 +4,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@workspace/ui";
-import { ChevronDown, ChevronLeft, ChevronRight } from "@workspace/ui/icons";
+import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 
 interface GenericCategoryItemProps<T> {
   category: string;
