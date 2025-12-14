@@ -1,1 +1,1 @@
-export * from "./useDarkModeStore";
+export * from "./use-dark-mode-store";

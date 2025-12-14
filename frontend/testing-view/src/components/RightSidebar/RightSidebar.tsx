@@ -5,8 +5,6 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@workspace/ui";
-import { CommandsFilterDialog } from "./Commands/CommandsFilterDialog";
-import { PacketsFilterDialog } from "./Packets/PacketsFilterDialog";
 import { X, ChevronDown } from "@workspace/ui/icons";
 import MessagesSection from "./Sections/MessagesSection";
 import TabsSection from "./Sections/TabsSection";
@@ -48,8 +46,6 @@ export const RightSidebar = ({ onClose }: RightSidebarProps) => {
           title="Messages"
           onExpand={() => setIsMessagesVisible(true)}
         />
-        <CommandsFilterDialog />
-        <PacketsFilterDialog />
       </div>
     );
   }
@@ -64,8 +60,6 @@ export const RightSidebar = ({ onClose }: RightSidebarProps) => {
           onClose={onClose}
         />
         <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
-        <CommandsFilterDialog />
-        <PacketsFilterDialog />
       </div>
     );
   }
@@ -87,9 +81,6 @@ export const RightSidebar = ({ onClose }: RightSidebarProps) => {
           <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
         </ResizablePanel>
       </ResizablePanelGroup>
-
-      <CommandsFilterDialog />
-      <PacketsFilterDialog />
     </div>
   );
 };

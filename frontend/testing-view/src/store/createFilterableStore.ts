@@ -1,12 +1,17 @@
 import { create } from "zustand";
 import { getActiveTabId } from "./useTabStore";
-import { emptyFilter, generateInitialFilters } from "../lib/utils";
+import {
+  createEmptyFilter,
+  createFullFilter,
+  generateInitialFilters,
+} from "../lib/utils";
 import type { TabFilter } from "../types/TabFilter";
 import type { Item } from "../types/Item";
 
 interface FilterableStoreConfig<TCategory extends string, TItem> {
   categories: readonly TCategory[];
-  getMockData: () => Record<TCategory, TItem[]>;
+  dataSource: Record<TCategory, TItem[]>;
+  defaultFilter: TabFilter<TCategory>;
 }
 
 export const createFilterableStore = <
@@ -14,16 +19,9 @@ export const createFilterableStore = <
   TItem extends Item,
 >({
   categories,
-  getMockData,
+  dataSource,
+  defaultFilter,
 }: FilterableStoreConfig<TCategory, TItem>) => {
-  const createDefaultFilter = (): TabFilter<TCategory> => {
-    const mockData = getMockData();
-    return categories.reduce((acc, category) => {
-      acc[category] = mockData[category].map((item) => item.id);
-      return acc;
-    }, {} as TabFilter<TCategory>);
-  };
-
   return create<{
     tabFilters: Record<string, TabFilter<TCategory>>;
 
@@ -44,7 +42,7 @@ export const createFilterableStore = <
     openFilterDialog: () => void;
     closeFilterDialog: () => void;
   }>((set, get) => ({
-    tabFilters: generateInitialFilters(createDefaultFilter()),
+    tabFilters: generateInitialFilters(defaultFilter),
 
     getSelected: () => {
       const activeTabId = getActiveTabId();
@@ -88,9 +86,9 @@ export const createFilterableStore = <
         if (!activeTabId) return state;
 
         const currentFilter = state.tabFilters[activeTabId];
-        const mockData = getMockData();
+
         const newItems = checked
-          ? mockData[category].map((item) => item.id)
+          ? dataSource[category].map((item) => item.id)
           : [];
 
         return {
@@ -112,8 +110,7 @@ export const createFilterableStore = <
     },
 
     getCategoryTotalCount: (category) => {
-      const mockData = getMockData();
-      return mockData[category].length;
+      return dataSource[category].length;
     },
 
     getCategoryState: (category) => {
@@ -124,8 +121,7 @@ export const createFilterableStore = <
 
       const filter = get().tabFilters[activeTabId];
       const selectedInCategory = filter[category];
-      const mockData = getMockData();
-      const totalInCategory = mockData[category].length;
+      const totalInCategory = dataSource[category].length;
       const checkedCount = selectedInCategory.length;
 
       if (checkedCount === 0) {
@@ -142,12 +138,12 @@ export const createFilterableStore = <
         const activeTabId = getActiveTabId();
         if (!activeTabId) return state;
 
-        const filter = emptyFilter(categories);
+        const emptyFilter = createEmptyFilter(categories);
 
         return {
           tabFilters: {
             ...state.tabFilters,
-            [activeTabId]: filter,
+            [activeTabId]: emptyFilter,
           },
         };
       }),
@@ -157,10 +153,12 @@ export const createFilterableStore = <
         const activeTabId = getActiveTabId();
         if (!activeTabId) return state;
 
+        const fullFilter = createFullFilter(categories, dataSource);
+
         return {
           tabFilters: {
             ...state.tabFilters,
-            [activeTabId]: createDefaultFilter(),
+            [activeTabId]: fullFilter,
           },
         };
       }),

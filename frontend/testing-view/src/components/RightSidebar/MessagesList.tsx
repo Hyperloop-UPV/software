@@ -1,4 +1,3 @@
-import { Button } from "@workspace/ui";
 import { MOCK_MESSAGES } from "../../mocks/messages";
 
 export const MessagesList = () => {

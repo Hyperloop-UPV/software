@@ -17,9 +17,11 @@ export const PacketsFilterCategoryItem = ({
     toggleItem,
   } = usePacketsStore();
 
-  const allPackets = MOCK_PACKETS[category as PacketsBoardName];
-  const selectedIds = getSelectedByCategory(category as PacketsBoardName);
-  const categoryState = getCategoryState(category as PacketsBoardName);
+  const packetsBoardCategory = category as PacketsBoardName;
+
+  const allPackets = MOCK_PACKETS[packetsBoardCategory];
+  const selectedIds = getSelectedByCategory(packetsBoardCategory);
+  const categoryState = getCategoryState(packetsBoardCategory);
 
   return (
     <GenericFilterCategoryItem
@@ -28,9 +30,9 @@ export const PacketsFilterCategoryItem = ({
       selectedIds={selectedIds}
       categoryState={categoryState}
       onToggleCategory={(checked) =>
-        toggleCategory(category as PacketsBoardName, checked)
+        toggleCategory(packetsBoardCategory, checked)
       }
-      onToggleItem={(id) => toggleItem(category as PacketsBoardName, id)}
+      onToggleItem={(id) => toggleItem(packetsBoardCategory, id)}
     />
   );
 };

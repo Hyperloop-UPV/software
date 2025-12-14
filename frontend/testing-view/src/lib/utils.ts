@@ -1,4 +1,5 @@
 import { DEFAULT_TABS } from "../constants/defaultTabs";
+import type { Item } from "../types/Item";
 import type { FilterKey, TabFilter } from "../types/TabFilter";
 
 export const generateInitialFilters = <T extends FilterKey>(
@@ -13,7 +14,7 @@ export const generateInitialFilters = <T extends FilterKey>(
   );
 };
 
-export const emptyFilter = <T extends FilterKey>(
+export const createEmptyFilter = <T extends FilterKey>(
   categories: readonly T[],
 ): TabFilter<T> => {
   return categories.reduce((acc, category) => {
@@ -22,12 +23,12 @@ export const emptyFilter = <T extends FilterKey>(
   }, {} as TabFilter<T>);
 };
 
-export const fullFilter = <T extends FilterKey>(
+export const createFullFilter = <T extends FilterKey>(
   categories: readonly T[],
-  mockData: TabFilter<T>,
+  dataSource: Record<T, Item[]>,
 ): TabFilter<T> => {
   return categories.reduce((acc, category) => {
-    acc[category] = mockData[category];
+    acc[category] = dataSource[category].map((item) => item.id);
     return acc;
   }, {} as TabFilter<T>);
 };

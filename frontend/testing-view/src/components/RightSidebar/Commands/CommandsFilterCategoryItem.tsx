@@ -4,7 +4,7 @@ import { GenericFilterCategoryItem } from "../Generic/GenericFilterCategoryItem"
 import type { BoardName } from "../../../types/BoardName";
 
 interface CommandsFilterCategoryItemProps {
-  category: BoardName;
+  category: string;
 }
 
 export const CommandsFilterCategoryItem = ({
@@ -17,9 +17,11 @@ export const CommandsFilterCategoryItem = ({
     toggleItem,
   } = useCommandsStore();
 
-  const allCommands = MOCK_COMMANDS[category];
-  const selectedIds = getSelectedByCategory(category);
-  const categoryState = getCategoryState(category);
+  const boardCategory = category as BoardName;
+
+  const allCommands = MOCK_COMMANDS[boardCategory];
+  const selectedIds = getSelectedByCategory(boardCategory);
+  const categoryState = getCategoryState(boardCategory);
 
   return (
     <GenericFilterCategoryItem
@@ -27,8 +29,8 @@ export const CommandsFilterCategoryItem = ({
       allItems={allCommands}
       selectedIds={selectedIds}
       categoryState={categoryState}
-      onToggleCategory={(checked) => toggleCategory(category, checked)}
-      onToggleItem={(id) => toggleItem(category, id)}
+      onToggleCategory={(checked) => toggleCategory(boardCategory, checked)}
+      onToggleItem={(id) => toggleItem(boardCategory, id)}
     />
   );
 };
