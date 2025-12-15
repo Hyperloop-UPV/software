@@ -1,13 +1,13 @@
-import { DEFAULT_TABS } from "../constants/defaultTabs";
+import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
 import type { Item } from "../types/Item";
 import type { FilterKey, TabFilter } from "../types/TabFilter";
 
 export const generateInitialFilters = <T extends FilterKey>(
   defaultIds: TabFilter<T>,
 ): Record<string, TabFilter<T>> => {
-  return DEFAULT_TABS.reduce(
-    (acc, tab) => {
-      acc[tab.id] = defaultIds;
+  return DEFAULT_WORKSPACES.reduce(
+    (acc, workspace) => {
+      acc[workspace.id] = defaultIds;
       return acc;
     },
     {} as Record<string, TabFilter<T>>,

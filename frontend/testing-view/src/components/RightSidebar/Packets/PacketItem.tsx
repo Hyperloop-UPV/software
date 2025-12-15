@@ -1,24 +1,59 @@
+import { useState } from "react";
 import type { Packet } from "../../../types/Packet";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@workspace/ui";
+import { ChevronDown, ChevronRight } from "@workspace/ui/icons";
+import { VariableItem } from "./VariableItem";
+import { usePacketsStore } from "../../../store/usePacketsStore";
 
 interface PacketItemProps {
   item: Packet;
 }
 
 export const PacketItem = ({ item: packet }: PacketItemProps) => {
+  const { isItemExpanded, toggleExpandedItem } = usePacketsStore();
+
+  const isExpanded = isItemExpanded(packet.id);
+  const handleToggleExpanded = () => toggleExpandedItem(packet.id);
+
   return (
-    <div className="hover:bg-accent/30 flex items-center gap-2 border-b px-2 py-1 transition-colors last:border-b-0">
-      <span className="text-foreground flex-1 truncate text-xs font-medium">
-        {packet.name}
-      </span>
-      <span className="text-foreground shrink-0 font-mono text-xs">
-        {packet.value}
-      </span>
-      <span className="text-muted-foreground min-w-8 shrink-0 text-[10px]">
-        {packet.unit}
-      </span>
-      <span className="text-muted-foreground shrink-0 text-[10px]">
-        {packet.timestamp}
-      </span>
-    </div>
+    <Collapsible open={isExpanded} onOpenChange={handleToggleExpanded}>
+      <div className="">
+        {/* Packet Header - Collapsible Trigger */}
+        <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center justify-between gap-2 px-2.5 py-2.5 transition-colors">
+          <div className="flex items-center gap-2">
+            {isExpanded ? (
+              <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
+            ) : (
+              <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+            )}
+            <span className="foreground text-smfont-medium truncate">
+              {packet.name}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground shrink-0 text-xs font-medium">
+              {packet.variables.length} var
+              {packet.variables.length !== 1 ? "s" : ""}
+            </span>
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {packet.timestamp}
+            </span>
+          </div>
+        </CollapsibleTrigger>
+
+        {/* Variables List - Collapsible Content */}
+        <CollapsibleContent>
+          <div className="bg-muted/20">
+            {packet.variables.map((variable) => (
+              <VariableItem key={variable.id} variable={variable} />
+            ))}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 };

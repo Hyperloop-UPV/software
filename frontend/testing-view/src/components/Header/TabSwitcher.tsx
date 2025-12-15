@@ -15,13 +15,14 @@ import {
   Plus,
 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
-import { useTabStore } from "../../store/useTabStore";
+import { useWorkspacesStore } from "../../store/useWorkspacesStore";
 
 const TabSwitcher = () => {
   const { isMobile } = useSidebar();
-  const { activeTab, setActiveTab, tabs } = useTabStore();
+  const { activeWorkspace, setActiveWorkspace, workspaces } =
+    useWorkspacesStore();
 
-  if (!activeTab) {
+  if (!activeWorkspace) {
     return null;
   }
 
@@ -40,10 +41,10 @@ const TabSwitcher = () => {
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="text-foreground truncate font-medium">
-              {activeTab.name}
+              {activeWorkspace.name}
             </span>
             <span className="text-muted-foreground truncate text-xs">
-              {activeTab.description}
+              {activeWorkspace.description}
             </span>
           </div>
           <ChevronsUpDown className="text-foreground ml-auto size-4" />
@@ -58,16 +59,16 @@ const TabSwitcher = () => {
         <DropdownMenuLabel className="text-muted-foreground text-xs">
           Tabs
         </DropdownMenuLabel>
-        {tabs.map((tab) => (
+        {workspaces.map((workspace) => (
           <DropdownMenuItem
-            key={tab.id}
-            onClick={() => setActiveTab(tab)}
+            key={workspace.id}
+            onClick={() => setActiveWorkspace(workspace)}
             className="gap-2 p-2"
           >
             <div className="flex size-6 items-center justify-center rounded-md border">
               <Folder className="text-foreground size-3.5 shrink-0" />
             </div>
-            {tab.name}
+            {workspace.name}
             {/* <DropdownMenuShortcut>⌘ {index + 1}</DropdownMenuShortcut> */}
           </DropdownMenuItem>
         ))}
@@ -76,7 +77,7 @@ const TabSwitcher = () => {
           <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
             <Plus className="text-foreground size-4" />
           </div>
-          <div className="text-muted-foreground font-medium">Add tab</div>
+          <div className="text-muted-foreground font-medium">Add workspace</div>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

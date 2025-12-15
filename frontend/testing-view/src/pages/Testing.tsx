@@ -7,7 +7,7 @@ import {
   ResizableHandle,
 } from "@workspace/ui";
 import { useState } from "react";
-import { useTabStore } from "../store/useTabStore";
+import { useWorkspacesStore } from "../store/useWorkspacesStore";
 
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
 import { PacketsFilterDialog } from "../components/RightSidebar/Packets/PacketsFilterDialog";
@@ -15,10 +15,10 @@ import { CommandsFilterDialog } from "../components/RightSidebar/Commands/Comman
 import { ChevronLeft } from "@workspace/ui/icons";
 
 export const Testing = () => {
-  const { activeTab } = useTabStore();
+  const { activeWorkspace } = useWorkspacesStore();
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
-  if (!activeTab) {
+  if (!activeWorkspace) {
     return <p>No active tab</p>;
   }
 
@@ -37,11 +37,11 @@ export const Testing = () => {
           >
             <div className="relative flex h-full flex-col items-center justify-center">
               <h2 className="text-foreground text-2xl font-bold">
-                {activeTab.name}
+                {activeWorkspace.name}
               </h2>
               <Badge className="py-xs px-sm text-sm">
                 <Spinner className="mr-xs" />
-                <span>{activeTab.description}</span>
+                <span>{activeWorkspace.description}</span>
                 <Spinner className="ml-xs" />
               </Badge>
 

@@ -17,70 +17,53 @@ export const RightSidebar = ({ onClose }: RightSidebarProps) => {
   const [isTabsVisible, setIsTabsVisible] = useState(true);
   const [isMessagesVisible, setIsMessagesVisible] = useState(true);
 
-  // Both collapsed - show both headers
-  if (!isTabsVisible && !isMessagesVisible) {
-    return (
-      <div className="bg-background flex h-full flex-col border-l">
-        <CollapsedHeader
-          title="Commands / Packets"
-          onExpand={() => setIsTabsVisible(true)}
-          onClose={onClose}
-        />
-        <CollapsedHeader
-          title="Messages"
-          onExpand={() => setIsMessagesVisible(true)}
-        />
-      </div>
-    );
-  }
+  const bothVisible = isTabsVisible && isMessagesVisible;
+  const noneVisible = !isTabsVisible && !isMessagesVisible;
 
-  // Only tabs visible
-  if (isTabsVisible && !isMessagesVisible) {
-    return (
-      <div className="bg-background flex h-full flex-col border-l">
-        <TabsSection
-          onCollapse={() => setIsTabsVisible(false)}
-          onClose={onClose}
-        />
-        <CollapsedHeader
-          title="Messages"
-          onExpand={() => setIsMessagesVisible(true)}
-        />
-      </div>
-    );
-  }
-
-  // Only messages visible
-  if (!isTabsVisible && isMessagesVisible) {
-    return (
-      <div className="bg-background flex h-full flex-col border-l">
-        <CollapsedHeader
-          title="Commands / Packets"
-          onExpand={() => setIsTabsVisible(true)}
-          onClose={onClose}
-        />
-        <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
-      </div>
-    );
-  }
-
-  // Both visible - resizable
   return (
     <div className="bg-background flex h-full flex-col border-l">
-      <ResizablePanelGroup direction="vertical">
-        <ResizablePanel defaultSize={60} minSize={20}>
-          <TabsSection
-            onCollapse={() => setIsTabsVisible(false)}
-            onClose={onClose}
-          />
-        </ResizablePanel>
+      {bothVisible ? (
+        // Both visible - use resizable panels
+        <ResizablePanelGroup direction="vertical">
+          <ResizablePanel defaultSize={60} minSize={20}>
+            <TabsSection
+              onCollapse={() => setIsTabsVisible(false)}
+              onClose={onClose}
+            />
+          </ResizablePanel>
 
-        <ResizableHandle withHandle />
+          <ResizableHandle withHandle />
 
-        <ResizablePanel defaultSize={40} minSize={15}>
-          <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          <ResizablePanel defaultSize={40} minSize={15}>
+            <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        // At least one is collapsed - use fixed layout
+        <>
+          {isTabsVisible ? (
+            <TabsSection
+              onCollapse={() => setIsTabsVisible(false)}
+              onClose={onClose}
+            />
+          ) : (
+            <CollapsedHeader
+              title="Commands / Packets"
+              onExpand={() => setIsTabsVisible(true)}
+              onClose={noneVisible ? onClose : undefined}
+            />
+          )}
+
+          {isMessagesVisible ? (
+            <MessagesSection onCollapse={() => setIsMessagesVisible(false)} />
+          ) : (
+            <CollapsedHeader
+              title="Messages"
+              onExpand={() => setIsMessagesVisible(true)}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 };

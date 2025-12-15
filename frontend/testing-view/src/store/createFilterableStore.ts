@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getActiveTabId } from "./useTabStore";
+import { getActiveWorkspaceId } from "./useWorkspacesStore";
 import {
   createEmptyFilter,
   createFullFilter,
@@ -24,6 +24,10 @@ export const createFilterableStore = <
 }: FilterableStoreConfig<TCategory, TItem>) => {
   return create<{
     tabFilters: Record<string, TabFilter<TCategory>>;
+    expandedItems: Record<string, Set<string>>;
+
+    isItemExpanded: (itemId: string) => boolean;
+    toggleExpandedItem: (itemId: string) => void;
 
     getSelected: () => string[];
     getSelectedByCategory: (category: TCategory) => string[];
@@ -43,27 +47,59 @@ export const createFilterableStore = <
     closeFilterDialog: () => void;
   }>((set, get) => ({
     tabFilters: generateInitialFilters(defaultFilter),
+    expandedItems: {},
+
+    isItemExpanded: (itemId: string) => {
+      const activeWorkspaceId = getActiveWorkspaceId();
+      if (!activeWorkspaceId) return false;
+      const expandedItems = get().expandedItems[activeWorkspaceId];
+      return expandedItems?.has(itemId) ?? false;
+    },
+
+    toggleExpandedItem: (itemId: string) => {
+      set((state) => {
+        const activeWorkspaceId = getActiveWorkspaceId();
+        if (!activeWorkspaceId) return state;
+
+        const expandedItems =
+          state.expandedItems[activeWorkspaceId] || new Set();
+        const newExpandedItems = new Set(expandedItems);
+
+        if (newExpandedItems.has(itemId)) {
+          newExpandedItems.delete(itemId);
+        } else {
+          newExpandedItems.add(itemId);
+        }
+
+        return {
+          expandedItems: {
+            ...state.expandedItems,
+            [activeWorkspaceId]: newExpandedItems,
+          },
+        };
+      });
+    },
 
     getSelected: () => {
-      const activeTabId = getActiveTabId();
-      if (!activeTabId) return [];
-      const filter = get().tabFilters[activeTabId];
+      const activeWorkspaceId = getActiveWorkspaceId();
+      if (!activeWorkspaceId) return [];
+      const filter = get().tabFilters[activeWorkspaceId];
       return Object.values<string[]>(filter).flat();
     },
 
     getSelectedByCategory: (category) => {
-      const activeTabId = getActiveTabId();
-      if (!activeTabId) return [];
-      const filter = get().tabFilters[activeTabId];
+      const activeWorkspaceId = getActiveWorkspaceId();
+      if (!activeWorkspaceId) return [];
+      const filter = get().tabFilters[activeWorkspaceId];
       return filter[category];
     },
 
     toggleItem: (category, id) =>
       set((state) => {
-        const activeTabId = getActiveTabId();
-        if (!activeTabId) return state;
+        const activeWorkspaceId = getActiveWorkspaceId();
+        if (!activeWorkspaceId) return state;
 
-        const currentFilter = state.tabFilters[activeTabId];
+        const currentFilter = state.tabFilters[activeWorkspaceId];
         const currentItems = currentFilter[category];
         const newItems = currentItems.includes(id)
           ? currentItems.filter((itemId) => itemId !== id)
@@ -72,7 +108,7 @@ export const createFilterableStore = <
         return {
           tabFilters: {
             ...state.tabFilters,
-            [activeTabId]: {
+            [activeWorkspaceId]: {
               ...currentFilter,
               [category]: newItems,
             },
@@ -82,10 +118,10 @@ export const createFilterableStore = <
 
     toggleCategory: (category, checked) =>
       set((state) => {
-        const activeTabId = getActiveTabId();
-        if (!activeTabId) return state;
+        const activeWorkspaceId = getActiveWorkspaceId();
+        if (!activeWorkspaceId) return state;
 
-        const currentFilter = state.tabFilters[activeTabId];
+        const currentFilter = state.tabFilters[activeWorkspaceId];
 
         const newItems = checked
           ? dataSource[category].map((item) => item.id)
@@ -94,7 +130,7 @@ export const createFilterableStore = <
         return {
           tabFilters: {
             ...state.tabFilters,
-            [activeTabId]: {
+            [activeWorkspaceId]: {
               ...currentFilter,
               [category]: newItems,
             },
@@ -103,9 +139,9 @@ export const createFilterableStore = <
       }),
 
     getCategoryCheckedCount: (category) => {
-      const activeTabId = getActiveTabId();
-      if (!activeTabId) return 0;
-      const filter = get().tabFilters[activeTabId];
+      const activeWorkspaceId = getActiveWorkspaceId();
+      if (!activeWorkspaceId) return 0;
+      const filter = get().tabFilters[activeWorkspaceId];
       return filter[category].length;
     },
 
@@ -114,12 +150,12 @@ export const createFilterableStore = <
     },
 
     getCategoryState: (category) => {
-      const activeTabId = getActiveTabId();
-      if (!activeTabId) {
+      const activeWorkspaceId = getActiveWorkspaceId();
+      if (!activeWorkspaceId) {
         return { checked: false, indeterminate: false };
       }
 
-      const filter = get().tabFilters[activeTabId];
+      const filter = get().tabFilters[activeWorkspaceId];
       const selectedInCategory = filter[category];
       const totalInCategory = dataSource[category].length;
       const checkedCount = selectedInCategory.length;
@@ -135,30 +171,30 @@ export const createFilterableStore = <
 
     clearAll: () =>
       set((state) => {
-        const activeTabId = getActiveTabId();
-        if (!activeTabId) return state;
+        const activeWorkspaceId = getActiveWorkspaceId();
+        if (!activeWorkspaceId) return state;
 
         const emptyFilter = createEmptyFilter(categories);
 
         return {
           tabFilters: {
             ...state.tabFilters,
-            [activeTabId]: emptyFilter,
+            [activeWorkspaceId]: emptyFilter,
           },
         };
       }),
 
     selectAll: () =>
       set((state) => {
-        const activeTabId = getActiveTabId();
-        if (!activeTabId) return state;
+        const activeWorkspaceId = getActiveWorkspaceId();
+        if (!activeWorkspaceId) return state;
 
         const fullFilter = createFullFilter(categories, dataSource);
 
         return {
           tabFilters: {
             ...state.tabFilters,
-            [activeTabId]: fullFilter,
+            [activeWorkspaceId]: fullFilter,
           },
         };
       }),
