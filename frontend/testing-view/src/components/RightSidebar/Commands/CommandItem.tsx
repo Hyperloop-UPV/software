@@ -7,18 +7,21 @@ import {
 } from "@workspace/ui";
 import { ChevronDown, Play } from "@workspace/ui/icons";
 import type { Command } from "../../../types/Command";
+import { useCommandsStore } from "../../../store/useCommandsStore";
 
 interface CommandItemProps {
   item: Command;
 }
 
 export const CommandItem = ({ item: command }: CommandItemProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { isItemExpanded, toggleExpandedItem } = useCommandsStore();
   const [parameterValues, setParameterValues] = useState<
     Record<string, string>
   >({});
 
   const hasParameters = command.parameters && command.parameters.length > 0;
+  const isExpanded = isItemExpanded(command.id);
+  const handleToggleExpanded = () => toggleExpandedItem(command.id);
 
   const handleRun = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering collapse
@@ -33,7 +36,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
   return (
     <div className="border-b last:border-b-0">
       {hasParameters ? (
-        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <Collapsible open={isExpanded} onOpenChange={handleToggleExpanded}>
           <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center gap-1.5 px-2 py-1.5 transition-colors">
             <Button
               onClick={handleRun}

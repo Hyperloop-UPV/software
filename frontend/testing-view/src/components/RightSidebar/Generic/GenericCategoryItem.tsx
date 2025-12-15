@@ -10,24 +10,26 @@ interface GenericCategoryItemProps<T> {
   category: string;
   items: T[];
   ItemComponent: ComponentType<{ item: T }>;
+  isExpanded: boolean;
+  onToggleExpanded: () => void;
 }
 
 export const GenericCategoryItem = <T,>({
   category,
   items,
   ItemComponent,
+  isExpanded,
+  onToggleExpanded,
 }: GenericCategoryItemProps<T>) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   return (
     <>
       {items.length > 0 && (
-        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <Collapsible open={isExpanded} onOpenChange={onToggleExpanded}>
           <div className="bg-card hover:border-primary/50 overflow-hidden rounded-lg border transition-colors">
-            <CollapsibleTrigger className="hover:bg-accent/50 flex w-full items-center justify-between p-2.5 transition-colors">
-              <span className="text-foreground text-sm font-medium">
+            <CollapsibleTrigger className="hover:bg-accent/50 flex w-full items-center justify-between px-3 py-2.5 transition-colors">
+              <span className="text-foreground font-semibold">
                 {category}
-                <span className="text-muted-foreground ml-2 text-xs">
+                <span className="text-muted-foreground ml-2 text-sm">
                   ({items.length})
                 </span>
               </span>

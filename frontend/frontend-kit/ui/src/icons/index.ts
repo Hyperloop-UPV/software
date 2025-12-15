@@ -7,6 +7,7 @@ export * from "./design";
 export * from "./devices";
 export * from "./files";
 export * from "./gaming";
+export * from "./layout";
 export * from "./math";
 export * from "./photography";
 export * from "./science";
