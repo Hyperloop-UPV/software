@@ -1,5 +1,5 @@
 import type { BoardName } from "../types/BoardName";
-import type { PacketsBoardName } from "../types/TabFilter";
+import type { PacketsBoardName } from "../types/PacketsBoardName";
 
 export const BOARD_NAMES: BoardName[] = [
   "BCU",

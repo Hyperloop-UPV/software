@@ -2,7 +2,7 @@ import { usePacketsStore } from "../../../store/usePacketsStore";
 import { MOCK_PACKETS } from "../../../mocks/packets";
 import { GenericCategoryItem } from "../Generic/GenericCategoryItem";
 import { PacketItem } from "./PacketItem";
-import type { PacketsBoardName } from "../../../types/TabFilter";
+import type { PacketsBoardName } from "../../../types/PacketsBoardName";
 
 interface PacketsCategoryItemProps {
   category: PacketsBoardName;

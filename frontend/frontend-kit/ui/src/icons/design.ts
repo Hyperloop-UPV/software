@@ -1,1 +1,1 @@
-export { Pencil, Palette } from "lucide-react";
+export { Pencil, Palette, Layout, LayoutGrid } from "lucide-react";

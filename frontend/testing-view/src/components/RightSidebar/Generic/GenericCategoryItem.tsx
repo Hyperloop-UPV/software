@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from "react";
+import { type ComponentType } from "react";
 import {
   Collapsible,
   CollapsibleTrigger,

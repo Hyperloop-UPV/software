@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { Packet } from "../../../types/Packet";
 import {
   Collapsible,
@@ -30,7 +29,7 @@ export const PacketItem = ({ item: packet }: PacketItemProps) => {
             ) : (
               <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
             )}
-            <span className="foreground text-smfont-medium truncate">
+            <span className="foreground truncate text-sm font-medium">
               {packet.name}
             </span>
           </div>

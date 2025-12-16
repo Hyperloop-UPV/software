@@ -1,1 +1,1 @@
-export { GripVertical } from "lucide-react";
+export { GripVertical, Columns } from "lucide-react";
