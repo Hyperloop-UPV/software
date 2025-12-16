@@ -1,7 +1,7 @@
 import { usePacketsStore } from "../../../store/usePacketsStore";
 import { MOCK_PACKETS } from "../../../mocks/packets";
 import { GenericFilterCategoryItem } from "../Generic/GenericFilterCategoryItem";
-import type { PacketsBoardName } from "../../../types/TabFilter";
+import type { PacketsBoardName } from "../../../types/PacketsBoardName";
 
 interface PacketsFilterCategoryItemProps {
   category: string;

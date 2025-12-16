@@ -1,5 +1,5 @@
 import type { Packet } from "../types/Packet";
-import type { PacketsBoardName } from "../types/TabFilter";
+import type { PacketsBoardName } from "../types/PacketsBoardName";
 
 export const MOCK_PACKETS: Record<PacketsBoardName, Packet[]> = {
   BCU: [
