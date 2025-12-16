@@ -1,6 +1,5 @@
 import type { BoardName } from "./BoardName";
-
-export type PacketsBoardName = BoardName | "HVSCU-Cabinet";
+import type { PacketsBoardName } from "./PacketsBoardName";
 
 export type FilterKey = string;
 export type CommandsFilterKey = BoardName;

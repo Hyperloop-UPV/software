@@ -1,6 +1,6 @@
 import { createFilterableStore } from "./createFilterableStore";
 import { MOCK_PACKETS } from "../mocks/packets";
-import type { PacketsBoardName } from "../types/TabFilter";
+import type { PacketsBoardName } from "../types/PacketsBoardName";
 import type { Packet } from "../types/Packet";
 import { PACKET_BOARD_NAMES } from "../constants/boards";
 import { createFullFilter } from "../lib/utils";
