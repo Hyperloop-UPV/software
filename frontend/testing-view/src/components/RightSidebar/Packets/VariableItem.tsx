@@ -14,7 +14,7 @@ export const VariableItem = ({ variable }: VariableItemProps) => {
         <Badge
           variant="outline"
           className={cn(
-            "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none",
+            "rounded px-1 py-0.5 text-xs font-semibold uppercase",
             getTypeBadgeClass(variable.type),
           )}
           title={`Type: ${variable.type}`}
@@ -22,19 +22,19 @@ export const VariableItem = ({ variable }: VariableItemProps) => {
           {variable.type}
         </Badge>
         {/* Variable name */}
-        <span className="text-muted-foreground truncate text-sm">
+        <span className="text-muted-foreground truncate text-xs">
           {variable.name}
         </span>
       </div>
 
       <div className="flex items-center gap-2">
         {/* Value */}
-        <span className="text-foreground shrink-0 font-mono text-sm font-semibold">
+        <span className="text-foreground shrink-0 font-mono text-xs font-semibold">
           {variable.value}
         </span>
 
         {/* Unit */}
-        <span className="text-muted-foreground shrink-0 text-sm">
+        <span className="text-muted-foreground shrink-0 text-xs">
           {variable.unit}
         </span>
       </div>

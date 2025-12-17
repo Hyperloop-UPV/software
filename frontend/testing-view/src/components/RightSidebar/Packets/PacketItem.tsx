@@ -30,15 +30,11 @@ export const PacketItem = ({ item: packet }: PacketItemProps) => {
             ) : (
               <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
             )}
-            <span className="foreground truncate text-sm font-medium">
+            <span className="text-foreground truncate text-sm font-medium">
               {packet.name}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground shrink-0 text-xs font-medium">
-              {packet.variables.length} var
-              {packet.variables.length !== 1 ? "s" : ""}
-            </span>
             <span className="text-muted-foreground shrink-0 text-xs">
               {packet.timestamp}
             </span>

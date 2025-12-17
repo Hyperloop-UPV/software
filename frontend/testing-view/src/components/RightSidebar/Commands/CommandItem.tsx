@@ -41,16 +41,14 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
       {hasParameters ? (
         <Collapsible open={isExpanded} onOpenChange={handleToggleExpanded}>
           <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center gap-1.5 px-2 py-1.5 transition-colors">
-            <Button
+            <div
               onClick={handleRun}
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6 shrink-0"
+              className="text-foreground flex h-6 w-6 shrink-0 items-center justify-center"
             >
-              <Play className="text-foreground h-3 w-3" />
-            </Button>
+              <Play className="text-foreground h-4 w-4" />
+            </div>
 
-            <span className="text-foreground flex-1 truncate text-left text-xs">
+            <span className="text-foreground flex-1 truncate text-left text-sm">
               {command.name}
             </span>
 
@@ -95,17 +93,15 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
           </CollapsibleContent>
         </Collapsible>
       ) : (
-        <div className="hover:bg-accent/30 flex items-center gap-1.5 px-2 py-1.5 transition-colors">
-          <Button
+        <div className="hover:bg-accent/30 flex items-center gap-1.5 px-2.5 py-1.5 transition-colors">
+          <div
             onClick={handleRun}
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6 shrink-0"
+            className="text-foreground flex h-6 w-6 shrink-0 items-center justify-center"
           >
-            <Play className="text-foreground h-3 w-3" />
-          </Button>
+            <Play className="text-foreground h-4 w-4" />
+          </div>
 
-          <span className="text-foreground flex-1 truncate text-xs">
+          <span className="text-foreground flex-1 truncate text-sm">
             {command.name}
           </span>
         </div>

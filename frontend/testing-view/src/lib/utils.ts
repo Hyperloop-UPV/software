@@ -36,16 +36,16 @@ export const createFullFilter = <T extends FilterKey>(
 export const getTypeBadgeClass = (type: string) => {
   switch (type.toLowerCase()) {
     case "float":
-      return "bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/20";
+      return "bg-blue-500/15 text-blue-400 border-blue-500/30";
     case "integer":
     case "int":
-      return "bg-green-500/15 text-green-400 border-green-500/30 hover:bg-green-500/20";
+      return "bg-green-500/15 text-green-400 border-green-500/30";
     case "string":
-      return "bg-purple-500/15 text-purple-400 border-purple-500/30 hover:bg-purple-500/20";
+      return "bg-purple-500/15 text-purple-400 border-purple-500/30";
     case "boolean":
     case "bool":
-      return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20";
+      return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
     default:
-      return "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30 hover:bg-muted-foreground/20";
+      return "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30";
   }
 };
