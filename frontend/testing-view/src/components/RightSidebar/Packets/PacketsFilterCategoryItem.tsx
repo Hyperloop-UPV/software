@@ -10,10 +10,12 @@ interface PacketsFilterCategoryItemProps {
 export const PacketsFilterCategoryItem = ({
   category,
 }: PacketsFilterCategoryItemProps) => {
-  const getSelectedByCategory = usePacketsStore((s) => s.getSelectedByCategory);
-  const getCategoryState = usePacketsStore((s) => s.getCategoryState);
-  const toggleCategory = usePacketsStore((s) => s.toggleCategory);
-  const toggleItem = usePacketsStore((s) => s.toggleItem);
+  const {
+    getSelectedByCategory,
+    getCategoryState,
+    toggleCategory,
+    toggleItem,
+  } = usePacketsStore();
 
   const packetsBoardCategory = category as PacketsBoardName;
 

@@ -325,17 +325,29 @@ export const Testing = () => {
                 <Button
                   onClick={() => handleChartColumnsChange(1)}
                   variant={chartColumns === 1 ? "default" : "outline"}
-                  size="sm"
+                  size="icon"
                 >
                   1
                 </Button>
                 <Button
                   onClick={() => handleChartColumnsChange(2)}
                   variant={chartColumns === 2 ? "default" : "outline"}
-                  size="sm"
+                  size="icon"
                 >
                   2
                 </Button>
+                {!isSidebarVisible && (
+                  <Button
+                    onClick={() => setIsSidebarVisible(true)}
+                    className="text-foreground"
+                    variant="outline"
+                    size="icon"
+                  >
+                    <span className="text-lg">
+                      <ChevronLeft className="text-foreground h-4 w-4" />
+                    </span>
+                  </Button>
+                )}
               </div>
               <div
                 className={cn(
@@ -356,19 +368,6 @@ export const Testing = () => {
               </div>
 
               <div className="absolute">Loading</div>
-
-              {!isSidebarVisible && (
-                <Button
-                  onClick={() => setIsSidebarVisible(true)}
-                  className="text-foreground absolute right-4 top-4"
-                  variant="outline"
-                  size="icon"
-                >
-                  <span className="text-lg">
-                    <ChevronLeft className="text-foreground h-4 w-4" />
-                  </span>
-                </Button>
-              )}
             </div>
           </ResizablePanel>
 

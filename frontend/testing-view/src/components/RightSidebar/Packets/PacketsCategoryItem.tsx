@@ -9,9 +9,9 @@ interface PacketsCategoryItemProps {
 }
 
 export const PacketsCategoryItem = ({ category }: PacketsCategoryItemProps) => {
-  const getSelectedByCategory = usePacketsStore((s) => s.getSelectedByCategory);
   const isItemExpanded = usePacketsStore((s) => s.isItemExpanded);
-  const toggleExpandedItem = usePacketsStore((s) => s.toggleExpandedItem);
+  const getSelectedByCategory = usePacketsStore((s) => s.getSelectedByCategory);
+  const { toggleExpandedItem } = usePacketsStore();
 
   const selectedPacketIds = getSelectedByCategory(category);
   const allPackets = MOCK_PACKETS[category];

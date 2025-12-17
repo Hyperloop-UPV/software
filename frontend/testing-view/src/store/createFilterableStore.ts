@@ -14,6 +14,31 @@ interface FilterableStoreConfig<TCategory extends string, TItem> {
   defaultFilter: TabFilter<TCategory>;
 }
 
+interface FilterableStoreProps<TCategory extends string> {
+  tabFilters: Record<string, TabFilter<TCategory>>;
+  expandedItems: Record<string, Set<string>>;
+
+  isItemExpanded: (itemId: string) => boolean;
+  toggleExpandedItem: (itemId: string) => void;
+
+  getSelected: () => string[];
+  getSelectedByCategory: (category: TCategory) => string[];
+  toggleItem: (category: TCategory, id: string) => void;
+  toggleCategory: (category: TCategory, checked: boolean) => void;
+  getCategoryState: (category: TCategory) => {
+    checked: boolean;
+    indeterminate: boolean;
+  };
+  getCategoryCheckedCount: (category: TCategory) => number;
+  getCategoryTotalCount: (category: TCategory) => number;
+  clearAll: () => void;
+  selectAll: () => void;
+
+  isFilterDialogOpen: boolean;
+  openFilterDialog: () => void;
+  closeFilterDialog: () => void;
+}
+
 export const createFilterableStore = <
   TCategory extends string,
   TItem extends Item,
@@ -22,30 +47,7 @@ export const createFilterableStore = <
   dataSource,
   defaultFilter,
 }: FilterableStoreConfig<TCategory, TItem>) => {
-  return create<{
-    tabFilters: Record<string, TabFilter<TCategory>>;
-    expandedItems: Record<string, Set<string>>;
-
-    isItemExpanded: (itemId: string) => boolean;
-    toggleExpandedItem: (itemId: string) => void;
-
-    getSelected: () => string[];
-    getSelectedByCategory: (category: TCategory) => string[];
-    toggleItem: (category: TCategory, id: string) => void;
-    toggleCategory: (category: TCategory, checked: boolean) => void;
-    getCategoryState: (category: TCategory) => {
-      checked: boolean;
-      indeterminate: boolean;
-    };
-    getCategoryCheckedCount: (category: TCategory) => number;
-    getCategoryTotalCount: (category: TCategory) => number;
-    clearAll: () => void;
-    selectAll: () => void;
-
-    isFilterDialogOpen: boolean;
-    openFilterDialog: () => void;
-    closeFilterDialog: () => void;
-  }>((set, get) => ({
+  return create<FilterableStoreProps<TCategory>>((set, get) => ({
     tabFilters: generateInitialFilters(defaultFilter),
     expandedItems: {},
 
