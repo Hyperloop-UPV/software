@@ -351,7 +351,7 @@ export const Testing = () => {
                 className={cn(
                   "p-lg grid h-full w-full gap-4",
                   isChangingColumns && "opacity-20",
-                  `grid-cols-${chartColumns}`,
+                  chartColumns === 1 ? "grid-cols-1" : "grid-cols-2",
                 )}
               >
                 {charts.map((chart) => (
