@@ -167,8 +167,7 @@ const CustomXAxisTick = ({ x, y, payload, hideXAxisLabels }: any) => {
         dy={16}
         textAnchor="middle"
         fill="currentColor"
-        className={cn("-rotate-12 text-xs font-medium")}
-        style={{ fontFamily: "var(--font-archivo)" }}
+        className="font-archivo text-foreground text-xs font-medium"
       >
         {payload.value}
       </text>
@@ -186,8 +185,7 @@ const CustomYAxisTick = ({ x, y, payload }: any) => {
         dx={-8}
         textAnchor="end"
         fill="currentColor"
-        className="text-xs font-medium"
-        style={{ fontFamily: "var(--font-archivo)" }}
+        className="font-archivo text-foreground text-xs font-medium"
       >
         {payload.value}
       </text>
@@ -199,22 +197,12 @@ const CustomYAxisTick = ({ x, y, payload }: any) => {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card rounded-lg border p-3 shadow-md">
-        <p
-          className="mb-2 text-sm font-semibold"
-          style={{ fontFamily: "var(--font-archivo)" }}
-        >
-          {label}
-        </p>
+      <div className="bg-card text-foreground rounded-lg border p-3 shadow-md">
+        <p className="font-archivo mb-2 text-sm font-semibold">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p
             key={index}
-            className="text-xs"
-            style={{
-              color: entry.color,
-              fontFamily: "var(--font-archivo)",
-              fontWeight: 500,
-            }}
+            className="font-archivo text-foreground text-xs font-medium"
           >
             {entry.name}: {entry.value}
           </p>
@@ -236,10 +224,7 @@ const CustomLegend = (props: any) => {
             className="h-2 w-2 rounded-full"
             style={{ backgroundColor: entry.color }}
           />
-          <span
-            className="text-xs"
-            style={{ fontFamily: "var(--font-archivo)" }}
-          >
+          <span className="font-archivo text-foreground text-xs">
             {entry.value}
           </span>
         </div>
@@ -286,7 +271,10 @@ const Chart = ({
             tick={<CustomXAxisTick hideXAxisLabels={hideXAxisLabels} />}
           />
 
-          <YAxis tick={<CustomYAxisTick />} />
+          <YAxis
+            tick={<CustomYAxisTick />}
+            domain={["dataMin - 30", "dataMax + 30"]}
+          />
 
           <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
           <Legend content={<CustomLegend />} />

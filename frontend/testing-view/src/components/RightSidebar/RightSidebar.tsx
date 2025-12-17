@@ -46,8 +46,8 @@ export const RightSidebar = ({ onClose }: RightSidebarProps) => {
             <TooltipTrigger asChild>
               <Button
                 onClick={toggleSplit}
-                variant={isSplit ? "default" : "ghost"}
                 size="icon"
+                variant={isSplit ? "default" : "ghost"}
                 className="h-7 w-7"
                 aria-label={isSplit ? "Merge tabs" : "Split tabs into columns"}
               >
