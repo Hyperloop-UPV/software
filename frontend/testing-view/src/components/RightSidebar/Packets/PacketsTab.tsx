@@ -3,15 +3,19 @@ import { MOCK_PACKETS } from "../../../mocks/packets";
 import { PACKET_BOARD_NAMES } from "../../../constants/boards";
 import { GenericTab } from "../Generic/GenericTab";
 import { PacketsCategoryItem } from "./PacketsCategoryItem";
+import { memo } from "react";
 
-export const PacketsTab = () => {
-  const { getSelected, openFilterDialog } = usePacketsStore();
+const PacketsTab = () => {
+  const getSelected = usePacketsStore((s) => s.getSelected);
+  const openFilterDialog = usePacketsStore((s) => s.openFilterDialog);
 
   const selectedPacketIds = getSelected();
   const totalPackets = PACKET_BOARD_NAMES.reduce(
     (sum, board) => sum + MOCK_PACKETS[board].length,
     0,
   );
+
+  console.log("render");
 
   return (
     <GenericTab
@@ -24,3 +28,5 @@ export const PacketsTab = () => {
     />
   );
 };
+
+export default memo(PacketsTab);

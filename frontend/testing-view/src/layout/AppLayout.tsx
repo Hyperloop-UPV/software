@@ -1,19 +1,19 @@
 import { cn } from "@workspace/ui/lib";
 import React from "react";
-import { useDarkMode } from "@workspace/ui/hooks";
 import Footer from "./Footer";
 import AppSidebar from "./AppSidebar";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
 import Header from "./Header";
-import { useColorScheme } from "../hooks/useColorScheme";
+import { useDarkModeStore } from "@workspace/ui/store";
+import { useColorSchemeStore } from "../store/useColorSchemeStore";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
-  const { isDarkMode } = useDarkMode();
-  const { colorScheme } = useColorScheme();
+  const isDarkMode = useDarkModeStore((s) => s.isDarkMode);
+  const colorScheme = useColorSchemeStore((s) => s.colorScheme);
 
   return (
     <div className="h-full w-full [--header-height:calc(--spacing(14))]">

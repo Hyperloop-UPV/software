@@ -13,7 +13,8 @@ interface PacketItemProps {
 }
 
 export const PacketItem = ({ item: packet }: PacketItemProps) => {
-  const { isItemExpanded, toggleExpandedItem } = usePacketsStore();
+  const isItemExpanded = usePacketsStore((s) => s.isItemExpanded);
+  const toggleExpandedItem = usePacketsStore((s) => s.toggleExpandedItem);
 
   const isExpanded = isItemExpanded(packet.id);
   const handleToggleExpanded = () => toggleExpandedItem(packet.id);
