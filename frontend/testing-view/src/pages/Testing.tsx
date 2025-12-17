@@ -4,7 +4,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@workspace/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspacesStore } from "../store/useWorkspacesStore";
 
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
@@ -154,7 +154,11 @@ const charts = [
 ];
 
 // Custom tick component for XAxis
-const CustomXAxisTick = ({ x, y, payload }: any) => {
+const CustomXAxisTick = ({ x, y, payload, hideXAxisLabels }: any) => {
+  if (hideXAxisLabels) {
+    return <g transform={`translate(${x},${y})`}></g>;
+  }
+
   return (
     <g transform={`translate(${x},${y})`}>
       <text
@@ -163,7 +167,7 @@ const CustomXAxisTick = ({ x, y, payload }: any) => {
         dy={16}
         textAnchor="middle"
         fill="currentColor"
-        className="text-xs font-medium"
+        className={cn("-rotate-12 text-xs font-medium")}
         style={{ fontFamily: "var(--font-archivo)" }}
       >
         {payload.value}
@@ -225,15 +229,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CustomLegend = (props: any) => {
   const { payload } = props;
   return (
-    <div className="mt-4 flex flex-wrap justify-center gap-4">
+    <div className="flex flex-wrap justify-center gap-2">
       {payload.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center gap-2">
+        <div key={index} className="flex items-center gap-1">
           <div
-            className="h-3 w-3 rounded-full"
+            className="h-2 w-2 rounded-full"
             style={{ backgroundColor: entry.color }}
           />
           <span
-            className="text-sm font-medium"
+            className="text-xs"
             style={{ fontFamily: "var(--font-archivo)" }}
           >
             {entry.value}
@@ -247,27 +251,45 @@ const CustomLegend = (props: any) => {
 const Chart = ({
   data,
   dataKeys,
+  chartColumns,
 }: {
   data: any;
   dataKeys: { key: string; name: string; color: string }[];
+  chartColumns: number;
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hideXAxisLabels, setHideXAxisLabels] = useState(false);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        setHideXAxisLabels(width < 500);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <div className="h-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer ref={containerRef} width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
+
           <XAxis
             dataKey="date"
-            tick={<CustomXAxisTick />}
-            tickFormatter={(date) =>
-              new Date(date).toLocaleDateString("en-US", {
-                month: "numeric",
-                day: "numeric",
-              })
-            }
-            className="font-archivo text-xs"
+            tick={<CustomXAxisTick hideXAxisLabels={hideXAxisLabels} />}
           />
-          <YAxis className="font-archivo text-xs" tick={<CustomYAxisTick />} />
+
+          <YAxis tick={<CustomYAxisTick />} />
+
           <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
           <Legend content={<CustomLegend />} />
           {dataKeys.map(({ key, name, color }) => (
@@ -360,6 +382,7 @@ export const Testing = () => {
                       key={chart.id}
                       data={chart.data}
                       dataKeys={chart.dataKeys}
+                      chartColumns={chartColumns}
                     />
                   </div>
                 ))}
