@@ -251,11 +251,9 @@ const CustomLegend = (props: any) => {
 const Chart = ({
   data,
   dataKeys,
-  chartColumns,
 }: {
   data: any;
   dataKeys: { key: string; name: string; color: string }[];
-  chartColumns: number;
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hideXAxisLabels, setHideXAxisLabels] = useState(false);
@@ -382,7 +380,6 @@ export const Testing = () => {
                       key={chart.id}
                       data={chart.data}
                       dataKeys={chart.dataKeys}
-                      chartColumns={chartColumns}
                     />
                   </div>
                 ))}
