@@ -6,16 +6,13 @@ import { PacketsCategoryItem } from "./PacketsCategoryItem";
 import { memo } from "react";
 
 const PacketsTab = () => {
-  const getSelected = usePacketsStore((s) => s.getSelected);
-  const openFilterDialog = usePacketsStore((s) => s.openFilterDialog);
+  const { getSelected, openFilterDialog } = usePacketsStore();
 
   const selectedPacketIds = getSelected();
   const totalPackets = PACKET_BOARD_NAMES.reduce(
     (sum, board) => sum + MOCK_PACKETS[board].length,
     0,
   );
-
-  console.log("render");
 
   return (
     <GenericTab

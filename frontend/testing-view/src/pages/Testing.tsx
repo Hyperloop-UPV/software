@@ -3,6 +3,7 @@ import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
+  Skeleton,
 } from "@workspace/ui";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspacesStore } from "../store/useWorkspacesStore";
@@ -32,6 +33,18 @@ const mockData1 = [
   { date: "2024-01-05", temperature: 21, pressure: 1016, humidity: 46 },
   { date: "2024-01-06", temperature: 24, pressure: 1011, humidity: 52 },
   { date: "2024-01-07", temperature: 26, pressure: 1013, humidity: 49 },
+  { date: "2024-01-08", temperature: 27, pressure: 1014, humidity: 51 },
+  { date: "2024-01-09", temperature: 28, pressure: 1015, humidity: 52 },
+  { date: "2024-01-10", temperature: 29, pressure: 1016, humidity: 53 },
+  { date: "2024-01-11", temperature: 30, pressure: 1017, humidity: 54 },
+  { date: "2024-01-12", temperature: 31, pressure: 1018, humidity: 55 },
+  { date: "2024-01-13", temperature: 32, pressure: 1019, humidity: 56 },
+  { date: "2024-01-14", temperature: 33, pressure: 1020, humidity: 57 },
+  { date: "2024-01-15", temperature: 34, pressure: 1021, humidity: 58 },
+  { date: "2024-01-16", temperature: 35, pressure: 1022, humidity: 59 },
+  { date: "2024-01-17", temperature: 36, pressure: 1023, humidity: 60 },
+  { date: "2024-01-18", temperature: 37, pressure: 1024, humidity: 61 },
+  { date: "2024-01-19", temperature: 38, pressure: 1025, humidity: 62 },
 ];
 
 // Small range: 0-10 (percentage-like values)
@@ -164,8 +177,8 @@ const CustomXAxisTick = ({ x, y, payload, hideXAxisLabels }: any) => {
       <text
         x={0}
         y={0}
-        dy={16}
-        textAnchor="middle"
+        dy={12}
+        textAnchor="end"
         fill="currentColor"
         className="font-archivo text-foreground text-xs font-medium"
       >
@@ -182,8 +195,8 @@ const CustomYAxisTick = ({ x, y, payload }: any) => {
       <text
         x={0}
         y={0}
-        dx={-8}
-        textAnchor="end"
+        dx={8}
+        textAnchor="start"
         fill="currentColor"
         className="font-archivo text-foreground text-xs font-medium"
       >
@@ -260,10 +273,19 @@ const Chart = ({
     };
   }, []);
 
+  const handleContainerResize = (width: number) => {
+    setHideXAxisLabels(width < 500);
+  };
+
   return (
-    <div className="h-full">
-      <ResponsiveContainer ref={containerRef} width="100%" height="100%">
-        <LineChart data={data}>
+    <div className="h-[250px] min-h-0 w-full">
+      <ResponsiveContainer
+        onResize={handleContainerResize}
+        width="100%"
+        height="100%"
+        initialDimension={{ width: 320, height: 200 }}
+      >
+        <LineChart width="100%" height="100%" data={data}>
           <CartesianGrid strokeDasharray="3 3" />
 
           <XAxis
@@ -274,10 +296,11 @@ const Chart = ({
           <YAxis
             tick={<CustomYAxisTick />}
             domain={["dataMin - 30", "dataMax + 30"]}
+            orientation="right"
           />
 
           <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
-          <Legend content={<CustomLegend />} />
+          <Legend orientation="right" content={<CustomLegend />} />
           {dataKeys.map(({ key, name, color }) => (
             <Line
               key={key}
@@ -310,7 +333,7 @@ export const Testing = () => {
     setChartColumns(columns);
     setTimeout(() => {
       setIsChangingColumns(false);
-    }, 500);
+    }, 50);
   };
 
   return (
@@ -358,22 +381,29 @@ export const Testing = () => {
               <div
                 className={cn(
                   "p-lg grid h-full w-full gap-4",
-                  isChangingColumns && "opacity-20",
                   chartColumns === 1 ? "grid-cols-1" : "grid-cols-2",
                 )}
               >
-                {charts.map((chart) => (
-                  <div className="h-[250px]">
-                    <Chart
-                      key={chart.id}
-                      data={chart.data}
-                      dataKeys={chart.dataKeys}
-                    />
+                {isChangingColumns
+                  ? Array.from({ length: charts.length }).map((_, i) => (
+                      <Skeleton
+                        key={i}
+                        className="h-full min-h-[250px] w-full"
+                      />
+                    ))
+                  : charts.map((chart) => (
+                      <Chart
+                        key={chart.id}
+                        data={chart.data}
+                        dataKeys={chart.dataKeys}
+                      />
+                    ))}
+                {/* {isChangingColumns && (
+                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <Spinner className="size-20" />
                   </div>
-                ))}
+                )} */}
               </div>
-
-              <div className="absolute">Loading</div>
             </div>
           </ResizablePanel>
 

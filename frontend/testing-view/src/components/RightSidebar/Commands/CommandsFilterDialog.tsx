@@ -4,10 +4,8 @@ import { GenericFilterDialog } from "../Generic/GenericFilterDialog";
 import { CommandsFilterCategoryItem } from "./CommandsFilterCategoryItem";
 
 export const CommandsFilterDialog = () => {
-  const isFilterDialogOpen = useCommandsStore((s) => s.isFilterDialogOpen);
-  const closeFilterDialog = useCommandsStore((s) => s.closeFilterDialog);
-  const clearAll = useCommandsStore((s) => s.clearAll);
-  const selectAll = useCommandsStore((s) => s.selectAll);
+  const { isFilterDialogOpen, closeFilterDialog, clearAll, selectAll } =
+    useCommandsStore();
 
   return (
     <GenericFilterDialog

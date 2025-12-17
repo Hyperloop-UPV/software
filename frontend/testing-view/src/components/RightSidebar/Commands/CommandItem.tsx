@@ -14,8 +14,7 @@ interface CommandItemProps {
 }
 
 export const CommandItem = ({ item: command }: CommandItemProps) => {
-  const isItemExpanded = useCommandsStore((s) => s.isItemExpanded);
-  const toggleExpandedItem = useCommandsStore((s) => s.toggleExpandedItem);
+  const { isItemExpanded, toggleExpandedItem } = useCommandsStore();
 
   const [parameterValues, setParameterValues] = useState<
     Record<string, string>
