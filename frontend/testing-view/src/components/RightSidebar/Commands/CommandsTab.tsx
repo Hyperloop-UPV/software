@@ -4,8 +4,7 @@ import { GenericTab } from "../Generic/GenericTab";
 import { CommandsCategoryItem } from "./CommandsCategoryItem";
 
 export const CommandsTab = () => {
-  const getSelected = useCommandsStore((s) => s.getSelected);
-  const openFilterDialog = useCommandsStore((s) => s.openFilterDialog);
+  const { getSelected, openFilterDialog } = useCommandsStore();
 
   const selectedCommandIds = getSelected();
   const totalCommands = BOARD_NAMES.reduce(
