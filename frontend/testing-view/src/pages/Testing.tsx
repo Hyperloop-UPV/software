@@ -1,7 +1,5 @@
 import {
-  Badge,
   Button,
-  Spinner,
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
@@ -122,37 +120,37 @@ const charts = [
       { key: "quality", name: "Quality (%)", color: "#ffc658" },
     ],
   },
-  // {
-  //   id: 4,
-  //   title: "Electrical Measurements (200-1000 range)",
-  //   data: mockData4,
-  //   dataKeys: [
-  //     { key: "voltage", name: "Voltage (V)", color: "#8884d8" },
-  //     { key: "current", name: "Current (mA)", color: "#82ca9d" },
-  //     { key: "power", name: "Power (W)", color: "#ffc658" },
-  //   ],
-  // },
-  // {
-  //   id: 5,
-  //   title: "Network Traffic (1000-5000 range)",
-  //   data: mockData5,
-  //   dataKeys: [
-  //     { key: "requests", name: "Requests", color: "#8884d8" },
-  //     { key: "responses", name: "Responses", color: "#82ca9d" },
-  //     { key: "errors", name: "Errors", color: "#ef4444" },
-  //   ],
-  // },
-  // {
-  //   id: 6,
-  //   title: "Mixed Data (0-10000 range)",
-  //   data: mockData6,
-  //   dataKeys: [
-  //     { key: "small", name: "Small (0-10)", color: "#8884d8" },
-  //     { key: "medium", name: "Medium (0-100)", color: "#82ca9d" },
-  //     { key: "large", name: "Large (0-1000)", color: "#ffc658" },
-  //     { key: "huge", name: "Huge (0-10000)", color: "#ef4444" },
-  //   ],
-  // },
+  {
+    id: 4,
+    title: "Electrical Measurements (200-1000 range)",
+    data: mockData4,
+    dataKeys: [
+      { key: "voltage", name: "Voltage (V)", color: "#8884d8" },
+      { key: "current", name: "Current (mA)", color: "#82ca9d" },
+      { key: "power", name: "Power (W)", color: "#ffc658" },
+    ],
+  },
+  {
+    id: 5,
+    title: "Network Traffic (1000-5000 range)",
+    data: mockData5,
+    dataKeys: [
+      { key: "requests", name: "Requests", color: "#8884d8" },
+      { key: "responses", name: "Responses", color: "#82ca9d" },
+      { key: "errors", name: "Errors", color: "#ef4444" },
+    ],
+  },
+  {
+    id: 6,
+    title: "Mixed Data (0-10000 range)",
+    data: mockData6,
+    dataKeys: [
+      { key: "small", name: "Small (0-10)", color: "#8884d8" },
+      { key: "medium", name: "Medium (0-100)", color: "#82ca9d" },
+      { key: "large", name: "Large (0-1000)", color: "#ffc658" },
+      { key: "huge", name: "Huge (0-10000)", color: "#ef4444" },
+    ],
+  },
 ];
 
 // Custom tick component for XAxis
