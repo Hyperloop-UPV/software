@@ -1,1 +1,1 @@
-export { SquareLibrary, ScrollText } from "lucide-react";
+export { SquareLibrary } from "lucide-react";

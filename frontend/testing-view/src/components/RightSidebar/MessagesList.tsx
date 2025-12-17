@@ -8,6 +8,7 @@ export const MessagesList = () => {
           {MOCK_MESSAGES.map((msg) => (
             <div
               key={msg.id}
+              // TODO: change this to something good
               className={`rounded border p-2 text-sm ${
                 msg.level === "info"
                   ? "border-blue-500/20 bg-blue-500/5"
@@ -20,6 +21,7 @@ export const MessagesList = () => {
             >
               <div className="flex items-center gap-2">
                 <span
+                  // TODO: change this to something good
                   className={`font-semibold ${
                     msg.level === "info"
                       ? "text-blue-500"

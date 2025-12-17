@@ -11,8 +11,11 @@ interface CommandsCategoryItemProps {
 export const CommandsCategoryItem = ({
   category,
 }: CommandsCategoryItemProps) => {
-  const { getSelectedByCategory, isItemExpanded, toggleExpandedItem } =
-    useCommandsStore();
+  const getSelectedByCategory = useCommandsStore(
+    (s) => s.getSelectedByCategory,
+  );
+  const isItemExpanded = useCommandsStore((s) => s.isItemExpanded);
+  const toggleExpandedItem = useCommandsStore((s) => s.toggleExpandedItem);
 
   const visibleCommandIds = getSelectedByCategory(category);
   const allCommands = MOCK_COMMANDS[category];

@@ -54,13 +54,9 @@ export const GenericFilterCategoryItem = ({
               </span>
             </span>
             {isExpanded ? (
-              <ChevronDown
-                className={`text-muted-foreground h-4 w-4 transition-transform duration-200`}
-              />
+              <ChevronDown className="text-muted-foreground h-4 w-4 transition-transform duration-200" />
             ) : (
-              <ChevronLeft
-                className={`text-muted-foreground h-4 w-4 transition-transform duration-200`}
-              />
+              <ChevronLeft className="text-muted-foreground h-4 w-4 transition-transform duration-200" />
             )}
           </CollapsibleTrigger>
         </div>

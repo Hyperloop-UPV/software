@@ -34,7 +34,6 @@ export const RightSidebar = ({ onClose }: RightSidebarProps) => {
   const [isSplit, setIsSplit] = useState(false);
 
   const toggleLayout = () => setLayout((prev) => !prev);
-
   const toggleSplit = () => setIsSplit((prev) => !prev);
 
   return (

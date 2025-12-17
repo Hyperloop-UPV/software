@@ -4,8 +4,10 @@ import { GenericFilterDialog } from "../Generic/GenericFilterDialog";
 import { PacketsFilterCategoryItem } from "./PacketsFilterCategoryItem";
 
 export const PacketsFilterDialog = () => {
-  const { isFilterDialogOpen, closeFilterDialog, clearAll, selectAll } =
-    usePacketsStore();
+  const isFilterDialogOpen = usePacketsStore((s) => s.isFilterDialogOpen);
+  const closeFilterDialog = usePacketsStore((s) => s.closeFilterDialog);
+  const clearAll = usePacketsStore((s) => s.clearAll);
+  const selectAll = usePacketsStore((s) => s.selectAll);
 
   return (
     <GenericFilterDialog

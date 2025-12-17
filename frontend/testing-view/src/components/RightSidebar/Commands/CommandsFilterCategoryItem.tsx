@@ -10,12 +10,12 @@ interface CommandsFilterCategoryItemProps {
 export const CommandsFilterCategoryItem = ({
   category,
 }: CommandsFilterCategoryItemProps) => {
-  const {
-    getSelectedByCategory,
-    getCategoryState,
-    toggleCategory,
-    toggleItem,
-  } = useCommandsStore();
+  const getSelectedByCategory = useCommandsStore(
+    (s) => s.getSelectedByCategory,
+  );
+  const getCategoryState = useCommandsStore((s) => s.getCategoryState);
+  const toggleCategory = useCommandsStore((s) => s.toggleCategory);
+  const toggleItem = useCommandsStore((s) => s.toggleItem);
 
   const boardCategory = category as BoardName;
 

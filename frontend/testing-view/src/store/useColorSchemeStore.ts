@@ -6,9 +6,14 @@ export type ColorScheme = "default" | "pink";
 interface ColorSchemeStore {
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => void;
+  toggleColorScheme: () => void;
 }
 
 export const useColorSchemeStore = create<ColorSchemeStore>()((set) => ({
   colorScheme: "default",
   setColorScheme: (colorScheme) => set({ colorScheme }),
+  toggleColorScheme: () =>
+    set((state) => ({
+      colorScheme: state.colorScheme === "default" ? "pink" : "default",
+    })),
 }));

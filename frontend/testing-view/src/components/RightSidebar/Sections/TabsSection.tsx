@@ -8,7 +8,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui";
-import { PacketsTab } from "../Packets/PacketsTab";
+import PacketsTab from "../Packets/PacketsTab";
 import { ChevronUp, X } from "@workspace/ui/icons";
 import { CommandsTab } from "../Commands/CommandsTab";
 import { useTabsStore } from "../../../store/useTabsStore";
@@ -26,7 +26,7 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
 
   if (isSplit) {
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex flex-1 flex-col overflow-y-auto">
         {/* Header with collapse/close buttons */}
         <div className="flex items-center border-b">
           <Button onClick={onCollapse} variant="ghost" size="sm">

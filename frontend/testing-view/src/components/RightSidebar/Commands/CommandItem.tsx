@@ -8,13 +8,16 @@ import {
 import { ChevronDown, Play } from "@workspace/ui/icons";
 import type { Command } from "../../../types/Command";
 import { useCommandsStore } from "../../../store/useCommandsStore";
+import { cn } from "@workspace/ui/lib";
 
 interface CommandItemProps {
   item: Command;
 }
 
 export const CommandItem = ({ item: command }: CommandItemProps) => {
-  const { isItemExpanded, toggleExpandedItem } = useCommandsStore();
+  const isItemExpanded = useCommandsStore((s) => s.isItemExpanded);
+  const toggleExpandedItem = useCommandsStore((s) => s.toggleExpandedItem);
+
   const [parameterValues, setParameterValues] = useState<
     Record<string, string>
   >({});
@@ -52,7 +55,10 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
             </span>
 
             <ChevronDown
-              className={`text-muted-foreground h-3 w-3 shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+              className={cn(
+                "text-muted-foreground h-3 w-3 shrink-0 transition-transform duration-200",
+                isExpanded && "rotate-180",
+              )}
             />
           </CollapsibleTrigger>
 
