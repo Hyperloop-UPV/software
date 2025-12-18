@@ -1,13 +1,27 @@
 import type { Item } from "./Item";
 
-// Command Types
-export interface Command extends Item {
-  description: string;
-  parameters?: {
-    name: string;
-    type: "string" | "number" | "boolean";
-    required: boolean;
-    default?: string | number | boolean;
-  }[];
-  dangerous?: boolean;
+export interface CommandParameter {
+  kind: string;
+  id: string;
+  name: string;
+  type: string;
 }
+
+interface NumericCommandParameter extends CommandParameter {
+  safeRange: (number | null)[];
+  warningRange: (number | null)[];
+}
+
+interface EnumCommandParameter extends CommandParameter {
+  options: string[];
+}
+
+export interface CommandParameters {
+  [key: string]: NumericCommandParameter | EnumCommandParameter;
+}
+
+interface RawOrder extends Item {
+  fields: CommandParameters;
+}
+
+export type Command = RawOrder;

@@ -1,19 +1,23 @@
-import { usePacketsStore } from "../../../store/usePacketsStore";
+import { usePacketsFilterStore } from "../../../store/usePacketsFilterStore";
 import { MOCK_PACKETS } from "../../../mocks/packets";
 import { GenericCategoryItem } from "../Generic/GenericCategoryItem";
 import { PacketItem } from "./PacketItem";
-import type { PacketsBoardName } from "../../../types/PacketsBoardName";
+import type { BoardName } from "../../../types/BoardName";
 
 interface PacketsCategoryItemProps {
-  category: PacketsBoardName;
+  category: BoardName;
 }
 
 export const PacketsCategoryItem = ({ category }: PacketsCategoryItemProps) => {
-  const { isItemExpanded, toggleExpandedItem, getSelectedByCategory } =
-    usePacketsStore();
+  const {
+    isItemExpanded,
+    toggleExpandedItem,
+    getSelectedByCategory,
+    getItemsByCategory,
+  } = usePacketsFilterStore();
 
   const selectedPacketIds = getSelectedByCategory(category);
-  const allPackets = MOCK_PACKETS[category];
+  const allPackets = getItemsByCategory(category);
 
   const selectedPackets = allPackets.filter((pkt) =>
     selectedPacketIds.includes(pkt.id),

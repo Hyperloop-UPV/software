@@ -167,11 +167,7 @@ const charts = [
 ];
 
 // Custom tick component for XAxis
-const CustomXAxisTick = ({ x, y, payload, hideXAxisLabels }: any) => {
-  if (hideXAxisLabels) {
-    return <g transform={`translate(${x},${y})`}></g>;
-  }
-
+const CustomXAxisTick = ({ x, y, payload }: any) => {
   return (
     <g transform={`translate(${x},${y})`}>
       <text
@@ -288,10 +284,7 @@ const Chart = ({
         <LineChart width="100%" height="100%" data={data}>
           <CartesianGrid strokeDasharray="3 3" />
 
-          <XAxis
-            dataKey="date"
-            tick={<CustomXAxisTick hideXAxisLabels={hideXAxisLabels} />}
-          />
+          <XAxis dataKey="date" tick={<CustomXAxisTick />} />
 
           <YAxis
             tick={<CustomYAxisTick />}
@@ -300,7 +293,9 @@ const Chart = ({
           />
 
           <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
-          <Legend orientation="right" content={<CustomLegend />} />
+          {!hideXAxisLabels && (
+            <Legend orientation="right" content={<CustomLegend />} />
+          )}
           {dataKeys.map(({ key, name, color }) => (
             <Line
               key={key}

@@ -1,22 +1,19 @@
-import { useCommandsStore } from "../../../store/useCommandsStore";
-import { BOARD_NAMES, MOCK_COMMANDS } from "../../../mocks/commands";
+import { useCommandsFilterStore } from "../../../store/useCommandsFilterStore";
 import { GenericTab } from "../Generic/GenericTab";
 import { CommandsCategoryItem } from "./CommandsCategoryItem";
+import { BOARD_NAMES } from "../../../constants/boards";
 
 export const CommandsTab = () => {
-  const { getSelected, openFilterDialog } = useCommandsStore();
+  const { getSelected, getTotalCount, openFilterDialog } =
+    useCommandsFilterStore();
 
   const selectedCommandIds = getSelected();
-  const totalCommands = BOARD_NAMES.reduce(
-    (sum, board) => sum + MOCK_COMMANDS[board].length,
-    0,
-  );
 
   return (
     <GenericTab
       title="Commands"
       selectedCount={selectedCommandIds.length}
-      totalCount={totalCommands}
+      totalCount={getTotalCount()}
       onFilterClick={openFilterDialog}
       categories={BOARD_NAMES}
       CategoryComponent={CommandsCategoryItem}

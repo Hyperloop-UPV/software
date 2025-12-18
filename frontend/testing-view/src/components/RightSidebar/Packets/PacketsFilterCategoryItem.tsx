@@ -1,10 +1,10 @@
-import { usePacketsStore } from "../../../store/usePacketsStore";
+import { usePacketsFilterStore } from "../../../store/usePacketsFilterStore";
 import { MOCK_PACKETS } from "../../../mocks/packets";
 import { GenericFilterCategoryItem } from "../Generic/GenericFilterCategoryItem";
-import type { PacketsBoardName } from "../../../types/PacketsBoardName";
+import type { BoardName } from "../../../types/BoardName";
 
 interface PacketsFilterCategoryItemProps {
-  category: string;
+  category: BoardName;
 }
 
 export const PacketsFilterCategoryItem = ({
@@ -15,13 +15,12 @@ export const PacketsFilterCategoryItem = ({
     getCategoryState,
     toggleCategory,
     toggleItem,
-  } = usePacketsStore();
+    getItemsByCategory,
+  } = usePacketsFilterStore();
 
-  const packetsBoardCategory = category as PacketsBoardName;
-
-  const allPackets = MOCK_PACKETS[packetsBoardCategory];
-  const selectedIds = getSelectedByCategory(packetsBoardCategory);
-  const categoryState = getCategoryState(packetsBoardCategory);
+  const allPackets = getItemsByCategory(category);
+  const selectedIds = getSelectedByCategory(category);
+  const categoryState = getCategoryState(category);
 
   return (
     <GenericFilterCategoryItem
@@ -29,10 +28,8 @@ export const PacketsFilterCategoryItem = ({
       allItems={allPackets}
       selectedIds={selectedIds}
       categoryState={categoryState}
-      onToggleCategory={(checked) =>
-        toggleCategory(packetsBoardCategory, checked)
-      }
-      onToggleItem={(id) => toggleItem(packetsBoardCategory, id)}
+      onToggleCategory={(checked) => toggleCategory(category, checked)}
+      onToggleItem={(id) => toggleItem(category, id)}
     />
   );
 };

@@ -5,16 +5,18 @@ import {
   CollapsibleContent,
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
+import type { BoardName } from "../../../types/BoardName";
+import type { Item } from "../../../types/Item";
 
 interface GenericCategoryItemProps<T> {
-  category: string;
+  category: BoardName;
   items: T[];
   ItemComponent: ComponentType<{ item: T }>;
   isExpanded: boolean;
   onToggleExpanded: () => void;
 }
 
-export const GenericCategoryItem = <T,>({
+export const GenericCategoryItem = <T extends Item>({
   category,
   items,
   ItemComponent,

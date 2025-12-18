@@ -7,30 +7,39 @@ import {
 } from "../lib/utils";
 import type { TabFilter } from "../types/TabFilter";
 import type { Item } from "../types/Item";
+import type { BoardName } from "../types/BoardName";
 
-interface FilterableStoreConfig<TCategory extends string, TItem> {
-  categories: readonly TCategory[];
-  dataSource: Record<TCategory, TItem[]>;
-  defaultFilter: TabFilter<TCategory>;
+interface FilterableStoreConfig<TItem extends Item> {
+  defaultDataSource: Record<BoardName, TItem[]>;
+  defaultFilter: (dataSource: Record<BoardName, TItem[]>) => TabFilter;
 }
 
-interface FilterableStoreProps<TCategory extends string> {
-  tabFilters: Record<string, TabFilter<TCategory>>;
-  expandedItems: Record<string, Set<string>>;
+interface FilterableStoreProps<TItem extends Item> {
+  dataSource: Record<BoardName, TItem[]>;
+  setDataSource: (dataSource: Record<BoardName, TItem[]>) => void;
 
-  isItemExpanded: (itemId: string) => boolean;
-  toggleExpandedItem: (itemId: string) => void;
+  tabFilters: Record<string, TabFilter>;
+  expandedItems: Record<string, Set<number | string>>;
 
-  getSelected: () => string[];
-  getSelectedByCategory: (category: TCategory) => string[];
-  toggleItem: (category: TCategory, id: string) => void;
-  toggleCategory: (category: TCategory, checked: boolean) => void;
-  getCategoryState: (category: TCategory) => {
+  isItemExpanded: (itemId: number | string) => boolean;
+  toggleExpandedItem: (itemId: number | string) => void;
+
+  getTotalCount: () => number;
+
+  getSelected: () => number[];
+
+  // Category-based methods
+  getSelectedByCategory: (category: BoardName) => number[];
+  getTotalCountByCategory: (category: BoardName) => number;
+  getItemsByCategory: (category: BoardName) => TItem[];
+  toggleItem: (category: BoardName, id: number) => void;
+  toggleCategory: (category: BoardName, checked: boolean) => void;
+  getCategoryState: (category: BoardName) => {
     checked: boolean;
     indeterminate: boolean;
   };
-  getCategoryCheckedCount: (category: TCategory) => number;
-  getCategoryTotalCount: (category: TCategory) => number;
+  getCategoryCheckedCount: (category: BoardName) => number;
+  getCategoryTotalCount: (category: BoardName) => number;
   clearAll: () => void;
   selectAll: () => void;
 
@@ -39,26 +48,31 @@ interface FilterableStoreProps<TCategory extends string> {
   closeFilterDialog: () => void;
 }
 
-export const createFilterableStore = <
-  TCategory extends string,
-  TItem extends Item,
->({
-  categories,
-  dataSource,
+export const createFilterableStore = <TItem extends Item>({
+  defaultDataSource,
   defaultFilter,
-}: FilterableStoreConfig<TCategory, TItem>) => {
-  return create<FilterableStoreProps<TCategory>>((set, get) => ({
-    tabFilters: generateInitialFilters(defaultFilter),
+}: FilterableStoreConfig<TItem>) => {
+  return create<FilterableStoreProps<TItem>>((set, get) => ({
+    dataSource: defaultDataSource,
+    setDataSource: (newDataSource) => {
+      const newDefaultFilter = defaultFilter(newDataSource);
+      set({
+        dataSource: newDataSource,
+        tabFilters: generateInitialFilters(newDefaultFilter),
+      });
+    },
+
+    tabFilters: generateInitialFilters(defaultFilter(defaultDataSource)),
     expandedItems: {},
 
-    isItemExpanded: (itemId: string) => {
+    isItemExpanded: (itemId: number | string) => {
       const activeWorkspaceId = getActiveWorkspaceId();
       if (!activeWorkspaceId) return false;
       const expandedItems = get().expandedItems[activeWorkspaceId];
       return expandedItems?.has(itemId) ?? false;
     },
 
-    toggleExpandedItem: (itemId: string) => {
+    toggleExpandedItem: (itemId: number | string) => {
       set((state) => {
         const activeWorkspaceId = getActiveWorkspaceId();
         if (!activeWorkspaceId) return state;
@@ -86,7 +100,11 @@ export const createFilterableStore = <
       const activeWorkspaceId = getActiveWorkspaceId();
       if (!activeWorkspaceId) return [];
       const filter = get().tabFilters[activeWorkspaceId];
-      return Object.values<string[]>(filter).flat();
+      return Object.values<number[]>(filter).flat();
+    },
+
+    getTotalCount: () => {
+      return Object.values(get().dataSource).flat().length;
     },
 
     getSelectedByCategory: (category) => {
@@ -94,6 +112,14 @@ export const createFilterableStore = <
       if (!activeWorkspaceId) return [];
       const filter = get().tabFilters[activeWorkspaceId];
       return filter[category];
+    },
+
+    getItemsByCategory: (category: BoardName) => {
+      return get().dataSource[category];
+    },
+
+    getTotalCountByCategory: (category: BoardName) => {
+      return get().dataSource[category].length;
     },
 
     toggleItem: (category, id) =>
@@ -126,7 +152,7 @@ export const createFilterableStore = <
         const currentFilter = state.tabFilters[activeWorkspaceId];
 
         const newItems = checked
-          ? dataSource[category].map((item) => item.id)
+          ? get().dataSource[category].map((item) => item.id)
           : [];
 
         return {
@@ -148,7 +174,7 @@ export const createFilterableStore = <
     },
 
     getCategoryTotalCount: (category) => {
-      return dataSource[category].length;
+      return get().dataSource[category].length;
     },
 
     getCategoryState: (category) => {
@@ -159,7 +185,7 @@ export const createFilterableStore = <
 
       const filter = get().tabFilters[activeWorkspaceId];
       const selectedInCategory = filter[category];
-      const totalInCategory = dataSource[category].length;
+      const totalInCategory = get().dataSource[category].length;
       const checkedCount = selectedInCategory.length;
 
       if (checkedCount === 0) {
@@ -176,7 +202,7 @@ export const createFilterableStore = <
         const activeWorkspaceId = getActiveWorkspaceId();
         if (!activeWorkspaceId) return state;
 
-        const emptyFilter = createEmptyFilter(categories);
+        const emptyFilter = createEmptyFilter();
 
         return {
           tabFilters: {
@@ -191,7 +217,7 @@ export const createFilterableStore = <
         const activeWorkspaceId = getActiveWorkspaceId();
         if (!activeWorkspaceId) return state;
 
-        const fullFilter = createFullFilter(categories, dataSource);
+        const fullFilter = createFullFilter(get().dataSource);
 
         return {
           tabFilters: {
