@@ -5,8 +5,12 @@ import {
   CollapsibleContent,
 } from "@workspace/ui";
 import { ChevronDown, Play } from "@workspace/ui/icons";
-import type { Command } from "../../../types/Command";
-import { useCommandsStore } from "../../../store/useCommandsStore";
+import type {
+  Command,
+  CommandParameter,
+  CommandParameters,
+} from "../../../types/Command";
+import { useCommandsFilterStore } from "../../../store/useCommandsFilterStore";
 import { cn } from "@workspace/ui/lib";
 
 interface CommandItemProps {
@@ -14,13 +18,13 @@ interface CommandItemProps {
 }
 
 export const CommandItem = ({ item: command }: CommandItemProps) => {
-  const { isItemExpanded, toggleExpandedItem } = useCommandsStore();
+  const { isItemExpanded, toggleExpandedItem } = useCommandsFilterStore();
 
   const [parameterValues, setParameterValues] = useState<
     Record<string, string>
   >({});
 
-  const hasParameters = command.parameters && command.parameters.length > 0;
+  const hasParameters = Object.keys(command.fields).length > 0;
   const isExpanded = isItemExpanded(command.id);
   const handleToggleExpanded = () => toggleExpandedItem(command.id);
 
@@ -47,7 +51,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
             </div>
 
             <span className="text-foreground flex-1 truncate text-left text-sm">
-              {command.name}
+              {command.label}
             </span>
 
             <ChevronDown
@@ -60,32 +64,8 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
 
           <CollapsibleContent>
             <div className="bg-muted/20 space-y-1.5 px-2 pb-1.5">
-              {command.parameters!.map((param) => (
-                <div key={param.name} className="space-y-0.5">
-                  <label className="text-muted-foreground flex items-center gap-1 text-[10px] font-medium">
-                    <span>
-                      {param.name}
-                      {param.required && (
-                        <span className="text-destructive">*</span>
-                      )}
-                    </span>
-                    <span className="bg-primary/10 text-primary rounded px-1 py-0.5 text-[9px]">
-                      {param.type}
-                    </span>
-                  </label>
-                  <input
-                    type={param.type === "number" ? "number" : "text"}
-                    value={parameterValues[param.name] || ""}
-                    placeholder={param.default?.toString() || ""}
-                    onChange={(e) =>
-                      setParameterValues((prev) => ({
-                        ...prev,
-                        [param.name]: e.target.value,
-                      }))
-                    }
-                    className="bg-background text-foreground focus:ring-primary/50 w-full rounded border px-2 py-1 text-xs focus:outline-none focus:ring-1"
-                  />
-                </div>
+              {Object.values(command.fields).map((field: CommandParameter) => (
+                <div key={field.id}>{field.name}</div>
               ))}
             </div>
           </CollapsibleContent>
@@ -100,7 +80,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
           </div>
 
           <span className="text-foreground flex-1 truncate text-sm">
-            {command.name}
+            {command.label}
           </span>
         </div>
       )}

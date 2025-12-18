@@ -7,17 +7,19 @@ import {
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 import { GenericFilterItem } from "./GenericFilterItem";
+import type { BoardName } from "../../../types/BoardName";
+import type { Item } from "../../../types/Item";
 
 interface GenericFilterCategoryItemProps {
-  category: string;
-  allItems: Array<{ id: string; name: string }>;
-  selectedIds: string[];
+  category: BoardName;
+  allItems: Item[];
+  selectedIds: number[];
   categoryState: {
     checked: boolean;
     indeterminate: boolean;
   };
   onToggleCategory: (checked: boolean) => void;
-  onToggleItem: (id: string) => void;
+  onToggleItem: (id: number) => void;
 }
 
 export const GenericFilterCategoryItem = ({
@@ -32,6 +34,8 @@ export const GenericFilterCategoryItem = ({
 
   const checkedCount = selectedIds.length;
   const totalCount = allItems.length;
+
+  if (totalCount === 0) return null;
 
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>

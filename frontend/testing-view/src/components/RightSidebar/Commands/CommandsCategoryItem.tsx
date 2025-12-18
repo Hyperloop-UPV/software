@@ -1,4 +1,4 @@
-import { useCommandsStore } from "../../../store/useCommandsStore";
+import { useCommandsFilterStore } from "../../../store/useCommandsFilterStore";
 import { MOCK_COMMANDS } from "../../../mocks/commands";
 import { GenericCategoryItem } from "../Generic/GenericCategoryItem";
 import { CommandItem } from "./CommandItem";
@@ -11,11 +11,15 @@ interface CommandsCategoryItemProps {
 export const CommandsCategoryItem = ({
   category,
 }: CommandsCategoryItemProps) => {
-  const { toggleExpandedItem, getSelectedByCategory, isItemExpanded } =
-    useCommandsStore();
+  const {
+    toggleExpandedItem,
+    getSelectedByCategory,
+    isItemExpanded,
+    getItemsByCategory,
+  } = useCommandsFilterStore();
 
   const visibleCommandIds = getSelectedByCategory(category);
-  const allCommands = MOCK_COMMANDS[category];
+  const allCommands = getItemsByCategory(category);
 
   const selectedCommands = allCommands.filter((cmd) =>
     visibleCommandIds.includes(cmd.id),

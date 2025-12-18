@@ -6,15 +6,14 @@ import {
 } from "@workspace/ui";
 import { ChevronDown, ChevronRight } from "@workspace/ui/icons";
 import { VariableItem } from "./VariableItem";
-import { usePacketsStore } from "../../../store/usePacketsStore";
+import { usePacketsFilterStore } from "../../../store/usePacketsFilterStore";
 
 interface PacketItemProps {
   item: Packet;
 }
 
 export const PacketItem = ({ item: packet }: PacketItemProps) => {
-  const isItemExpanded = usePacketsStore((s) => s.isItemExpanded);
-  const toggleExpandedItem = usePacketsStore((s) => s.toggleExpandedItem);
+  const { isItemExpanded, toggleExpandedItem } = usePacketsFilterStore();
 
   const isExpanded = isItemExpanded(packet.id);
   const handleToggleExpanded = () => toggleExpandedItem(packet.id);
@@ -31,12 +30,12 @@ export const PacketItem = ({ item: packet }: PacketItemProps) => {
               <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
             )}
             <span className="text-foreground truncate text-sm font-medium">
-              {packet.name}
+              {packet.label}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground shrink-0 text-xs">
-              {packet.timestamp}
+              {packet.cycleTime}
             </span>
           </div>
         </CollapsibleTrigger>
@@ -44,8 +43,8 @@ export const PacketItem = ({ item: packet }: PacketItemProps) => {
         {/* Variables List - Collapsible Content */}
         <CollapsibleContent>
           <div className="bg-muted/20">
-            {packet.variables.map((variable) => (
-              <VariableItem key={variable.id} variable={variable} />
+            {packet.measurements.map((measurement) => (
+              <VariableItem key={measurement.id} variable={measurement} />
             ))}
           </div>
         </CollapsibleContent>

@@ -1,6 +1,6 @@
 import { webSocket } from "rxjs/webSocket";
 import { filter, map, tap } from "rxjs/operators";
-import { logger } from "../logger";
+import { logger } from "./logger";
 
 const BACKEND_URL = "ws://127.0.0.1:4000/backend";
 

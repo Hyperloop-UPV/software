@@ -1,50 +1,61 @@
+import { BOARD_NAMES } from "../constants/boards";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
+import type { BoardName } from "../types/BoardName";
 import type { Item } from "../types/Item";
-import type { FilterKey, TabFilter } from "../types/TabFilter";
+import type { TabFilter } from "../types/TabFilter";
 
-export const generateInitialFilters = <T extends FilterKey>(
-  defaultIds: TabFilter<T>,
-): Record<string, TabFilter<T>> => {
+export const generateInitialFilters = (
+  defaultIds: TabFilter,
+): Record<string, TabFilter> => {
   return DEFAULT_WORKSPACES.reduce(
     (acc, workspace) => {
       acc[workspace.id] = defaultIds;
       return acc;
     },
-    {} as Record<string, TabFilter<T>>,
+    {} as Record<string, TabFilter>,
   );
 };
 
-export const createEmptyFilter = <T extends FilterKey>(
-  categories: readonly T[],
-): TabFilter<T> => {
-  return categories.reduce((acc, category) => {
+export const createEmptyFilter = (): TabFilter => {
+  return BOARD_NAMES.reduce((acc, category) => {
     acc[category] = [];
     return acc;
-  }, {} as TabFilter<T>);
+  }, {} as TabFilter);
 };
 
-export const createFullFilter = <T extends FilterKey>(
-  categories: readonly T[],
-  dataSource: Record<T, Item[]>,
-): TabFilter<T> => {
-  return categories.reduce((acc, category) => {
+export const createFullFilter = (
+  dataSource: Record<BoardName, Item[]>,
+): TabFilter => {
+  return BOARD_NAMES.reduce((acc, category) => {
     acc[category] = dataSource[category].map((item) => item.id);
     return acc;
-  }, {} as TabFilter<T>);
+  }, {} as TabFilter);
 };
 
 export const getTypeBadgeClass = (type: string) => {
   switch (type.toLowerCase()) {
     case "float":
+    case "float32":
+    case "float64":
       return "bg-blue-500/15 text-blue-400 border-blue-500/30";
     case "integer":
     case "int":
+    case "int8":
+    case "int16":
+    case "int32":
+    case "int64":
       return "bg-green-500/15 text-green-400 border-green-500/30";
     case "string":
+    case "enum":
       return "bg-purple-500/15 text-purple-400 border-purple-500/30";
     case "boolean":
     case "bool":
       return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
+    case "uint8":
+    case "uint16":
+    case "uint32":
+    case "uint64":
+      return "bg-red-500/15 text-red-400 border-red-500/30";
     default:
       return "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30";
   }

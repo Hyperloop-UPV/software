@@ -8,11 +8,14 @@ export interface Variable {
   value: number | string | boolean;
 }
 
-/**
- * TODO Implement correct packet type from websocket
- */
-export interface Packet extends Item {
-  description: string;
-  timestamp: string;
-  variables: Variable[];
+type Measurement = any;
+
+export type Packet = RawPacket;
+
+export interface RawPacket extends Item {
+  hexValue: string;
+  count: number;
+  cycleTime: number;
+  type: string;
+  measurements: Measurement[];
 }

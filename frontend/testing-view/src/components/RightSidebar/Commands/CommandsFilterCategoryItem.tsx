@@ -1,10 +1,10 @@
-import { useCommandsStore } from "../../../store/useCommandsStore";
+import { useCommandsFilterStore } from "../../../store/useCommandsFilterStore";
 import { MOCK_COMMANDS } from "../../../mocks/commands";
 import { GenericFilterCategoryItem } from "../Generic/GenericFilterCategoryItem";
 import type { BoardName } from "../../../types/BoardName";
 
 interface CommandsFilterCategoryItemProps {
-  category: string;
+  category: BoardName;
 }
 
 export const CommandsFilterCategoryItem = ({
@@ -15,13 +15,12 @@ export const CommandsFilterCategoryItem = ({
     getCategoryState,
     toggleCategory,
     toggleItem,
-  } = useCommandsStore();
+    getItemsByCategory,
+  } = useCommandsFilterStore();
 
-  const boardCategory = category as BoardName;
-
-  const allCommands = MOCK_COMMANDS[boardCategory];
-  const selectedIds = getSelectedByCategory(boardCategory);
-  const categoryState = getCategoryState(boardCategory);
+  const allCommands = getItemsByCategory(category);
+  const selectedIds = getSelectedByCategory(category);
+  const categoryState = getCategoryState(category);
 
   return (
     <GenericFilterCategoryItem
@@ -29,8 +28,8 @@ export const CommandsFilterCategoryItem = ({
       allItems={allCommands}
       selectedIds={selectedIds}
       categoryState={categoryState}
-      onToggleCategory={(checked) => toggleCategory(boardCategory, checked)}
-      onToggleItem={(id) => toggleItem(boardCategory, id)}
+      onToggleCategory={(checked) => toggleCategory(category, checked)}
+      onToggleItem={(id) => toggleItem(category, id)}
     />
   );
 };

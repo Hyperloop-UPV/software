@@ -7,6 +7,7 @@ import {
   DialogDescription,
   Button,
 } from "@workspace/ui";
+import type { BoardName } from "../../../types/BoardName";
 
 interface GenericFilterDialogProps {
   title: string;
@@ -15,8 +16,8 @@ interface GenericFilterDialogProps {
   onClose: (open: boolean) => void;
   onClearAll: () => void;
   onSelectAll: () => void;
-  categories: readonly string[];
-  FilterCategoryComponent: ComponentType<{ category: string }>;
+  categories: readonly BoardName[];
+  FilterCategoryComponent: ComponentType<{ category: BoardName }>;
 }
 
 export const GenericFilterDialog = ({

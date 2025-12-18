@@ -1,11 +1,11 @@
-import { useCommandsStore } from "../../../store/useCommandsStore";
-import { BOARD_NAMES } from "../../../mocks/commands";
+import { useCommandsFilterStore } from "../../../store/useCommandsFilterStore";
+import { BOARD_NAMES } from "../../../constants/boards";
 import { GenericFilterDialog } from "../Generic/GenericFilterDialog";
 import { CommandsFilterCategoryItem } from "./CommandsFilterCategoryItem";
 
 export const CommandsFilterDialog = () => {
   const { isFilterDialogOpen, closeFilterDialog, clearAll, selectAll } =
-    useCommandsStore();
+    useCommandsFilterStore();
 
   return (
     <GenericFilterDialog
