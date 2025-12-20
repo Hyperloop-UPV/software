@@ -101,13 +101,23 @@ impl NetworkManager {
                 rng.gen_range(0..sockets.len())
             };
             let board_socket = &sockets[idx];
-            
+
             // Generate random packet
-            if let Ok(packet_data) = board_socket.generator.generate_random_data_packet() {
-                if let Err(e) = board_socket.socket.send(&packet_data).await {
+            let packet_data = match board_socket.generator.generate_random_data_packet() {
+                Ok(data) => data,
+                Err(e) => {
+                    error!("Failed to generate packet for board {}: {}", board_socket.board.name, e);
+                    continue;
+                }
+            };
+            
+            // Send packet
+            match board_socket.socket.send(&packet_data).await {
+                Ok(bytes_sent) => {
+                    info!("Sent {} bytes from board {}", bytes_sent, board_socket.board.name);
+                }
+                Err(e) => {
                     error!("Failed to send packet from {}: {}", board_socket.board.name, e);
-                } else {
-                    trace!("Sent {} bytes from {}", packet_data.len(), board_socket.board.name);
                 }
             }
         }

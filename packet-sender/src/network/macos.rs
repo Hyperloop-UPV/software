@@ -1,36 +1,41 @@
 use anyhow::{Result, Context};
 use tokio::net::UdpSocket;
+#[cfg(unix)]
 use std::os::unix::io::AsRawFd;
 
 /// Configure socket with macOS-specific options for localhost networking
 pub fn configure_socket(socket: &UdpSocket) -> Result<()> {
-    let fd = socket.as_raw_fd();
+    #[cfg(unix)]
+    {
+        let fd = socket.as_raw_fd();
     
-    // Set SO_REUSEADDR to allow multiple binds to same address
-    set_socket_option(fd, libc::SOL_SOCKET, libc::SO_REUSEADDR, 1)
-        .context("Failed to set SO_REUSEADDR")?;
-    
-    // Set SO_REUSEPORT for macOS (allows multiple sockets on same port)
-    #[cfg(target_os = "macos")]
-    set_socket_option(fd, libc::SOL_SOCKET, libc::SO_REUSEPORT, 1)
-        .context("Failed to set SO_REUSEPORT")?;
-    
-    // Disable SIGPIPE on macOS to prevent crashes
-    #[cfg(target_os = "macos")]
-    set_socket_option(fd, libc::SOL_SOCKET, libc::SO_NOSIGPIPE, 1)
-        .context("Failed to set SO_NOSIGPIPE")?;
-    
-    // Set receive buffer size for better performance
-    set_socket_option(fd, libc::SOL_SOCKET, libc::SO_RCVBUF, 1024 * 1024)
-        .context("Failed to set SO_RCVBUF")?;
-    
-    // Set send buffer size
-    set_socket_option(fd, libc::SOL_SOCKET, libc::SO_SNDBUF, 1024 * 1024)
-        .context("Failed to set SO_SNDBUF")?;
+        // Set SO_REUSEADDR to allow multiple binds to same address
+        set_socket_option(fd, libc::SOL_SOCKET, libc::SO_REUSEADDR, 1)
+            .context("Failed to set SO_REUSEADDR")?;
+        
+        // Set SO_REUSEPORT for macOS (allows multiple sockets on same port)
+        #[cfg(target_os = "macos")]
+        set_socket_option(fd, libc::SOL_SOCKET, libc::SO_REUSEPORT, 1)
+            .context("Failed to set SO_REUSEPORT")?;
+        
+        // Disable SIGPIPE on macOS to prevent crashes
+        #[cfg(target_os = "macos")]
+        set_socket_option(fd, libc::SOL_SOCKET, libc::SO_NOSIGPIPE, 1)
+            .context("Failed to set SO_NOSIGPIPE")?;
+        
+        // Set receive buffer size for better performance
+        set_socket_option(fd, libc::SOL_SOCKET, libc::SO_RCVBUF, 1024 * 1024)
+            .context("Failed to set SO_RCVBUF")?;
+        
+        // Set send buffer size
+        set_socket_option(fd, libc::SOL_SOCKET, libc::SO_SNDBUF, 1024 * 1024)
+            .context("Failed to set SO_SNDBUF")?;
+    }
     
     Ok(())
 }
 
+#[cfg(unix)]
 fn set_socket_option(fd: i32, level: i32, option: i32, value: i32) -> Result<()> {
     unsafe {
         let value_ptr = &value as *const i32 as *const libc::c_void;

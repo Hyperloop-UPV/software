@@ -3,7 +3,9 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use tracing::info;
 use tracing_subscriber;
+use dirs;
 
+mod logger;
 mod adj;
 mod network;
 mod generator;
@@ -13,15 +15,21 @@ mod test_listener;
 use crate::cli::InteractiveMode;
 use crate::network::PacketSender;
 
+fn get_default_adj_path() -> PathBuf {
+    dirs::cache_dir()
+        .expect("Failed to get cache directory")
+        .join("hyperloop-control-station")
+        .join("adj")
+}
+
 #[derive(Parser)]
 #[command(name = "packet-sender")]
 #[command(about = "Hyperloop packet sender for testing backend and frontend", long_about = None)]
 struct Cli {
 
-    /// TODO: TO CHANGE = GO'S os.UserCacheDir()
-    /// Path to ADJ directory (defaults to ../backend/cmd/adj)
-    #[arg(short, long, default_value = "../backend/cmd/adj")]
-    adj_path: PathBuf,
+    #[arg(short, long)]
+    // Path to AD JSON directory
+    adj_path: Option<PathBuf>,
 
     /// Log level (trace, debug, info, warn, error)
     #[arg(short, long, default_value = "info")]
@@ -83,17 +91,16 @@ enum Commands {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    
-    // Initialize logging
-    tracing_subscriber::fmt()
-        .with_env_filter(cli.log_level)
-        .init();
+
+    logger::init(&cli.log_level);
+
+    let adj_path = cli.adj_path.unwrap_or_else(get_default_adj_path);
     
     info!("Starting Hyperloop packet sender");
-    info!("Loading ADJ from: {:?}", cli.adj_path);
+    info!("Loading ADJ from: {:?}", adj_path);
     
     // Load ADJ
-    let adj = adj::load_adj(&cli.adj_path).await?;
+    let adj = adj::load_adj(&adj_path).await?;
     info!("Loaded {} boards from ADJ", adj.boards.len());
     
     // Get backend address and port from ADJ or CLI args
