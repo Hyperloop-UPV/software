@@ -42,7 +42,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
     <div className="border-b last:border-b-0">
       {hasParameters ? (
         <Collapsible open={isExpanded} onOpenChange={handleToggleExpanded}>
-          <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center gap-1.5 px-2 py-1.5 transition-colors">
+          <CollapsibleTrigger className="hover:bg-accent/30 flex w-full items-center gap-1.5 px-2.5 py-1.5 transition-colors">
             <div
               onClick={handleRun}
               className="text-foreground flex h-6 w-6 shrink-0 items-center justify-center"

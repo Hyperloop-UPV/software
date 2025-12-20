@@ -11,6 +11,7 @@ import type { Packet } from "./types/Packet";
 import type { Command } from "./types/Command";
 import { usePacketsFilterStore } from "./store/usePacketsFilterStore";
 import { useCommandsFilterStore } from "./store/useCommandsFilterStore";
+import type { BoardName } from "./types/BoardName";
 
 // count: 0
 // cycleTime: 0
@@ -20,12 +21,8 @@ import { useCommandsFilterStore } from "./store/useCommandsFilterStore";
 // name: string
 // type: "data" | "string"
 
-interface PacketsData {
-  boards: BoardPacketsData[];
-}
-
-interface OrdersData {
-  boards: BoardOrdersData[];
+interface BoardData {
+  name: BoardName;
 }
 
 interface BoardOrdersData extends BoardData {
@@ -36,18 +33,24 @@ interface BoardPacketsData extends BoardData {
   packets: Packet[];
 }
 
-interface BoardData {
-  name: string;
+interface PacketsData {
+  boards: BoardPacketsData[];
+}
+
+interface OrdersData {
+  boards: BoardOrdersData[];
 }
 
 function formatName(name: string): string {
+  const withoutParentheses = name.replace(/[()]/g, "");
+
   // Remove common board prefixes
-  const withoutPrefix = name
-    .replace(/^(bcu|pcu|lcu|hvscu|bmsl|vcu)_/, "")
-    .replace(/^hvscu_cabinet_/, "");
+  const withoutPrefix = withoutParentheses
+    .replace(/(bcu|pcu|lcu|hvscu|bmsl|vcu)_/, "")
+    .replace(/hvscu_cabinet_/, "");
 
   // Split by underscore and capitalize each word
-  const words = withoutPrefix.split("_");
+  const words = withoutPrefix.split(/[_ ]+/);
 
   // Special cases for acronyms that should stay uppercase
   const acronyms = [
@@ -64,6 +67,9 @@ function formatName(name: string): string {
     "IMD",
     "SDC",
     "OBCCU",
+    "BCU",
+    "PFM",
+    "PWM",
   ];
 
   const formatted = words
@@ -96,7 +102,7 @@ function App() {
     (state) => state.setDataSource,
   );
 
-  const trasformedBoards = useMemo(() => {
+  const transformedBoards = useMemo(() => {
     if (!packets?.boards) {
       logger.testingView.error("No packets found");
       return {};
@@ -112,9 +118,12 @@ function App() {
 
     const packetsResult: Record<string, Packet[]> = {};
     const commandsResult: Record<string, Command[]> = {};
+    const availableBoards: Set<BoardName> = new Set();
 
     // Process packets data
     packets.boards.forEach((board) => {
+      availableBoards.add(board.name);
+
       if (!packetsResult[board.name]) {
         packetsResult[board.name] = [];
       }
@@ -126,10 +135,11 @@ function App() {
     });
 
     logger.testingView.log("Packets data processed");
-    setPacketsDataSource(packetsResult);
 
     // Process commands data
     commands.boards.forEach((board) => {
+      availableBoards.add(board.name);
+
       if (!commandsResult[board.name]) {
         commandsResult[board.name] = [];
       }
@@ -141,19 +151,42 @@ function App() {
     });
 
     logger.testingView.log("Commands data processed");
-    setCommandsDataSource(commandsResult);
 
-    return { packets: packetsResult, commands: commandsResult };
+    return {
+      packets: packetsResult,
+      commands: commandsResult,
+      boards: availableBoards,
+    };
   }, [packets, commands]);
 
-  const boards = Object.keys(trasformedBoards);
+  useEffect(() => {
+    if (!transformedBoards.packets || !transformedBoards.commands) return;
+
+    setPacketsDataSource(transformedBoards.packets);
+    setCommandsDataSource(transformedBoards.commands);
+  }, [transformedBoards, setPacketsDataSource, setCommandsDataSource]);
+
+  const boards = Object.keys(transformedBoards);
 
   useEffect(() => {
-    logger.testingView.log("useFetchConfig / uploadableBoards", boards);
     logger.testingView.log("useFetchConfig / podDataStructure", packets);
     logger.testingView.log("useFetchConfig / orderStructures", commands);
-    logger.testingView.log("Transformed boards", trasformedBoards);
-  }, [boards, packets, commands, trasformedBoards]);
+    logger.testingView.log("Transformed / boards", transformedBoards.boards);
+    logger.testingView.log("Transformed boards", transformedBoards);
+  }, [boards, packets, commands, transformedBoards]);
+
+  const determineMode = () => {
+    const isDev = import.meta.env.DEV;
+    const isLoading = packetsLoading || commandsLoading;
+    const hasData = packets?.boards && commands?.boards;
+
+    if (isLoading) return "loading";
+    if (hasData) return "active";
+    if (isDev) return "mock";
+    return "error";
+  };
+
+  logger.testingView.log("determineMode", determineMode());
 
   return (
     <AppLayout>

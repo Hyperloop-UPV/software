@@ -2,18 +2,39 @@ package adj
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
 )
 
 const (
-	RepoUrl  = "https://github.com/HyperloopUPV-H8/adj.git" // URL of the ADJ repository
-	RepoPath = "./adj/"                                     // Path where the ADJ repository is cloned
+	RepoUrl = "https://github.com/HyperloopUPV-H8/adj.git" // URL of the ADJ repository
+	// RepoPath = "./adj/"                                     // Path where the ADJ repository is cloned
 )
+
+var RepoPath = getRepoPath()
+
+func getRepoPath() string {
+	// Use cache directory for ADJ (can be regenerated)
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		// This should never happen in practice, but handle it just in case
+		panic(fmt.Sprintf("Failed to get user cache directory: %v", err))
+	}
+
+	// Use same directory structure as trace files: control-station/adj/
+	adjDir := filepath.Join(cacheDir, "hyperloop-control-station", "adj")
+	absPath, err := filepath.Abs(adjDir)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to resolve ADJ path: %v", err))
+	}
+	return absPath + string(filepath.Separator)
+}
 
 func NewADJ(AdjBranch string, test bool) (ADJ, error) {
 	infoRaw, boardsRaw, err := downloadADJ(AdjBranch, test)
@@ -44,7 +65,7 @@ func NewADJ(AdjBranch string, test bool) (ADJ, error) {
 		return ADJ{}, err
 	}
 
-	boards, err := getBoards(boardsList)
+	boards, err := getBoards(RepoPath, boardsList)
 	if err != nil {
 		return ADJ{}, err
 	}
@@ -72,6 +93,8 @@ func NewADJ(AdjBranch string, test bool) (ADJ, error) {
 
 func downloadADJ(AdjBranch string, test bool) (json.RawMessage, json.RawMessage, error) {
 	updateRepo(AdjBranch)
+
+	fmt.Println("AD JSON RepoPath: ", RepoPath)
 
 	//Execute the testadj executable if indicated in config.toml
 	if test {
