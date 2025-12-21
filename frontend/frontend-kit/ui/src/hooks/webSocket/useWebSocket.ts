@@ -1,14 +1,27 @@
-import { logger, observe, onTopic, post } from "@workspace/core";
-import { subscribe } from "diagnostics_channel";
+import { logger, onTopic, post } from "@workspace/core";
+import { useCallback, useEffect, useState } from "react";
 
 export const useWebSocket = () => {
-  post("podData/update", { subscribe: true });
+  const [backendConnected, setBackendConnected] = useState(false);
 
-  // Subscribe
-  onTopic("podData/update").subscribe((data) =>
-    logger.ui.log("Proccesing podData/update", data),
-  );
+  const setupSubscriptions = useCallback(() => {
+    post("podData/update", { subscribe: true });
 
-  // Send
-  post("logger/enable", false);
+    const subscription = onTopic("podData/update").subscribe((data) =>
+      logger.ui.log("Processing podData/update", data),
+    );
+
+    setBackendConnected(true);
+
+    return subscription;
+  }, []);
+
+  useEffect(() => {
+    const subscription = setupSubscriptions();
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [setupSubscriptions]);
+
+  return { backendConnected };
 };
