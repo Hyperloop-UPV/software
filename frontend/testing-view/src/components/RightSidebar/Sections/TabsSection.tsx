@@ -54,44 +54,30 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
         {/* Split view - both tabs side by side */}
         <ResizablePanelGroup direction="horizontal" className="flex-1">
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="flex h-full flex-col">
-              <div className="border-b p-2">
-                <span className="text-foreground text-sm font-semibold">
-                  Packets
-                </span>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                <Tab
-                  title="Packets"
-                  scope="packets"
-                  categories={BOARD_NAMES}
-                  ItemComponent={(props) => (
-                    <PacketItem item={props.item as Packet} />
-                  )}
-                />
-              </div>
+            <div className="flex h-full flex-1 flex-col overflow-y-auto p-4">
+              <Tab
+                title="Packets"
+                scope="packets"
+                categories={BOARD_NAMES}
+                ItemComponent={(props) => (
+                  <PacketItem item={props.item as Packet} />
+                )}
+              />
             </div>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="flex h-full flex-col">
-              <div className="border-b p-2">
-                <span className="text-foreground text-sm font-semibold">
-                  Commands
-                </span>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                <Tab
-                  title="Commands"
-                  scope="commands"
-                  categories={BOARD_NAMES}
-                  ItemComponent={(props) => (
-                    <CommandItem item={props.item as Command} />
-                  )}
-                />
-              </div>
+            <div className="flex h-full flex-1 flex-col overflow-y-auto p-4">
+              <Tab
+                title="Commands"
+                scope="commands"
+                categories={BOARD_NAMES}
+                ItemComponent={(props) => (
+                  <CommandItem item={props.item as Command} />
+                )}
+              />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -103,7 +89,7 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
     <Tabs
       value={activeTab}
       onValueChange={(value) => setActiveTab(value as SidebarTab)}
-      className="flex h-full flex-col"
+      className="flex flex-1 flex-col overflow-y-auto"
     >
       <TabsList className="flex w-full rounded-none">
         <Button onClick={onCollapse} variant="ghost" size="sm">
