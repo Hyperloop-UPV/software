@@ -98,6 +98,7 @@ function App() {
 
   const setPackets = useStore((s) => s.setPackets);
   const setCommands = useStore((s) => s.setCommands);
+  const initializeTabFilters = useStore((s) => s.initializeTabFilters);
 
   const transformedBoards = useMemo(() => {
     if (!packets?.boards || !commands?.boards) {
@@ -160,6 +161,7 @@ function App() {
 
     setPackets(transformedBoards.packets);
     setCommands(transformedBoards.commands);
+    initializeTabFilters();
   }, [transformedBoards]);
 
   const boards = Object.keys(transformedBoards);

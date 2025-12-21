@@ -1,7 +1,6 @@
 import { type ComponentType } from "react";
 import { Button } from "@workspace/ui";
 import { useStore } from "../../../store/store";
-import type { FilterScope } from "../../../store/slices/workspacesSlice";
 import type { SidebarTab } from "../../../types/SidebarTab";
 import type { BoardName } from "../../../types/BoardName";
 import type { Item } from "../../../types/Item";
@@ -24,7 +23,7 @@ export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
   const workspaceId = useStore((state) => state.getActiveWorkspaceId());
   if (!workspaceId) return null;
 
-  const filter = tabFilters[workspaceId][scope];
+  const filter = tabFilters[workspaceId]?.[scope];
   if (!filter) return null;
 
   const selectedCommandIds = Object.values(filter).flat();
