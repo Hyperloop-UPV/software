@@ -17,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { useStore } from "../store/store";
-import { WorkspaceFilterController } from "../components/RightSidebar/FilterController";
+import { WorkspaceFilterController } from "../components/RightSidebar/Filters/FilterController";
 
 // Mock data with different value ranges
 const mockData1 = [

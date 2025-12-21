@@ -1,6 +1,6 @@
 import { Badge } from "@workspace/ui";
-import type { Variable } from "../../../types/Packet";
-import { getTypeBadgeClass } from "../../../lib/utils";
+import type { Variable } from "../../../../types/Packet";
+import { getTypeBadgeClass } from "../../../../lib/utils";
 import { cn } from "@workspace/ui/lib";
 
 interface VariableItemProps {

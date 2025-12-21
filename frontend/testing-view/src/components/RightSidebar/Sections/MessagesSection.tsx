@@ -1,5 +1,5 @@
 import { Button } from "@workspace/ui";
-import { MessagesList } from "../MessagesList";
+import { MessagesList } from "./MessagesList";
 import { ChevronUp } from "@workspace/ui/icons";
 
 const MessagesSection = ({ onCollapse }: { onCollapse: () => void }) => (
