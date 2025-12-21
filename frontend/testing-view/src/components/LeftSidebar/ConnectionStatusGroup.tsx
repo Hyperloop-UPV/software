@@ -19,7 +19,7 @@ const ConnectionStatusGroup = ({
   backendConnected,
 }: ConnectionStatusGroupProps) => {
   return (
-    <SidebarGroup>
+    <SidebarGroup className="p-0">
       <SidebarGroupLabel>Connections</SidebarGroupLabel>
       <SidebarMenu>
         <SidebarMenuItem>

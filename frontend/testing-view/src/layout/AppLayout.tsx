@@ -1,7 +1,7 @@
 import { cn } from "@workspace/ui/lib";
 import React from "react";
-import Footer from "./Footer";
-import AppSidebar from "./AppSidebar";
+import Footer from "../components/Footer";
+import AppSidebar from "../components/LeftSidebar/AppSidebar";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
 import Header from "../components/Header/Header";
 import { useStore } from "../store/store";
