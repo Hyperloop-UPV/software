@@ -9,9 +9,10 @@ import { useEffect, useMemo } from "react";
 import { logger } from "@workspace/core";
 import type { Packet } from "./types/Packet";
 import type { Command } from "./types/Command";
-import { usePacketsFilterStore } from "./store/usePacketsFilterStore";
-import { useCommandsFilterStore } from "./store/useCommandsFilterStore";
 import type { BoardName } from "./types/BoardName";
+import { useStore } from "./store/store";
+import { MOCK_PACKETS } from "./mocks/packets";
+import { MOCK_COMMANDS } from "./mocks/commands";
 
 // count: 0
 // cycleTime: 0
@@ -95,22 +96,17 @@ function App() {
   const { data: commands, loading: commandsLoading } =
     useFetchConfig<OrdersData>("orderStructures");
 
-  const setPacketsDataSource = usePacketsFilterStore(
-    (state) => state.setDataSource,
-  );
-  const setCommandsDataSource = useCommandsFilterStore(
-    (state) => state.setDataSource,
-  );
+  const setPackets = useStore((s) => s.setPackets);
+  const setCommands = useStore((s) => s.setCommands);
 
   const transformedBoards = useMemo(() => {
-    if (!packets?.boards) {
-      logger.testingView.error("No packets found");
-      return {};
-    }
-
-    if (!commands?.boards) {
-      logger.testingView.error("No commands found");
-      return {};
+    if (!packets?.boards || !commands?.boards) {
+      logger.testingView.error("No packets or commands found");
+      return {
+        packets: MOCK_PACKETS,
+        commands: MOCK_COMMANDS,
+        boards: new Set(),
+      };
     }
 
     logger.testingView.log("Both packets and commands found");
@@ -162,9 +158,9 @@ function App() {
   useEffect(() => {
     if (!transformedBoards.packets || !transformedBoards.commands) return;
 
-    setPacketsDataSource(transformedBoards.packets);
-    setCommandsDataSource(transformedBoards.commands);
-  }, [transformedBoards, setPacketsDataSource, setCommandsDataSource]);
+    setPackets(transformedBoards.packets);
+    setCommands(transformedBoards.commands);
+  }, [transformedBoards]);
 
   const boards = Object.keys(transformedBoards);
 

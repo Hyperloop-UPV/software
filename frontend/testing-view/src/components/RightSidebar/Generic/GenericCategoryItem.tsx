@@ -7,26 +7,38 @@ import {
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 import type { BoardName } from "../../../types/BoardName";
 import type { Item } from "../../../types/Item";
+import useFilterableData from "../../../hooks/useFilterableData";
+import type { StoreApi } from "zustand";
+import type { UseBoundStore } from "zustand";
+import type { CatalogStore } from "../../../store/useCommandsCatalogStore";
+import type { FilterableStoreProps } from "../../../store/createFilterableStore";
 
-interface GenericCategoryItemProps<T> {
+interface GenericCategoryItemProps {
   category: BoardName;
-  items: T[];
-  ItemComponent: ComponentType<{ item: T }>;
-  isExpanded: boolean;
-  onToggleExpanded: () => void;
+  useCatalogStore: UseBoundStore<StoreApi<CatalogStore>>;
+  useFilterStore: UseBoundStore<StoreApi<FilterableStoreProps>>;
+  ItemComponent: ComponentType<{ item: Item }>;
 }
 
-export const GenericCategoryItem = <T extends Item>({
+export const GenericCategoryItem = ({
   category,
-  items,
+  useCatalogStore,
+  useFilterStore,
   ItemComponent,
-  isExpanded,
-  onToggleExpanded,
-}: GenericCategoryItemProps<T>) => {
+}: GenericCategoryItemProps) => {
+  const { filteredItems } = useFilterableData(useCatalogStore, useFilterStore);
+  const { isItemExpanded, toggleExpandedItem } = useFilterStore();
+
+  const isExpanded = isItemExpanded(category);
+  const items = filteredItems[category];
+
   return (
     <>
       {items.length > 0 && (
-        <Collapsible open={isExpanded} onOpenChange={onToggleExpanded}>
+        <Collapsible
+          open={isExpanded}
+          onOpenChange={() => toggleExpandedItem(category)}
+        >
           <div className="bg-card hover:border-primary/50 overflow-hidden rounded-lg border transition-colors">
             <CollapsibleTrigger className="hover:bg-accent/50 flex w-full items-center justify-between px-3 py-2.5 transition-colors">
               <span className="text-foreground font-semibold">

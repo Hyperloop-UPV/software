@@ -15,12 +15,13 @@ import {
   Plus,
 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
-import { useWorkspacesStore } from "../../store/useWorkspacesStore";
+import { useStore } from "../../store/store";
 
 const TabSwitcher = () => {
   const { isMobile } = useSidebar();
-  const { activeWorkspace, setActiveWorkspace, workspaces } =
-    useWorkspacesStore();
+  const activeWorkspace = useStore((s) => s.activeWorkspace);
+  const setActiveWorkspace = useStore((s) => s.setActiveWorkspace);
+  const workspaces = useStore((s) => s.workspaces);
 
   if (!activeWorkspace) {
     return null;

@@ -1,17 +1,11 @@
 import {
-  Button,
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-  Skeleton,
 } from "@workspace/ui";
 import { useEffect, useRef, useState } from "react";
-import { useWorkspacesStore } from "../store/useWorkspacesStore";
 
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
-import { PacketsFilterDialog } from "../components/RightSidebar/Packets/PacketsFilterDialog";
-import { CommandsFilterDialog } from "../components/RightSidebar/Commands/CommandsFilterDialog";
-import { ChevronLeft } from "@workspace/ui/icons";
 import {
   CartesianGrid,
   Legend,
@@ -22,7 +16,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { cn } from "@workspace/ui/lib";
+import { useStore } from "../store/store";
+import { WorkspaceFilterController } from "../components/RightSidebar/FilterController";
 
 // Mock data with different value ranges
 const mockData1 = [
@@ -314,7 +309,7 @@ const Chart = ({
 };
 
 export const Testing = () => {
-  const { activeWorkspace } = useWorkspacesStore();
+  const activeWorkspace = useStore((s) => s.activeWorkspace);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [chartColumns, setChartColumns] = useState(1);
   const [isChangingColumns, setIsChangingColumns] = useState(false);
@@ -333,9 +328,7 @@ export const Testing = () => {
 
   return (
     <>
-      <CommandsFilterDialog />
-
-      <PacketsFilterDialog />
+      <WorkspaceFilterController />
 
       {/* Main Layout */}
       <div className="relative h-full w-full">
@@ -344,7 +337,7 @@ export const Testing = () => {
             defaultSize={isSidebarVisible ? 60 : 100}
             minSize={30}
           >
-            <div className="relative flex h-full flex-col items-center overflow-y-auto">
+            {/* <div className="relative flex h-full flex-col items-center overflow-y-auto">
               <div className="bg-background p-sm sticky top-0 z-10 flex w-full justify-end gap-2">
                 <Button
                   onClick={() => handleChartColumnsChange(1)}
@@ -393,13 +386,9 @@ export const Testing = () => {
                         dataKeys={chart.dataKeys}
                       />
                     ))}
-                {/* {isChangingColumns && (
-                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <Spinner className="size-20" />
-                  </div>
-                )} */}
+                
               </div>
-            </div>
+            </div> */}
           </ResizablePanel>
 
           {isSidebarVisible && (

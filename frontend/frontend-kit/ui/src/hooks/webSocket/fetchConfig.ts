@@ -16,7 +16,6 @@ export function useFetchConfig<T>(endpoint: string) {
       .then((res) => res.json())
       .then((data) => {
         setData(data);
-        setLoading(false);
       })
       .catch((err) => {
         if (err.name === "AbortError") logger.ui.warn("Fetching aborted");

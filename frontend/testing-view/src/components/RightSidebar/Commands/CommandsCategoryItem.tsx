@@ -1,8 +1,10 @@
-import { useCommandsFilterStore } from "../../../store/useCommandsFilterStore";
-import { MOCK_COMMANDS } from "../../../mocks/commands";
 import { GenericCategoryItem } from "../Generic/GenericCategoryItem";
 import { CommandItem } from "./CommandItem";
 import type { BoardName } from "../../../types/BoardName";
+// TODO: This component needs to be refactored to use the new store
+// For now, commenting out to prevent errors
+// import { useCommandsCatalogStore } from "../../../store/useCommandsCatalogStore";
+// import { useCommandsFilterStore } from "../../../store/useCommandsFilterStore";
 
 interface CommandsCategoryItemProps {
   category: BoardName;
@@ -11,27 +13,14 @@ interface CommandsCategoryItemProps {
 export const CommandsCategoryItem = ({
   category,
 }: CommandsCategoryItemProps) => {
-  const {
-    toggleExpandedItem,
-    getSelectedByCategory,
-    isItemExpanded,
-    getItemsByCategory,
-  } = useCommandsFilterStore();
-
-  const visibleCommandIds = getSelectedByCategory(category);
-  const allCommands = getItemsByCategory(category);
-
-  const selectedCommands = allCommands.filter((cmd) =>
-    visibleCommandIds.includes(cmd.id),
-  );
-
-  return (
-    <GenericCategoryItem
-      category={category}
-      items={selectedCommands}
-      ItemComponent={CommandItem}
-      isExpanded={isItemExpanded(category)}
-      onToggleExpanded={() => toggleExpandedItem(category)}
-    />
-  );
+  // TODO: Refactor to use new store
+  return null; // Temporary - needs refactoring
+  // return (
+  //   <GenericCategoryItem
+  //     category={category}
+  //     useCatalogStore={useCommandsCatalogStore}
+  //     useFilterStore={useCommandsFilterStore}
+  //     ItemComponent={CommandItem}
+  //   />
+  // );
 };
