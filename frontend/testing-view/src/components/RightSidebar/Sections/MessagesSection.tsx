@@ -1,16 +1,12 @@
 import { Button } from "@workspace/ui";
 import { MessagesList } from "./MessagesList";
-import { ChevronUp } from "@workspace/ui/icons";
 
-const MessagesSection = ({ onCollapse }: { onCollapse: () => void }) => (
+const MessagesSection = () => (
   <div className="flex h-full flex-1 flex-col">
     <div className="flex items-center justify-between border-b p-2">
-      <div className="flex items-center justify-center">
-        <Button onClick={onCollapse} variant="ghost" size="sm">
-          <ChevronUp className="text-foreground h-4 w-4" />
-        </Button>
-        <span className="text-foreground text-sm font-semibold">Messages</span>
-      </div>
+      <span className="text-foreground px-2 text-sm font-semibold">
+        Messages
+      </span>
       <Button variant="ghost" size="sm" className="h-6 text-xs">
         Clear
       </Button>

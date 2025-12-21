@@ -33,7 +33,7 @@ const AppSidebar = ({ backendConnected, ...props }: AppSidebarProps) => {
         <ThemeToggleItem />
         <SettingsItem />
       </SidebarFooter>
-      <SidebarRail />
+      <SidebarRail className="cursor-pointer!" />
     </Sidebar>
   );
 };
