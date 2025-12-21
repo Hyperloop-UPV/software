@@ -3,20 +3,18 @@ import { Button } from "@workspace/ui";
 import { useStore } from "../../../store/store";
 import type { FilterScope } from "../../../store/slices/workspacesSlice";
 import type { SidebarTab } from "../../../types/SidebarTab";
+import type { BoardName } from "../../../types/BoardName";
+import type { Item } from "../../../types/Item";
+import { CategoryItem } from "./CategoryItem";
 
-interface GenericTabProps<TCategory extends string> {
+interface TabProps {
   title: string;
   scope: SidebarTab;
-  categories: readonly TCategory[];
-  CategoryComponent: ComponentType<{ category: TCategory }>;
+  categories: readonly BoardName[];
+  ItemComponent: ComponentType<{ item: Item }>;
 }
 
-export const GenericTab = <TCategory extends string>({
-  title,
-  scope,
-  categories,
-  CategoryComponent,
-}: GenericTabProps<TCategory>) => {
+export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
   const openFilterDialog = useStore((state) => state.openFilterDialog);
   const items = useStore((state) => state[scope]);
 
@@ -51,7 +49,12 @@ export const GenericTab = <TCategory extends string>({
 
       <div className="space-y-1">
         {categories.map((category) => (
-          <CategoryComponent key={category} category={category} />
+          <CategoryItem
+            key={category}
+            category={category}
+            scope={scope}
+            ItemComponent={ItemComponent}
+          />
         ))}
       </div>
     </div>

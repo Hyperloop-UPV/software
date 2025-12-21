@@ -54,8 +54,8 @@ export interface WorkspacesSlice {
 
   // Expanded items (per workspace)
   expandedItems: Record<string, WorkspaceExpandedItems>;
-  isItemExpanded: (scope: FilterScope, itemId: number | string) => boolean;
-  toggleExpandedItem: (scope: FilterScope, itemId: number | string) => void;
+  isItemExpanded: (scope: SidebarTab, itemId: number | string) => boolean;
+  toggleExpandedItem: (scope: SidebarTab, itemId: number | string) => void;
 
   // Filter dialog
   filterDialog: {
@@ -237,7 +237,7 @@ export const createWorkspacesSlice: StateCreator<
     const activeWorkspaceId = get().getActiveWorkspaceId();
     if (!activeWorkspaceId) return false;
 
-    const expandedItems = get().expandedItems[activeWorkspaceId][scope];
+    const expandedItems = get().expandedItems[activeWorkspaceId]?.[scope];
     if (!expandedItems) return false;
 
     return expandedItems.has(itemId);
@@ -248,7 +248,7 @@ export const createWorkspacesSlice: StateCreator<
 
     set((state) => {
       const expandedItems =
-        state.expandedItems[activeWorkspaceId][scope] || new Set();
+        state.expandedItems[activeWorkspaceId]?.[scope] || new Set();
       const newExpandedItems = new Set(expandedItems);
 
       if (newExpandedItems.has(itemId)) {

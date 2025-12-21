@@ -9,7 +9,7 @@ import {
 } from "@workspace/ui";
 import type { BoardName } from "../../../types/BoardName";
 
-interface GenericFilterDialogProps {
+interface FilterDialogProps {
   title: string;
   description?: string;
   isOpen: boolean;
@@ -20,7 +20,7 @@ interface GenericFilterDialogProps {
   FilterCategoryComponent: ComponentType<{ category: BoardName }>;
 }
 
-export const GenericFilterDialog = ({
+export const FilterDialog = ({
   title,
   description,
   isOpen,
@@ -29,7 +29,7 @@ export const GenericFilterDialog = ({
   onSelectAll,
   categories,
   FilterCategoryComponent,
-}: GenericFilterDialogProps) => {
+}: FilterDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="min-w-2/5 max-h-full w-fit overflow-y-auto">
