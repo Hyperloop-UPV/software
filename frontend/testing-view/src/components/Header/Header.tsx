@@ -1,9 +1,9 @@
 import { Separator, SidebarTrigger } from "@workspace/ui";
 import { useLocation } from "react-router";
-import TabSwitcher from "../components/Header/TabSwitcher";
-import { ModeBadge } from "../components/Header/ModeBadge";
-import { PAGES } from "../constants/pages";
-import { ReconnectButton } from "../components/Header/ReconnectButton";
+import TabSwitcher from "./TabSwitcher";
+import { ModeBadge } from "./ModeBadge";
+import { PAGES } from "../../constants/pages";
+import { ReconnectButton } from "./ReconnectButton";
 
 const Header = () => {
   const location = useLocation();

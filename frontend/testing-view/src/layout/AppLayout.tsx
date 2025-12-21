@@ -3,7 +3,7 @@ import React from "react";
 import Footer from "./Footer";
 import AppSidebar from "./AppSidebar";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
-import Header from "./Header";
+import Header from "../components/Header/Header";
 import { useStore } from "../store/store";
 
 interface AppLayoutProps {

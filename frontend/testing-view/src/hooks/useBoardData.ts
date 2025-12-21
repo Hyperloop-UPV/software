@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { logger } from "@workspace/core";
-import { useStore } from "../store/store";
 import { MOCK_PACKETS } from "../mocks/packets";
 import { MOCK_COMMANDS } from "../mocks/commands";
 import { formatName } from "../lib/utils";

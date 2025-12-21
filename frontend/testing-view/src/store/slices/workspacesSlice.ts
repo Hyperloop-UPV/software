@@ -11,12 +11,11 @@ import {
 } from "../../lib/utils";
 import type { Item } from "../../types/Item";
 import type { Store } from "../store";
-import { logger } from "@workspace/core";
-
-export type FilterScope = SidebarTab | "logs";
-
-export type WorkspaceFilters = Record<FilterScope, TabFilter>;
-export type WorkspaceExpandedItems = Record<FilterScope, Set<number | string>>;
+import type {
+  FilterScope,
+  WorkspaceExpandedItems,
+  WorkspaceFilters,
+} from "../../types/Workspaces";
 
 export interface WorkspacesSlice {
   // Workspaces
