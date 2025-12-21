@@ -8,7 +8,7 @@ import {
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 import { useStore } from "../../store/store";
 import type { BoardName } from "../../types/BoardName";
-import { GenericFilterItem } from "./Generic/GenericFilterItem";
+import { FilterItem } from "./Generic/FilterItem";
 
 export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -80,7 +80,7 @@ export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
           <CollapsibleContent>
             <div className="space-y-1 p-2">
               {items.map((item) => (
-                <GenericFilterItem
+                <FilterItem
                   key={item.id}
                   item={item}
                   isChecked={selectedIds.includes(item.id)}

@@ -8,11 +8,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui";
-import PacketsTab from "../Packets/PacketsTab";
 import { ChevronUp, X } from "@workspace/ui/icons";
-import { CommandsTab } from "../Commands/CommandsTab";
 import type { SidebarTab } from "../../../types/SidebarTab";
 import { useStore } from "../../../store/store";
+import { BOARD_NAMES } from "../../../constants/boards";
+import { Tab } from "../Generic/Tab";
+import { CommandItem } from "../Commands/CommandItem";
+import { PacketItem } from "../Packets/PacketItem";
 
 interface TabsSectionProps {
   onCollapse: () => void;
@@ -57,7 +59,12 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
                 </span>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
-                <PacketsTab />
+                <Tab
+                  title="Packets"
+                  scope="packets"
+                  categories={BOARD_NAMES}
+                  ItemComponent={PacketItem}
+                />
               </div>
             </div>
           </ResizablePanel>
@@ -72,7 +79,12 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
                 </span>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
-                <CommandsTab />
+                <Tab
+                  title="Commands"
+                  scope="commands"
+                  categories={BOARD_NAMES}
+                  ItemComponent={CommandItem}
+                />
               </div>
             </div>
           </ResizablePanel>
@@ -104,11 +116,21 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
       </TabsList>
 
       <TabsContent value="packets" className="mt-0 flex-1 overflow-y-auto p-4">
-        <PacketsTab />
+        <Tab
+          title="Packets"
+          scope="packets"
+          categories={BOARD_NAMES}
+          ItemComponent={PacketItem}
+        />
       </TabsContent>
 
       <TabsContent value="commands" className="mt-0 flex-1 overflow-y-auto p-4">
-        <CommandsTab />
+        <Tab
+          title="Commands"
+          scope="commands"
+          categories={BOARD_NAMES}
+          ItemComponent={CommandItem}
+        />
       </TabsContent>
     </Tabs>
   );

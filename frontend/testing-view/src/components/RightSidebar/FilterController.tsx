@@ -1,7 +1,7 @@
 import { BOARD_NAMES } from "../../constants/boards";
 import { useStore } from "../../store/store";
 import { FilterCategoryItem } from "./FilterCategoryItem";
-import { GenericFilterDialog } from "./Generic/GenericFilterDialog";
+import { FilterDialog } from "./Generic/FilterDialog";
 
 export const WorkspaceFilterController = () => {
   const { isOpen, scope } = useStore((s) => s.filterDialog);
@@ -13,7 +13,7 @@ export const WorkspaceFilterController = () => {
   const onSelectAll = () => useStore.getState().selectAllFilters(scope);
 
   return (
-    <GenericFilterDialog
+    <FilterDialog
       title={`Filter ${scope === "commands" ? "Commands" : "Packets"}`}
       isOpen={isOpen}
       onClose={close}
