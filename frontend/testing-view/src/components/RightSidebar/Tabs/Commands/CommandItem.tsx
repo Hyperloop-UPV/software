@@ -9,9 +9,9 @@ import type {
   Command,
   CommandParameter,
   CommandParameters,
-} from "../../../types/Command";
+} from "../../../../types/Command";
 import { cn } from "@workspace/ui/lib";
-import { useStore } from "../../../store/store";
+import { useStore } from "../../../../store/store";
 
 interface CommandItemProps {
   item: Command;

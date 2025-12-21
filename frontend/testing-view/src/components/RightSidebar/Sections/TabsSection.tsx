@@ -12,9 +12,9 @@ import { ChevronUp, X } from "@workspace/ui/icons";
 import type { SidebarTab } from "../../../types/SidebarTab";
 import { useStore } from "../../../store/store";
 import { BOARD_NAMES } from "../../../constants/boards";
-import { Tab } from "../Generic/Tab";
-import { CommandItem } from "../Commands/CommandItem";
-import { PacketItem } from "../Packets/PacketItem";
+import { Tab } from "../Tabs/Tab";
+import { CommandItem } from "../Tabs/Commands/CommandItem";
+import { PacketItem } from "../Tabs/Packets/PacketItem";
 import type { Packet } from "../../../types/Packet";
 import type { Command } from "../../../types/Command";
 

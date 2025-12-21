@@ -1,7 +1,7 @@
-import { BOARD_NAMES } from "../../constants/boards";
-import { useStore } from "../../store/store";
+import { BOARD_NAMES } from "../../../constants/boards";
+import { useStore } from "../../../store/store";
 import { FilterCategoryItem } from "./FilterCategoryItem";
-import { FilterDialog } from "./Generic/FilterDialog";
+import { FilterDialog } from "./FilterDialog";
 
 export const WorkspaceFilterController = () => {
   const { isOpen, scope } = useStore((s) => s.filterDialog);

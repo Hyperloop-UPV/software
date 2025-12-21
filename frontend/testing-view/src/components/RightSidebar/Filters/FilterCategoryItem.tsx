@@ -6,9 +6,9 @@ import {
   CollapsibleTrigger,
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
-import { useStore } from "../../store/store";
-import type { BoardName } from "../../types/BoardName";
-import { FilterItem } from "./Generic/FilterItem";
+import { useStore } from "../../../store/store";
+import type { BoardName } from "../../../types/BoardName";
+import { FilterItem } from "./FilterItem";
 
 export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -21,23 +21,6 @@ export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
 
   const toggleCategoryFilter = useStore((s) => s.toggleCategoryFilter);
   const toggleItemFilter = useStore((s) => s.toggleItemFilter);
-
-  //   const selectedIds = useStore((s) => {
-  //     if (!workspaceId || !scope) return [];
-  //     const filters = s.tabFilters[workspaceId][scope];
-  //     if (!filters) return [];
-  //     return filters[category];
-  //   });
-  //   const catalogItems = useStore((s) => s[dialogScope]);
-  //   const items = catalogItems[category];
-  //   const totalItems = items.length;
-  //   const toggleCategory = useStore((s) => s.toggleCategoryFilter);
-  //   const toggleItem = useStore((s) => s.toggleItemFilter);
-  //   const isItemExpanded = useStore((s) => s.isItemExpanded);
-  //   const isAllSelected = selectedIds.length === totalItems && totalItems > 0;
-  //   const isIndeterminate =
-  //     selectedIds.length > 0 && selectedIds.length < totalItems;
-  //   if (totalItems === 0) return null;
 
   const catalogItems = useStore((s) => s[dialogScope]);
   const items = catalogItems[category];

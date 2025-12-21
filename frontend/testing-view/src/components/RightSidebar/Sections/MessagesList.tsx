@@ -1,5 +1,7 @@
-import { MOCK_MESSAGES } from "../../mocks/messages";
+import { MOCK_MESSAGES } from "../../../mocks/messages";
 
+// TODO: implement real messages list
+// and remove these ugly styles
 export const MessagesList = () => {
   return (
     <div className="shrink-0 border-t">
