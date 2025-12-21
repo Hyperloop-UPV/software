@@ -1,3 +1,4 @@
+import { acronyms } from "../constants/acronyms";
 import { BOARD_NAMES } from "../constants/boards";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
 import type {
@@ -69,4 +70,30 @@ export const getTypeBadgeClass = (type: string) => {
     default:
       return "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30";
   }
+};
+
+export const formatName = (name: string): string => {
+  const withoutParentheses = name.replace(/[()]/g, "");
+
+  // Remove common board prefixes
+  const withoutPrefix = withoutParentheses
+    .replace(/(bcu|pcu|lcu|hvscu|bmsl|vcu)_/, "")
+    .replace(/hvscu_cabinet_/, "");
+
+  // Split by underscore and capitalize each word
+  const words = withoutPrefix.split(/[_ ]+/);
+
+  const formatted = words
+    .map((word) => {
+      const upperWord = word.toUpperCase();
+      // Check if word is an acronym
+      if (acronyms.includes(upperWord)) {
+        return upperWord;
+      }
+      // Capitalize first letter, lowercase the rest
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+
+  return formatted;
 };
