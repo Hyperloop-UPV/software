@@ -15,6 +15,8 @@ import { BOARD_NAMES } from "../../../constants/boards";
 import { Tab } from "../Generic/Tab";
 import { CommandItem } from "../Commands/CommandItem";
 import { PacketItem } from "../Packets/PacketItem";
+import type { Packet } from "../../../types/Packet";
+import type { Command } from "../../../types/Command";
 
 interface TabsSectionProps {
   onCollapse: () => void;
@@ -63,7 +65,9 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
                   title="Packets"
                   scope="packets"
                   categories={BOARD_NAMES}
-                  ItemComponent={PacketItem}
+                  ItemComponent={(props) => (
+                    <PacketItem item={props.item as Packet} />
+                  )}
                 />
               </div>
             </div>
@@ -83,7 +87,9 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
                   title="Commands"
                   scope="commands"
                   categories={BOARD_NAMES}
-                  ItemComponent={CommandItem}
+                  ItemComponent={(props) => (
+                    <CommandItem item={props.item as Command} />
+                  )}
                 />
               </div>
             </div>
@@ -120,7 +126,7 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
           title="Packets"
           scope="packets"
           categories={BOARD_NAMES}
-          ItemComponent={PacketItem}
+          ItemComponent={(props) => <PacketItem item={props.item as Packet} />}
         />
       </TabsContent>
 
@@ -129,7 +135,9 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
           title="Commands"
           scope="commands"
           categories={BOARD_NAMES}
-          ItemComponent={CommandItem}
+          ItemComponent={(props) => (
+            <CommandItem item={props.item as Command} />
+          )}
         />
       </TabsContent>
     </Tabs>

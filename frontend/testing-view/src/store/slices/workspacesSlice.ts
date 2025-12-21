@@ -11,6 +11,7 @@ import {
 } from "../../lib/utils";
 import type { Item } from "../../types/Item";
 import type { Store } from "../store";
+import { logger } from "@workspace/core";
 
 export type FilterScope = SidebarTab | "logs";
 
@@ -33,6 +34,7 @@ export interface WorkspacesSlice {
 
   // Filters (per workspace)
   tabFilters: Record<string, WorkspaceFilters>;
+  initializeTabFilters: () => void;
   updateFilters: (scope: FilterScope, filters: TabFilter) => void;
   getSelected: (scope: FilterScope) => number[];
   getSelectedByCategory: (scope: FilterScope, category: BoardName) => number[];
@@ -124,11 +126,19 @@ export const createWorkspacesSlice: StateCreator<
   },
 
   // Filters (per workspace)
-  tabFilters: generateInitialFilters({
-    commands: createEmptyFilter(),
-    packets: createEmptyFilter(),
-    logs: createEmptyFilter(),
-  }),
+  tabFilters: {},
+  initializeTabFilters: () => {
+    const commands = get().commands;
+    const packets = get().packets;
+
+    set({
+      tabFilters: generateInitialFilters({
+        commands: createFullFilter(commands),
+        packets: createFullFilter(packets),
+        logs: createFullFilter(packets),
+      }),
+    });
+  },
   updateFilters: (scope, filters) => {
     const workspaceId = get().getActiveWorkspaceId();
     if (!workspaceId) return;
