@@ -15,13 +15,13 @@ const Header = () => {
       <SidebarTrigger className="text-foreground -ml-1" />
       <Separator
         orientation="vertical"
-        className="text-foreground mr-2 data-[orientation=vertical]:h-4"
+        className="text-foreground mx-1 data-[orientation=vertical]:h-4"
       />
       <ModeBadge />
       <ReconnectButton />
       <Separator
         orientation="vertical"
-        className="text-foreground mr-2 data-[orientation=vertical]:h-4"
+        className="text-foreground mx-1 data-[orientation=vertical]:h-4"
       />
       <h1 className="text-foreground text-xl font-bold">{pageTitle}</h1>
       <div className="ml-auto flex items-center gap-2">
