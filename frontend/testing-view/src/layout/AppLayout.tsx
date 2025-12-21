@@ -4,16 +4,16 @@ import Footer from "./Footer";
 import AppSidebar from "./AppSidebar";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
 import Header from "./Header";
-import { useDarkModeStore } from "@workspace/ui/store";
-import { useColorSchemeStore } from "../store/useColorSchemeStore";
+import { useStore } from "../store/store";
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  backendConnected: boolean;
 }
 
-export const AppLayout = ({ children }: AppLayoutProps) => {
-  const isDarkMode = useDarkModeStore((s) => s.isDarkMode);
-  const colorScheme = useColorSchemeStore((s) => s.colorScheme);
+export const AppLayout = ({ children, backendConnected }: AppLayoutProps) => {
+  const colorScheme = useStore((s) => s.colorScheme);
+  const isDarkMode = useStore((s) => s.isDarkMode);
 
   return (
     <div className="h-full w-full [--header-height:calc(--spacing(14))]">
@@ -25,7 +25,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
             colorScheme,
           )}
         >
-          <AppSidebar />
+          <AppSidebar backendConnected={backendConnected} />
           <SidebarInset className="flex h-full flex-col">
             <Header />
             <div className="flex-1 overflow-auto">{children}</div>

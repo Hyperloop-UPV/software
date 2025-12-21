@@ -1,10 +1,10 @@
 import { SidebarMenuButton } from "@workspace/ui";
 import { SunMoon } from "@workspace/ui/icons";
-import { useDarkModeStore } from "@workspace/ui/store";
+import { useStore } from "../../store/store";
 
 const ThemeToggleItem = () => {
-  const toggleDarkMode = useDarkModeStore((s) => s.toggleDarkMode);
-  const isDarkMode = useDarkModeStore((s) => s.isDarkMode);
+  const toggleDarkMode = useStore((s) => s.toggleDarkMode);
+  const isDarkMode = useStore((s) => s.isDarkMode);
 
   const tooltip = isDarkMode ? "Enable Light Mode" : "Enable Dark Mode";
 

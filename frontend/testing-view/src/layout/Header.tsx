@@ -1,7 +1,9 @@
 import { Separator, SidebarTrigger } from "@workspace/ui";
 import { useLocation } from "react-router";
 import TabSwitcher from "../components/Header/TabSwitcher";
+import { ModeBadge } from "../components/Header/ModeBadge";
 import { PAGES } from "../constants/pages";
+import { ReconnectButton } from "../components/Header/ReconnectButton";
 
 const Header = () => {
   const location = useLocation();
@@ -15,16 +17,24 @@ const Header = () => {
         orientation="vertical"
         className="text-foreground mr-2 data-[orientation=vertical]:h-4"
       />
+      <ModeBadge />
+      <ReconnectButton />
+      <Separator
+        orientation="vertical"
+        className="text-foreground mr-2 data-[orientation=vertical]:h-4"
+      />
       <h1 className="text-foreground text-xl font-bold">{pageTitle}</h1>
-      {isTestingPage && (
-        <div className="ml-auto flex items-center gap-2">
-          <Separator
-            orientation="vertical"
-            className="data-[orientation=vertical]:h-4"
-          />
-          <TabSwitcher />
-        </div>
-      )}
+      <div className="ml-auto flex items-center gap-2">
+        {isTestingPage && (
+          <>
+            <Separator
+              orientation="vertical"
+              className="data-[orientation=vertical]:h-4"
+            />
+            <TabSwitcher />
+          </>
+        )}
+      </div>
     </header>
   );
 };

@@ -1,10 +1,10 @@
 import { SidebarMenuButton } from "@workspace/ui";
 import { Palette } from "@workspace/ui/icons";
-import { useColorSchemeStore } from "../../store/useColorSchemeStore";
+import { useStore } from "../../store/store";
 
 const ColorSchemeToggle = () => {
-  const colorScheme = useColorSchemeStore((s) => s.colorScheme);
-  const toggleColorScheme = useColorSchemeStore((s) => s.toggleColorScheme);
+  const colorScheme = useStore((s) => s.colorScheme);
+  const toggleColorScheme = useStore((s) => s.toggleColorScheme);
 
   const isPink = colorScheme === "pink";
   const tooltip = isPink ? "Switch to Default" : "Switch to Firmware";

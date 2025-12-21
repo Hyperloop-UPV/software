@@ -5,7 +5,7 @@ import { Route, Routes } from "react-router";
 import { Logs } from "./pages/Logs";
 import { CameraView } from "./pages/CameraView";
 import { useFetchConfig, useWebSocket } from "@workspace/ui/hooks";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { logger } from "@workspace/core";
 import type { Packet } from "./types/Packet";
 import type { Command } from "./types/Command";
@@ -89,7 +89,10 @@ function formatName(name: string): string {
 }
 
 function App() {
-  useWebSocket();
+  const { backendConnected } = useWebSocket();
+
+  const setAppMode = useStore((s) => s.setAppMode);
+  const appMode = useStore((s) => s.appMode);
 
   const { data: packets, loading: packetsLoading } =
     useFetchConfig<PacketsData>("podDataStructure");
@@ -101,7 +104,16 @@ function App() {
   const initializeTabFilters = useStore((s) => s.initializeTabFilters);
 
   const transformedBoards = useMemo(() => {
-    if (!packets?.boards || !commands?.boards) {
+    if (!packets?.boards || !commands?.boards || appMode === "mock") {
+      logger.testingView.error("No packets or commands found");
+      return {
+        packets: MOCK_PACKETS,
+        commands: MOCK_COMMANDS,
+        boards: new Set(),
+      };
+    }
+
+    if (appMode === "error") {
       logger.testingView.error("No packets or commands found");
       return {
         packets: MOCK_PACKETS,
@@ -154,7 +166,7 @@ function App() {
       commands: commandsResult,
       boards: availableBoards,
     };
-  }, [packets, commands]);
+  }, [packets, commands, appMode]);
 
   useEffect(() => {
     if (!transformedBoards.packets || !transformedBoards.commands) return;
@@ -163,6 +175,25 @@ function App() {
     setCommands(transformedBoards.commands);
     initializeTabFilters();
   }, [transformedBoards]);
+
+  const determineAppMode = useCallback(() => {
+    const isDev = import.meta.env.DEV;
+    const isLoading = packetsLoading || commandsLoading;
+    const hasData = packets?.boards && commands?.boards;
+    const hasError = !hasData || !backendConnected;
+
+    if (isLoading) return "loading";
+    if (!hasError) return "active";
+    if (isDev) return "mock";
+    return "error";
+  }, [packetsLoading, commandsLoading, packets, commands, backendConnected]);
+
+  // Determine and set app mode
+  useEffect(() => {
+    const appMode = determineAppMode();
+    logger.testingView.log("App mode: ", appMode);
+    setAppMode(appMode);
+  }, [determineAppMode, setAppMode]);
 
   const boards = Object.keys(transformedBoards);
 
@@ -173,21 +204,8 @@ function App() {
     logger.testingView.log("Transformed boards", transformedBoards);
   }, [boards, packets, commands, transformedBoards]);
 
-  const determineMode = () => {
-    const isDev = import.meta.env.DEV;
-    const isLoading = packetsLoading || commandsLoading;
-    const hasData = packets?.boards && commands?.boards;
-
-    if (isLoading) return "loading";
-    if (hasData) return "active";
-    if (isDev) return "mock";
-    return "error";
-  };
-
-  logger.testingView.log("determineMode", determineMode());
-
   return (
-    <AppLayout>
+    <AppLayout backendConnected={backendConnected}>
       <Routes>
         <Route path="/" element={<Testing />} />
         <Route path="/logs" element={<Logs />} />

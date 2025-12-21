@@ -1,6 +1,7 @@
-import { webSocket } from "rxjs/webSocket";
-import { filter, map, tap } from "rxjs/operators";
+import { webSocket, WebSocketSubject } from "rxjs/webSocket";
+import { catchError, filter, map, share, tap } from "rxjs/operators";
 import { logger } from "./logger";
+import { throwError } from "rxjs";
 
 const BACKEND_URL = "ws://127.0.0.1:4000/backend";
 
@@ -11,8 +12,6 @@ const ws$ = webSocket({
   url: BACKEND_URL,
   deserializer: (e) => JSON.parse(e.data),
 });
-
-logger.core.log("WebSocket connected");
 
 export const observe = () =>
   ws$.pipe(
@@ -32,5 +31,3 @@ export const onTopic = (topic: string) =>
 export const post = (topic: string, payload: any) => {
   ws$.next({ topic, payload });
 };
-
-export { ws$ };
