@@ -1,16 +1,17 @@
 import {
+  Separator,
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarRail,
 } from "@workspace/ui/components";
-import NavigationGroup from "../components/LeftSidebar/NavigationGroup";
-import ConnectionStatusGroup from "../components/LeftSidebar/ConnectionStatusGroup";
-import SettingsItem from "../components/LeftSidebar/SettingsItem";
-import ThemeToggleItem from "../components/LeftSidebar/ThemeToggleItem";
-import { MOCK_CONNECTIONS } from "../mocks/connections";
-import { PAGES_ARRAY } from "../constants/pages";
-import ColorSchemeToggle from "../components/LeftSidebar/ColorSchemeToggle";
+import NavigationGroup from "./NavigationGroup";
+import ConnectionStatusGroup from "./ConnectionStatusGroup";
+import SettingsItem from "./SettingsItem";
+import ThemeToggleItem from "./ThemeToggleItem";
+import { MOCK_CONNECTIONS } from "../../mocks/connections";
+import { PAGES_ARRAY } from "../../constants/pages";
+import ColorSchemeToggle from "./ColorSchemeToggle";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   backendConnected: boolean;
@@ -21,12 +22,13 @@ const AppSidebar = ({ backendConnected, ...props }: AppSidebarProps) => {
     <Sidebar collapsible="icon" {...props}>
       <SidebarContent>
         <NavigationGroup items={PAGES_ARRAY} />
+      </SidebarContent>
+      <SidebarFooter>
         <ConnectionStatusGroup
           connections={MOCK_CONNECTIONS}
           backendConnected={backendConnected}
         />
-      </SidebarContent>
-      <SidebarFooter>
+        <div className="my-2" />
         <ColorSchemeToggle />
         <ThemeToggleItem />
         <SettingsItem />
