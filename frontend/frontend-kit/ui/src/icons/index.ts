@@ -11,4 +11,5 @@ export * from "./layout";
 export * from "./math";
 export * from "./photography";
 export * from "./science";
+export * from "./social";
 export * from "./text";

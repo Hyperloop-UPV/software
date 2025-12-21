@@ -9,13 +9,23 @@ import {
   type WorkspacesSlice,
 } from "./slices/workspacesSlice";
 import { createAppSlice, type AppSlice } from "./slices/appSlice";
+import {
+  createRightSidebarSlice,
+  type RightSidebarSlice,
+} from "./slices/rightSidebarSlice";
 
 export interface Store
-  extends AppSlice, CatalogSlice, WorkspacesSlice, TelemetrySlice {}
+  extends
+    AppSlice,
+    CatalogSlice,
+    WorkspacesSlice,
+    TelemetrySlice,
+    RightSidebarSlice {}
 
 export const useStore = create<Store>()((...a) => ({
   ...createAppSlice(...a),
   ...createCatalogSlice(...a),
   ...createWorkspacesSlice(...a),
   ...createTelemetrySlice(...a),
+  ...createRightSidebarSlice(...a),
 }));

@@ -19,23 +19,18 @@ import type { Packet } from "../../../types/Packet";
 import type { Command } from "../../../types/Command";
 
 interface TabsSectionProps {
-  onCollapse: () => void;
   onClose: () => void;
   isSplit: boolean;
 }
-
-const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
+const TabsSection = ({ onClose, isSplit }: TabsSectionProps) => {
   const activeTab = useStore((s) => s.getActiveTab());
   const setActiveTab = useStore((s) => s.setActiveTab);
 
   if (isSplit) {
     return (
       <div className="flex flex-1 flex-col overflow-y-auto">
-        {/* Header with collapse/close buttons */}
+        {/* Header with close button */}
         <div className="flex items-center border-b">
-          <Button onClick={onCollapse} variant="ghost" size="sm">
-            <ChevronUp className="text-foreground h-4 w-4" />
-          </Button>
           <div className="flex-1 text-center">
             <span className="text-foreground text-sm font-medium">
               Packets & Commands
@@ -92,19 +87,8 @@ const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
       className="flex flex-1 flex-col overflow-y-auto"
     >
       <TabsList className="flex w-full rounded-none">
-        <Button onClick={onCollapse} variant="ghost" size="sm">
-          <ChevronUp className="text-foreground h-4 w-4" />
-        </Button>
         <TabsTrigger value="packets">Packets</TabsTrigger>
         <TabsTrigger value="commands">Commands</TabsTrigger>
-        <Button
-          onClick={onClose}
-          variant="ghost"
-          size="icon"
-          className="ml-auto"
-        >
-          <X className="text-foreground h-3 w-3" />
-        </Button>
       </TabsList>
 
       <TabsContent value="packets" className="mt-0 flex-1 overflow-y-auto p-4">
