@@ -1,15 +1,18 @@
 import type { StateCreator } from "zustand";
-
-// Define your telemetry type here - for now using a generic structure
-// You can replace this with your actual telemetry type later
-export type TelemetryData = Record<string, unknown>;
+import type { Store } from "../store";
+import type { TelemetryData } from "../../types/Telemetry";
 
 export interface TelemetrySlice {
   telemetry: TelemetryData[];
   addTelemetry: (data: TelemetryData) => void;
 }
 
-export const createTelemetrySlice: StateCreator<TelemetrySlice> = (set) => ({
+export const createTelemetrySlice: StateCreator<
+  Store,
+  [],
+  [],
+  TelemetrySlice
+> = (set) => ({
   telemetry: [] as TelemetryData[],
   addTelemetry: (data) =>
     set((state) => ({

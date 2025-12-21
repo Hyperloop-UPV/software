@@ -1,10 +1,7 @@
 import { acronyms } from "../constants/acronyms";
 import { BOARD_NAMES } from "../constants/boards";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
-import type {
-  FilterScope,
-  WorkspaceFilters,
-} from "../store/slices/workspacesSlice";
+import type { FilterScope, WorkspaceFilters } from "../types/Workspaces";
 import type { BoardName } from "../types/BoardName";
 import type { Item } from "../types/Item";
 import type { TabFilter } from "../types/TabFilter";
