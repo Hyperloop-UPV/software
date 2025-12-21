@@ -14,12 +14,18 @@ const ws$ = webSocket({
 
 logger.core.log("WebSocket connected");
 
+export const observe = () =>
+  ws$.pipe(
+    map((msg: any) => msg.payload),
+    tap((msg: any) => logger.core.log(msg)),
+  );
+
 // Filter by topic
 export const onTopic = (topic: string) =>
   ws$.pipe(
     filter((msg: any) => msg.topic === topic),
     map((msg: any) => msg.payload),
-    tap((msg: any) => logger.core.log(msg)),
+    tap((msg: any) => logger.core.log("Received message ", topic, msg)),
   );
 
 // Send message

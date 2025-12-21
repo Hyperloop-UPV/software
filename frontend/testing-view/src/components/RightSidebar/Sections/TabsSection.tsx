@@ -11,8 +11,8 @@ import {
 import PacketsTab from "../Packets/PacketsTab";
 import { ChevronUp, X } from "@workspace/ui/icons";
 import { CommandsTab } from "../Commands/CommandsTab";
-import { useTabsStore } from "../../../store/useTabsStore";
 import type { SidebarTab } from "../../../types/SidebarTab";
+import { useStore } from "../../../store/store";
 
 interface TabsSectionProps {
   onCollapse: () => void;
@@ -21,8 +21,8 @@ interface TabsSectionProps {
 }
 
 const TabsSection = ({ onCollapse, onClose, isSplit }: TabsSectionProps) => {
-  const activeTab = useTabsStore((s) => s.getActiveTab());
-  const setActiveTab = useTabsStore((s) => s.setActiveTab);
+  const activeTab = useStore((s) => s.getActiveTab());
+  const setActiveTab = useStore((s) => s.setActiveTab);
 
   if (isSplit) {
     return (

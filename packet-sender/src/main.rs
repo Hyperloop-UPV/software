@@ -27,8 +27,8 @@ fn get_default_adj_path() -> PathBuf {
 #[command(about = "Hyperloop packet sender for testing backend and frontend", long_about = None)]
 struct Cli {
 
-    #[arg(short, long)]
     // Path to AD JSON directory
+    #[arg(short, long)]
     adj_path: Option<PathBuf>,
 
     /// Log level (trace, debug, info, warn, error)

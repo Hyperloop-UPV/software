@@ -1,18 +1,28 @@
 import { BOARD_NAMES } from "../constants/boards";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
+import type {
+  FilterScope,
+  WorkspaceFilters,
+} from "../store/slices/workspacesSlice";
 import type { BoardName } from "../types/BoardName";
 import type { Item } from "../types/Item";
 import type { TabFilter } from "../types/TabFilter";
 
+type InitialFilters = Record<FilterScope, TabFilter>;
+
 export const generateInitialFilters = (
-  defaultIds: TabFilter,
-): Record<string, TabFilter> => {
+  filters: InitialFilters,
+): Record<string, WorkspaceFilters> => {
   return DEFAULT_WORKSPACES.reduce(
     (acc, workspace) => {
-      acc[workspace.id] = defaultIds;
+      acc[workspace.id] = {
+        commands: filters.commands,
+        packets: filters.packets,
+        logs: filters.logs,
+      };
       return acc;
     },
-    {} as Record<string, TabFilter>,
+    {} as Record<string, WorkspaceFilters>,
   );
 };
 
