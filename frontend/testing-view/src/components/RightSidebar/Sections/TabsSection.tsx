@@ -8,7 +8,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui";
-import { ChevronUp, X } from "@workspace/ui/icons";
 import type { SidebarTab } from "../../../types/SidebarTab";
 import { useStore } from "../../../store/store";
 import { BOARD_NAMES } from "../../../constants/boards";
@@ -19,17 +18,17 @@ import type { Packet } from "../../../types/Packet";
 import type { Command } from "../../../types/Command";
 
 interface TabsSectionProps {
-  onClose: () => void;
   isSplit: boolean;
 }
-const TabsSection = ({ onClose, isSplit }: TabsSectionProps) => {
+
+const TabsSection = ({ isSplit }: TabsSectionProps) => {
   const activeTab = useStore((s) => s.getActiveTab());
   const setActiveTab = useStore((s) => s.setActiveTab);
 
   if (isSplit) {
     return (
-      <div className="flex flex-1 flex-col overflow-y-auto">
-        {/* Header with close button */}
+      <div className="flex h-full flex-1 flex-col overflow-y-auto">
+        {/* Header */}
         <div className="flex items-center border-b">
           <div className="flex-1 p-2 text-center">
             <span className="text-foreground text-sm font-semibold">

@@ -3,7 +3,7 @@ import { Testing } from "./pages/Testing";
 import { Route, Routes } from "react-router";
 import { Logs } from "./pages/Logs";
 import { CameraView } from "./pages/CameraView";
-import { useFetchConfig, useWebSocket } from "@workspace/ui/hooks";
+import { useFetchConfig, useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { useEffect } from "react";
 import { logger } from "@workspace/core";
 import { useStore } from "./store/store";
@@ -13,7 +13,9 @@ import type { PacketsData } from "./types/AppData";
 import type { OrdersData } from "./types/AppData";
 
 function App() {
-  const { backendConnected } = useWebSocket();
+  const { isConnected } = useWebSocket();
+
+  const podData = useTopic<any>("podData/update");
 
   const { data: packets, loading: packetsLoading } =
     useFetchConfig<PacketsData>("podDataStructure");
@@ -25,7 +27,7 @@ function App() {
     commands,
     packetsLoading,
     commandsLoading,
-    backendConnected,
+    isConnected,
   );
 
   const transformedBoards = useBoardData(packets, commands, appMode);
@@ -50,7 +52,7 @@ function App() {
   }, [packets, commands, transformedBoards]);
 
   return (
-    <AppLayout backendConnected={backendConnected}>
+    <AppLayout backendConnected={isConnected}>
       <Routes>
         <Route path="/" element={<Testing />} />
         <Route path="/logs" element={<Logs />} />

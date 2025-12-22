@@ -5,9 +5,8 @@ import { useWebSocket } from "@workspace/ui/hooks";
 
 export const ReconnectButton = () => {
   const appMode = useStore((s) => s.appMode);
-  //   const { reconnect } = useWebSocket();
+  const { reconnect } = useWebSocket();
 
-  // Only show in mock or error mode
   if (appMode !== "mock" && appMode !== "error") {
     return null;
   }
@@ -16,7 +15,7 @@ export const ReconnectButton = () => {
     <Button
       variant="outline"
       size="sm"
-      //   onClick={reconnect}
+      onClick={reconnect}
       className="h-7 gap-1.5 px-2 text-xs"
     >
       <RefreshCw className="h-3.5 w-3.5" />
