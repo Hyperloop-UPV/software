@@ -1,4 +1,0 @@
-packages:
-  - "frontend-kit/**"
-  - "testing-view/**"
-  - "competition-view/**"
