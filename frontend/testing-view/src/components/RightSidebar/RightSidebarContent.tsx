@@ -8,11 +8,9 @@ import TabsSection from "./Sections/TabsSection";
 import { NoneSelectedSection } from "./Sections/NoneSelectedSection";
 import { useStore } from "../../store/store";
 
-interface RightSidebarContentProps {
-  onClose: () => void;
-}
+interface RightSidebarContentProps {}
 
-export const RightSidebarContent = ({ onClose }: RightSidebarContentProps) => {
+export const RightSidebarContent = ({}: RightSidebarContentProps) => {
   const isTabsVisible = useStore((s) => s.isTabsVisible);
   const isMessagesVisible = useStore((s) => s.isMessagesVisible);
   const isHorizontal = useStore((s) => s.isHorizontal);
@@ -30,7 +28,7 @@ export const RightSidebarContent = ({ onClose }: RightSidebarContentProps) => {
         {isTabsVisible && (
           <>
             <ResizablePanel defaultSize={60} minSize={20}>
-              <TabsSection onClose={onClose} isSplit={isSplit} />
+              <TabsSection isSplit={isSplit} />
             </ResizablePanel>
             {isMessagesVisible && <ResizableHandle withHandle />}
           </>
@@ -49,7 +47,7 @@ export const RightSidebarContent = ({ onClose }: RightSidebarContentProps) => {
     <>
       {isTabsVisible && (
         <div className="flex-1 overflow-hidden">
-          <TabsSection onClose={onClose} isSplit={isSplit} />
+          <TabsSection isSplit={isSplit} />
         </div>
       )}
 

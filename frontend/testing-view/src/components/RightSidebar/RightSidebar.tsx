@@ -9,7 +9,7 @@ export const RightSidebar = ({ onClose }: RightSidebarProps) => {
   return (
     <div className="bg-background flex h-full flex-col border-l">
       <RightSidebarHeader onClose={onClose} />
-      <RightSidebarContent onClose={onClose} />
+      <RightSidebarContent />
     </div>
   );
 };

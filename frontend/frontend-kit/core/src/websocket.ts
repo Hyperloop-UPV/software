@@ -1,33 +1,83 @@
 import { webSocket, WebSocketSubject } from "rxjs/webSocket";
-import { catchError, filter, map, share, tap } from "rxjs/operators";
+import {
+  filter,
+  map,
+  tap,
+  ReplaySubject,
+  Observable,
+  switchMap,
+  BehaviorSubject,
+  shareReplay,
+} from "rxjs";
 import { logger } from "./logger";
-import { throwError } from "rxjs";
 
 const BACKEND_URL = "ws://127.0.0.1:4000/backend";
 
-logger.core.log("Connecting to WebSocket...");
-logger.core.log("WebSocket URL:", BACKEND_URL);
+class SocketService {
+  private socketSource$ = new ReplaySubject<WebSocketSubject<any>>(1);
+  public status$ = new BehaviorSubject<
+    "connected" | "disconnected" | "connecting"
+  >("disconnected");
 
-const ws$ = webSocket({
-  url: BACKEND_URL,
-  deserializer: (e) => JSON.parse(e.data),
-});
-
-export const observe = () =>
-  ws$.pipe(
-    map((msg: any) => msg.payload),
-    tap((msg: any) => logger.core.log(msg)),
+  public messages$: Observable<any> = this.socketSource$.pipe(
+    switchMap((socket) => socket),
+    shareReplay(1),
   );
 
-// Filter by topic
-export const onTopic = (topic: string) =>
-  ws$.pipe(
-    filter((msg: any) => msg.topic === topic),
-    map((msg: any) => msg.payload),
-    tap((msg: any) => logger.core.log("Received message ", topic, msg)),
-  );
+  private ws: WebSocketSubject<any> | null = null;
 
-// Send message
-export const post = (topic: string, payload: any) => {
-  ws$.next({ topic, payload });
-};
+  connect() {
+    if (this.ws) return;
+
+    logger.core.log("Connecting to WebSocket...");
+    this.status$.next("connecting");
+
+    this.ws = webSocket({
+      url: BACKEND_URL,
+      deserializer: (e) => JSON.parse(e.data),
+      openObserver: {
+        next: () => {
+          this.status$.next("connected");
+          logger.core.log("WebSocket connected");
+        },
+      },
+    });
+
+    this.ws.subscribe({
+      error: (err) => {
+        logger.core.error("WebSocket Error:", err);
+        this.status$.next("disconnected");
+        this.cleanup();
+      },
+      complete: () => {
+        logger.core.log("WebSocket Connection Closed. Cleaning up...");
+        this.cleanup();
+      },
+    });
+
+    this.socketSource$.next(this.ws);
+  }
+
+  private cleanup() {
+    this.ws = null;
+    this.status$.next("disconnected");
+  }
+
+  onTopic(topic: string) {
+    return this.messages$.pipe(
+      filter((msg) => msg.topic === topic),
+      map((msg) => msg.payload),
+      tap((msg) => logger.core.log("Received message ", topic, msg)),
+    );
+  }
+
+  post(topic: string, payload: any) {
+    if (!this.ws) {
+      logger.core.error("Cannot post: Socket not connected.");
+      return;
+    }
+    this.ws.next({ topic, payload });
+  }
+}
+
+export const socketService = new SocketService();

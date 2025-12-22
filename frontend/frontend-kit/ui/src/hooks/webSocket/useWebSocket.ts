@@ -1,27 +1,39 @@
-import { logger, onTopic, post } from "@workspace/core";
-import { useCallback, useEffect, useState } from "react";
+import { logger, socketService } from "@workspace/core";
+import { useEffect, useState } from "react";
 
 export const useWebSocket = () => {
-  const [backendConnected, setBackendConnected] = useState(false);
+  const [status, setStatus] = useState("disconnected");
 
-  const setupSubscriptions = useCallback(() => {
-    post("podData/update", { subscribe: true });
+  useEffect(() => {
+    socketService.connect();
 
-    const subscription = onTopic("podData/update").subscribe((data) =>
-      logger.ui.log("Processing podData/update", data),
-    );
+    const statusSub = socketService.status$.subscribe(setStatus);
 
-    setBackendConnected(true);
-
-    return subscription;
+    return () => {
+      statusSub.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    const subscription = setupSubscriptions();
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [setupSubscriptions]);
+    socketService.post("podData/update", { subscribe: true });
+    let dataSub: any;
 
-  return { backendConnected };
+    if (status === "connected") {
+      // Tell the backend we want data updates
+      socketService.post("podData/update", { subscribe: true });
+
+      dataSub = socketService
+        .onTopic("podData/update")
+        .subscribe((data) => logger.ui.log("Processing podData/update", data));
+    }
+    return () => {
+      if (dataSub) dataSub.unsubscribe();
+    };
+  }, [status]);
+
+  return {
+    isConnected: status === "connected",
+    status,
+    reconnect: () => socketService.connect(),
+  };
 };
