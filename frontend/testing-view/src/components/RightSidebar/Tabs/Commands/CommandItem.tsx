@@ -5,11 +5,7 @@ import {
   CollapsibleContent,
 } from "@workspace/ui";
 import { ChevronDown, Play } from "@workspace/ui/icons";
-import type {
-  Command,
-  CommandParameter,
-  CommandParameters,
-} from "../../../../types/Command";
+import type { Command, CommandParameter } from "../../../../types/Command";
 import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../../../store/store";
 import { logger } from "@workspace/core";
@@ -21,12 +17,8 @@ interface CommandItemProps {
 export const CommandItem = ({ item: command }: CommandItemProps) => {
   const isExpanded = useStore((s) => s.isItemExpanded("commands", command.id));
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
-  // const isItemExpanded = useStore((s) => s.isItemExpanded);
-  // const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
 
-  const [parameterValues, setParameterValues] = useState<
-    Record<string, string>
-  >({});
+  const [parameterValues] = useState<Record<string, string>>({});
 
   const hasParameters = Object.keys(command.fields).length > 0;
 
