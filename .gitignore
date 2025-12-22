@@ -1,28 +1,12 @@
-build
-profiles
-backend/cmd/cmd
-.ropeproject
-
-# Turbo
-.turbo
-node_modules
-
-# MacOS Files
+# Monorepo / IDE
+node_modules/
+.turbo/
+.vscode/
 .DS_Store
-
-# Code Editor
-.idea/
-.vscode/*
-!.vscode/settings.json
-
-# Claude
-CLAUDE*
-.claude
-
-*.exe
-
-# Rust build artifacts
-packet-sender/target/
-
-# VS Code Workspace
 *.code-workspace
+
+# Environment
+.env
+
+# Global binaries
+*.exe
