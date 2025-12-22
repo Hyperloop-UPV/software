@@ -13,7 +13,7 @@ const ColorSchemeToggle = () => {
     <SidebarMenuButton tooltip={tooltip} onClick={toggleColorScheme}>
       <Palette className="size-4" />
       <span>{isPink ? "Firmware" : "Default"}</span>
-      <div className="bg-primary ml-auto h-4 w-4 rounded-full" />
+      <div className="bg-primary ml-auto h-3 w-3 rounded-full" />
     </SidebarMenuButton>
   );
 };

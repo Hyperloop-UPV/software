@@ -13,14 +13,29 @@ import type { PacketsData } from "./types/AppData";
 import type { OrdersData } from "./types/AppData";
 
 function App() {
-  const { isConnected } = useWebSocket();
+  const { isConnected, status } = useWebSocket();
+
+  logger.testingView.log("Status", status);
 
   const podData = useTopic<any>("podData/update");
 
-  const { data: packets, loading: packetsLoading } =
-    useFetchConfig<PacketsData>("podDataStructure");
-  const { data: commands, loading: commandsLoading } =
-    useFetchConfig<OrdersData>("orderStructures");
+  const {
+    data: packets,
+    loading: packetsLoading,
+    refetch: refetchPackets,
+  } = useFetchConfig<PacketsData>("podDataStructure");
+  const {
+    data: commands,
+    loading: commandsLoading,
+    refetch: refetchCommands,
+  } = useFetchConfig<OrdersData>("orderStructures");
+
+  useEffect(() => {
+    if (isConnected) {
+      refetchPackets();
+      refetchCommands();
+    }
+  }, [isConnected]);
 
   const appMode = useAppMode(
     packets,
@@ -47,7 +62,6 @@ function App() {
   useEffect(() => {
     logger.testingView.log("useFetchConfig / podDataStructure", packets);
     logger.testingView.log("useFetchConfig / orderStructures", commands);
-    logger.testingView.log("Transformed / boards", transformedBoards.boards);
     logger.testingView.log("Transformed boards", transformedBoards);
   }, [packets, commands, transformedBoards]);
 

@@ -3,6 +3,7 @@ import {
   ResizablePanel,
   ResizableHandle,
   Button,
+  Skeleton,
 } from "@workspace/ui";
 import { useEffect, useRef, useState } from "react";
 
@@ -20,6 +21,7 @@ import {
 import { useStore } from "../store/store";
 import { WorkspaceFilterController } from "../components/RightSidebar/Filters/FilterController";
 import { ChevronLeft } from "@workspace/ui/icons";
+import { cn } from "@workspace/ui/lib";
 
 // Mock data with different value ranges
 const mockData1 = [
@@ -368,7 +370,7 @@ export const Testing = () => {
                   </Button>
                 )}
               </div>
-              {/* <div
+              <div
                 className={cn(
                   "p-lg grid h-full w-full gap-4",
                   chartColumns === 1 ? "grid-cols-1" : "grid-cols-2",
@@ -388,8 +390,7 @@ export const Testing = () => {
                         dataKeys={chart.dataKeys}
                       />
                     ))}
-                
-              </div> */}
+              </div>
             </div>
           </ResizablePanel>
 

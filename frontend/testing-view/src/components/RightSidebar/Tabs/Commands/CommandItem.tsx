@@ -12,6 +12,7 @@ import type {
 } from "../../../../types/Command";
 import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../../../store/store";
+import { logger } from "@workspace/core";
 
 interface CommandItemProps {
   item: Command;
@@ -31,7 +32,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
 
   const handleRun = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering collapse
-    console.log(
+    logger.testingView.log(
       "Running command:",
       command.name,
       "with params:",
