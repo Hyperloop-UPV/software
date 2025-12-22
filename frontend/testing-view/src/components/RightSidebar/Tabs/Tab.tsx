@@ -15,18 +15,8 @@ interface TabProps {
 
 export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
   const openFilterDialog = useStore((state) => state.openFilterDialog);
-  const items = useStore((state) => state[scope]);
-
-  const totalCount = Object.values(items).flat().length;
-
-  const tabFilters = useStore((state) => state.tabFilters);
-  const workspaceId = useStore((state) => state.getActiveWorkspaceId());
-  if (!workspaceId) return null;
-
-  const filter = tabFilters[workspaceId]?.[scope];
-  if (!filter) return null;
-
-  const selectedCommandIds = Object.values(filter).flat();
+  const totalCount = useStore((state) => state.getTotalCount(scope));
+  const filteredCount = useStore((state) => state.getFilteredCount(scope));
 
   return (
     <div className="space-y-2">
@@ -34,7 +24,7 @@ export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
         <h3 className="text-foreground text-lg font-semibold">
           {title}
           <span className="text-muted-foreground ml-2 text-sm font-normal">
-            {selectedCommandIds.length} / {totalCount}
+            {filteredCount} / {totalCount}
           </span>
         </h3>
         <Button

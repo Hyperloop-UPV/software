@@ -31,19 +31,11 @@ const TabsSection = ({ onClose, isSplit }: TabsSectionProps) => {
       <div className="flex flex-1 flex-col overflow-y-auto">
         {/* Header with close button */}
         <div className="flex items-center border-b">
-          <div className="flex-1 text-center">
-            <span className="text-foreground text-sm font-medium">
+          <div className="flex-1 p-2 text-center">
+            <span className="text-foreground text-sm font-semibold">
               Packets & Commands
             </span>
           </div>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="ml-auto"
-          >
-            <X className="text-foreground h-3 w-3" />
-          </Button>
         </div>
 
         {/* Split view - both tabs side by side */}

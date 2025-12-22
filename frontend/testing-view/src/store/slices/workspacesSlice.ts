@@ -17,6 +17,8 @@ import type {
   WorkspaceFilters,
 } from "../../types/Workspaces";
 
+export type CheckboxState = boolean | "indeterminate";
+
 export interface WorkspacesSlice {
   // Workspaces
   activeWorkspace: Workspace | null;
@@ -25,6 +27,9 @@ export interface WorkspacesSlice {
   //   removeWorkspace: (id: string) => void;
   //   addWorkspace: (workspace: Workspace) => void;
   getActiveWorkspaceId: () => string | null;
+
+  // Internal helpers
+  getCatalog: (scope: FilterScope) => Record<BoardName, Item[]>;
 
   // Tabs (per workspace)
   activeTab: Record<string, SidebarTab>;
@@ -35,9 +40,36 @@ export interface WorkspacesSlice {
   tabFilters: Record<string, WorkspaceFilters>;
   initializeTabFilters: () => void;
   updateFilters: (scope: FilterScope, filters: TabFilter) => void;
-  getSelected: (scope: FilterScope) => number[];
-  getSelectedByCategory: (scope: FilterScope, category: BoardName) => number[];
-  getCategoryCheckedCount: (scope: FilterScope, category: BoardName) => number;
+
+  // Helper getters
+  getActiveFilters: (scope: FilterScope) => TabFilter | undefined;
+  getActiveExpanded: (scope: FilterScope) => Set<number | string> | undefined;
+
+  // Getters for filtered items
+  getFilteredItems: (scope: FilterScope) => Item[];
+  // getSelected: (scope: FilterScope) => number[];
+  // getSelectedByCategory: (scope: FilterScope, category: BoardName) => number[];
+  // getCategoryCheckedCount: (scope: FilterScope, category: BoardName) => number;
+  getFilteredItemsIds: (scope: FilterScope) => number[];
+  getFilteredItemsIdsByCategory: (
+    scope: FilterScope,
+    category: BoardName,
+  ) => number[];
+  getFilteredItemsByCategory: (
+    scope: FilterScope,
+    category: BoardName,
+  ) => Item[];
+
+  // Stats getters
+  getFilteredCount: (scope: FilterScope) => number;
+  getFilteredCountByCategory: (
+    scope: FilterScope,
+    category: BoardName,
+  ) => number;
+  getTotalCount: (scope: FilterScope) => number;
+
+  // Selection state getters
+  getSelectionState: (scope: FilterScope, category: BoardName) => CheckboxState;
 
   // Filter actions
   selectAllFilters: (scope: FilterScope) => void;
@@ -108,6 +140,12 @@ export const createWorkspacesSlice: StateCreator<
     return activeWorkspace?.id ?? null;
   },
 
+  // Internal helpers
+  getCatalog: (scope: FilterScope) => {
+    const catalogKey = scope === "logs" ? "packets" : scope;
+    return get()[catalogKey] as Record<BoardName, Item[]>;
+  },
+
   // Tabs (per workspace)
   activeTab: {},
   getActiveTab: () => {
@@ -152,33 +190,71 @@ export const createWorkspacesSlice: StateCreator<
       },
     }));
   },
-  getSelected: (scope) => {
-    const activeWorkspaceId = get().getActiveWorkspaceId();
-    if (!activeWorkspaceId) return [];
 
-    const filter = get().tabFilters[activeWorkspaceId][scope];
-    if (!filter) return [];
-
-    return Object.values(filter).flat();
+  // Helper getters
+  getActiveFilters: (scope) => {
+    const id = get().getActiveWorkspaceId();
+    return id ? get().tabFilters[id]?.[scope] : undefined;
   },
-  getSelectedByCategory: (scope, category) => {
-    const activeWorkspaceId = get().getActiveWorkspaceId();
-    if (!activeWorkspaceId) return [];
 
-    const filter = get().tabFilters[activeWorkspaceId][scope];
-    if (!filter) return [];
-
-    return filter[category];
+  getActiveExpanded: (scope) => {
+    const id = get().getActiveWorkspaceId();
+    return id ? get().expandedItems[id]?.[scope] : undefined;
   },
-  getCategoryCheckedCount: (scope, category) => {
-    const activeWorkspaceId = get().getActiveWorkspaceId();
-    if (!activeWorkspaceId) return 0;
 
-    const filter = get().tabFilters[activeWorkspaceId][scope];
-    if (!filter) return 0;
-
-    return filter[category].length;
+  // Getters for filtered items
+  getFilteredItemsIds: (scope) => {
+    const filters = get().getActiveFilters(scope);
+    return filters ? Object.values(filters).flat() : [];
   },
+
+  getFilteredItemsIdsByCategory: (scope, category) => {
+    return get().getActiveFilters(scope)?.[category] || [];
+  },
+  getFilteredItems: (scope) => {
+    const filters = get().getActiveFilters(scope);
+    if (!filters) return [];
+    const catalog = get().getCatalog(scope);
+    return Object.entries(catalog).flatMap(([cat, items]) => {
+      const selected = filters[cat as BoardName] || [];
+      return items.filter((i) => selected.includes(i.id));
+    });
+  },
+  getFilteredItemsByCategory: (scope, category) => {
+    const selected = get().getFilteredItemsIdsByCategory(scope, category);
+    const items = get().getCatalog(scope)[category] || [];
+    return items.filter((i) => selected.includes(i.id));
+  },
+
+  // Stats getters
+  getFilteredCount: (scope) => get().getFilteredItemsIds(scope).length,
+
+  getFilteredCountByCategory: (scope, category) =>
+    get().getFilteredItemsIdsByCategory(scope, category).length,
+
+  getTotalCount: (scope) => {
+    const catalog = get().getCatalog(scope);
+    return Object.values(catalog).reduce((acc, items) => acc + items.length, 0);
+  },
+
+  getSelectionState: (scope, category) => {
+    const selectedCount = get().getFilteredCountByCategory(scope, category);
+    const totalItems = get().getCatalog(scope)[category]?.length || 0;
+
+    if (totalItems === 0 || selectedCount === 0) return false;
+    if (selectedCount === totalItems) return true;
+    return "indeterminate";
+  },
+
+  // getCategoryCheckedCount: (scope, category) => {
+  //   const activeWorkspaceId = get().getActiveWorkspaceId();
+  //   if (!activeWorkspaceId) return 0;
+
+  //   const filter = get().tabFilters[activeWorkspaceId][scope];
+  //   if (!filter) return 0;
+
+  //   return filter[category].length;
+  // },
 
   // Filter actions
   selectAllFilters: (scope) => {

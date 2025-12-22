@@ -9,6 +9,7 @@ import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 import { useStore } from "../../../store/store";
 import type { BoardName } from "../../../types/BoardName";
 import { FilterItem } from "./FilterItem";
+import { useShallow } from "zustand/shallow";
 
 export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -16,22 +17,20 @@ export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
   if (!scope) return null;
   const dialogScope = scope === "logs" ? "packets" : scope;
 
-  const workspaceId = useStore((s) => s.getActiveWorkspaceId());
-  if (!workspaceId) return null;
-
   const toggleCategoryFilter = useStore((s) => s.toggleCategoryFilter);
   const toggleItemFilter = useStore((s) => s.toggleItemFilter);
 
-  const catalogItems = useStore((s) => s[dialogScope]);
-  const items = catalogItems[category];
+  const items = useStore((s) => s[dialogScope][category]);
   const totalItems = items.length;
 
-  const filters = useStore((s) => s.tabFilters[workspaceId][scope]);
-  const selectedIds = filters[category];
+  const selectedIds = useStore(
+    useShallow((s) => s.getFilteredItemsIdsByCategory(scope, category)),
+  );
+  const selectedCount = useStore((s) =>
+    s.getFilteredCountByCategory(scope, category),
+  );
 
-  const isAllSelected = selectedIds.length === totalItems && totalItems > 0;
-  const isIndeterminate =
-    selectedIds.length > 0 && selectedIds.length < totalItems;
+  const selectionState = useStore((s) => s.getSelectionState(scope, category));
 
   return (
     totalItems > 0 && (
@@ -39,9 +38,7 @@ export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
         <div className="bg-card overflow-hidden rounded-lg border">
           <div className="hover:bg-accent/30 flex items-center gap-3 p-3 transition-colors">
             <Checkbox
-              checked={
-                isAllSelected || (isIndeterminate ? "indeterminate" : false)
-              }
+              checked={selectionState}
               onCheckedChange={(checked) =>
                 toggleCategoryFilter(scope, category, !!checked)
               }
@@ -50,7 +47,7 @@ export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
               <span className="text-foreground text-sm font-medium">
                 {category}
                 <span className="text-muted-foreground ml-2 text-xs">
-                  ({selectedIds.length}/{totalItems})
+                  ({selectedCount}/{totalItems})
                 </span>
               </span>
               {isExpanded ? (
