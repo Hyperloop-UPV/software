@@ -2,6 +2,7 @@ import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
+  Button,
 } from "@workspace/ui";
 import { useEffect, useRef, useState } from "react";
 
@@ -18,6 +19,7 @@ import {
 } from "recharts";
 import { useStore } from "../store/store";
 import { WorkspaceFilterController } from "../components/RightSidebar/Filters/FilterController";
+import { ChevronLeft } from "@workspace/ui/icons";
 
 // Mock data with different value ranges
 const mockData1 = [
@@ -337,7 +339,7 @@ export const Testing = () => {
             defaultSize={isSidebarVisible ? 60 : 100}
             minSize={30}
           >
-            {/* <div className="relative flex h-full flex-col items-center overflow-y-auto">
+            <div className="relative flex h-full flex-col items-center overflow-y-auto">
               <div className="bg-background p-sm sticky top-0 z-10 flex w-full justify-end gap-2">
                 <Button
                   onClick={() => handleChartColumnsChange(1)}
@@ -366,7 +368,7 @@ export const Testing = () => {
                   </Button>
                 )}
               </div>
-              <div
+              {/* <div
                 className={cn(
                   "p-lg grid h-full w-full gap-4",
                   chartColumns === 1 ? "grid-cols-1" : "grid-cols-2",
@@ -387,8 +389,8 @@ export const Testing = () => {
                       />
                     ))}
                 
-              </div>
-            </div> */}
+              </div> */}
+            </div>
           </ResizablePanel>
 
           {isSidebarVisible && (

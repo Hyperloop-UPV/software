@@ -14,13 +14,11 @@ import {
   type RightSidebarSlice,
 } from "./slices/rightSidebarSlice";
 
-export interface Store
-  extends
-    AppSlice,
-    CatalogSlice,
-    WorkspacesSlice,
-    TelemetrySlice,
-    RightSidebarSlice {}
+export type Store = AppSlice &
+  CatalogSlice &
+  WorkspacesSlice &
+  TelemetrySlice &
+  RightSidebarSlice;
 
 export const useStore = create<Store>()((...a) => ({
   ...createAppSlice(...a),

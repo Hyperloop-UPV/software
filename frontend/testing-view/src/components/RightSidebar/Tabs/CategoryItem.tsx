@@ -9,6 +9,7 @@ import type { BoardName } from "../../../types/BoardName";
 import type { Item } from "../../../types/Item";
 import { useStore } from "../../../store/store";
 import type { SidebarTab } from "../../../types/SidebarTab";
+import { useShallow } from "zustand/shallow";
 
 interface CategoryItemProps {
   category: BoardName;
@@ -21,61 +22,13 @@ export const CategoryItem = ({
   scope,
   ItemComponent,
 }: CategoryItemProps) => {
-  const activeWorkspaceId = useStore((state) => state.getActiveWorkspaceId());
-  if (!activeWorkspaceId) return null;
-
-  const items = useStore((state) => state[scope]?.[category]);
-
-  const filteredItemsIds = useStore(
-    (state) => state.tabFilters[activeWorkspaceId][scope][category],
-  );
-
-  const filteredItems = items?.filter((item) =>
-    filteredItemsIds.includes(item.id),
+  const filteredItems = useStore(
+    useShallow((state) => state.getFilteredItemsByCategory(scope, category)),
   );
 
   const isExpanded = useStore((state) => state.isItemExpanded(scope, category));
   const toggleExpandedItem = useStore((state) => state.toggleExpandedItem);
-  // const { filteredItems } = useFilterableData(useCatalogStore, useFilterStore);
-  // const { isItemExpanded, toggleExpandedItem } = useFilterStore();
 
-  // const isExpanded = isItemExpanded(category);
-  // const items = filteredItems[category];
-
-  // return (
-  //   <>
-  //     {items.length > 0 && (
-  //       <Collapsible
-  //         open={isExpanded}
-  //         onOpenChange={() => toggleExpandedItem(category)}
-  //       >
-  //         <div className="bg-card hover:border-primary/50 overflow-hidden rounded-lg border transition-colors">
-  //           <CollapsibleTrigger className="hover:bg-accent/50 flex w-full items-center justify-between px-3 py-2.5 transition-colors">
-  //             <span className="text-foreground font-semibold">
-  //               {category}
-  //               <span className="text-muted-foreground ml-2 text-sm">
-  //                 ({items.length})
-  //               </span>
-  //             </span>
-  //             {isExpanded ? (
-  //               <ChevronDown className="text-muted-foreground h-4 w-4 transition-transform duration-200" />
-  //             ) : (
-  //               <ChevronLeft className="text-muted-foreground h-4 w-4 transition-transform duration-200" />
-  //             )}
-  //           </CollapsibleTrigger>
-
-  //           <CollapsibleContent>
-  //             <div className="bg-muted/30 border-t">
-  //               {items.map((item, index) => (
-  //                 <ItemComponent key={index} item={item} />
-  //               ))}
-  //             </div>
-  //           </CollapsibleContent>
-  //         </div>
-  //       </Collapsible>
-  //     )}
-  //   </>
-  // );
   return (
     filteredItems?.length > 0 && (
       <Collapsible
