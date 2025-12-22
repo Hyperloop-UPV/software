@@ -3,6 +3,10 @@ profiles
 backend/cmd/cmd
 .ropeproject
 
+# Turbo
+.turbo
+node_modules
+
 # MacOS Files
 .DS_Store
 

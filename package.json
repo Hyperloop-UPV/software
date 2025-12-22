@@ -1,0 +1,23 @@
+{
+  "name": "hyperloop-software-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:main": "turbo dev:main",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "preview": "turbo preview"
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.12",
+    "turbo": "^2.6.3",
+    "typescript": "5.7.3"
+  },
+  "packageManager": "pnpm@10.26.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

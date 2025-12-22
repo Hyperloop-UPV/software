@@ -1,12 +1,16 @@
 log
 trace.json
 
+/bin
+
 # Windows build
 *.exe
+
 # Linux build
 Backend-H8
 backend
 !build
+
 # MacOS build
 cmd/cmd
 cmd/logger/
