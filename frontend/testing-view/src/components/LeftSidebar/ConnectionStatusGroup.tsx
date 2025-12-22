@@ -7,7 +7,6 @@ import {
 } from "@workspace/ui";
 import { Plug, Unplug } from "@workspace/ui/icons";
 import type { Connection } from "../../types/Connection";
-import { useStore } from "../../store/store";
 
 interface ConnectionStatusGroupProps {
   connections: Connection[];

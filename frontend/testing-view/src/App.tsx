@@ -17,7 +17,7 @@ function App() {
 
   logger.testingView.log("Status", status);
 
-  const podData = useTopic<any>("podData/update");
+  useTopic<any>("podData/update");
 
   const {
     data: packets,

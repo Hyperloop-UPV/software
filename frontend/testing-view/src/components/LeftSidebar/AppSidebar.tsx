@@ -1,5 +1,4 @@
 import {
-  Separator,
   Sidebar,
   SidebarContent,
   SidebarFooter,
