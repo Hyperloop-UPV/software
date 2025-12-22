@@ -17,7 +17,7 @@ export function useAppMode(
   const determineAppMode = useCallback(() => {
     const isDev = import.meta.env.DEV;
     const isLoading = packetsLoading || commandsLoading;
-    const hasData = packets?.boards && commands?.boards;
+    const hasData = !!(packets?.boards && commands?.boards);
     const hasError = !hasData || !backendConnected;
 
     logger.testingView.log("[DEBUG] isDev", isDev);

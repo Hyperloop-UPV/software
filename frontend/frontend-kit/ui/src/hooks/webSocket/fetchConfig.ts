@@ -1,35 +1,45 @@
 import { logger } from "@workspace/core";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 export function useFetchConfig<T>(endpoint: string) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const fetchData = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
-    const response = fetch(`http://127.0.0.1:4000/backend/${endpoint}`, {
-      signal: controller.signal,
-    });
+    abortControllerRef.current = new AbortController();
+    setLoading(true);
 
-    response
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") logger.ui.warn("Fetching aborted");
-        else logger.ui.error("Failed to fetch:", err);
-      })
-      .finally(() => setLoading(false));
-
-    return () => {
-      controller.abort();
-    };
+    try {
+      const res = await fetch(`http://127.0.0.1:4000/backend/${endpoint}`, {
+        signal: abortControllerRef.current.signal,
+      });
+      const json = await res.json();
+      setData(json);
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        logger.ui.warn(`Fetching ${endpoint} aborted`);
+      } else {
+        logger.ui.error(`Failed to fetch ${endpoint}:`, err);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [endpoint]);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchData();
+    return () => abortControllerRef.current?.abort();
+  }, [fetchData]);
 
   return {
     data,
     loading,
+    refetch: fetchData, // Expose the raw fetchData function as refetch
   };
 }
