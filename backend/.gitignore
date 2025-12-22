@@ -33,3 +33,5 @@ cmd/config.toml
 # Test data
 c.out
 cover.out
+
+/logger/*
