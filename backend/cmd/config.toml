@@ -18,7 +18,6 @@ boards = ["BCU", "BMSL", "HVSCU", "HVSCU-Cabinet", "LCU", "PCU", "VCU", "BLCU"]
 # ADJ (Architecture Description JSON) Configuration
 [adj]
 branch = "main" # Leave blank when using ADJ as a submodule (like this: "")
-test = false     # Enable test mode
 
 # Network Configuration
 [network]

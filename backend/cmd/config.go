@@ -12,7 +12,6 @@ type App struct {
 
 type Adj struct {
 	Branch string `toml:"branch"`
-	Test   bool   `toml:"test"`
 }
 
 type Network struct {
