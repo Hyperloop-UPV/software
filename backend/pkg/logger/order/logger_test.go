@@ -69,9 +69,9 @@ func TestStart(t *testing.T) {
 	t.Run("Start (not first time)", func(t *testing.T) {
 
 		// El test Start (first time) debe haber tenido éxito y haber establecido startTime
-		
+		if startTime == 0 {
 			t.Fatal("precondition failed: StartTime should be set from the first start")
-		
+		}
 
 		// Subsequent starts shouldn't change startTime
 		out := logger.Start()
