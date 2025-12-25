@@ -27,4 +27,4 @@ jobs:
         run: go mod download
 
       - name: Run tests
-        run: go test $(go list ./... | grep -v pkg/boards  | grep -v  pkg/broker/topics/message)
+        run: cd backend && go test $(go list ./... | grep -v pkg/boards  | grep -v  pkg/broker/topics/message)
