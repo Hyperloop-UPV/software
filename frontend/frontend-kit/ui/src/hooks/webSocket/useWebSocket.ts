@@ -1,4 +1,4 @@
-import { logger, socketService } from "@workspace/core";
+import { socketService } from "@workspace/core";
 import { useEffect, useState } from "react";
 
 export const useWebSocket = () => {
