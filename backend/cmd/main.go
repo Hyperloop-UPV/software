@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/binary"
 	"flag"
@@ -50,8 +49,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/vehicle"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
-	"github.com/fatih/color"
-	"github.com/google/gopacket/pcap"
+
 	"github.com/jmaralo/sntp"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/pkg/browser"
@@ -79,7 +77,6 @@ var networkDevice = flag.Int("dev", -1, "index of the network device to use, ove
 var blockprofile = flag.Int("blockprofile", 0, "number of block profiles to include")
 var playbackFile = flag.String("playback", "", "")
 var versionFlag = flag.Bool("version", false, "Show the backend version")
-var currentVersion string
 
 func main() {
 	// Parse command line flags
@@ -96,8 +93,6 @@ func main() {
 		}
 		os.Exit(0)
 	}
-
-	// update() // FIXME: Updater disabled due to cross-platform and reliability issues
 
 	tracePath := *traceFile
 	if tracePath == "" {
@@ -463,86 +458,6 @@ func createPid(path string) {
 	}
 }
 
-func selectDev(adjAddr map[string]string, conf Config) (pcap.Interface, error) {
-	devs, err := pcap.FindAllDevs()
-	if err != nil {
-		return pcap.Interface{}, err
-	}
-
-	if conf.Network.Manual {
-		cyan := color.New(color.FgCyan)
-
-		cyan.Print("select a device: ")
-		fmt.Printf("(0-%d)\n", len(devs)-1)
-		for i, dev := range devs {
-			displayDev(i, dev)
-		}
-
-		dev, err := acceptInput(len(devs))
-		if err != nil {
-			return pcap.Interface{}, err
-		}
-
-		return devs[dev], nil
-	} else {
-		for _, dev := range devs {
-			for _, addr := range dev.Addresses {
-				if addr.IP.String() == adjAddr["backend"] {
-					return dev, nil
-				}
-			}
-		}
-
-		log.Fatal("backend address not found in any device")
-		return pcap.Interface{}, nil
-	}
-}
-
-func displayDev(i int, dev pcap.Interface) {
-	red := color.New(color.FgRed)
-	green := color.New(color.FgGreen)
-	yellow := color.New(color.FgYellow)
-
-	red.Printf("\t%d", i)
-	fmt.Print(": (")
-	yellow.Print(dev.Name)
-	fmt.Printf(") %s [", dev.Description)
-	for _, addr := range dev.Addresses {
-		green.Printf("%s", addr.IP)
-		fmt.Print(", ")
-	}
-	fmt.Println("]")
-}
-
-func acceptInput(limit int) (int, error) {
-	blue := color.New(color.FgBlue)
-	red := color.New(color.FgRed)
-
-	for {
-		blue.Print(">>> ")
-
-		reader := bufio.NewReader(os.Stdin)
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			return 0, err
-		}
-
-		var dev int
-		_, err = fmt.Sscanf(input, "%d", &dev)
-		if err != nil {
-			red.Printf("%s\n\n", err)
-			continue
-		}
-
-		if dev < 0 || dev >= limit {
-			red.Println("invalid device selected")
-			continue
-		} else {
-			return dev, nil
-		}
-	}
-}
-
 func getConfig(path string) Config {
 	configFile, fileErr := os.ReadFile(path)
 
@@ -673,35 +588,6 @@ func getOps(units utils.Units) data.ConversionDescriptor {
 		}
 	}
 	return output
-}
-
-func getFilter(boardAddrs []net.IP, backendAddr net.IP, udpPort uint16) string {
-	ipipFilter := getIPIPfilter()
-	udpFilter := getUDPFilter(boardAddrs, backendAddr, udpPort)
-
-	filter := fmt.Sprintf("(%s) or (%s)", ipipFilter, udpFilter)
-
-	trace.Trace().Any("addrs", boardAddrs).Str("filter", filter).Msg("new filter")
-	return filter
-}
-
-func getIPIPfilter() string {
-	return "ip[9] == 4"
-}
-
-func getUDPFilter(addrs []net.IP, backendAddr net.IP, port uint16) string {
-	udpPort := fmt.Sprintf("udp port %d", port) // TODO use proper ports for the filter
-	srcUdpAddrs := common.Map(addrs, func(addr net.IP) string {
-		return fmt.Sprintf("(src host %s)", addr)
-	})
-	dstUdpAddrs := common.Map(addrs, func(addr net.IP) string {
-		return fmt.Sprintf("(dst host %s)", addr)
-	})
-
-	srcUdpAddrsStr := strings.Join(srcUdpAddrs, " or ")
-	dstUdpAddrsStr := strings.Join(dstUdpAddrs, " or ")
-
-	return fmt.Sprintf("(%s) and (%s) and (%s or (dst host %s))", udpPort, srcUdpAddrsStr, dstUdpAddrsStr, backendAddr)
 }
 
 // H09 -- Zürich    -- PM Juan Martínez, Marc Sanchis -- Winners
