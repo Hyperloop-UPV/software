@@ -11,7 +11,7 @@ import { useBoardData } from "./hooks/useBoardData";
 import { useAppMode } from "./hooks/useAppMode";
 import type { PacketsData } from "./types/AppData";
 import type { OrdersData } from "./types/AppData";
-import type { TelemetryPacket, TelemtryData } from "./types/Telemetry";
+import type { TelemtryData } from "./types/Telemetry";
 
 function App() {
   const { isConnected, status } = useWebSocket();
