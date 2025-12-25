@@ -1,5 +1,5 @@
 import { socketService } from "@workspace/core";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useWebSocket } from "./useWebSocket";
 
 export function useTopic<T>(topic: string, callback: (data: T) => void) {
