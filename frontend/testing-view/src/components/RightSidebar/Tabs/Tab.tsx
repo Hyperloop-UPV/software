@@ -19,7 +19,7 @@ export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
   const filteredCount = useStore((state) => state.getFilteredCount(scope));
 
   return (
-    <div className="space-y-2">
+    <>
       <div className="flex items-center justify-between gap-2 border-b pb-3">
         <h3 className="text-foreground text-lg font-semibold">
           {title}
@@ -46,6 +46,6 @@ export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
           />
         ))}
       </div>
-    </div>
+    </>
   );
 };

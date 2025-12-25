@@ -4,11 +4,10 @@ export interface Variable {
   id: string;
   name: string;
   type: string;
-  unit: string;
-  value: number | string | boolean;
+  units: string;
 }
 
-type Measurement = any;
+export type Measurement = any;
 
 export type Packet = RawPacket;
 

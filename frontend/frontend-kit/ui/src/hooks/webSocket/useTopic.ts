@@ -2,8 +2,7 @@ import { socketService } from "@workspace/core";
 import { useEffect, useState } from "react";
 import { useWebSocket } from "./useWebSocket";
 
-export function useTopic<T>(topic: string) {
-  const [data, setData] = useState<T | null>(null);
+export function useTopic<T>(topic: string, callback: (data: T) => void) {
   const { isConnected } = useWebSocket();
 
   useEffect(() => {
@@ -11,7 +10,7 @@ export function useTopic<T>(topic: string) {
 
     socketService.post(topic, { subscribe: true });
 
-    const sub = socketService.onTopic(topic).subscribe(setData);
+    const sub = socketService.onTopic(topic).subscribe(callback);
 
     return () => {
       socketService.post(topic, { subscribe: false });
@@ -19,5 +18,5 @@ export function useTopic<T>(topic: string) {
     };
   }, [topic, isConnected]);
 
-  return data;
+  return;
 }

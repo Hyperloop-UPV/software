@@ -74,14 +74,17 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
     <Tabs
       value={activeTab}
       onValueChange={(value) => setActiveTab(value as SidebarTab)}
-      className="flex flex-1 flex-col overflow-y-auto"
+      className="flex h-full flex-1 flex-col overflow-y-auto"
     >
       <TabsList className="flex w-full rounded-none">
         <TabsTrigger value="packets">Packets</TabsTrigger>
         <TabsTrigger value="commands">Commands</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="packets" className="mt-0 flex-1 overflow-y-auto p-4">
+      <TabsContent
+        value="packets"
+        className="mt-0 flex h-full flex-1 flex-col overflow-y-auto p-4"
+      >
         <Tab
           title="Packets"
           scope="packets"

@@ -19,7 +19,7 @@ import {
   YAxis,
 } from "recharts";
 import { useStore } from "../store/store";
-import { WorkspaceFilterController } from "../components/RightSidebar/Filters/FilterController";
+import { WorkspaceFilterController } from "../components/Filters/FilterController";
 import { ChevronLeft } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 

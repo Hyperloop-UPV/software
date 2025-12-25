@@ -11,13 +11,18 @@ import { useBoardData } from "./hooks/useBoardData";
 import { useAppMode } from "./hooks/useAppMode";
 import type { PacketsData } from "./types/AppData";
 import type { OrdersData } from "./types/AppData";
+import type { TelemetryPacket, TelemtryData } from "./types/Telemetry";
 
 function App() {
   const { isConnected, status } = useWebSocket();
 
   logger.testingView.log("Status", status);
 
-  useTopic<any>("podData/update");
+  const addTelemetry = useStore((s) => s.addTelemetry);
+
+  useTopic<TelemtryData>("podData/update", (data) => {
+    addTelemetry(data);
+  });
 
   const {
     data: packets,
