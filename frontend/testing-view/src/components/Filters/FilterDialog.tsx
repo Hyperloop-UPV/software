@@ -7,7 +7,7 @@ import {
   DialogDescription,
   Button,
 } from "@workspace/ui";
-import type { BoardName } from "../../../types/BoardName";
+import type { BoardName } from "../../types/BoardName";
 
 interface FilterDialogProps {
   title: string;

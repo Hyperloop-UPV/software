@@ -6,8 +6,8 @@ import {
   CollapsibleTrigger,
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
-import { useStore } from "../../../store/store";
-import type { BoardName } from "../../../types/BoardName";
+import { useStore } from "../../store/store";
+import type { BoardName } from "../../types/BoardName";
 import { FilterItem } from "./FilterItem";
 import { useShallow } from "zustand/shallow";
 

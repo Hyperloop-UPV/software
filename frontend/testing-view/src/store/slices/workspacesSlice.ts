@@ -47,9 +47,6 @@ export interface WorkspacesSlice {
 
   // Getters for filtered items
   getFilteredItems: (scope: FilterScope) => Item[];
-  // getSelected: (scope: FilterScope) => number[];
-  // getSelectedByCategory: (scope: FilterScope, category: BoardName) => number[];
-  // getCategoryCheckedCount: (scope: FilterScope, category: BoardName) => number;
   getFilteredItemsIds: (scope: FilterScope) => number[];
   getFilteredItemsIdsByCategory: (
     scope: FilterScope,

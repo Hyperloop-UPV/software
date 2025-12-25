@@ -1,10 +1,10 @@
 import type { StateCreator } from "zustand";
 import type { Store } from "../store";
-import type { TelemetryData } from "../../types/Telemetry";
+import type { TelemetryState, TelemtryData } from "../../types/Telemetry";
 
 export interface TelemetrySlice {
-  telemetry: TelemetryData[];
-  addTelemetry: (data: TelemetryData) => void;
+  telemetry: TelemetryState;
+  addTelemetry: (data: TelemtryData) => void;
 }
 
 export const createTelemetrySlice: StateCreator<
@@ -13,9 +13,12 @@ export const createTelemetrySlice: StateCreator<
   [],
   TelemetrySlice
 > = (set) => ({
-  telemetry: [] as TelemetryData[],
+  telemetry: {} as TelemetryState,
   addTelemetry: (data) =>
     set((state) => ({
-      telemetry: [...state.telemetry, data],
+      telemetry: {
+        ...state.telemetry,
+        ...data,
+      },
     })),
 });

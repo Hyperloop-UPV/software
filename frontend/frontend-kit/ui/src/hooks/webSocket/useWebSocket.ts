@@ -14,23 +14,6 @@ export const useWebSocket = () => {
     };
   }, []);
 
-  useEffect(() => {
-    socketService.post("podData/update", { subscribe: true });
-    let dataSub: any;
-
-    if (status === "connected") {
-      // Tell the backend we want data updates
-      socketService.post("podData/update", { subscribe: true });
-
-      dataSub = socketService
-        .onTopic("podData/update")
-        .subscribe((data) => logger.ui.log("Processing podData/update", data));
-    }
-    return () => {
-      if (dataSub) dataSub.unsubscribe();
-    };
-  }, [status]);
-
   return {
     isConnected: status === "connected",
     status,

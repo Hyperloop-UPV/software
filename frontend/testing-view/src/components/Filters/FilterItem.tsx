@@ -1,5 +1,5 @@
 import { Checkbox } from "@workspace/ui";
-import type { Item } from "../../../types/Item";
+import type { Item } from "../../types/Item";
 
 interface FilterItemProps {
   item: Item;
