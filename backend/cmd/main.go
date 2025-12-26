@@ -13,7 +13,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
@@ -114,10 +113,10 @@ func main() {
 		defer traceFile.Close()
 	}
 
-	pidPath := path.Join(os.TempDir(), "backendPid")
-
-	createPid(pidPath)
-	defer RemovePid(pidPath)
+	//! Does not guarante that os.TempDir() is always the same
+	// pidPath := path.Join(os.TempDir(), "backendPid")
+	// createPid(pidPath)
+	// defer RemovePid(pidPath)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	if *cpuprofile != "" {
@@ -442,19 +441,6 @@ func main() {
 	for range interrupt {
 		trace.Info().Msg("Shutting down")
 		return
-	}
-}
-
-func createPid(path string) {
-	err := WritePid(path)
-
-	if err != nil {
-		switch err {
-		case ErrProcessRunning:
-			trace.Fatal().Err(err).Msg("Backend is already running")
-		default:
-			trace.Error().Err(err).Msg("pid error")
-		}
 	}
 }
 

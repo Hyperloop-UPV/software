@@ -7,11 +7,26 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	trace "github.com/rs/zerolog/log"
 )
 
 var (
 	ErrProcessRunning = errors.New("process is running")
 )
+
+func createPid(path string) {
+	err := WritePid(path)
+
+	if err != nil {
+		switch err {
+		case ErrProcessRunning:
+			trace.Fatal().Err(err).Msg("Backend is already running")
+		default:
+			trace.Error().Err(err).Msg("pid error")
+		}
+	}
+}
 
 func WritePid(filename string) error {
 	oldPid, err := getOldPid(filename)
