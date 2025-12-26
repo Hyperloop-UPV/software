@@ -25,8 +25,11 @@ func handleVersionFlag() {
 	}
 }
 
+// setupRuntimeCPU sets up CPU profiling if the cpuprofile flag is set.
+// It also sets the maximum number of CPUs to use.
 //
-
+// Returns a cleanup function that stops the CPU profiling and closes the file,
+// which should be deferred by the caller.
 func setupRuntimeCPU() func() {
 
 	cleanup := func() {}

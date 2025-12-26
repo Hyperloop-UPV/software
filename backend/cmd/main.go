@@ -11,11 +11,11 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
+	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
@@ -44,7 +44,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/vehicle"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	"github.com/jmaralo/sntp"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/pkg/browser"
 	trace "github.com/rs/zerolog/log"
 )
@@ -96,11 +95,15 @@ func run() error {
 	// createPid(pidPath)
 	// defer RemovePid(pidPath)
 
-	// Setup CPU profiling
+	// Set use to all available CPUs and setup CPU profiling if enabled
 	cleanup := setupRuntimeCPU()
 	defer cleanup()
 
-	config := getConfig(*configFile)
+	// Load configuration file
+	config, err := config.GetConfig(*configFile)
+	if err != nil {
+		trace.Fatal().Err(err).Msg("error unmarshaling toml file")
+	}
 
 	// <--- ADJ --->
 
@@ -415,27 +418,6 @@ func run() error {
 	}
 
 	return nil
-}
-
-func getConfig(path string) Config {
-	configFile, fileErr := os.ReadFile(path)
-
-	if fileErr != nil {
-		trace.Fatal().Stack().Err(fileErr).Msg("error reading config file")
-	}
-
-	reader := strings.NewReader(string(configFile))
-
-	var config Config
-
-	// TODO: add strict mode (DisallowUnkownFields)
-	decodeErr := toml.NewDecoder(reader).Decode(&config)
-
-	if decodeErr != nil {
-		trace.Fatal().Stack().Err(decodeErr).Msg("error unmarshaling toml file")
-	}
-
-	return config
 }
 
 func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presentation.Decoder, *presentation.Encoder) {

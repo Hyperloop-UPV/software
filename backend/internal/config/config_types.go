@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/server"
