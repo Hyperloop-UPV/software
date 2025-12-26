@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/rs/zerolog"
 	trace "github.com/rs/zerolog/log"
@@ -33,6 +36,23 @@ var traceLevelMap = map[string]zerolog.Level{
 // Returns the opened *os.File for the trace file so the caller can close it later,
 // or nil if an error occurred while creating the file or if the level is invalid.
 func initTrace(traceLevel string, traceFile string) *os.File {
+
+	// If trace file is undefined  use user settings
+
+	if traceFile == "" {
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			// fallback to current directory if user config dir is unavailable
+			configDir = "."
+		}
+		traceDir := filepath.Join(configDir, "hyperloop-control-station")
+		// Ensure directory exists
+		_ = os.MkdirAll(traceDir, 0o755)
+		// Use current time in filename to avoid collisions
+		timestamp := time.Now().Format("20060102T150405")
+		traceFile = filepath.Join(traceDir, fmt.Sprintf("trace-%s.json", timestamp))
+	}
+
 	// Format the caller as "file:line" instead of the default format.
 	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
 		return file + ":" + strconv.Itoa(line)

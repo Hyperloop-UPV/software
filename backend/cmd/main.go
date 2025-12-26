@@ -13,7 +13,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 
@@ -83,21 +82,7 @@ func main() {
 
 	handleVersionFlag()
 
-	tracePath := *traceFile
-	if tracePath == "" {
-		configDir, err := os.UserConfigDir()
-		if err != nil {
-			// fallback to current directory if user config dir is unavailable
-			configDir = "."
-		}
-		traceDir := filepath.Join(configDir, "hyperloop-control-station")
-		// Ensure directory exists
-		_ = os.MkdirAll(traceDir, 0o755)
-		// Use current time in filename to avoid collisions
-		timestamp := time.Now().Format("20060102T150405")
-		tracePath = filepath.Join(traceDir, fmt.Sprintf("trace-%s.json", timestamp))
-	}
-
+	// Configure trace
 	traceFile := initTrace(*traceLevel, *traceFile)
 	if traceFile != nil {
 		defer traceFile.Close()
