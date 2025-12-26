@@ -11,8 +11,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime"
-	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -98,16 +96,9 @@ func run() error {
 	// createPid(pidPath)
 	// defer RemovePid(pidPath)
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-	runtime.SetBlockProfileRate(*blockprofile)
+	// Setup CPU profiling
+	cleanup := setupRuntimeCPU()
+	defer cleanup()
 
 	config := getConfig(*configFile)
 
