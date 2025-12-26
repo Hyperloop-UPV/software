@@ -81,17 +81,7 @@ func main() {
 	// Parse command line flags
 	flag.Parse()
 
-	// Handle version flag
-	if *versionFlag {
-		versionFile := "VERSION.txt"
-		versionData, err := os.ReadFile(versionFile)
-		if err == nil {
-			fmt.Println("Hyperloop UPV Backend Version:", strings.TrimSpace(string(versionData)))
-		} else {
-			fmt.Println("Hyperloop UPV Backend Version: unknown")
-		}
-		os.Exit(0)
-	}
+	handleVersionFlag()
 
 	tracePath := *traceFile
 	if tracePath == "" {
@@ -108,7 +98,7 @@ func main() {
 		tracePath = filepath.Join(traceDir, fmt.Sprintf("trace-%s.json", timestamp))
 	}
 
-	traceFile := initTrace(*traceLevel, tracePath)
+	traceFile := initTrace(*traceLevel, *traceFile)
 	if traceFile != nil {
 		defer traceFile.Close()
 	}
@@ -574,6 +564,21 @@ func getOps(units utils.Units) data.ConversionDescriptor {
 		}
 	}
 	return output
+}
+
+// Handle version flag
+func handleVersionFlag() {
+
+	if *versionFlag {
+		versionFile := "VERSION.txt"
+		versionData, err := os.ReadFile(versionFile)
+		if err == nil {
+			fmt.Println("Hyperloop UPV Backend Version:", strings.TrimSpace(string(versionData)))
+		} else {
+			fmt.Println("Hyperloop UPV Backend Version: unknown")
+		}
+		os.Exit(0)
+	}
 }
 
 // H09 -- Zürich    -- PM Juan Martínez, Marc Sanchis -- Winners
