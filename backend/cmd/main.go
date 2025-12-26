@@ -5,18 +5,16 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"os/signal"
-	"time"
-
 	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/pprof"
-
 	"strings"
+	"time"
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
@@ -47,7 +45,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/vehicle"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
-
 	"github.com/jmaralo/sntp"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/pkg/browser"
@@ -77,6 +74,14 @@ var playbackFile = flag.String("playback", "", "")
 var versionFlag = flag.Bool("version", false, "Show the backend version")
 
 func main() {
+
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func run() error {
 	// Parse command line flags
 	flag.Parse()
 
@@ -415,8 +420,10 @@ func main() {
 
 	for range interrupt {
 		trace.Info().Msg("Shutting down")
-		return
+		return nil
 	}
+
+	return nil
 }
 
 func getConfig(path string) Config {
@@ -549,21 +556,6 @@ func getOps(units utils.Units) data.ConversionDescriptor {
 		}
 	}
 	return output
-}
-
-// Handle version flag
-func handleVersionFlag() {
-
-	if *versionFlag {
-		versionFile := "VERSION.txt"
-		versionData, err := os.ReadFile(versionFile)
-		if err == nil {
-			fmt.Println("Hyperloop UPV Backend Version:", strings.TrimSpace(string(versionData)))
-		} else {
-			fmt.Println("Hyperloop UPV Backend Version: unknown")
-		}
-		os.Exit(0)
-	}
 }
 
 // H09 -- Zürich    -- PM Juan Martínez, Marc Sanchis -- Winners
