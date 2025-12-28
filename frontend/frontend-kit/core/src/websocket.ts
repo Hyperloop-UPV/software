@@ -7,6 +7,8 @@ import {
   switchMap,
   BehaviorSubject,
   shareReplay,
+  throttleTime,
+  asyncScheduler,
 } from "rxjs";
 import { logger } from "./logger";
 
@@ -66,6 +68,7 @@ class SocketService {
     return this.messages$.pipe(
       filter((msg) => msg.topic === topic),
       map((msg) => msg.payload),
+      throttleTime(100, asyncScheduler),
     );
   }
 
