@@ -163,7 +163,7 @@ export const VariableItem = ({
       <div className="flex items-center gap-3">
         {renderValue()}
 
-        <span className="text-muted-foreground w-6 shrink-0 text-right text-[10px]">
+        <span className="text-muted-foreground shrink-0 text-right text-[10px]">
           {variable.units}
         </span>
       </div>
