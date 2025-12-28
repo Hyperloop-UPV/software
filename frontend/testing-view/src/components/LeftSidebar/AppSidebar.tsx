@@ -24,7 +24,7 @@ const AppSidebar = ({ backendConnected, ...props }: AppSidebarProps) => {
       </SidebarContent>
       <SidebarFooter>
         <ConnectionStatusGroup
-          connections={MOCK_CONNECTIONS}
+          connections={[]}
           backendConnected={backendConnected}
         />
         <div className="my-2" />

@@ -17,6 +17,16 @@ import type {
   WorkspaceFilters,
 } from "../../types/Workspaces";
 
+export interface WorkspaceChartSeries {
+  packetId: number;
+  variable: string;
+}
+
+export interface WorkspaceChartConfig {
+  id: string;
+  series: WorkspaceChartSeries[];
+}
+
 export type CheckboxState = boolean | "indeterminate";
 
 export interface WorkspacesSlice {
@@ -94,6 +104,22 @@ export interface WorkspacesSlice {
   };
   openFilterDialog: (scope: FilterScope) => void;
   closeFilterDialog: () => void;
+
+  // Telemetry Charts
+  workspaceCharts: Record<string, WorkspaceChartConfig[]>;
+  getActiveWorkspaceCharts: () => WorkspaceChartConfig[];
+  addChart: (workspaceId: string) => string;
+  removeChart: (workspaceId: string, chartId: string) => void;
+  addSeriesToChart: (
+    workspaceId: string,
+    chartId: string,
+    series: WorkspaceChartSeries,
+  ) => void;
+  removeSeriesFromChart: (
+    workspaceId: string,
+    chartId: string,
+    variable: string,
+  ) => void;
 }
 
 export const createWorkspacesSlice: StateCreator<
@@ -361,4 +387,94 @@ export const createWorkspacesSlice: StateCreator<
     set({ filterDialog: { isOpen: true, scope } }),
   closeFilterDialog: () =>
     set({ filterDialog: { isOpen: false, scope: null } }),
+
+  // Telemetry Charts
+  workspaceCharts: {
+    "workspace-1": [
+      {
+        id: "ws1-chart-1",
+        series: [
+          { packetId: 252, variable: "regulator_1_pressure" },
+          { packetId: 252, variable: "regulator_2_pressure" },
+        ],
+      },
+      {
+        id: "ws1-chart-2",
+        series: [
+          { packetId: 318, variable: "lcu_airgap_1" },
+          { packetId: 318, variable: "lcu_airgap_2" },
+          { packetId: 318, variable: "lcu_airgap_3" },
+          { packetId: 318, variable: "lcu_airgap_4" },
+          { packetId: 318, variable: "lcu_airgap_5" },
+        ],
+      },
+      {
+        id: "ws1-chart-3",
+        series: [{ packetId: 779, variable: "frequency" }],
+      },
+    ],
+    "workspace-2": [],
+    "workspace-3": [
+      {
+        id: "ws3-chart-1",
+        series: [{ packetId: 252, variable: "regulator_3_pressure" }],
+      },
+      {
+        id: "ws3-chart-2",
+        series: [{ packetId: 252, variable: "regulator_4_pressure" }],
+      },
+    ],
+  },
+
+  getActiveWorkspaceCharts: () => {
+    const id = get().getActiveWorkspaceId();
+    return id ? get().workspaceCharts[id] || [] : [];
+  },
+
+  // Future-proofing Actions
+  addChart: (workspaceId) => {
+    const newChartId = crypto.randomUUID();
+    set((state) => ({
+      workspaceCharts: {
+        ...state.workspaceCharts,
+        [workspaceId]: [
+          ...(state.workspaceCharts[workspaceId] || []),
+          { id: newChartId, series: [] },
+        ],
+      },
+    }));
+    return newChartId;
+  },
+
+  removeChart: (workspaceId, chartId) =>
+    set((state) => ({
+      workspaceCharts: {
+        ...state.workspaceCharts,
+        [workspaceId]: (state.workspaceCharts[workspaceId] || []).filter(
+          (c) => c.id !== chartId,
+        ),
+      },
+    })),
+
+  addSeriesToChart: (workspaceId, chartId, series) =>
+    set((state) => ({
+      workspaceCharts: {
+        ...state.workspaceCharts,
+        [workspaceId]: (state.workspaceCharts[workspaceId] || []).map((c) =>
+          c.id === chartId ? { ...c, series: [...c.series, series] } : c,
+        ),
+      },
+    })),
+
+  removeSeriesFromChart: (workspaceId, chartId, variable) =>
+    set((state) => ({
+      workspaceCharts: {
+        ...state.workspaceCharts,
+        [workspaceId]: (state.workspaceCharts[workspaceId] || []).map((c) =>
+          c.id === chartId
+            ? { ...c, series: c.series.filter((s) => s.variable !== variable) }
+            : c,
+        ),
+      },
+    })),
 });

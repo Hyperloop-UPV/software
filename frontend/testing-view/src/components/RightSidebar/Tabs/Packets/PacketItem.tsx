@@ -61,6 +61,7 @@ export const PacketItem = ({ item: packet }: PacketItemProps) => {
               <VariableItem
                 key={measurement.id}
                 variable={measurement}
+                packetId={packet.id}
                 liveValue={liveData?.measurementUpdates[measurement.id]}
               />
             ))}
