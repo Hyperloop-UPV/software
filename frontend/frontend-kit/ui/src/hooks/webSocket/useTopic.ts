@@ -1,16 +1,17 @@
 import { socketService } from "@workspace/core";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useWebSocket } from "./useWebSocket";
 
 export function useTopic<T>(topic: string, callback: (data: T) => void) {
   const { isConnected } = useWebSocket();
+  const memoizedCallback = useCallback(callback, [callback]);
 
   useEffect(() => {
     if (!isConnected) return;
 
     socketService.post(topic, { subscribe: true });
 
-    const sub = socketService.onTopic(topic).subscribe(callback);
+    const sub = socketService.onTopic(topic).subscribe(memoizedCallback);
 
     return () => {
       socketService.post(topic, { subscribe: false });

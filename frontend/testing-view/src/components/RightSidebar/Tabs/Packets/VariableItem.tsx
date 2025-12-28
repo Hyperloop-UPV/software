@@ -1,10 +1,21 @@
-import { Badge } from "@workspace/ui";
+import {
+  Badge,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@workspace/ui";
 import type { Variable } from "../../../../types/Packet";
 import { getTypeBadgeClass } from "../../../../lib/utils";
 import { cn } from "@workspace/ui/lib";
-import { Check, X } from "@workspace/ui/icons";
+import { Check, Plus, X } from "@workspace/ui/icons";
+import { useStore } from "../../../../store/store";
 
 interface VariableItemProps {
+  packetId: number;
   variable: Variable;
   liveValue?:
     | {
@@ -16,8 +27,31 @@ interface VariableItemProps {
     | number;
 }
 
-export const VariableItem = ({ variable, liveValue }: VariableItemProps) => {
-  console.log(liveValue, variable);
+export const VariableItem = ({
+  packetId,
+  variable,
+  liveValue,
+}: VariableItemProps) => {
+  const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
+  const charts = useStore((s) => s.getActiveWorkspaceCharts());
+  const addSeries = useStore((s) => s.addSeriesToChart);
+  const addChart = useStore((s) => s.addChart);
+
+  const handleAddToChart = (chartId: string) => {
+    if (!activeWorkspaceId) return;
+    addSeries(activeWorkspaceId, chartId, {
+      packetId,
+      variable: variable.id,
+    });
+  };
+
+  const handleCreateChart = () => {
+    if (!activeWorkspaceId) return;
+
+    const newChartId = addChart(activeWorkspaceId);
+    handleAddToChart(newChartId);
+  };
+
   const renderValue = () => {
     // Case 1: Object with average/last
     if (typeof liveValue === "object" && liveValue !== null) {
@@ -72,29 +106,64 @@ export const VariableItem = ({ variable, liveValue }: VariableItemProps) => {
   };
 
   return (
-    <div className="flex items-center justify-between gap-2.5 border-t py-1.5 pl-6 pr-3 first:border-t-0">
-      <div className="flex items-center gap-2">
+    <div className="hover:bg-accent/10 group flex items-center justify-between gap-2.5 border-t py-1.5 pl-6 pr-3 transition-colors first:border-t-0">
+      <div className="flex min-w-0 items-center gap-2">
         <Badge
           variant="outline"
           className={cn(
-            "rounded px-1 py-0.5 text-xs font-semibold uppercase",
+            "shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold uppercase",
             getTypeBadgeClass(variable.type),
           )}
-          title={`Type: ${variable.type}`}
         >
           {variable.type}
         </Badge>
-        {/* Variable name */}
-        <span className="text-muted-foreground truncate text-xs">
+        <span className="text-muted-foreground truncate text-xs font-medium">
           {variable.name}
         </span>
+        {/* Add to Chart Dropdown */}
+        {variable.type !== "enum" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-muted-foreground text-[10px] uppercase">
+                Add to chart
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {charts.length > 0 ? (
+                charts.map((chart, idx) => (
+                  <DropdownMenuItem
+                    key={chart.id}
+                    onClick={() => handleAddToChart(chart.id)}
+                    className="text-xs"
+                  >
+                    Chart {idx + 1} ({chart.series.length} series)
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <DropdownMenuItem disabled className="text-xs italic">
+                  No active charts
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={handleCreateChart} className="text-xs">
+                Create new chart
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {renderValue()}
 
-        {/* Unit */}
-        <span className="text-muted-foreground shrink-0 text-xs">
+        <span className="text-muted-foreground w-6 shrink-0 text-right text-[10px]">
           {variable.units}
         </span>
       </div>

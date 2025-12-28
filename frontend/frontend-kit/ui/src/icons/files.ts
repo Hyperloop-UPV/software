@@ -1,1 +1,1 @@
-export { Folder } from "lucide-react";
+export { Folder, Trash2 } from "lucide-react";

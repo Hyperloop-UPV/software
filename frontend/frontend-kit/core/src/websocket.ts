@@ -2,7 +2,6 @@ import { webSocket, WebSocketSubject } from "rxjs/webSocket";
 import {
   filter,
   map,
-  tap,
   ReplaySubject,
   Observable,
   switchMap,
@@ -67,7 +66,6 @@ class SocketService {
     return this.messages$.pipe(
       filter((msg) => msg.topic === topic),
       map((msg) => msg.payload),
-      tap((msg) => logger.core.log("Received message ", topic, msg)),
     );
   }
 
