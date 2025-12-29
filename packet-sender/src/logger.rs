@@ -3,7 +3,6 @@ use enable_ansi_support;
 
 use tracing_subscriber::fmt::format::Writer;
 use tracing_subscriber::fmt::time::FormatTime;
-use std::io::Write;
 
 struct CompactTimer;
 
@@ -19,7 +18,7 @@ pub fn init(log_level: &str) {
     // Enable ANSI support on Windows before initializing logger
     #[cfg(windows)]
     let _ = enable_ansi_support::enable_ansi_support();
-    
+
     // Initialize logging
     tracing_subscriber::fmt()
         .with_env_filter(log_level)
