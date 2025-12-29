@@ -6,12 +6,12 @@ import {
   TooltipTrigger,
 } from "@workspace/ui";
 import {
-  X,
   Columns,
-  PanelRight,
-  PanelBottom,
   List,
   MessageSquare,
+  PanelBottom,
+  PanelRight,
+  X,
 } from "@workspace/ui/icons";
 import { useStore } from "../../store/store";
 
@@ -64,7 +64,7 @@ export const RightSidebarHeader = ({ onClose }: RightSidebarHeaderProps) => {
               <Button
                 onClick={toggleMessages}
                 size="icon"
-                variant={isMessagesVisible ? "default" : "ghost"}
+                variant={isMessagesVisible ? "default" : "secondary"}
                 className="h-7 w-7"
                 aria-label={
                   isMessagesVisible ? "Hide Messages" : "Show Messages"
@@ -87,7 +87,7 @@ export const RightSidebarHeader = ({ onClose }: RightSidebarHeaderProps) => {
               <Button
                 onClick={toggleSplit}
                 size="icon"
-                variant={isSplit ? "default" : "ghost"}
+                variant={isSplit ? "default" : "secondary"}
                 className="h-7 w-7"
                 aria-label={isSplit ? "Merge tabs" : "Split tabs into columns"}
                 disabled={!isTabsVisible}
@@ -104,7 +104,7 @@ export const RightSidebarHeader = ({ onClose }: RightSidebarHeaderProps) => {
             <TooltipTrigger asChild>
               <Button
                 onClick={toggleLayout}
-                variant="ghost"
+                variant="secondary"
                 size="icon"
                 className="h-7 w-7"
                 aria-label={
@@ -133,7 +133,7 @@ export const RightSidebarHeader = ({ onClose }: RightSidebarHeaderProps) => {
 
         <Button
           onClick={onClose}
-          variant="ghost"
+          variant="secondary"
           size="icon"
           className="h-7 w-7"
           aria-label="Close sidebar"

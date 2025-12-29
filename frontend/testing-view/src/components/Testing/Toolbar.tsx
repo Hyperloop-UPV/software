@@ -1,10 +1,10 @@
 import { Button } from "@workspace/ui";
-import { Plus, ChevronLeft } from "@workspace/ui/icons";
+import { ChevronLeft, Plus } from "@workspace/ui/icons";
+import { useStore } from "../../store/store";
 
 interface TestingToolbarProps {
   columns: number;
   onColumnsChange: (cols: number) => void;
-  onAddChart: () => void;
   showSidebarButton: boolean;
   onOpenSidebar: () => void;
 }
@@ -12,37 +12,49 @@ interface TestingToolbarProps {
 export const TestingToolbar = ({
   columns,
   onColumnsChange,
-  onAddChart,
   showSidebarButton,
   onOpenSidebar,
-}: TestingToolbarProps) => (
-  <div className="sticky top-0 z-10 flex w-full justify-end gap-2 p-2 backdrop-blur-sm">
-    <Button
-      onClick={onAddChart}
-      variant="outline"
-      size="sm"
-      className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
-    >
-      <Plus className="h-4 w-4" /> Add Chart
-    </Button>
-    <Button
-      onClick={() => onColumnsChange(1)}
-      variant={columns === 1 ? "default" : "outline"}
-      size="icon-sm"
-    >
-      1
-    </Button>
-    <Button
-      onClick={() => onColumnsChange(2)}
-      variant={columns === 2 ? "default" : "outline"}
-      size="icon-sm"
-    >
-      2
-    </Button>
-    {showSidebarButton && (
-      <Button onClick={onOpenSidebar} variant="outline" size="icon-sm">
-        <ChevronLeft className="h-4 w-4" />
+}: TestingToolbarProps) => {
+  const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
+  const addChart = useStore((s) => s.addChart);
+  const charts = useStore((s) => s.getActiveWorkspaceCharts());
+
+  const handleAddChart = () => {
+    if (!activeWorkspaceId) return;
+    addChart(activeWorkspaceId);
+  };
+
+  return (
+    <div className="sticky top-0 z-10 flex w-full justify-end gap-2 p-2 backdrop-blur-sm">
+      <Button
+        onClick={handleAddChart}
+        variant="secondary"
+        size="sm"
+        className="ring-border/50 hover:ring-primary/30 gap-2 px-6 shadow-sm ring-1 transition-all"
+      >
+        <Plus className="h-4 w-4" /> Add Chart
       </Button>
-    )}
-  </div>
-);
+      <Button
+        onClick={() => onColumnsChange(1)}
+        variant={columns === 1 ? "default" : "secondary"}
+        disabled={charts.length === 0}
+        size="icon-sm"
+      >
+        1
+      </Button>
+      <Button
+        onClick={() => onColumnsChange(2)}
+        variant={columns === 2 ? "default" : "secondary"}
+        disabled={charts.length === 0}
+        size="icon-sm"
+      >
+        2
+      </Button>
+      {showSidebarButton && (
+        <Button onClick={onOpenSidebar} variant="secondary" size="icon-sm">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
+};

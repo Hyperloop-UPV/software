@@ -49,7 +49,7 @@ export const VariableItem = ({
       <div className="flex min-w-0 items-center gap-2">
         {/* Variable Type: float, integer, enum, boolean */}
         <Badge
-          variant="outline"
+          variant="secondary"
           className={cn(
             "shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold uppercase",
             getTypeBadgeClass(variable.type),

@@ -21,7 +21,7 @@ const ChartPicker = ({ charts, onAdd, onCreate }: ChartPickerProps) => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
+          variant="secondary"
           size="icon"
           className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
         >

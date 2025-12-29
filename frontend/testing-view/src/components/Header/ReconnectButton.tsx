@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui";
+import { useWebSocket } from "@workspace/ui/hooks";
 import { RefreshCw } from "@workspace/ui/icons";
 import { useStore } from "../../store/store";
-import { useWebSocket } from "@workspace/ui/hooks";
 
 export const ReconnectButton = () => {
   const appMode = useStore((s) => s.appMode);
@@ -15,7 +15,7 @@ export const ReconnectButton = () => {
 
   return (
     <Button
-      variant="outline"
+      variant="secondary"
       size="sm"
       onClick={reconnect}
       disabled={isConnecting}

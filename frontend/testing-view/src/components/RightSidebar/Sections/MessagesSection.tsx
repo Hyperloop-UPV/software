@@ -7,7 +7,7 @@ const MessagesSection = () => (
       <span className="text-foreground px-2 text-sm font-semibold">
         Messages
       </span>
-      <Button variant="ghost" size="sm" className="h-6 text-xs">
+      <Button variant="secondary" size="sm" className="h-6 text-xs">
         Clear
       </Button>
     </div>
