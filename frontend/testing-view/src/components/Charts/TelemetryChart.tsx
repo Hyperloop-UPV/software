@@ -30,6 +30,16 @@ export const TelemetryChart = ({
     });
   };
 
+  const handleRemoveSeries = (variable: string, index: number) => {
+    if (!activeWorkspaceId) return;
+    removeSeries(activeWorkspaceId, id, variable);
+    setDisabledIndices((prev) => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
+  };
+
   return (
     <div className="border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-all">
       {/* Delete Button */}
@@ -44,9 +54,7 @@ export const TelemetryChart = ({
         points={points}
         disabledIndices={disabledIndices}
         onToggle={toggleSeries}
-        onRemove={(v) =>
-          activeWorkspaceId && removeSeries(activeWorkspaceId, id, v)
-        }
+        onRemove={(v, i) => handleRemoveSeries(v, i)}
       />
 
       <ChartSurface points={points} disabledIndices={disabledIndices} />

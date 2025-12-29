@@ -5,7 +5,7 @@ interface ChartLegendProps {
   points: MeasurementPoint[];
   disabledIndices: Set<number>;
   onToggle: (index: number) => void;
-  onRemove: (variable: string) => void;
+  onRemove: (variable: string, index: number) => void;
 }
 
 export const ChartLegend = ({
@@ -35,7 +35,7 @@ export const ChartLegend = ({
           {p.variable}
         </button>
         <button
-          onClick={() => onRemove(p.variable)}
+          onClick={() => onRemove(p.variable, i)}
           className="border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive h-full border-l px-1.5 py-1 transition-colors"
         >
           <X className="h-3 w-3" />
