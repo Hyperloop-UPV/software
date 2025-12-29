@@ -8,7 +8,6 @@ import NavigationGroup from "./NavigationGroup";
 import ConnectionStatusGroup from "./ConnectionStatusGroup";
 import SettingsItem from "./SettingsItem";
 import ThemeToggleItem from "./ThemeToggleItem";
-import { MOCK_CONNECTIONS } from "../../mocks/connections";
 import { PAGES_ARRAY } from "../../constants/pages";
 import ColorSchemeToggle from "./ColorSchemeToggle";
 

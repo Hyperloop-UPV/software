@@ -8,20 +8,15 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui";
 import { Plus } from "@workspace/ui/icons";
-import React from "react";
 import type { WorkspaceChartConfig } from "../../../../store/slices/workspacesSlice";
 
-interface ChartSeriesPickerProps {
+interface ChartPickerProps {
   charts: WorkspaceChartConfig[];
   onAdd: (chartId: string) => void;
   onCreate: () => void;
 }
 
-const ChartSeriesPicker = ({
-  charts,
-  onAdd,
-  onCreate,
-}: ChartSeriesPickerProps) => {
+const ChartPicker = ({ charts, onAdd, onCreate }: ChartPickerProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -61,4 +56,4 @@ const ChartSeriesPicker = ({
   );
 };
 
-export default ChartSeriesPicker;
+export default ChartPicker;

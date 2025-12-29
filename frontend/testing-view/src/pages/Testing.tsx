@@ -2,12 +2,10 @@ import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-  Button,
 } from "@workspace/ui";
 import { RightSidebar } from "../components/RightSidebar/RightSidebar";
 import { useStore } from "../store/store";
 import { WorkspaceFilterController } from "../components/Filters/FilterController";
-import { ChevronLeft, Plus } from "@workspace/ui/icons";
 import { TelemetryChart } from "../components/Charts/TelemetryChart";
 import { cn } from "@workspace/ui/lib";
 import { TestingToolbar } from "../components/Testing/Toolbar";
