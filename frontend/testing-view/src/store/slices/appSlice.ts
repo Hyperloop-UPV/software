@@ -18,6 +18,14 @@ export interface AppSlice {
   isDarkMode: boolean;
   setIsDarkMode: (isDarkMode: boolean) => void;
   toggleDarkMode: () => void;
+
+  // Testing page
+  testingPage: {
+    columns: number;
+    isSidebarVisible: boolean;
+  };
+  setTestingColumns: (columns: number) => void;
+  setTestingSidebarVisible: (isSidebarVisible: boolean) => void;
 }
 
 export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
@@ -37,4 +45,16 @@ export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
   isDarkMode: false,
   setIsDarkMode: (isDarkMode) => set({ isDarkMode }),
   toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+
+  // Testing page
+  testingPage: {
+    columns: 1,
+    isSidebarVisible: true,
+  },
+  setTestingColumns: (columns) =>
+    set((state) => ({ testingPage: { ...state.testingPage, columns } })),
+  setTestingSidebarVisible: (isSidebarVisible) =>
+    set((state) => ({
+      testingPage: { ...state.testingPage, isSidebarVisible },
+    })),
 });

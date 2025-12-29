@@ -13,6 +13,8 @@ import { getTypeBadgeClass } from "../../../../lib/utils";
 import { cn } from "@workspace/ui/lib";
 import { Check, Plus, X } from "@workspace/ui/icons";
 import { useStore } from "../../../../store/store";
+import ChartSeriesPicker from "./ChartSeriesPicker";
+import { TelemetryValue } from "./TelemetryValue";
 
 interface VariableItemProps {
   packetId: number;
@@ -108,6 +110,7 @@ export const VariableItem = ({
   return (
     <div className="hover:bg-accent/10 group flex items-center justify-between gap-2.5 border-t py-1.5 pl-6 pr-3 transition-colors first:border-t-0">
       <div className="flex min-w-0 items-center gap-2">
+        {/* Variable Type: float, integer, enum, boolean */}
         <Badge
           variant="outline"
           className={cn(
@@ -117,56 +120,23 @@ export const VariableItem = ({
         >
           {variable.type}
         </Badge>
+
+        {/* Variable Name */}
         <span className="text-muted-foreground truncate text-xs font-medium">
           {variable.name}
         </span>
-        {/* Add to Chart Dropdown */}
+
+        {/* Add to Chart Dropdown: show for all except enum */}
         {variable.type !== "enum" && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel className="text-muted-foreground text-[10px] uppercase">
-                Add to chart
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {charts.length > 0 ? (
-                charts.map((chart, idx) => (
-                  <DropdownMenuItem
-                    key={chart.id}
-                    onClick={() => handleAddToChart(chart.id)}
-                    className="text-xs"
-                  >
-                    Chart {idx + 1} ({chart.series.length} series)
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <DropdownMenuItem disabled className="text-xs italic">
-                  No active charts
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={handleCreateChart} className="text-xs">
-                Create new chart
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ChartSeriesPicker
+            charts={charts}
+            onAdd={handleAddToChart}
+            onCreate={handleCreateChart}
+          />
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        {renderValue()}
-
-        <span className="text-muted-foreground shrink-0 text-right text-[10px]">
-          {variable.units}
-        </span>
-      </div>
+      <TelemetryValue value={liveValue} units={variable.units} />
     </div>
   );
 };
