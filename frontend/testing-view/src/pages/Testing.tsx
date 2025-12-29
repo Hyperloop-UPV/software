@@ -72,7 +72,7 @@ export const Testing = () => {
                       Empty Workspace
                     </h3>
                     <p className="text-muted-foreground max-w-[320px] text-sm leading-relaxed">
-                      Start monitoring your telemetry data by adding a new chart
+                      Visualize real-time telemetry by adding your first chart
                       or selecting variables from the sidebar.
                     </p>
                   </div>
