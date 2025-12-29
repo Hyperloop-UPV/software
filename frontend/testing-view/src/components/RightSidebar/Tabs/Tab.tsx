@@ -1,9 +1,9 @@
-import { type ComponentType } from "react";
 import { Button } from "@workspace/ui";
+import { type ComponentType } from "react";
 import { useStore } from "../../../store/store";
-import type { SidebarTab } from "../../../types/SidebarTab";
 import type { BoardName } from "../../../types/BoardName";
 import type { Item } from "../../../types/Item";
+import type { SidebarTab } from "../../../types/SidebarTab";
 import { CategoryItem } from "./CategoryItem";
 
 interface TabProps {
@@ -30,7 +30,7 @@ export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
         <Button
           onClick={() => openFilterDialog(scope)}
           size="sm"
-          variant="outline"
+          variant="secondary"
         >
           Filter
         </Button>

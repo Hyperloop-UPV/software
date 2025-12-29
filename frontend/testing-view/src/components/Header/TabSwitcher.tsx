@@ -1,18 +1,18 @@
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   useSidebar,
 } from "@workspace/ui";
 import {
   ChevronsUpDown,
-  SquareLibrary,
   Folder,
   Plus,
+  SquareLibrary,
 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../store/store";
