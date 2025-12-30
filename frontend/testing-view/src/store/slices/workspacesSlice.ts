@@ -1,21 +1,21 @@
 import type { StateCreator } from "zustand";
-import type { BoardName } from "../../types/BoardName";
-import type { SidebarTab } from "../../types/SidebarTab";
-import type { TabFilter } from "../../types/TabFilter";
-import type { Workspace } from "../../types/Workspace";
 import { DEFAULT_WORKSPACES } from "../../constants/defaultWorkspaces";
 import {
   createEmptyFilter,
   createFullFilter,
   generateInitialFilters,
 } from "../../lib/utils";
+import type { BoardName } from "../../types/BoardName";
 import type { Item } from "../../types/Item";
-import type { Store } from "../store";
+import type { SidebarTab } from "../../types/SidebarTab";
+import type { TabFilter } from "../../types/TabFilter";
+import type { Workspace } from "../../types/Workspace";
 import type {
   FilterScope,
   WorkspaceExpandedItems,
   WorkspaceFilters,
 } from "../../types/Workspaces";
+import type { Store } from "../store";
 
 export interface WorkspaceChartSeries {
   packetId: number;
@@ -106,7 +106,8 @@ export interface WorkspacesSlice {
   closeFilterDialog: () => void;
 
   // Telemetry Charts
-  workspaceCharts: Record<string, WorkspaceChartConfig[]>;
+  charts: Record<string, WorkspaceChartConfig[]>;
+  setCharts: (charts: Record<string, WorkspaceChartConfig[]>) => void;
   getActiveWorkspaceCharts: () => WorkspaceChartConfig[];
   addChart: (workspaceId: string) => string;
   removeChart: (workspaceId: string, chartId: string) => void;
@@ -389,56 +390,27 @@ export const createWorkspacesSlice: StateCreator<
     set({ filterDialog: { isOpen: false, scope: null } }),
 
   // Telemetry Charts
-  workspaceCharts: {
-    "workspace-1": [
-      {
-        id: "ws1-chart-1",
-        series: [
-          { packetId: 252, variable: "regulator_1_pressure" },
-          { packetId: 252, variable: "regulator_2_pressure" },
-        ],
-      },
-      {
-        id: "ws1-chart-2",
-        series: [
-          { packetId: 318, variable: "lcu_airgap_1" },
-          { packetId: 318, variable: "lcu_airgap_2" },
-          { packetId: 318, variable: "lcu_airgap_3" },
-          { packetId: 318, variable: "lcu_airgap_4" },
-          { packetId: 318, variable: "lcu_airgap_5" },
-        ],
-      },
-      {
-        id: "ws1-chart-3",
-        series: [{ packetId: 779, variable: "frequency" }],
-      },
-    ],
+  charts: {
+    "workspace-1": [],
     "workspace-2": [],
-    "workspace-3": [
-      {
-        id: "ws3-chart-1",
-        series: [{ packetId: 252, variable: "regulator_3_pressure" }],
-      },
-      {
-        id: "ws3-chart-2",
-        series: [{ packetId: 252, variable: "regulator_4_pressure" }],
-      },
-    ],
+    "workspace-3": [],
   },
+
+  setCharts: (charts) => set({ charts }),
 
   getActiveWorkspaceCharts: () => {
     const id = get().getActiveWorkspaceId();
-    return id ? get().workspaceCharts[id] || [] : [];
+    return id ? get().charts[id] || [] : [];
   },
 
   // Future-proofing Actions
   addChart: (workspaceId) => {
     const newChartId = crypto.randomUUID();
     set((state) => ({
-      workspaceCharts: {
-        ...state.workspaceCharts,
+      charts: {
+        ...state.charts,
         [workspaceId]: [
-          ...(state.workspaceCharts[workspaceId] || []),
+          ...(state.charts[workspaceId] || []),
           { id: newChartId, series: [] },
         ],
       },
@@ -448,9 +420,9 @@ export const createWorkspacesSlice: StateCreator<
 
   removeChart: (workspaceId, chartId) =>
     set((state) => ({
-      workspaceCharts: {
-        ...state.workspaceCharts,
-        [workspaceId]: (state.workspaceCharts[workspaceId] || []).filter(
+      charts: {
+        ...state.charts,
+        [workspaceId]: (state.charts[workspaceId] || []).filter(
           (c) => c.id !== chartId,
         ),
       },
@@ -458,9 +430,9 @@ export const createWorkspacesSlice: StateCreator<
 
   addSeriesToChart: (workspaceId, chartId, series) =>
     set((state) => ({
-      workspaceCharts: {
-        ...state.workspaceCharts,
-        [workspaceId]: (state.workspaceCharts[workspaceId] || []).map((c) =>
+      charts: {
+        ...state.charts,
+        [workspaceId]: (state.charts[workspaceId] || []).map((c) =>
           c.id === chartId ? { ...c, series: [...c.series, series] } : c,
         ),
       },
@@ -468,9 +440,9 @@ export const createWorkspacesSlice: StateCreator<
 
   removeSeriesFromChart: (workspaceId, chartId, variable) =>
     set((state) => ({
-      workspaceCharts: {
-        ...state.workspaceCharts,
-        [workspaceId]: (state.workspaceCharts[workspaceId] || []).map((c) =>
+      charts: {
+        ...state.charts,
+        [workspaceId]: (state.charts[workspaceId] || []).map((c) =>
           c.id === chartId
             ? { ...c, series: c.series.filter((s) => s.variable !== variable) }
             : c,

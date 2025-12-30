@@ -1,26 +1,32 @@
-import { AppLayout } from "./layout/AppLayout";
-import { Testing } from "./pages/Testing";
-import { Route, Routes } from "react-router";
-import { Logs } from "./pages/Logs";
-import { CameraView } from "./pages/CameraView";
+import { logger } from "@workspace/core";
 import { useFetchConfig, useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { useEffect } from "react";
-import { logger } from "@workspace/core";
-import { useStore } from "./store/store";
-import { useBoardData } from "./hooks/useBoardData";
+import { Route, Routes } from "react-router";
+import { AppModeRouter } from "./components/AppModeRouter";
+import { ModeSwitcher } from "./components/DevTools/ModeSwitcher";
 import { useAppMode } from "./hooks/useAppMode";
-import type { PacketsData } from "./types/AppData";
-import type { OrdersData } from "./types/AppData";
-import type { TelemtryData } from "./types/Telemetry";
+import { useBoardData } from "./hooks/useBoardData";
+import { useChartsConfiguration } from "./hooks/useChartsConfiguration";
+import { AppLayout } from "./layout/AppLayout";
+import { CameraView } from "./pages/CameraView";
+import { Logs } from "./pages/Logs";
+import { Testing } from "./pages/Testing";
+import { useStore } from "./store/store";
+import type { OrdersData, PacketsData } from "./types/AppData";
+import type { TelemetryData } from "./types/Telemetry";
+import { useErrorHandler } from "./hooks/useErrorHandler";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function App() {
   const { isConnected, status } = useWebSocket();
-
+  const appMode = useStore((s) => s.appMode);
   logger.testingView.log("Status", status);
 
   const addTelemetry = useStore((s) => s.addTelemetry);
 
-  useTopic<TelemtryData>("podData/update", (data) => {
+  const { reportError } = useErrorHandler();
+
+  useTopic<TelemetryData>("podData/update", (data) => {
     addTelemetry(data);
   });
 
@@ -42,15 +48,11 @@ function App() {
     }
   }, [isConnected]);
 
-  const appMode = useAppMode(
-    packets,
-    commands,
-    packetsLoading,
-    commandsLoading,
-    isConnected,
-  );
+  useAppMode(packets, commands, packetsLoading, commandsLoading, isConnected);
 
   const transformedBoards = useBoardData(packets, commands, appMode);
+
+  useChartsConfiguration();
 
   const setPackets = useStore((s) => s.setPackets);
   const setCommands = useStore((s) => s.setCommands);
@@ -64,20 +66,26 @@ function App() {
     initializeTabFilters();
   }, [transformedBoards, setPackets, setCommands, initializeTabFilters]);
 
-  useEffect(() => {
-    logger.testingView.log("useFetchConfig / podDataStructure", packets);
-    logger.testingView.log("useFetchConfig / orderStructures", commands);
-    logger.testingView.log("Transformed boards", transformedBoards);
-  }, [packets, commands, transformedBoards]);
+  // useEffect(() => {
+  //   logger.testingView.log("useFetchConfig / podDataStructure", packets);
+  //   logger.testingView.log("useFetchConfig / orderStructures", commands);
+  //   logger.testingView.log("Transformed boards", transformedBoards);
+  // }, [packets, commands, transformedBoards]);
 
   return (
-    <AppLayout backendConnected={isConnected}>
-      <Routes>
-        <Route path="/" element={<Testing />} />
-        <Route path="/logs" element={<Logs />} />
-        <Route path="/camera-view" element={<CameraView />} />
-      </Routes>
-    </AppLayout>
+    <ErrorBoundary onError={reportError}>
+      <AppLayout backendConnected={isConnected}>
+        <AppModeRouter>
+          <Routes>
+            <Route path="/" element={<Testing />} />
+            <Route path="/logs" element={<Logs />} />
+            <Route path="/camera-view" element={<CameraView />} />
+          </Routes>
+        </AppModeRouter>
+      </AppLayout>
+
+      <ModeSwitcher />
+    </ErrorBoundary>
   );
 }
 

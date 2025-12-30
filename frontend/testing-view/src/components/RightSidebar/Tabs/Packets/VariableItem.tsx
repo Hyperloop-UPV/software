@@ -26,6 +26,7 @@ export const VariableItem = ({
 }: VariableItemProps) => {
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
+
   const addSeries = useStore((s) => s.addSeriesToChart);
   const addChart = useStore((s) => s.addChart);
 

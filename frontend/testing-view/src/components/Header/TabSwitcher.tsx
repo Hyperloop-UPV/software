@@ -17,7 +17,11 @@ import {
 import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../store/store";
 
-const TabSwitcher = () => {
+interface TabSwitcherProps {
+  disabled: boolean;
+}
+
+const TabSwitcher = ({ disabled }: TabSwitcherProps) => {
   const { isMobile } = useSidebar();
   const activeWorkspace = useStore((s) => s.activeWorkspace);
   const setActiveWorkspace = useStore((s) => s.setActiveWorkspace);
@@ -36,6 +40,7 @@ const TabSwitcher = () => {
             "h-9 gap-2 px-3",
             "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
           )}
+          disabled={disabled}
         >
           <div className="bg-primary text-primary-foreground flex aspect-square size-6 items-center justify-center rounded-md">
             <SquareLibrary className="text-primary-foreground size-3.5" />

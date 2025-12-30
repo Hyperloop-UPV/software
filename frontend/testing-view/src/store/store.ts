@@ -1,5 +1,11 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { createAppSlice, type AppSlice } from "./slices/appSlice";
 import { createCatalogSlice, type CatalogSlice } from "./slices/catalogSlice";
+import {
+  createRightSidebarSlice,
+  type RightSidebarSlice,
+} from "./slices/rightSidebarSlice";
 import {
   createTelemetrySlice,
   type TelemetrySlice,
@@ -8,11 +14,6 @@ import {
   createWorkspacesSlice,
   type WorkspacesSlice,
 } from "./slices/workspacesSlice";
-import { createAppSlice, type AppSlice } from "./slices/appSlice";
-import {
-  createRightSidebarSlice,
-  type RightSidebarSlice,
-} from "./slices/rightSidebarSlice";
 
 export type Store = AppSlice &
   CatalogSlice &
@@ -20,10 +21,20 @@ export type Store = AppSlice &
   TelemetrySlice &
   RightSidebarSlice;
 
-export const useStore = create<Store>()((...a) => ({
-  ...createAppSlice(...a),
-  ...createCatalogSlice(...a),
-  ...createWorkspacesSlice(...a),
-  ...createTelemetrySlice(...a),
-  ...createRightSidebarSlice(...a),
-}));
+export const useStore = create<Store>()(
+  persist(
+    (...a) => ({
+      ...createAppSlice(...a),
+      ...createCatalogSlice(...a),
+      ...createWorkspacesSlice(...a),
+      ...createTelemetrySlice(...a),
+      ...createRightSidebarSlice(...a),
+    }),
+    {
+      name: "testing-view-storage",
+      partialize: (state) => ({
+        charts: state.charts,
+      }),
+    },
+  ),
+);
