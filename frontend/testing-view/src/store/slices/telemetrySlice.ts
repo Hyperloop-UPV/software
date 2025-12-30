@@ -1,10 +1,10 @@
 import type { StateCreator } from "zustand";
+import type { TelemetryData, TelemetryState } from "../../types/Telemetry";
 import type { Store } from "../store";
-import type { TelemetryState, TelemtryData } from "../../types/Telemetry";
 
 export interface TelemetrySlice {
   telemetry: TelemetryState;
-  addTelemetry: (data: TelemtryData) => void;
+  addTelemetry: (data: TelemetryData) => void;
 }
 
 export const createTelemetrySlice: StateCreator<
