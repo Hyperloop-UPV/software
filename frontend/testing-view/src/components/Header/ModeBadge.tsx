@@ -1,6 +1,6 @@
-import { useStore } from "../../store/store";
 import { cn } from "@workspace/ui/lib";
 import type { AppMode } from "../../store/slices/appSlice";
+import { useStore } from "../../store/store";
 
 const modeConfig: Record<AppMode, { label: string; className: string }> = {
   loading: {
@@ -33,7 +33,7 @@ export const ModeBadge = () => {
       )}
     >
       {appMode === "loading" && (
-        <span className="h-2 w-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <span className="mr-1 h-2 w-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
       )}
       {config.label}
     </div>

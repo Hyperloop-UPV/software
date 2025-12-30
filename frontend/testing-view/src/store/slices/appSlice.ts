@@ -8,6 +8,16 @@ export interface AppSlice {
   // App mode
   appMode: AppMode;
   setAppMode: (mode: AppMode) => void;
+  previousAppMode: AppMode | null;
+  setPreviousAppMode: (mode: AppMode | null) => void;
+
+  // Error state
+  error: Error | null;
+  setError: (error: Error | null) => void;
+
+  // Mode override (only used in dev mode)
+  modeOverride: AppMode | null;
+  setModeOverride: (mode: AppMode | null) => void;
 
   // Color scheme
   colorScheme: ColorScheme;
@@ -32,6 +42,16 @@ export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
   // App mode
   appMode: "loading",
   setAppMode: (mode) => set({ appMode: mode }),
+  previousAppMode: null,
+  setPreviousAppMode: (mode) => set({ previousAppMode: mode }),
+
+  // Error state
+  error: null,
+  setError: (error) => set({ error }),
+
+  // Mode override (only used in dev mode)
+  modeOverride: null,
+  setModeOverride: (mode) => set({ modeOverride: mode }),
 
   // Color scheme
   colorScheme: "default",

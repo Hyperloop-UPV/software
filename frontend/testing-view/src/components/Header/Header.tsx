@@ -4,11 +4,13 @@ import TabSwitcher from "./TabSwitcher";
 import { ModeBadge } from "./ModeBadge";
 import { PAGES } from "../../constants/pages";
 import { ReconnectButton } from "./ReconnectButton";
+import { useStore } from "../../store/store";
 
 const Header = () => {
   const location = useLocation();
   const pageTitle = PAGES[location.pathname as keyof typeof PAGES].title;
   const isTestingPage = location.pathname === "/";
+  const appMode = useStore((s) => s.appMode);
 
   return (
     <header className="h-(--header-height) flex shrink-0 items-center gap-2 border-b px-4">
@@ -31,7 +33,9 @@ const Header = () => {
               orientation="vertical"
               className="data-[orientation=vertical]:h-4"
             />
-            <TabSwitcher />
+            <TabSwitcher
+              disabled={appMode === "loading" || appMode === "error"}
+            />
           </>
         )}
       </div>

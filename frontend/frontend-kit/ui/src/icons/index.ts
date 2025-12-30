@@ -3,6 +3,7 @@ export { type LucideIcon } from "lucide-react";
 export * from "./accessibility";
 export * from "./account";
 export * from "./arrows";
+export * from "./cursors";
 export * from "./design";
 export * from "./devices";
 export * from "./files";

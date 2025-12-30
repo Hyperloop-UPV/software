@@ -13,4 +13,4 @@ export interface TelemetryPacket {
   measurementUpdates: Variables;
 }
 
-export type TelemtryData = Record<number, TelemetryPacket>;
+export type TelemetryData = Record<number, TelemetryPacket>;

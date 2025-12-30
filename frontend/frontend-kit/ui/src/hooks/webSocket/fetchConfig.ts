@@ -1,5 +1,5 @@
 import { logger } from "@workspace/core";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useFetchConfig<T>(endpoint: string) {
   const [data, setData] = useState<T | null>(null);
@@ -25,6 +25,7 @@ export function useFetchConfig<T>(endpoint: string) {
         logger.ui.warn(`Fetching ${endpoint} aborted`);
       } else {
         logger.ui.error(`Failed to fetch ${endpoint}:`, err);
+        throw err;
       }
     } finally {
       setLoading(false);
