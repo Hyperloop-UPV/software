@@ -33,8 +33,7 @@ export function useAppMode(
     logger.testingView.log("[DEBUG] backendConnected", backendConnected);
     logger.testingView.log("[DEBUG] hasError", hasError);
 
-    if (isLoading || (!hasData && packets === null && commands === null))
-      return "loading";
+    if (isLoading) return "loading";
     if (!hasError) return "active";
     if (isDev) return "mock";
     return "error";

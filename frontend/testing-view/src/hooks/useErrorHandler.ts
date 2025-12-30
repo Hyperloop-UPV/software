@@ -22,7 +22,6 @@ export function useErrorHandler() {
           ? event.reason
           : new Error(String(event.reason));
       setError(error);
-      setAppMode("error");
     };
 
     // Add listeners
@@ -46,7 +45,6 @@ export function useErrorHandler() {
       error,
     );
     setError(error);
-    setAppMode("error");
   };
 
   return { reportError };
