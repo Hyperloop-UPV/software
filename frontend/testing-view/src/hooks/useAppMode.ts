@@ -11,7 +11,6 @@ export function useAppMode(
   backendConnected: boolean,
 ) {
   const setAppMode = useStore((s) => s.setAppMode);
-  const setPreviousAppMode = useStore((s) => s.setPreviousAppMode);
   const appMode = useStore((s) => s.appMode);
   const modeOverride = useStore((s) => s.modeOverride);
 
@@ -54,10 +53,9 @@ export function useAppMode(
 
     if (newAppMode !== appMode) {
       logger.testingView.log("App mode: ", newAppMode);
-      setPreviousAppMode(appMode);
       setAppMode(newAppMode);
     }
-  }, [determineAppMode, setAppMode]);
+  }, [determineAppMode, setAppMode, appMode]);
 
   return;
 }

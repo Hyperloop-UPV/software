@@ -17,7 +17,7 @@ export function useTopic<T>(topic: string, callback: (data: T) => void) {
       socketService.post(topic, { subscribe: false });
       sub.unsubscribe();
     };
-  }, [topic, isConnected]);
+  }, [topic, isConnected, memoizedCallback]);
 
   return;
 }
