@@ -22,12 +22,11 @@ export function useAppMode(
     }
 
     const forceDev = import.meta.env.VITE_FORCE_DEV;
-    const isDev = import.meta.env.DEV || forceDev;
     const isLoading = packetsLoading || commandsLoading;
     const hasData = !!(packets?.boards && commands?.boards);
     const hasError = !hasData || !backendConnected;
 
-    logger.testingView.log("[DEBUG] isDev", isDev);
+    logger.testingView.log("[DEBUG] forceDev", forceDev);
     logger.testingView.log("[DEBUG] isLoading", isLoading);
     logger.testingView.log("[DEBUG] hasData", hasData);
     logger.testingView.log("[DEBUG] backendConnected", backendConnected);
@@ -35,7 +34,7 @@ export function useAppMode(
 
     if (isLoading) return "loading";
     if (!hasError) return "active";
-    if (isDev) return "mock";
+    if (forceDev) return "mock";
     return "error";
   }, [
     packetsLoading,
