@@ -428,6 +428,18 @@ export const createWorkspacesSlice: StateCreator<
       },
     })),
 
+  clearCharts: () => {
+    const activeWorkspaceId = get().getActiveWorkspaceId();
+    if (!activeWorkspaceId) return;
+
+    set((state) => ({
+      charts: {
+        ...state.charts,
+        [activeWorkspaceId]: [],
+      },
+    }));
+  },
+
   addSeriesToChart: (workspaceId, chartId, series) =>
     set((state) => ({
       charts: {

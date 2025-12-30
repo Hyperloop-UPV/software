@@ -8,8 +8,6 @@ export interface AppSlice {
   // App mode
   appMode: AppMode;
   setAppMode: (mode: AppMode) => void;
-  previousAppMode: AppMode | null;
-  setPreviousAppMode: (mode: AppMode | null) => void;
 
   // Error state
   error: Error | null;
@@ -42,8 +40,6 @@ export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
   // App mode
   appMode: "loading",
   setAppMode: (mode) => set({ appMode: mode }),
-  previousAppMode: null,
-  setPreviousAppMode: (mode) => set({ previousAppMode: mode }),
 
   // Error state
   error: null,
