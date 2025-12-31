@@ -4,7 +4,7 @@ import {
   CollapsibleTrigger,
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
-import { type ComponentType } from "react";
+import { useMemo, type ComponentType } from "react";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../../store/store";
 import type { Item } from "../../../../types/common/item";
@@ -22,8 +22,15 @@ export const CategoryItem = ({
   scope,
   ItemComponent,
 }: CategoryItemProps) => {
-  const filteredItems = useStore(
-    useShallow((state) => state.getFilteredItemsByCategory(scope, category)),
+  const selectedIds = useStore(
+    useShallow((state) => state.getFilteredItemsIdsByCategory(scope, category)),
+  );
+
+  const allItems = useStore((state) => state[scope][category] || []);
+
+  const filteredItems = useMemo(
+    () => allItems.filter((i) => selectedIds.includes(i.id)),
+    [allItems, selectedIds],
   );
 
   const isExpanded = useStore((state) => state.isItemExpanded(scope, category));
