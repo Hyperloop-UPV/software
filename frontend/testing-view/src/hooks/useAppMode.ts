@@ -6,8 +6,7 @@ import type { OrdersData, PacketsData } from "../types/data/transformedBoards";
 export function useAppMode(
   packets: PacketsData | null,
   commands: OrdersData | null,
-  packetsLoading: boolean,
-  commandsLoading: boolean,
+  isLoading: boolean,
   backendConnected: boolean,
 ) {
   const setAppMode = useStore((s) => s.setAppMode);
@@ -22,11 +21,12 @@ export function useAppMode(
     }
 
     const isForceDev = import.meta.env.VITE_FORCE_DEV === "true";
-    const isLoading = packetsLoading || commandsLoading;
+    const isDev = import.meta.env.DEV || isForceDev;
     const hasData = !!(packets?.boards && commands?.boards);
     const hasError = !hasData || !backendConnected;
 
-    // logger.testingView.log("[DEBUG] isForceDev", isForceDev);
+    // Debug logs
+    // logger.testingView.log("[DEBUG] isDev", isDev);
     // logger.testingView.log("[DEBUG] isLoading", isLoading);
     // logger.testingView.log("[DEBUG] hasData", hasData);
     // logger.testingView.log("[DEBUG] backendConnected", backendConnected);
@@ -34,16 +34,9 @@ export function useAppMode(
 
     if (isLoading) return "loading";
     if (!hasError) return "active";
-    if (isForceDev) return "mock";
+    if (isDev) return "mock";
     return "error";
-  }, [
-    packetsLoading,
-    commandsLoading,
-    packets,
-    commands,
-    backendConnected,
-    modeOverride,
-  ]);
+  }, [isLoading, packets, commands, backendConnected, modeOverride]);
 
   // Determine and set app mode
   useEffect(() => {
