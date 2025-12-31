@@ -7,8 +7,8 @@ import {
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 import { useState } from "react";
 import { useShallow } from "zustand/shallow";
-import { useStore } from "../../store/store";
-import type { BoardName } from "../../types/data/board";
+import { useStore } from "../../../store/store";
+import type { BoardName } from "../../../types/data/board";
 import { FilterItem } from "./FilterItem";
 
 export const FilterCategoryItem = ({ category }: { category: BoardName }) => {

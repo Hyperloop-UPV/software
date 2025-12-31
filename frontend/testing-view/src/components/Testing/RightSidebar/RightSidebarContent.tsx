@@ -4,7 +4,7 @@ import {
   ResizablePanelGroup,
 } from "@workspace/ui";
 import { Activity } from "react";
-import { useStore } from "../../store/store";
+import { useStore } from "../../../store/store";
 import MessagesSection from "./Sections/MessagesSection";
 import { NoneSelectedSection } from "./Sections/NoneSelectedSection";
 import TabsSection from "./Sections/TabsSection";

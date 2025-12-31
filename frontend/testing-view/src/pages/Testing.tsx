@@ -3,9 +3,9 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@workspace/ui";
-import { WorkspaceFilterController } from "../components/Filters/FilterController";
-import { RightSidebar } from "../components/RightSidebar/RightSidebar";
+import { WorkspaceFilterController } from "../components/Testing/Filters/FilterController";
 import { MainPanel } from "../components/Testing/MainPanel";
+import { RightSidebar } from "../components/Testing/RightSidebar/RightSidebar";
 import { useStore } from "../store/store";
 
 export const Testing = () => {

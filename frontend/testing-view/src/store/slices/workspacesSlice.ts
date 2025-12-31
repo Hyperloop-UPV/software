@@ -194,13 +194,18 @@ export const createWorkspacesSlice: StateCreator<
     const commands = get().commands;
     const packets = get().packets;
 
-    set({
-      tabFilters: generateInitialFilters({
-        commands: createFullFilter(commands),
-        packets: createFullFilter(packets),
-        logs: createFullFilter(packets),
-      }),
-    });
+    const currentFilters = get().tabFilters;
+
+    // Only initialize if filters are empty (not persisted)
+    if (Object.keys(currentFilters).length === 0) {
+      set({
+        tabFilters: generateInitialFilters({
+          commands: createFullFilter(commands),
+          packets: createFullFilter(packets),
+          logs: createFullFilter(packets),
+        }),
+      });
+    }
   },
   updateFilters: (scope, filters) => {
     const workspaceId = get().getActiveWorkspaceId();

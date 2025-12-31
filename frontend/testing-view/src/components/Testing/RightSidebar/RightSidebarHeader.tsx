@@ -13,7 +13,7 @@ import {
   PanelRight,
   X,
 } from "@workspace/ui/icons";
-import { useStore } from "../../store/store";
+import { useStore } from "../../../store/store";
 
 interface RightSidebarHeaderProps {
   onClose: () => void;

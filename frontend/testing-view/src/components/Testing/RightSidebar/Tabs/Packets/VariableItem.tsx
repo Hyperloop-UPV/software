@@ -1,8 +1,8 @@
 import { Badge } from "@workspace/ui";
 import { cn } from "@workspace/ui/lib";
-import { getTypeBadgeClass } from "../../../../lib/utils";
-import { useStore } from "../../../../store/store";
-import type { Variable } from "../../../../types/data/packet";
+import { getTypeBadgeClass } from "../../../../../lib/utils";
+import { useStore } from "../../../../../store/store";
+import type { Variable } from "../../../../../types/data/packet";
 import ChartPicker from "./ChartPicker";
 import { TelemetryValue } from "./TelemetryValue";
 

@@ -7,14 +7,14 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui";
-import type { SidebarTab } from "../../../types/SidebarTab";
-import { useStore } from "../../../store/store";
-import { BOARD_NAMES } from "../../../constants/boards";
-import { Tab } from "../Tabs/Tab";
+import { BOARD_NAMES } from "../../../../constants/boards";
+import { useStore } from "../../../../store/store";
+import type { Command } from "../../../../types/data/command";
+import type { Packet } from "../../../../types/data/packet";
+import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { CommandItem } from "../Tabs/Commands/CommandItem";
 import { PacketItem } from "../Tabs/Packets/PacketItem";
-import type { Packet } from "../../../types/Packet";
-import type { Command } from "../../../types/Command";
+import { Tab } from "../Tabs/Tab";
 
 interface TabsSectionProps {
   isSplit: boolean;
@@ -93,7 +93,10 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
         />
       </TabsContent>
 
-      <TabsContent value="commands" className="mt-0 flex-1 overflow-y-auto p-4">
+      <TabsContent
+        value="commands"
+        className="mt-0 flex h-full flex-1 flex-col overflow-y-auto p-4"
+      >
         <Tab
           title="Commands"
           scope="commands"

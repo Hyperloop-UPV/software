@@ -6,17 +6,17 @@ import {
   SidebarMenuItem,
 } from "@workspace/ui";
 import { Plug, Unplug } from "@workspace/ui/icons";
-import type { Connection } from "../../types/common/connection";
+import { useStore } from "../../store/store";
 
 interface ConnectionStatusGroupProps {
-  connections: Connection[];
   backendConnected: boolean;
 }
 
 const ConnectionStatusGroup = ({
-  connections,
   backendConnected,
 }: ConnectionStatusGroupProps) => {
+  const connections = useStore((s) => s.connections);
+
   return (
     <SidebarGroup className="p-0">
       <SidebarGroupLabel>Connections</SidebarGroupLabel>
@@ -30,7 +30,7 @@ const ConnectionStatusGroup = ({
             Backend
           </SidebarMenuButton>
         </SidebarMenuItem>
-        {connections.map((connection) => (
+        {Object.values(connections).map((connection) => (
           <SidebarMenuItem key={connection.name}>
             <SidebarMenuButton
               tooltip={connection.name}

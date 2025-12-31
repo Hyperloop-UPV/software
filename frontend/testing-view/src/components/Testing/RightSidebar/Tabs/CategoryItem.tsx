@@ -1,15 +1,15 @@
-import { type ComponentType } from "react";
 import {
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
-import type { BoardName } from "../../../types/data/board";
-import type { Item } from "../../../types/common/item";
-import { useStore } from "../../../store/store";
-import type { SidebarTab } from "../../../types/workspace/sidebar";
+import { type ComponentType } from "react";
 import { useShallow } from "zustand/shallow";
+import { useStore } from "../../../../store/store";
+import type { Item } from "../../../../types/common/item";
+import type { BoardName } from "../../../../types/data/board";
+import type { SidebarTab } from "../../../../types/workspace/sidebar";
 
 interface CategoryItemProps {
   category: BoardName;

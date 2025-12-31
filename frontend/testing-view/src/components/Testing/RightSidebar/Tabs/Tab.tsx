@@ -1,10 +1,12 @@
 import { Button } from "@workspace/ui";
+import { ListFilterPlus } from "@workspace/ui/icons";
 import { type ComponentType } from "react";
-import { useStore } from "../../../store/store";
-import type { Item } from "../../../types/common/item";
-import type { BoardName } from "../../../types/data/board";
-import type { SidebarTab } from "../../../types/workspace/sidebar";
+import { useStore } from "../../../../store/store";
+import type { Item } from "../../../../types/common/item";
+import type { BoardName } from "../../../../types/data/board";
+import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { CategoryItem } from "./CategoryItem";
+import { EmptyTab } from "./EmptyTab";
 
 interface TabProps {
   title: string;
@@ -31,22 +33,28 @@ export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
           onClick={() => openFilterDialog(scope)}
           size="sm"
           variant="secondary"
-          className="ring-border/50 hover:ring-primary/30 shadow-sm ring-1 transition-all"
+          className="ring-border/50 hover:ring-primary/30 gap-2 shadow-sm ring-1 transition-all"
         >
+          <ListFilterPlus className="h-4 w-4" />
           Filter
         </Button>
       </div>
 
-      <div className="space-y-1">
-        {categories.map((category) => (
-          <CategoryItem
-            key={category}
-            category={category}
-            scope={scope}
-            ItemComponent={ItemComponent}
-          />
-        ))}
-      </div>
+      {/* Show empty state when no items are filtered */}
+      {filteredCount === 0 ? (
+        <EmptyTab title={title} onOpenFilter={() => openFilterDialog(scope)} />
+      ) : (
+        <div className="space-y-1">
+          {categories.map((category) => (
+            <CategoryItem
+              key={category}
+              category={category}
+              scope={scope}
+              ItemComponent={ItemComponent}
+            />
+          ))}
+        </div>
+      )}
     </>
   );
 };
