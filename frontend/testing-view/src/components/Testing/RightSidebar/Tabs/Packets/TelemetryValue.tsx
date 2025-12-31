@@ -1,5 +1,5 @@
 import { Badge } from "@workspace/ui";
-import { Check, X } from "@workspace/ui/icons";
+import { Check, TrendingDown, TrendingUp, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 
 interface TelemetryValueProps {
@@ -7,64 +7,103 @@ interface TelemetryValueProps {
   units?: string;
   showAverage?: boolean;
 }
+
 export const TelemetryValue = ({
   value,
   units,
   showAverage = true,
 }: TelemetryValueProps) => {
-  // 1. Determine the value display
   const renderValueContent = () => {
+    // Numeric with average
     if (typeof value === "object" && value !== null && "average" in value) {
+      const trend = value.last > value.average;
       return (
-        <div className="flex flex-col items-end leading-tight">
-          <span className="text-primary font-mono text-sm font-bold">
-            {value.last.toFixed(2)}
-          </span>
-          {showAverage && (
-            <span className="text-muted-foreground text-[10px] opacity-70">
-              avg: {value.average.toFixed(2)}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end leading-none">
+            <div className="flex items-center gap-1.5">
+              {showAverage && (
+                <div
+                  className={cn(
+                    "h-3 w-3 rounded-full p-0.5",
+                    trend
+                      ? "bg-green-500/20 text-green-600"
+                      : "bg-primary/20 text-primary",
+                  )}
+                >
+                  {trend ? (
+                    <TrendingUp className="h-full w-full" />
+                  ) : (
+                    <TrendingDown className="h-full w-full" />
+                  )}
+                </div>
+              )}
+              <span className="text-foreground font-mono text-sm font-bold tabular-nums">
+                {value.last.toFixed(2)}
+              </span>
+            </div>
+            {showAverage && (
+              <span className="text-muted-foreground text-xs leading-none opacity-60">
+                avg {value.average.toFixed(2)}
+              </span>
+            )}
+          </div>
+          {units && (
+            <span className="text-muted-foreground text-[11px] font-medium">
+              {units}
             </span>
           )}
         </div>
       );
     }
 
+    // Boolean
     if (typeof value === "boolean") {
-      return value ? (
-        <Badge variant="default" className="bg-green-500/20 p-1 text-green-500">
-          <Check className="h-3 w-3" />
-        </Badge>
-      ) : (
-        <Badge variant="destructive" className="bg-red-500/20 p-1 text-red-500">
-          <X className="h-3 w-3" />
+      return (
+        <Badge
+          variant={value ? "default" : "destructive"}
+          className={cn(
+            "flex items-center gap-1 px-2 py-0.5 font-semibold",
+            value
+              ? "bg-green-500/15 text-green-600"
+              : "bg-red-500/15 text-red-600",
+          )}
+        >
+          {value ? (
+            <>
+              <Check className="h-3 w-3" />
+              <span className="text-xs">True</span>
+            </>
+          ) : (
+            <>
+              <X className="h-3 w-3" />
+              <span className="text-xs">False</span>
+            </>
+          )}
         </Badge>
       );
     }
 
-    return (
-      <span
-        className={cn(
-          "font-mono text-xs font-semibold",
-          value === undefined ? "text-muted-foreground" : "text-primary",
-        )}
-      >
-        {value === undefined
-          ? "---"
-          : typeof value === "number"
-            ? value.toFixed(2)
-            : String(value)}
-      </span>
-    );
+    // String/Enum or regular number
+    if (value !== undefined) {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-foreground font-mono text-sm font-semibold tabular-nums">
+            {typeof value === "number" ? value.toFixed(2) : String(value)}
+          </span>
+          {units && (
+            <span className="text-muted-foreground text-[11px] font-medium">
+              {units}
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    // No value
+    return <span className="text-muted-foreground font-mono text-sm">—</span>;
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {renderValueContent()}
-      {units && (
-        <span className="text-muted-foreground shrink-0 text-right text-xs">
-          {units}
-        </span>
-      )}
-    </div>
+    <div className="flex shrink-0 items-center">{renderValueContent()}</div>
   );
 };

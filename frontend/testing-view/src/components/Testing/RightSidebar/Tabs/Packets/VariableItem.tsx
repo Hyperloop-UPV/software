@@ -17,12 +17,14 @@ interface VariableItemProps {
     | boolean
     | string
     | number;
+  isFirst?: boolean;
 }
 
 export const VariableItem = ({
   packetId,
   variable,
   liveValue,
+  isFirst = false,
 }: VariableItemProps) => {
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
@@ -45,14 +47,22 @@ export const VariableItem = ({
     handleAddToChart(newChartId);
   };
 
+  const hasValue = liveValue !== undefined;
+
   return (
-    <div className="hover:bg-accent/10 group flex items-center justify-between gap-2.5 border-t py-1.5 pl-6 pr-3 transition-colors first:border-t-0">
-      <div className="flex min-w-0 items-center gap-2">
-        {/* Variable Type: float, integer, enum, boolean */}
+    <div
+      className={cn(
+        "hover:bg-accent/30 group flex items-center justify-between gap-3 border-t py-2 pl-6 pr-3 transition-all",
+        isFirst && "border-t-0",
+        hasValue && "bg-accent/5",
+      )}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        {/* Type Badge */}
         <Badge
           variant="secondary"
           className={cn(
-            "shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold uppercase",
+            "shrink-0 rounded px-1.5 py-1 text-[10px] font-bold uppercase leading-none",
             getTypeBadgeClass(variable.type),
           )}
         >
@@ -60,20 +70,29 @@ export const VariableItem = ({
         </Badge>
 
         {/* Variable Name */}
-        <span className="text-muted-foreground truncate text-xs font-medium">
-          {variable.name}
-        </span>
+        <div className="flex min-w-0 flex-col">
+          <span className="text-foreground truncate text-xs font-semibold leading-tight">
+            {variable.name}
+          </span>
 
-        {/* Add to Chart Dropdown: show for all except enum */}
+          <span className="text-muted-foreground truncate text-xs leading-tight">
+            {variable.id}
+          </span>
+        </div>
+
+        {/* Chart Picker */}
         {variable.type !== "enum" && (
-          <ChartPicker
-            charts={charts}
-            onAdd={handleAddToChart}
-            onCreate={handleCreateChart}
-          />
+          <div className="opacity-0 transition-opacity group-hover:opacity-100">
+            <ChartPicker
+              charts={charts}
+              onAdd={handleAddToChart}
+              onCreate={handleCreateChart}
+            />
+          </div>
         )}
       </div>
 
+      {/* Live Value */}
       <TelemetryValue value={liveValue} units={variable.units} />
     </div>
   );
