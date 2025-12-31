@@ -1,1 +1,1 @@
-export type AppMode = "loading" | "active" | "mock" | "error";
+export type AppMode = "loading" | "active" | "mock" | "error" | "mock-active";

@@ -1,11 +1,11 @@
 import { Button } from "@workspace/ui";
-import type { AppMode } from "../../store/slices/appSlice";
 import { useStore } from "../../store/store";
+import type { AppMode } from "../../types/app/mode";
 
 const MODES: { value: AppMode | null; label: string }[] = [
   { value: null, label: "Auto" },
   { value: "loading", label: "Loading" },
-  { value: "active", label: "Active" },
+  { value: "mock-active", label: "Mock Active" },
   { value: "mock", label: "Mock" },
   { value: "error", label: "Error" },
 ];

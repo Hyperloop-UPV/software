@@ -1,8 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { Store } from "../store";
-
-export type AppMode = "loading" | "active" | "mock" | "error";
-export type ColorScheme = "default" | "pink";
+import type { AppMode } from "../../types/app/mode";
+import type { ColorScheme } from "../../types/app/colorSchema";
 
 export interface AppSlice {
   // App mode
