@@ -26,11 +26,11 @@ export function useAppMode(
     const hasData = !!(packets?.boards && commands?.boards);
     const hasError = !hasData || !backendConnected;
 
-    logger.testingView.log("[DEBUG] isForceDev", isForceDev);
-    logger.testingView.log("[DEBUG] isLoading", isLoading);
-    logger.testingView.log("[DEBUG] hasData", hasData);
-    logger.testingView.log("[DEBUG] backendConnected", backendConnected);
-    logger.testingView.log("[DEBUG] hasError", hasError);
+    // logger.testingView.log("[DEBUG] isForceDev", isForceDev);
+    // logger.testingView.log("[DEBUG] isLoading", isLoading);
+    // logger.testingView.log("[DEBUG] hasData", hasData);
+    // logger.testingView.log("[DEBUG] backendConnected", backendConnected);
+    // logger.testingView.log("[DEBUG] hasError", hasError);
 
     if (isLoading) return "loading";
     if (!hasError) return "active";

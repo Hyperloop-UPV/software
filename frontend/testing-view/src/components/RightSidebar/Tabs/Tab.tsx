@@ -1,8 +1,8 @@
 import { Button } from "@workspace/ui";
 import { type ComponentType } from "react";
 import { useStore } from "../../../store/store";
-import type { BoardName } from "../../../types/data/board";
 import type { Item } from "../../../types/common/item";
+import type { BoardName } from "../../../types/data/board";
 import type { SidebarTab } from "../../../types/workspace/sidebar";
 import { CategoryItem } from "./CategoryItem";
 
@@ -31,6 +31,7 @@ export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
           onClick={() => openFilterDialog(scope)}
           size="sm"
           variant="secondary"
+          className="ring-border/50 hover:ring-primary/30 shadow-sm ring-1 transition-all"
         >
           Filter
         </Button>

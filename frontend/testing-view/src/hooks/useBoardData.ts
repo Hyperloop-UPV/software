@@ -19,8 +19,17 @@ export function useBoardData(
   appMode: AppMode,
 ) {
   const transformedBoards = useMemo<TransformedBoards>(() => {
-    if (!packets?.boards || !commands?.boards || appMode === "mock") {
-      logger.testingView.error("No packets or commands found");
+    if (appMode === "loading") {
+      logger.testingView.log("[useBoardData] Loading mode");
+      return {
+        packets: {},
+        commands: {},
+        boards: new Set(),
+      };
+    }
+
+    if (appMode === "mock") {
+      logger.testingView.warn("[useBoardData] Mock mode");
       return {
         packets: MOCK_PACKETS,
         commands: MOCK_COMMANDS,
@@ -29,23 +38,24 @@ export function useBoardData(
     }
 
     if (appMode === "error") {
-      logger.testingView.error("No packets or commands found");
+      logger.testingView.error(
+        "[useBoardData] Error mode. No packets or commands found",
+      );
       return {
-        packets: MOCK_PACKETS,
-        commands: MOCK_COMMANDS,
+        packets: {},
+        commands: {},
         boards: new Set(),
       };
     }
 
-    logger.testingView.log("Both packets and commands found");
-    logger.testingView.log("Transforming boards...");
+    logger.testingView.log("[useBoardData] Transforming boards...");
 
     const packetsResult: Record<string, Packet[]> = {};
     const commandsResult: Record<string, Command[]> = {};
     const availableBoards: Set<BoardName> = new Set();
 
     // Process packets data
-    packets.boards.forEach((board) => {
+    packets?.boards.forEach((board) => {
       availableBoards.add(board.name);
 
       if (!packetsResult[board.name]) {
@@ -58,10 +68,10 @@ export function useBoardData(
       }));
     });
 
-    logger.testingView.log("Packets data processed");
+    logger.testingView.log("[useBoardData] Packets data processed");
 
     // Process commands data
-    commands.boards.forEach((board) => {
+    commands?.boards.forEach((board) => {
       availableBoards.add(board.name);
 
       if (!commandsResult[board.name]) {
@@ -74,7 +84,7 @@ export function useBoardData(
       }));
     });
 
-    logger.testingView.log("Commands data processed");
+    logger.testingView.log("[useBoardData] Commands data processed");
 
     return {
       packets: packetsResult,
