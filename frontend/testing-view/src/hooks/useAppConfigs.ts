@@ -1,0 +1,31 @@
+import { useFetchConfig } from "@workspace/ui/hooks";
+import { useEffect } from "react";
+import type { OrdersData, PacketsData } from "../types/data/transformedBoards";
+
+const useAppConfigs = (isConnected: boolean) => {
+  const {
+    data: packets,
+    loading: packetsLoading,
+    refetch: refetchPackets,
+  } = useFetchConfig<PacketsData>("podDataStructure");
+  const {
+    data: commands,
+    loading: commandsLoading,
+    refetch: refetchCommands,
+  } = useFetchConfig<OrdersData>("orderStructures");
+
+  useEffect(() => {
+    if (isConnected && packets !== null && commands !== null) {
+      refetchPackets();
+      refetchCommands();
+    }
+  }, [isConnected, refetchPackets, refetchCommands]);
+
+  return {
+    packets,
+    commands,
+    isLoading: packetsLoading || commandsLoading,
+  };
+};
+
+export default useAppConfigs;

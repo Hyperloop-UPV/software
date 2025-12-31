@@ -11,5 +11,7 @@ export function useChartsConfiguration() {
     if (appMode === "mock") {
       setCharts(MOCK_CHARTS);
     }
+
+    // In other case, peristed zustand value is used
   }, [appMode, setCharts]);
 }
