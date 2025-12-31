@@ -1,1 +1,7 @@
-export { GripVertical, Columns, PanelRight, PanelBottom } from "lucide-react";
+export {
+  Columns,
+  Filter,
+  GripVertical,
+  PanelBottom,
+  PanelRight,
+} from "lucide-react";

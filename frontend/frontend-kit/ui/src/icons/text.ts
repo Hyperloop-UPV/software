@@ -1,1 +1,1 @@
-export { SquareLibrary, List } from "lucide-react";
+export { List, ListFilterPlus, SquareLibrary } from "lucide-react";

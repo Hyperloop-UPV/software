@@ -1,5 +1,5 @@
-import { BOARD_NAMES } from "../../constants/boards";
-import { useStore } from "../../store/store";
+import { BOARD_NAMES } from "../../../constants/boards";
+import { useStore } from "../../../store/store";
 import { FilterCategoryItem } from "./FilterCategoryItem";
 import { FilterDialog } from "./FilterDialog";
 

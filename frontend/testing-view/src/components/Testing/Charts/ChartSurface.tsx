@@ -1,10 +1,10 @@
 import { memo, useEffect, useRef } from "react";
 import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";
+import { COLORS } from "../../../constants/chartsColors";
 import { useStore } from "../../../store/store";
 import type { VariableSeries } from "../../../types/workspace/charts";
 import { createTooltipPlugin } from "./tooltipPlugin";
-import { COLORS } from "../../../constants/chartsColors";
 
 interface ChartSurfaceProps {
   series: VariableSeries[];
@@ -98,7 +98,7 @@ export const ChartSurface = memo(
             size: 40,
           },
         ],
-        cursor: { drag: { setScale: false } },
+        cursor: { drag: { setScale: false, x: false, y: false } },
       };
 
       uplotRef.current = new uPlot(

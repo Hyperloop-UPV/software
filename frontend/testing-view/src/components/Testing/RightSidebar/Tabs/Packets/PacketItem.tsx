@@ -6,8 +6,8 @@ import {
   Separator,
 } from "@workspace/ui";
 import { ChevronDown, ChevronRight } from "@workspace/ui/icons";
-import { useStore } from "../../../../store/store";
-import type { Packet } from "../../../../types/data/packet";
+import { useStore } from "../../../../../store/store";
+import type { Packet } from "../../../../../types/data/packet";
 import { VariableItem } from "./VariableItem";
 
 interface PacketItemProps {

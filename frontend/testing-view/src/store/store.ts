@@ -3,6 +3,10 @@ import { persist } from "zustand/middleware";
 import { createAppSlice, type AppSlice } from "./slices/appSlice";
 import { createCatalogSlice, type CatalogSlice } from "./slices/catalogSlice";
 import {
+  createConnectionsSlice,
+  type ConnectionsSlice,
+} from "./slices/connectionsSlice";
+import {
   createRightSidebarSlice,
   type RightSidebarSlice,
 } from "./slices/rightSidebarSlice";
@@ -19,7 +23,8 @@ export type Store = AppSlice &
   CatalogSlice &
   WorkspacesSlice &
   TelemetrySlice &
-  RightSidebarSlice;
+  RightSidebarSlice &
+  ConnectionsSlice;
 
 export const useStore = create<Store>()(
   persist(
@@ -29,11 +34,27 @@ export const useStore = create<Store>()(
       ...createWorkspacesSlice(...a),
       ...createTelemetrySlice(...a),
       ...createRightSidebarSlice(...a),
+      ...createConnectionsSlice(...a),
     }),
     {
+      // Partial persist
       name: "testing-view-storage",
       partialize: (state) => ({
+        // Charts
         charts: state.charts,
+
+        // Workspaces
+        workspaces: state.workspaces,
+        activeWorkspace: state.activeWorkspace,
+
+        // User preferences
+        colorScheme: state.colorScheme,
+        isDarkMode: state.isDarkMode,
+        testingPage: state.testingPage,
+
+        // Workspace UI state
+        activeTab: state.activeTab,
+        tabFilters: state.tabFilters,
       }),
     },
   ),

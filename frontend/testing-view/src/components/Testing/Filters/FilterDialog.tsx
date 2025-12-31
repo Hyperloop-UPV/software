@@ -1,13 +1,13 @@
-import { type ComponentType } from "react";
 import {
+  Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  Button,
 } from "@workspace/ui";
-import type { BoardName } from "../../types/data/board";
+import { type ComponentType } from "react";
+import type { BoardName } from "../../../types/data/board";
 
 interface FilterDialogProps {
   title: string;
@@ -32,9 +32,10 @@ export const FilterDialog = ({
 }: FilterDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="min-w-2/5 max-h-full w-fit overflow-y-auto">
+      {/* TODO: apply correctly colors from theme variables */}
+      <DialogContent className="bg-background text-foreground max-h-[85vh] w-full min-w-[600px] max-w-2xl overflow-y-auto px-10 py-8">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-2xl font-semibold">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 

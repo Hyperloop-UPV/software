@@ -1,4 +1,4 @@
-import { MOCK_MESSAGES } from "../../../mocks/messages";
+import { MOCK_MESSAGES } from "../../../../mocks/messages";
 
 // TODO: implement real messages list
 // and remove these ugly styles

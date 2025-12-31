@@ -22,10 +22,7 @@ const AppSidebar = ({ backendConnected, ...props }: AppSidebarProps) => {
         <NavigationGroup items={PAGES_ARRAY} />
       </SidebarContent>
       <SidebarFooter>
-        <ConnectionStatusGroup
-          connections={[]}
-          backendConnected={backendConnected}
-        />
+        <ConnectionStatusGroup backendConnected={backendConnected} />
         <div className="my-2" />
         <ColorSchemeToggle />
         <ThemeToggleItem />

@@ -13,13 +13,12 @@ import { CameraView } from "./pages/CameraView";
 import { Logs } from "./pages/Logs";
 import { Testing } from "./pages/Testing";
 import { useStore } from "./store/store";
+import type { Connection } from "./types/common/connection";
 import type { TelemetryData } from "./types/telemetry/telemetry";
 
 function App() {
   const { isConnected } = useWebSocket();
   const { reportError } = useErrorHandler();
-
-  const addTelemetry = useStore((s) => s.addTelemetry);
 
   // Fetch app configs
   const { packets, commands, isLoading } = useAppConfigs(isConnected);
@@ -33,9 +32,20 @@ function App() {
   // Restore charts configuration
   useChartsConfiguration();
 
+  // Callback executed when telemetry data is received
+  const addTelemetry = useStore((s) => s.addTelemetry);
+
   // Subscribe to telemetry updates
   useTopic<TelemetryData>("podData/update", (data) => {
     addTelemetry(data);
+  });
+
+  // Callback executed when connection updates are received
+  const updateConnections = useStore((s) => s.updateConnections);
+
+  // Subscribe to connection updates
+  useTopic<Record<string, Connection>>("connection/update", (data) => {
+    updateConnections(data);
   });
 
   return (
