@@ -80,9 +80,9 @@ function App() {
             <Route path="/camera-view" element={<CameraView />} />
           </Routes>
         </AppModeRouter>
-      </AppLayout>
 
-      <ModeSwitcher />
+        <ModeSwitcher />
+      </AppLayout>
     </ErrorBoundary>
   );
 }
