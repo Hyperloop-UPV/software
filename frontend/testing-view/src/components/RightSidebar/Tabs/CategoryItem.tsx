@@ -5,10 +5,10 @@ import {
   CollapsibleContent,
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
-import type { BoardName } from "../../../types/BoardName";
-import type { Item } from "../../../types/Item";
+import type { BoardName } from "../../../types/data/board";
+import type { Item } from "../../../types/common/item";
 import { useStore } from "../../../store/store";
-import type { SidebarTab } from "../../../types/SidebarTab";
+import type { SidebarTab } from "../../../types/workspace/sidebar";
 import { useShallow } from "zustand/shallow";
 
 interface CategoryItemProps {

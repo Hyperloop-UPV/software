@@ -1,4 +1,4 @@
-import type { Item } from "./Item";
+import type { Item } from "../common/item";
 
 export interface CommandParameter {
   kind: string;
@@ -7,12 +7,12 @@ export interface CommandParameter {
   type: string;
 }
 
-interface NumericCommandParameter extends CommandParameter {
+export interface NumericCommandParameter extends CommandParameter {
   safeRange: (number | null)[];
   warningRange: (number | null)[];
 }
 
-interface EnumCommandParameter extends CommandParameter {
+export interface EnumCommandParameter extends CommandParameter {
   options: string[];
 }
 
@@ -20,7 +20,7 @@ export interface CommandParameters {
   [key: string]: NumericCommandParameter | EnumCommandParameter;
 }
 
-interface RawOrder extends Item {
+export interface RawOrder extends Item {
   fields: CommandParameters;
 }
 

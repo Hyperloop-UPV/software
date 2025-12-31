@@ -1,9 +1,9 @@
 import { Button } from "@workspace/ui";
 import { type ComponentType } from "react";
 import { useStore } from "../../../store/store";
-import type { BoardName } from "../../../types/BoardName";
-import type { Item } from "../../../types/Item";
-import type { SidebarTab } from "../../../types/SidebarTab";
+import type { BoardName } from "../../../types/data/board";
+import type { Item } from "../../../types/common/item";
+import type { SidebarTab } from "../../../types/workspace/sidebar";
 import { CategoryItem } from "./CategoryItem";
 
 interface TabProps {

@@ -1,21 +1,22 @@
 import { X } from "@workspace/ui/icons";
-import { COLORS, type MeasurementPoint } from "./types";
+import { COLORS } from "../../../constants/chartsColors";
+import type { VariableSeries } from "../../../types/workspace/charts";
 
 interface ChartLegendProps {
-  points: MeasurementPoint[];
+  series: VariableSeries[];
   disabledIndices: Set<number>;
   onToggle: (index: number) => void;
   onRemove: (variable: string, index: number) => void;
 }
 
 export const ChartLegend = ({
-  points,
+  series,
   disabledIndices,
   onToggle,
   onRemove,
 }: ChartLegendProps) => (
   <div className="border-border mb-4 flex flex-wrap gap-2 border-b pb-3 pr-8">
-    {points.map((p, i) => (
+    {series.map((p, i) => (
       <div
         key={i}
         className="border-border flex items-center overflow-hidden rounded-md border shadow-sm transition-transform active:scale-95"

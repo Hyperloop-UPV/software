@@ -1,17 +1,17 @@
-import { useMemo } from "react";
 import { logger } from "@workspace/core";
-import { MOCK_PACKETS } from "../mocks/packets";
-import { MOCK_COMMANDS } from "../mocks/commands";
+import { useMemo } from "react";
 import { formatName } from "../lib/utils";
-import type { BoardName } from "../types/BoardName";
-import type { Command } from "../types/Command";
-import type { Packet } from "../types/Packet";
-import type {
-  PacketsData,
-  OrdersData,
-  TransformedBoards,
-} from "../types/AppData";
+import { MOCK_COMMANDS } from "../mocks/commands";
+import { MOCK_PACKETS } from "../mocks/packets";
 import type { AppMode } from "../store/slices/appSlice";
+import type { BoardName } from "../types/data/board";
+import type { Command } from "../types/data/command";
+import type { Packet } from "../types/data/packet";
+import type {
+  OrdersData,
+  PacketsData,
+  TransformedBoards,
+} from "../types/data/transformedBoards";
 
 export function useBoardData(
   packets: PacketsData | null,

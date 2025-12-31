@@ -12,8 +12,8 @@ import { CameraView } from "./pages/CameraView";
 import { Logs } from "./pages/Logs";
 import { Testing } from "./pages/Testing";
 import { useStore } from "./store/store";
-import type { OrdersData, PacketsData } from "./types/AppData";
-import type { TelemetryData } from "./types/Telemetry";
+import type { OrdersData, PacketsData } from "./types/data/transformedBoards";
+import type { TelemetryData } from "./types/telemetry/telemetry";
 import { useErrorHandler } from "./hooks/useErrorHandler";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 

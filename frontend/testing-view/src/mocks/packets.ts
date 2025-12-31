@@ -1,5 +1,5 @@
-import type { Packet } from "../types/Packet";
-import type { BoardName } from "../types/BoardName";
+import type { Packet } from "../types/data/packet";
+import type { BoardName } from "../types/data/board";
 
 export const MOCK_PACKETS: Record<BoardName, Packet[]> = {
   BCU: [

@@ -16,7 +16,7 @@ export const ChartsGrid = ({ charts, columns }: ChartsGridProps) => {
       )}
     >
       {charts.map((chart) => (
-        <TelemetryChart key={chart.id} id={chart.id} points={chart.series} />
+        <TelemetryChart key={chart.id} id={chart.id} series={chart.series} />
       ))}
     </div>
   );

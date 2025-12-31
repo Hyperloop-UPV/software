@@ -1,4 +1,4 @@
-export type Connection = {
+export interface Connection {
   name: string;
   isConnected: boolean;
-};
+}

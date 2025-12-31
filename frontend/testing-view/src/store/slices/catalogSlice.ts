@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
-import type { BoardName } from "../../types/BoardName";
-import type { Item } from "../../types/Item";
+import type { BoardName } from "../../types/data/board";
+import type { Item } from "../../types/common/item";
 import type { Store } from "../store";
 
 export interface CatalogSlice {

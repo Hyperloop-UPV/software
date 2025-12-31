@@ -1,5 +1,3 @@
-export type TelemetryState = Record<number, TelemetryPacket>;
-
 export type Variables = Record<
   string,
   { last: number; average: number } | boolean | string | number
@@ -14,3 +12,5 @@ export interface TelemetryPacket {
 }
 
 export type TelemetryData = Record<number, TelemetryPacket>;
+
+export type TelemetryState = Record<number, TelemetryPacket>;

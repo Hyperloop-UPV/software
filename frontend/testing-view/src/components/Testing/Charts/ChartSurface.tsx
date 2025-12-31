@@ -2,42 +2,42 @@ import { memo, useEffect, useRef } from "react";
 import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../store/store";
+import type { VariableSeries } from "../../../types/workspace/charts";
 import { createTooltipPlugin } from "./tooltipPlugin";
-import { COLORS, type MeasurementPoint } from "./types";
+import { COLORS } from "../../../constants/chartsColors";
+
+interface ChartSurfaceProps {
+  series: VariableSeries[];
+  disabledIndices: Set<number>;
+}
 
 export const ChartSurface = memo(
-  ({
-    points,
-    disabledIndices,
-  }: {
-    points: MeasurementPoint[];
-    disabledIndices: Set<number>;
-  }) => {
+  ({ series, disabledIndices }: ChartSurfaceProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const uplotRef = useRef<uPlot | null>(null);
     const historyRef = useRef<any[]>([]);
 
     const packets = useStore(
-      useShallow((state) => points.map((p) => state.telemetry[p.packetId])),
+      useShallow((state) => series.map((p) => state.telemetry[p.packetId])),
     );
 
     // Clear history if series definition changes
     useEffect(() => {
       historyRef.current = [];
-    }, [points]);
+    }, [series]);
 
     useEffect(() => {
       if (uplotRef.current) {
         // Index in series starts at 1 because 0 is the X-axis
-        points.forEach((_, i) => {
+        series.forEach((_, i) => {
           const seriesIdx = i + 1;
           const isVisible = !disabledIndices.has(i);
           uplotRef.current?.setSeries(seriesIdx, { show: isVisible });
         });
       }
-    }, [disabledIndices, points]);
+    }, [disabledIndices, series]);
 
-    const tooltipPlugin = createTooltipPlugin(points);
+    const tooltipPlugin = createTooltipPlugin(series);
 
     // Initialize Chart
     useEffect(() => {
@@ -70,7 +70,7 @@ export const ChartSurface = memo(
         },
         series: [
           {},
-          ...points.map((p, i) => ({
+          ...series.map((p, i) => ({
             label: p.variable,
             stroke: COLORS[i % COLORS.length],
             width: 2,
@@ -103,12 +103,12 @@ export const ChartSurface = memo(
 
       uplotRef.current = new uPlot(
         opts,
-        [[], ...points.map(() => [])],
+        [[], ...series.map(() => [])],
         containerRef.current,
       );
 
       return () => uplotRef.current?.destroy();
-    }, [points]);
+    }, [series]);
 
     // Update Chart Data (Runs only when 'data' actually changes)
     useEffect(() => {
@@ -117,7 +117,7 @@ export const ChartSurface = memo(
 
       const snapshot = {
         count: primaryPacket.count,
-        values: points.map((p, i) => {
+        values: series.map((p, i) => {
           const pkt = packets[i];
           const m = pkt?.measurementUpdates?.[p.variable];
           if (typeof m === "boolean") return m ? 1 : 0;
@@ -130,12 +130,12 @@ export const ChartSurface = memo(
       if (!lastStored || lastStored.count !== snapshot.count) {
         historyRef.current = [...historyRef.current, snapshot].slice(-7);
         const xData = historyRef.current.map((h) => h.count);
-        const yData = points.map((_, i) =>
+        const yData = series.map((_, i) =>
           historyRef.current.map((h) => h.values[i]),
         );
         uplotRef.current.setData([xData, ...yData] as uPlot.AlignedData);
       }
-    }, [packets, points]);
+    }, [packets, series]);
 
     useEffect(() => {
       if (!containerRef.current) return;

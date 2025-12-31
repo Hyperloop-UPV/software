@@ -1,4 +1,6 @@
-export const MOCK_CHARTS = {
+import type { WorkspaceChartConfig } from "../store/slices/workspacesSlice";
+
+export const MOCK_CHARTS: Record<string, WorkspaceChartConfig[]> = {
   "workspace-1": [
     {
       id: "ws1-chart-1",

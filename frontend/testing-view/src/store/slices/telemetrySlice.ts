@@ -1,5 +1,8 @@
 import type { StateCreator } from "zustand";
-import type { TelemetryData, TelemetryState } from "../../types/Telemetry";
+import type {
+  TelemetryData,
+  TelemetryState,
+} from "../../types/telemetry/telemetry";
 import type { Store } from "../store";
 
 export interface TelemetrySlice {

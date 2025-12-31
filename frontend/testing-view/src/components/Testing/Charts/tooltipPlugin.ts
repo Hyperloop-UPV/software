@@ -1,6 +1,7 @@
-import { COLORS, type MeasurementPoint } from "./types";
+import type { VariableSeries } from "../../../types/workspace/charts";
+import { COLORS } from "../../../constants/chartsColors";
 
-export const createTooltipPlugin = (points: MeasurementPoint[]) => {
+export const createTooltipPlugin = (series: VariableSeries[]) => {
   let tooltip: HTMLDivElement,
     header: HTMLDivElement,
     rows: HTMLDivElement[],
@@ -21,7 +22,7 @@ export const createTooltipPlugin = (points: MeasurementPoint[]) => {
 
         tooltip.innerHTML = `
             <div class="t-header mb-1 text-[9px] font-bold uppercase text-muted-foreground"></div>
-            ${points
+            ${series
               .map(
                 (p, i) => `
               <div class="t-row mt-0.5 flex justify-between gap-3">

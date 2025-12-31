@@ -1,4 +1,4 @@
-import type { Item } from "./Item";
+import type { Item } from "../common/item";
 
 export interface Variable {
   id: string;
@@ -9,8 +9,6 @@ export interface Variable {
 
 export type Measurement = any;
 
-export type Packet = RawPacket;
-
 export interface RawPacket extends Item {
   hexValue: string;
   count: number;
@@ -18,3 +16,5 @@ export interface RawPacket extends Item {
   type: string;
   measurements: Measurement[];
 }
+
+export type Packet = RawPacket;

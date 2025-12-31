@@ -1,4 +1,4 @@
-import type { Workspace } from "../types/Workspace";
+import type { Workspace } from "../types/workspace/workspace";
 
 export const DEFAULT_WORKSPACES: Workspace[] = [
   {
