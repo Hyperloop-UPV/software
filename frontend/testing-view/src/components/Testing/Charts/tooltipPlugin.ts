@@ -1,5 +1,5 @@
-import type { VariableSeries } from "../../../types/workspace/charts";
 import { COLORS } from "../../../constants/chartsColors";
+import type { VariableSeries } from "../../../types/workspace/charts";
 
 export const createTooltipPlugin = (series: VariableSeries[]) => {
   let tooltip: HTMLDivElement,
@@ -14,14 +14,14 @@ export const createTooltipPlugin = (series: VariableSeries[]) => {
 
         // REPLACED: Object.assign style with Tailwind classes
         tooltip.className =
-          "pointer-events-none absolute z-[100] hidden rounded-lg border border-border bg-popover p-2 shadow-lg font-archivo text-[11px] text-popover-foreground will-change-transform";
+          "pointer-events-none absolute z-20 hidden rounded-lg border border-border bg-popover p-2 shadow-lg font-archivo text-[11px] text-popover-foreground will-change-transform";
 
         // Initial position to prevent jump
         tooltip.style.left = "0";
         tooltip.style.top = "0";
 
         tooltip.innerHTML = `
-            <div class="t-header mb-1 text-[9px] font-bold uppercase text-muted-foreground"></div>
+            <div class="t-header mb-1 text-[10px] font-bold uppercase text-muted-foreground"></div>
             ${series
               .map(
                 (p, i) => `

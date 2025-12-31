@@ -1,4 +1,4 @@
-import { socketService } from "@workspace/core";
+import { logger, socketService } from "@workspace/core";
 import { useEffect, useRef } from "react";
 import { useWebSocket } from "./useWebSocket";
 
@@ -14,7 +14,7 @@ export function useTopic<T>(topic: string, callback: (data: T) => void) {
   useEffect(() => {
     if (!isConnected) return;
 
-    console.log(`[useTopic] Subscribing to: ${topic}`);
+    logger.testingView.log(`[useTopic] Subscribing to: ${topic}`);
     socketService.post(topic, { subscribe: true });
 
     const sub = socketService.onTopic(topic).subscribe((data: T) => {
@@ -22,7 +22,7 @@ export function useTopic<T>(topic: string, callback: (data: T) => void) {
     });
 
     return () => {
-      console.log(`[useTopic] Unsubscribing from: ${topic}`);
+      logger.testingView.log(`[useTopic] Unsubscribing from: ${topic}`);
       socketService.post(topic, { subscribe: false });
       sub.unsubscribe();
     };

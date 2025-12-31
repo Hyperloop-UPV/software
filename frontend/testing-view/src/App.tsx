@@ -1,12 +1,13 @@
-import { logger } from "@workspace/core";
 import { useFetchConfig, useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { useEffect } from "react";
 import { Route, Routes } from "react-router";
 import { AppModeRouter } from "./components/AppModeRouter";
 import { ModeSwitcher } from "./components/DevTools/ModeSwitcher";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useAppMode } from "./hooks/useAppMode";
 import { useBoardData } from "./hooks/useBoardData";
 import { useChartsConfiguration } from "./hooks/useChartsConfiguration";
+import { useErrorHandler } from "./hooks/useErrorHandler";
 import { AppLayout } from "./layout/AppLayout";
 import { CameraView } from "./pages/CameraView";
 import { Logs } from "./pages/Logs";
@@ -14,17 +15,14 @@ import { Testing } from "./pages/Testing";
 import { useStore } from "./store/store";
 import type { OrdersData, PacketsData } from "./types/data/transformedBoards";
 import type { TelemetryData } from "./types/telemetry/telemetry";
-import { useErrorHandler } from "./hooks/useErrorHandler";
-import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function App() {
-  const { isConnected, status } = useWebSocket();
+  const { isConnected } = useWebSocket();
+  const { reportError } = useErrorHandler();
+
   const appMode = useStore((s) => s.appMode);
-  logger.testingView.log("Status", status);
 
   const addTelemetry = useStore((s) => s.addTelemetry);
-
-  const { reportError } = useErrorHandler();
 
   useTopic<TelemetryData>("podData/update", (data) => {
     addTelemetry(data);
@@ -42,11 +40,11 @@ function App() {
   } = useFetchConfig<OrdersData>("orderStructures");
 
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && packets !== null && commands !== null) {
       refetchPackets();
       refetchCommands();
     }
-  }, [isConnected]);
+  }, [isConnected, refetchPackets, refetchCommands]);
 
   useAppMode(packets, commands, packetsLoading, commandsLoading, isConnected);
 
@@ -59,7 +57,7 @@ function App() {
   const initializeTabFilters = useStore((s) => s.initializeTabFilters);
 
   useEffect(() => {
-    if (!transformedBoards.packets || !transformedBoards.commands) return;
+    if (!transformedBoards?.packets || !transformedBoards?.commands) return;
 
     setPackets(transformedBoards.packets);
     setCommands(transformedBoards.commands);

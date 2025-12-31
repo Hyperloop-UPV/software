@@ -38,7 +38,7 @@ export const createFullFilter = (
   dataSource: Record<BoardName, Item[]>,
 ): TabFilter => {
   return BOARD_NAMES.reduce((acc, category) => {
-    acc[category] = dataSource[category].map((item) => item.id);
+    acc[category] = dataSource[category]?.map((item) => item.id) || [];
     return acc;
   }, {} as TabFilter);
 };
