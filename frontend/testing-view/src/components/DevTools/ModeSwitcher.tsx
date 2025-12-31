@@ -19,7 +19,7 @@ export const ModeSwitcher = () => {
   if (!import.meta.env.DEV && !import.meta.env.VITE_FORCE_DEV) return null;
 
   return (
-    <div className="bg-background fixed bottom-10 right-1/2 z-50 flex translate-x-1/2 flex-col gap-2 rounded-lg border p-3 shadow-lg">
+    <div className="bg-background text-foreground fixed bottom-10 right-1/2 z-50 flex translate-x-1/2 flex-col gap-2 rounded-lg border p-3 shadow-lg">
       <div className="text-muted-foreground text-xs font-semibold">
         Dev Mode Switcher
       </div>
