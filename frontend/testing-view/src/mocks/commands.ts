@@ -1,5 +1,5 @@
-import type { BoardName } from "../types/BoardName";
-import type { Command } from "../types/Command";
+import type { BoardName } from "../types/data/board";
+import type { Command } from "../types/data/command";
 
 export const MOCK_COMMANDS: Record<BoardName, Command[]> = {
   BCU: [

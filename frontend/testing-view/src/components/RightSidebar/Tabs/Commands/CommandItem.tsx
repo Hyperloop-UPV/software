@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { logger } from "@workspace/core";
 import {
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from "@workspace/ui";
 import { ChevronDown, Play } from "@workspace/ui/icons";
-import type { Command, CommandParameter } from "../../../../types/Command";
 import { cn } from "@workspace/ui/lib";
+import { useState } from "react";
 import { useStore } from "../../../../store/store";
-import { logger } from "@workspace/core";
+import type { Command, CommandParameter } from "../../../../types/data/command";
 
 interface CommandItemProps {
   item: Command;

@@ -2,17 +2,16 @@ import { Trash2 } from "@workspace/ui/icons";
 import { useState } from "react";
 import "uplot/dist/uPlot.min.css";
 import { useStore } from "../../../store/store";
+import type { VariableSeries } from "../../../types/workspace/charts";
 import { ChartLegend } from "./ChartLegend";
 import { ChartSurface } from "./ChartSurface";
-import { type MeasurementPoint } from "./types";
 
-export const TelemetryChart = ({
-  id,
-  points,
-}: {
+interface TelemetryChartProps {
   id: string;
-  points: MeasurementPoint[];
-}) => {
+  series: VariableSeries[];
+}
+
+export const TelemetryChart = ({ id, series }: TelemetryChartProps) => {
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const removeChart = useStore((s) => s.removeChart);
   const removeSeries = useStore((s) => s.removeSeriesFromChart);
@@ -51,13 +50,13 @@ export const TelemetryChart = ({
       </button>
 
       <ChartLegend
-        points={points}
+        series={series}
         disabledIndices={disabledIndices}
         onToggle={toggleSeries}
         onRemove={(v, i) => handleRemoveSeries(v, i)}
       />
 
-      <ChartSurface points={points} disabledIndices={disabledIndices} />
+      <ChartSurface series={series} disabledIndices={disabledIndices} />
     </div>
   );
 };

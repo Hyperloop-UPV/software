@@ -1,14 +1,14 @@
-import type { Packet } from "../../../../types/Packet";
 import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
   Badge,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
   Separator,
 } from "@workspace/ui";
 import { ChevronDown, ChevronRight } from "@workspace/ui/icons";
-import { VariableItem } from "./VariableItem";
 import { useStore } from "../../../../store/store";
+import type { Packet } from "../../../../types/data/packet";
+import { VariableItem } from "./VariableItem";
 
 interface PacketItemProps {
   item: Packet;

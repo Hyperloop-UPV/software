@@ -1,4 +1,6 @@
-import type { Message } from "../types/Message";
+import type { Message } from "../types/data/message";
+
+// TODO: implement real messages type
 
 // Mock Messages
 export const MOCK_MESSAGES: Message[] = [

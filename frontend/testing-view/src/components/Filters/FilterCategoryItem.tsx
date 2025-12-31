@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Checkbox,
   Collapsible,
@@ -6,10 +5,11 @@ import {
   CollapsibleTrigger,
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
-import { useStore } from "../../store/store";
-import type { BoardName } from "../../types/BoardName";
-import { FilterItem } from "./FilterItem";
+import { useState } from "react";
 import { useShallow } from "zustand/shallow";
+import { useStore } from "../../store/store";
+import type { BoardName } from "../../types/data/board";
+import { FilterItem } from "./FilterItem";
 
 export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
   const [isExpanded, setIsExpanded] = useState(false);

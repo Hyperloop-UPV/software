@@ -1,4 +1,4 @@
-import type { BoardName } from "../types/BoardName";
+import type { BoardName } from "../types/data/board";
 
 export const BOARD_NAMES: BoardName[] = [
   "BCU",

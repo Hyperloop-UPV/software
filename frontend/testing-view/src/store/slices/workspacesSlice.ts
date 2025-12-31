@@ -5,16 +5,18 @@ import {
   createFullFilter,
   generateInitialFilters,
 } from "../../lib/utils";
-import type { BoardName } from "../../types/BoardName";
-import type { Item } from "../../types/Item";
-import type { SidebarTab } from "../../types/SidebarTab";
-import type { TabFilter } from "../../types/TabFilter";
-import type { Workspace } from "../../types/Workspace";
+import type { Item } from "../../types/common/item";
+import type { BoardName } from "../../types/data/board";
 import type {
   FilterScope,
-  WorkspaceExpandedItems,
+  TabFilter,
   WorkspaceFilters,
-} from "../../types/Workspaces";
+} from "../../types/workspace/filters";
+import type {
+  SidebarTab,
+  WorkspaceExpandedItems,
+} from "../../types/workspace/sidebar";
+import type { Workspace } from "../../types/workspace/workspace";
 import type { Store } from "../store";
 
 export interface WorkspaceChartSeries {

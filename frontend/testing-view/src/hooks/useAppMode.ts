@@ -1,7 +1,7 @@
 import { logger } from "@workspace/core";
 import { useCallback, useEffect } from "react";
 import { useStore } from "../store/store";
-import type { OrdersData, PacketsData } from "../types/AppData";
+import type { OrdersData, PacketsData } from "../types/data/transformedBoards";
 
 export function useAppMode(
   packets: PacketsData | null,
