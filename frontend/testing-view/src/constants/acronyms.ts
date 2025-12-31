@@ -16,4 +16,6 @@ export const acronyms = [
   "BCU",
   "PFM",
   "PWM",
+  "DCLV",
+  "BMS",
 ];

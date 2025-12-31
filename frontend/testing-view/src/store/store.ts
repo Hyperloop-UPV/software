@@ -27,6 +27,7 @@ export type Store = AppSlice &
   ConnectionsSlice;
 
 export const useStore = create<Store>()(
+  // devtools(
   persist(
     (...a) => ({
       ...createAppSlice(...a),
@@ -58,4 +59,6 @@ export const useStore = create<Store>()(
       }),
     },
   ),
+  // { name: "Testing View Store" },
+  // ),
 );
