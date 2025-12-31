@@ -28,13 +28,11 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     );
 
-    // Call the onError prop if provided
     this.props.onError?.(error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      // Let the AppModeRouter handle the error display
       return this.props.children;
     }
 
