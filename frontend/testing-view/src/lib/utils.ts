@@ -48,27 +48,32 @@ export const getTypeBadgeClass = (type: string) => {
     case "float":
     case "float32":
     case "float64":
-      return "bg-blue-500/15 text-blue-400 border-blue-500/30";
+      return "bg-sky-500/20 text-sky-400 border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-300";
+
     case "integer":
     case "int":
     case "int8":
     case "int16":
     case "int32":
     case "int64":
-      return "bg-green-500/15 text-green-400 border-green-500/30";
-    case "string":
-    case "enum":
-      return "bg-purple-500/15 text-purple-400 border-purple-500/30";
-    case "boolean":
-    case "bool":
-      return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
+      return "bg-emerald-500/20 text-emerald-500 border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-400";
+
     case "uint8":
     case "uint16":
     case "uint32":
     case "uint64":
-      return "bg-red-500/15 text-red-400 border-red-500/30";
+      return "bg-orange-500/20 text-orange-500 border-orange-500/40 dark:bg-orange-500/15 dark:text-orange-400";
+
+    case "string":
+    case "enum":
+      return "bg-violet-500/20 text-violet-500 border-violet-500/40 dark:bg-violet-500/15 dark:text-violet-400";
+
+    case "boolean":
+    case "bool":
+      return "bg-amber-500/20 text-amber-500 border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-400";
+
     default:
-      return "bg-muted-foreground/15 text-muted-foreground border-muted-foreground/30";
+      return "bg-slate-500/20 text-slate-400 border-slate-500/40 dark:bg-slate-500/15 dark:text-slate-300";
   }
 };
 
