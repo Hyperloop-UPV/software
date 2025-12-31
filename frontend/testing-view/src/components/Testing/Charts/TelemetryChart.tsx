@@ -1,7 +1,7 @@
 import { Trash2 } from "@workspace/ui/icons";
 import { useState } from "react";
 import "uplot/dist/uPlot.min.css";
-import { useStore } from "../../store/store";
+import { useStore } from "../../../store/store";
 import { ChartLegend } from "./ChartLegend";
 import { ChartSurface } from "./ChartSurface";
 import { type MeasurementPoint } from "./types";

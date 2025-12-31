@@ -25,7 +25,7 @@ export const TestingToolbar = ({
   };
 
   return (
-    <div className="sticky top-0 z-10 flex w-full justify-end gap-2 p-2 backdrop-blur-sm">
+    <div className="backdrop-blur-xs sticky top-0 z-10 flex w-full justify-end gap-2 p-2">
       <Button
         onClick={handleAddChart}
         variant="secondary"

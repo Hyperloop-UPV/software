@@ -1,9 +1,9 @@
 import { memo, useEffect, useRef } from "react";
 import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";
-import { useStore } from "../../store/store";
-import { COLORS, type MeasurementPoint } from "./types";
+import { useStore } from "../../../store/store";
 import { createTooltipPlugin } from "./tooltipPlugin";
+import { COLORS, type MeasurementPoint } from "./types";
 
 export const ChartSurface = memo(
   ({

@@ -1,12 +1,13 @@
 import {
-  ResizablePanelGroup,
-  ResizablePanel,
   ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
 } from "@workspace/ui";
-import MessagesSection from "./Sections/MessagesSection";
-import TabsSection from "./Sections/TabsSection";
-import { NoneSelectedSection } from "./Sections/NoneSelectedSection";
+import { Activity } from "react";
 import { useStore } from "../../store/store";
+import MessagesSection from "./Sections/MessagesSection";
+import { NoneSelectedSection } from "./Sections/NoneSelectedSection";
+import TabsSection from "./Sections/TabsSection";
 
 interface RightSidebarContentProps {}
 
@@ -25,37 +26,35 @@ export const RightSidebarContent = ({}: RightSidebarContentProps) => {
   if (bothVisible) {
     return (
       <ResizablePanelGroup direction={isHorizontal ? "horizontal" : "vertical"}>
-        {isTabsVisible && (
-          <>
-            <ResizablePanel defaultSize={60} minSize={20}>
-              <TabsSection isSplit={isSplit} />
-            </ResizablePanel>
-            {isMessagesVisible && <ResizableHandle withHandle />}
-          </>
-        )}
+        <Activity mode={isTabsVisible ? "visible" : "hidden"}>
+          <ResizablePanel defaultSize={60} minSize={20}>
+            <TabsSection isSplit={isSplit} />
+          </ResizablePanel>
+          {isMessagesVisible && <ResizableHandle withHandle />}
+        </Activity>
 
-        {isMessagesVisible && (
+        <Activity mode={isMessagesVisible ? "visible" : "hidden"}>
           <ResizablePanel defaultSize={40} minSize={15}>
             <MessagesSection />
           </ResizablePanel>
-        )}
+        </Activity>
       </ResizablePanelGroup>
     );
   }
 
   return (
     <>
-      {isTabsVisible && (
+      <Activity mode={isTabsVisible ? "visible" : "hidden"}>
         <div className="flex-1 overflow-hidden">
           <TabsSection isSplit={isSplit} />
         </div>
-      )}
+      </Activity>
 
-      {isMessagesVisible && (
+      <Activity mode={isMessagesVisible ? "visible" : "hidden"}>
         <div className="flex-1 overflow-hidden">
           <MessagesSection />
         </div>
-      )}
+      </Activity>
     </>
   );
 };
