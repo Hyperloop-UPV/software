@@ -1,11 +1,15 @@
 import { cn } from "@workspace/ui/lib";
-import type { AppMode } from "../../store/slices/appSlice";
 import { useStore } from "../../store/store";
+import type { AppMode } from "../../types/app/mode";
 
 const modeConfig: Record<AppMode, { label: string; className: string }> = {
   loading: {
     label: "Loading",
     className: "bg-blue-300/15 text-blue-500 border-blue-500/30",
+  },
+  "mock-active": {
+    label: "Mock Active",
+    className: "bg-green-300/15 text-green-500 border-green-500/30",
   },
   active: {
     label: "Active",

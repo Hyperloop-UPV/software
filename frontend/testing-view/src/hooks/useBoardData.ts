@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { formatName } from "../lib/utils";
 import { MOCK_COMMANDS } from "../mocks/commands";
 import { MOCK_PACKETS } from "../mocks/packets";
-import type { AppMode } from "../store/slices/appSlice";
+import type { AppMode } from "../types/app/mode";
 import type { BoardName } from "../types/data/board";
 import type { Command } from "../types/data/command";
 import type { Packet } from "../types/data/packet";
@@ -28,7 +28,7 @@ export function useBoardData(
       };
     }
 
-    if (appMode === "mock") {
+    if (appMode === "mock" || appMode === "mock-active") {
       logger.testingView.warn("[useBoardData] Mock mode");
       return {
         packets: MOCK_PACKETS,
