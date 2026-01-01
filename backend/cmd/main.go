@@ -22,13 +22,7 @@ import (
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/broker"
 	blcu_topics "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/blcu"
-	connection_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/connection"
-	data_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/data"
-	logger_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/logger"
-	message_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/message"
-	order_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/order"
 	h "github.com/HyperloopUPV-H8/h9-backend/pkg/http"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 	data_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
@@ -69,6 +63,8 @@ var networkDevice = flag.Int("dev", -1, "index of the network device to use, ove
 var blockprofile = flag.Int("blockprofile", 0, "number of block profiles to include")
 var playbackFile = flag.String("playback", "", "")
 var versionFlag = flag.Bool("version", false, "Show the backend version")
+
+type SubloggersMap map[abstraction.LoggerName]abstraction.Logger
 
 func main() {
 
@@ -134,7 +130,7 @@ func run() error {
 	updateFactory := update_factory.NewFactory(boardToPackets)
 
 	// <--- logger --->
-	var subloggers = map[abstraction.LoggerName]abstraction.Logger{
+	var subloggers = SubloggersMap{
 		data_logger.Name:  data_logger.NewLogger(),
 		order_logger.Name: order_logger.NewLogger(),
 	}
@@ -144,39 +140,12 @@ func run() error {
 
 	// <--- order transfer --->
 	// id to board is the realtion of packetId -> board name
-	idToBoard := make(map[abstraction.PacketId]string)
-	for _, board := range podData.Boards {
-		for _, packet := range board.Packets {
-			idToBoard[packet.Id] = board.Name
-		}
-	}
+	idToBoard, ipToBoardId := createIDToBoardAndIpToBoardID(podData, adj)
 
 	// <--- broker --->
-	broker := broker.New(trace.Logger)
 
-	dataTopic := data_topic.NewUpdateTopic(time.Second / 10)
-	defer dataTopic.Stop()
-	connectionTopic := connection_topic.NewUpdateTopic()
-	orderTopic := order_topic.NewSendTopic()
-	loggerTopic := logger_topic.NewEnableTopic()
-	loggerTopic.SetDataLogger(subloggers[data_logger.Name].(*data_logger.Logger))
-	loggerHandler.SetOnStart(func() {
-		if err := loggerTopic.NotifyStarted(); err != nil {
-			trace.Error().Err(err).Msg("failed to notify logger started")
-		}
-	})
-
-	messageTopic := message_topic.NewUpdateTopic()
-	stateOrderTopic := order_topic.NewState(idToBoard, trace.Logger)
-
-	broker.AddTopic(data_topic.UpdateName, dataTopic)
-	broker.AddTopic(connection_topic.UpdateName, connectionTopic)
-	broker.AddTopic(order_topic.SendName, orderTopic)
-	broker.AddTopic(order_topic.StateName, stateOrderTopic)
-	broker.AddTopic(logger_topic.EnableName, loggerTopic)
-	broker.AddTopic(logger_topic.ResponseName, loggerTopic)
-	broker.AddTopic(logger_topic.VariablesName, loggerTopic)
-	broker.AddTopic(message_topic.UpdateName, messageTopic)
+	broker, cleanup := configureBroker(subloggers, loggerHandler, idToBoard)
+	defer cleanup()
 
 	connections := make(chan *websocket.Client)
 	upgrader := websocket.NewUpgrader(connections, trace.Logger)
@@ -189,10 +158,6 @@ func run() error {
 	transp.SetpropagateFault(config.Transport.PropagateFault)
 
 	// <--- vehicle --->
-	ipToBoardId := make(map[string]abstraction.BoardId)
-	for name, ip := range adj.Info.Addresses {
-		ipToBoardId[ip] = abstraction.BoardId(adj.Info.BoardIds[name])
-	}
 
 	vehicle := vehicle.New(trace.Logger)
 	vehicle.SetBroker(broker)

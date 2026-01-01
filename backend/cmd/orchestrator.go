@@ -7,6 +7,9 @@ import (
 	"runtime/pprof"
 	"strings"
 
+	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
+	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	trace "github.com/rs/zerolog/log"
 )
 
@@ -52,4 +55,33 @@ func setupRuntimeCPU() func() {
 	runtime.SetBlockProfileRate(*blockprofile)
 
 	return cleanup
+}
+
+// createIDToBoardAndIpToBoardID builds lookup tables used to relate low-level
+// identifiers to logical board information.
+//
+// It returns:
+//  1. a map from PacketId to board name, allowing packets to be associated
+//     with the board that produced them (derived from PodData).
+//  2. a map from IP address to BoardId, allowing incoming connections or
+//     messages to be mapped to a specific board (derived from ADJ metadata).
+//
+// These mappings are typically used by the broker and topics to route data,
+// resolve board ownership, and correlate network-level information with
+// domain-level identifiers.
+func createIDToBoardAndIpToBoardID(podData pod_data.PodData, adj adj_module.ADJ) (map[abstraction.PacketId]string, map[string]abstraction.BoardId) {
+
+	idToBoard := make(map[abstraction.PacketId]string)
+	for _, board := range podData.Boards {
+		for _, packet := range board.Packets {
+			idToBoard[packet.Id] = board.Name
+		}
+	}
+
+	ipToBoardID := make(map[string]abstraction.BoardId)
+	for name, ip := range adj.Info.Addresses {
+		ipToBoardID[ip] = abstraction.BoardId(adj.Info.BoardIds[name])
+	}
+
+	return idToBoard, ipToBoardID
 }
