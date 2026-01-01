@@ -5,6 +5,7 @@ export * from "./account";
 export * from "./arrows";
 export * from "./cursors";
 export * from "./design";
+export * from "./development";
 export * from "./devices";
 export * from "./files";
 export * from "./gaming";
