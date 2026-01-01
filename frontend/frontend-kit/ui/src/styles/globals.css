@@ -242,13 +242,22 @@ body,
   body {
     @apply bg-background text-foreground font-archivo;
   }
-}
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
   }
-  body {
-    @apply bg-background text-foreground;
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full border-2 border-transparent bg-clip-content;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
   }
 }
