@@ -14,6 +14,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 	data_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
 	order_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/order"
+	"github.com/pkg/browser"
 	trace "github.com/rs/zerolog/log"
 )
 
@@ -145,4 +146,17 @@ func setUpLogger(config config.Config) (*logger.Logger, SubloggersMap) {
 
 	return loggerHandler, subloggers
 
+}
+
+func openBrowserTabs(config config.Config) {
+
+	switch config.App.AutomaticWindowOpening {
+	case "ethernet-view":
+		browser.OpenURL("http://" + config.Server["ethernet-view"].Addr)
+	case "control-station":
+		browser.OpenURL("http://" + config.Server["control-station"].Addr)
+	case "both":
+		browser.OpenURL("http://" + config.Server["ethernet-view"].Addr)
+		browser.OpenURL("http://" + config.Server["control-station"].Addr)
+	}
 }

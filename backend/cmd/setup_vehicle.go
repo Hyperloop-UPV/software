@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"os"
 	"time"
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
@@ -19,6 +21,7 @@ import (
 	data_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	vehicle_module "github.com/HyperloopUPV-H8/h9-backend/pkg/vehicle"
+	"github.com/jmaralo/sntp"
 	trace "github.com/rs/zerolog/log"
 )
 
@@ -115,4 +118,31 @@ func configureVehicle(
 
 	return nil
 
+}
+
+func configureSNTP(adj adj_module.ADJ) bool {
+
+	if *enableSNTP {
+		sntpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", adj.Info.Addresses[BACKEND], adj.Info.Ports[SNTP]))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error resolving sntp address: %v\n", err)
+			return true
+		}
+		sntpServer, err := sntp.NewUnicast("udp", sntpAddr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error creating sntp server: %v\n", err)
+			return true
+		}
+
+		go func() {
+			err := sntpServer.ListenAndServe()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error listening sntp server: %v\n", err)
+				return
+			}
+		}()
+
+	}
+
+	return false
 }

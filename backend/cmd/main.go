@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -33,8 +32,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
-	"github.com/jmaralo/sntp"
-	"github.com/pkg/browser"
 	trace "github.com/rs/zerolog/log"
 )
 
@@ -63,14 +60,6 @@ var versionFlag = flag.Bool("version", false, "Show the backend version")
 type SubloggersMap map[abstraction.LoggerName]abstraction.Logger
 
 func main() {
-
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-
-}
-
-func run() error {
 	// Parse command line flags
 	flag.Parse()
 
@@ -298,47 +287,21 @@ func run() error {
 	go http.ListenAndServe("127.0.0.1:4040", nil)
 
 	// <--- SNTP --->
-	if *enableSNTP {
-		sntpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", adj.Info.Addresses[BACKEND], adj.Info.Ports[SNTP]))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error resolving sntp address: %v\n", err)
-			os.Exit(1)
-		}
-		sntpServer, err := sntp.NewUnicast("udp", sntpAddr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error creating sntp server: %v\n", err)
-			os.Exit(1)
-		}
-
-		go func() {
-			err := sntpServer.ListenAndServe()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "error listening sntp server: %v\n", err)
-				return
-			}
-		}()
+	terminate := configureSNTP(adj)
+	if terminate {
+		os.Exit(1)
 	}
 
 	// Open browser tabs
-	switch config.App.AutomaticWindowOpening {
-	case "ethernet-view":
-		browser.OpenURL("http://" + config.Server["ethernet-view"].Addr)
-	case "control-station":
-		browser.OpenURL("http://" + config.Server["control-station"].Addr)
-	case "both":
-		browser.OpenURL("http://" + config.Server["ethernet-view"].Addr)
-		browser.OpenURL("http://" + config.Server["control-station"].Addr)
-	}
+	openBrowserTabs(config)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
+	defer signal.Stop(interrupt)
 
-	for range interrupt {
-		trace.Info().Msg("Shutting down")
-		return nil
-	}
+	<-interrupt
+	trace.Info().Msg("shutting down backend")
 
-	return nil
 }
 
 func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presentation.Decoder, *presentation.Encoder) {
