@@ -1,3 +1,6 @@
+//! DOES NOT WORK, BECAUSE IS ASSUMED THAT THE tmp FOLDER IS ALWAYS THE SAME DIRRECTION
+//! which is not true
+
 package main
 
 import (
