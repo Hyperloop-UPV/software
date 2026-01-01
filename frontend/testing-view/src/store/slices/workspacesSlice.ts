@@ -245,7 +245,10 @@ export const createWorkspacesSlice: StateCreator<
   getFilteredItems: (scope) => {
     const filters = get().getActiveFilters(scope);
     if (!filters) return [];
+
     const catalog = get().getCatalog(scope);
+    if (!catalog) return [];
+
     return Object.entries(catalog).flatMap(([cat, items]) => {
       const selected = filters[cat as BoardName] || [];
       return items.filter((i) => selected.includes(i.id));
@@ -253,7 +256,8 @@ export const createWorkspacesSlice: StateCreator<
   },
   getFilteredItemsByCategory: (scope, category) => {
     const selected = get().getFilteredItemsIdsByCategory(scope, category);
-    const items = get().getCatalog(scope)[category] || [];
+    const catalog = get().getCatalog(scope);
+    const items = catalog?.[category] || [];
     return items.filter((i) => selected.includes(i.id));
   },
 
@@ -270,7 +274,8 @@ export const createWorkspacesSlice: StateCreator<
 
   getSelectionState: (scope, category) => {
     const selectedCount = get().getFilteredCountByCategory(scope, category);
-    const totalItems = get().getCatalog(scope)[category]?.length || 0;
+    const catalog = get().getCatalog(scope);
+    const totalItems = catalog?.[category]?.length || 0;
 
     if (totalItems === 0 || selectedCount === 0) return false;
     if (selectedCount === totalItems) return true;
