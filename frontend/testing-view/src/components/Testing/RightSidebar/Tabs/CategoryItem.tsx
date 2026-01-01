@@ -5,6 +5,7 @@ import {
 } from "@workspace/ui";
 import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
 import { type ComponentType } from "react";
+import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../../store/store";
 import type { Item } from "../../../../types/common/item";
 import type { BoardName } from "../../../../types/data/board";
@@ -21,7 +22,9 @@ export const CategoryItem = ({
   scope,
   ItemComponent,
 }: CategoryItemProps) => {
-  const filteredItems = useStore((state) => state[scope][category]);
+  const filteredItems = useStore(
+    useShallow((state) => state.getFilteredItemsByCategory(scope, category)),
+  );
 
   const isExpanded = useStore((state) => state.isItemExpanded(scope, category));
   const toggleExpandedItem = useStore((state) => state.toggleExpandedItem);

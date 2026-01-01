@@ -28,10 +28,10 @@ export const PacketItem = memo(
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Debug log
-    useEffect(() => {
-      console.log("📦 PacketItem rendered:", packet.id);
-      return () => console.log("📦 PacketItem unmounted:", packet.id);
-    }, []);
+    // useEffect(() => {
+    //   console.log("📦 PacketItem rendered:", packet.id);
+    //   return () => console.log("📦 PacketItem unmounted:", packet.id);
+    // }, []);
 
     // Track when packet updates and show active for 2 seconds
     useEffect(() => {
