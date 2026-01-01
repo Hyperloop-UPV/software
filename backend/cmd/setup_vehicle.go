@@ -3,15 +3,23 @@ package main
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"time"
 
+	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
+	h "github.com/HyperloopUPV-H8/h9-backend/pkg/http"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
+
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
+	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
+	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/broker"
+	blcu_topics "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/blcu"
 	connection_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/connection"
 	data_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/data"
 	logger_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/logger"
@@ -25,7 +33,7 @@ import (
 	trace "github.com/rs/zerolog/log"
 )
 
-func configureBroker(subloggers SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string) (*broker.Broker, func()) {
+func configureBroker(subloggers SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string, connections chan *websocket.Client) (*broker.Broker, func()) {
 
 	broker := broker.New(trace.Logger)
 
@@ -44,6 +52,7 @@ func configureBroker(subloggers SubloggersMap, loggerHandler *logger.Logger, idT
 	messageTopic := message_topic.NewUpdateTopic()
 	stateOrderTopic := order_topic.NewState(idToBoard, trace.Logger)
 
+	// congigure topics
 	broker.AddTopic(data_topic.UpdateName, dataTopic)
 	broker.AddTopic(connection_topic.UpdateName, connectionTopic)
 	broker.AddTopic(order_topic.SendName, orderTopic)
@@ -52,6 +61,10 @@ func configureBroker(subloggers SubloggersMap, loggerHandler *logger.Logger, idT
 	broker.AddTopic(logger_topic.ResponseName, loggerTopic)
 	broker.AddTopic(logger_topic.VariablesName, loggerTopic)
 	broker.AddTopic(message_topic.UpdateName, messageTopic)
+
+	pool := websocket.NewPool(connections, trace.Logger)
+	broker.SetPool(pool)
+	blcu_topics.RegisterTopics(broker, pool)
 
 	return broker, cleanup
 }
@@ -145,4 +158,42 @@ func configureSNTP(adj adj_module.ADJ) bool {
 	}
 
 	return false
+}
+
+func configureHttpServer(
+	adj adj_module.ADJ,
+	podData pod_data.PodData,
+	vehicleOrders vehicle_models.VehicleOrders,
+	upgrader *websocket.Upgrader,
+	config config.Config) {
+	podDataHandle, err := h.HandleDataJSON("podData.json", pod_data.GetDataOnlyPodData(podData))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error creating podData handler: %v\n", err)
+	}
+	orderDataHandle, err := h.HandleDataJSON("orderData.json", vehicleOrders)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error creating orderData handler: %v\n", err)
+	}
+	uploadableBords := common.Filter(common.Keys(adj.Info.Addresses), func(item string) bool {
+		return item != adj.Info.Addresses[BLCU]
+	})
+	programableBoardsHandle, err := h.HandleDataJSON("programableBoards.json", uploadableBords)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error creating programableBoards handler: %v\n", err)
+	}
+
+	for _, server := range config.Server {
+		mux := h.NewMux(
+			h.Endpoint("/backend"+server.Endpoints.PodData, podDataHandle),
+			h.Endpoint("/backend"+server.Endpoints.OrderData, orderDataHandle),
+			h.Endpoint("/backend"+server.Endpoints.ProgramableBoards, programableBoardsHandle),
+			h.Endpoint(server.Endpoints.Connections, upgrader),
+			h.Endpoint(server.Endpoints.Files, h.HandleStatic(server.StaticPath)),
+		)
+
+		httpServer := h.NewServer(server.Addr, mux)
+		go httpServer.ListenAndServe()
+	}
+
+	go http.ListenAndServe("127.0.0.1:4040", nil)
 }
