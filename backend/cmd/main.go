@@ -24,9 +24,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
 	blcu_topics "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/blcu"
 	h "github.com/HyperloopUPV-H8/h9-backend/pkg/http"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
-	data_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
-	order_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
@@ -35,7 +32,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/vehicle"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	"github.com/jmaralo/sntp"
 	"github.com/pkg/browser"
@@ -118,29 +114,16 @@ func run() error {
 		trace.Fatal().Err(err).Msg("creating vehicleOrders")
 	}
 
+	// <-- lookup tables -->
+
+	idToBoard, ipToBoardID, boardToPackets := createLookupTables(podData, adj)
+
 	// <--- update factory --->
-	boardToPackets := make(map[abstraction.TransportTarget][]abstraction.PacketId)
-	for _, board := range podData.Boards {
-		packetIds := make([]abstraction.PacketId, len(board.Packets))
-		for i, packet := range board.Packets {
-			packetIds[i] = packet.Id
-		}
-		boardToPackets[abstraction.TransportTarget(board.Name)] = packetIds
-	}
+
 	updateFactory := update_factory.NewFactory(boardToPackets)
 
 	// <--- logger --->
-	var subloggers = SubloggersMap{
-		data_logger.Name:  data_logger.NewLogger(),
-		order_logger.Name: order_logger.NewLogger(),
-	}
-
-	logger.ConfigureLogger(config.Logging.TimeUnit, config.Logging.LoggingPath)
-	loggerHandler := logger.NewLogger(subloggers, trace.Logger)
-
-	// <--- order transfer --->
-	// id to board is the realtion of packetId -> board name
-	idToBoard, ipToBoardId := createIDToBoardAndIpToBoardID(podData, adj)
+	loggerHandler, subloggers := setUpLogger(config)
 
 	// <--- broker --->
 
@@ -159,45 +142,18 @@ func run() error {
 
 	// <--- vehicle --->
 
-	vehicle := vehicle.New(trace.Logger)
-	vehicle.SetBroker(broker)
-	vehicle.SetLogger(loggerHandler)
-	vehicle.SetUpdateFactory(updateFactory)
-	vehicle.SetIpToBoardId(ipToBoardId)
-	vehicle.SetIdToBoardName(idToBoard)
-	vehicle.SetTransport(transp)
-
-	// <--- BLCU Board --->
-	// Register BLCU board for handling bootloader operations
-	if blcuIP, exists := adj.Info.Addresses[BLCU]; exists {
-		blcuId, idExists := adj.Info.BoardIds["BLCU"]
-		if !idExists {
-			trace.Error().Msg("BLCU IP found in ADJ but board ID missing")
-		} else {
-			// Get configurable order IDs or use defaults
-			downloadOrderId := config.Blcu.DownloadOrderId
-			uploadOrderId := config.Blcu.UploadOrderId
-			if downloadOrderId == 0 {
-				downloadOrderId = boards.DefaultBlcuDownloadOrderId
-			}
-			if uploadOrderId == 0 {
-				uploadOrderId = boards.DefaultBlcuUploadOrderId
-			}
-
-			tftpConfig := boards.TFTPConfig{
-				BlockSize:      config.TFTP.BlockSize,
-				Retries:        config.TFTP.Retries,
-				TimeoutMs:      config.TFTP.TimeoutMs,
-				BackoffFactor:  config.TFTP.BackoffFactor,
-				EnableProgress: config.TFTP.EnableProgress,
-			}
-			blcuBoard := boards.NewWithConfig(blcuIP, tftpConfig, abstraction.BoardId(blcuId), downloadOrderId, uploadOrderId)
-			vehicle.AddBoard(blcuBoard)
-			vehicle.SetBlcuId(abstraction.BoardId(blcuId))
-			trace.Info().Str("ip", blcuIP).Int("id", int(blcuId)).Uint16("download_order_id", downloadOrderId).Uint16("upload_order_id", uploadOrderId).Msg("BLCU board registered")
-		}
-	} else {
-		trace.Warn().Msg("BLCU not found in ADJ configuration - bootloader operations unavailable")
+	err = configureVehicle(
+		broker,
+		loggerHandler,
+		updateFactory,
+		ipToBoardID,
+		idToBoard,
+		transp,
+		adj,
+		config,
+	)
+	if err != nil {
+		trace.Err(err).Msg("configuring vehicle")
 	}
 
 	// <--- transport --->
