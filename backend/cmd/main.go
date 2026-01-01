@@ -106,15 +106,14 @@ func run() error {
 	}
 
 	// <--- ADJ --->
-
 	adj, err := adj_module.NewADJ(config.Adj.Branch)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("setting up ADJ")
 	}
 
+	// <--- pod data --->
 	podData, err := pod_data.NewPodData(adj.Boards, adj.Info.Units)
 	if err != nil {
-		fmt.Println(err)
 		trace.Fatal().Err(err).Msg("creating podData")
 	}
 
@@ -124,9 +123,9 @@ func run() error {
 	}
 
 	// <--- update factory --->
-	boardToPackets := make(map[abstraction.TransportTarget][]uint16)
+	boardToPackets := make(map[abstraction.TransportTarget][]abstraction.PacketId)
 	for _, board := range podData.Boards {
-		packetIds := make([]uint16, len(board.Packets))
+		packetIds := make([]abstraction.PacketId, len(board.Packets))
 		for i, packet := range board.Packets {
 			packetIds[i] = packet.Id
 		}
@@ -144,7 +143,8 @@ func run() error {
 	loggerHandler := logger.NewLogger(subloggers, trace.Logger)
 
 	// <--- order transfer --->
-	idToBoard := make(map[uint16]string)
+	// id to board is the realtion of packetId -> board name
+	idToBoard := make(map[abstraction.PacketId]string)
 	for _, board := range podData.Boards {
 		for _, packet := range board.Packets {
 			idToBoard[packet.Id] = board.Name

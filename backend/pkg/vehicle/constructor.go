@@ -66,7 +66,7 @@ func (vehicle *Vehicle) SetUpdateFactory(updateFactory *update_factory.UpdateFac
 	vehicle.trace.Info().Type("updateFactory", updateFactory).Msg("set update factory")
 }
 
-func (vehicle *Vehicle) SetIdToBoardName(idToBoardName map[uint16]string) {
+func (vehicle *Vehicle) SetIdToBoardName(idToBoardName map[abstraction.PacketId]string) {
 	vehicle.idToBoardName = idToBoardName
 	vehicle.trace.Info().Msg("set id to board")
 }

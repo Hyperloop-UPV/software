@@ -31,7 +31,7 @@ type Vehicle struct {
 	transport     abstraction.Transport
 	logger        abstraction.Logger
 	updateFactory *update_factory.UpdateFactory
-	idToBoardName map[uint16]string
+	idToBoardName map[abstraction.PacketId]string
 	ipToBoardId   map[string]abstraction.BoardId
 	BlcuId        abstraction.BoardId
 
@@ -60,7 +60,7 @@ func (vehicle *Vehicle) UserPush(push abstraction.BrokerPush) error {
 			return err
 		}
 
-		err = vehicle.broker.Push(message_topic.Push(packet, vehicle.idToBoardName[uint16(packet.Id())]))
+		err = vehicle.broker.Push(message_topic.Push(packet, vehicle.idToBoardName[packet.Id()]))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error sending info packet to the frontend: %v\n", err)
 			return err
@@ -69,7 +69,7 @@ func (vehicle *Vehicle) UserPush(push abstraction.BrokerPush) error {
 		err = vehicle.logger.PushRecord(&order_logger.Record{
 			Packet:    packet,
 			From:      "backend",
-			To:        vehicle.idToBoardName[uint16(packet.Id())],
+			To:        vehicle.idToBoardName[packet.Id()],
 			Timestamp: packet.Timestamp(),
 		})
 		if err != nil && !errors.Is(err, logger.ErrLoggerNotRunning{}) {
