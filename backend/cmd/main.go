@@ -12,7 +12,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
-
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	trace "github.com/rs/zerolog/log"
@@ -45,7 +44,6 @@ type SubloggersMap map[abstraction.LoggerName]abstraction.Logger
 func main() {
 	// Parse command line flags
 	flag.Parse()
-
 	handleVersionFlag()
 
 	// Configure trace
@@ -63,7 +61,7 @@ func main() {
 	cleanup := setupRuntimeCPU()
 	defer cleanup()
 
-	// Load configuration file
+	// <--- config --->
 	config, err := config.GetConfig(*configFile)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("error unmarshaling toml file")
@@ -156,7 +154,6 @@ func main() {
 
 	<-interrupt
 	trace.Info().Msg("shutting down backend")
-
 }
 
 // H09 -- Zürich    -- PM Juan Martínez, Marc Sanchis -- Winners
