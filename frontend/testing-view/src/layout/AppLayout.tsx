@@ -1,6 +1,5 @@
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
-import { cn } from "@workspace/ui/lib";
-import React from "react";
+import React, { useEffect } from "react";
 import Footer from "../components/Footer";
 import Header from "../components/Header/Header";
 import AppSidebar from "../components/LeftSidebar/AppSidebar";
@@ -15,16 +14,27 @@ export const AppLayout = ({ children, backendConnected }: AppLayoutProps) => {
   const colorScheme = useStore((s) => s.colorScheme);
   const isDarkMode = useStore((s) => s.isDarkMode);
 
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (isDarkMode) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, [isDarkMode]);
+
+  // Sync color scheme to the root html element
+  useEffect(() => {
+    const root = window.document.documentElement;
+    // Remove old schemes if you have more than one
+    root.classList.remove("default", "pink");
+    root.classList.add(colorScheme);
+  }, [colorScheme]);
+
   return (
     <div className="h-full w-full [--header-height:calc(--spacing(14))]">
       <SidebarProvider className="h-full w-full" defaultOpen={false}>
-        <div
-          className={cn(
-            "bg-background flex h-full w-full",
-            isDarkMode ? "dark" : "",
-            colorScheme,
-          )}
-        >
+        <div className="bg-background flex h-full w-full">
           <AppSidebar backendConnected={backendConnected} />
           <SidebarInset className="flex h-full flex-col">
             <Header />
