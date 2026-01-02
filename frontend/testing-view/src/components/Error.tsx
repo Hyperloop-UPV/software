@@ -20,7 +20,7 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
 
   return (
     <div className="bg-background flex h-full w-full flex-col items-center justify-center p-6">
-      <div className="flex max-w-[500px] flex-col items-center space-y-8">
+      <div className="flex max-w-[700px] flex-col items-center space-y-7">
         {/* Panic Monkey Container */}
         <div className="relative">
           <div className="bg-destructive/10 absolute -inset-4 animate-pulse rounded-full blur-2xl" />
@@ -34,9 +34,9 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
         </div>
 
         {/* Title & Error Identity */}
-        <div className="space-y-6 text-center">
+        <div className="space-y-5 text-center">
           <h1 className="text-foreground text-3xl font-bold tracking-tight">
-            (ó﹏ò｡)
+            Ooopsiie! We've got an error!
           </h1>
           <div className="space-y-2">
             <h2 className="text-xl font-medium">{error?.name}</h2>
@@ -64,7 +64,7 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
         <div className="flex items-center gap-3">
           <Button
             onClick={handleReload}
-            className="shadow-primary/20 h-11 gap-2 px-8 font-semibold shadow-lg"
+            className="shadow-primary/20 gap-2 px-8 font-semibold shadow-lg"
             variant="default"
           >
             <RefreshCw className="h-4 w-4" />
@@ -75,7 +75,7 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
             <Button
               onClick={() => setShowDetails(!showDetails)}
               variant="outline"
-              className="border-border/60 bg-background/50 h-11 gap-2 px-6 backdrop-blur-sm"
+              className="border-border/60 bg-background/50 gap-2 px-6 backdrop-blur-sm"
             >
               <Terminal className="text-muted-foreground h-4 w-4" />
               {showDetails ? "Hide" : "Show"} Trace
