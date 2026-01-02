@@ -10,7 +10,6 @@ import (
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
-
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
@@ -22,11 +21,12 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
-
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
 	trace "github.com/rs/zerolog/log"
 )
 
+// configureTransport initializes the transport decoder/encoder, sets packet ID -> target
+// mappings and starts the TCP/UDP network handlers.
 func configureTransport(
 	adj adj_module.ADJ,
 	podData pod_data.PodData,
@@ -45,35 +45,62 @@ func configureTransport(
 		transp.SetTargetIp(adj.Info.Addresses[board.Name], abstraction.TransportTarget(board.Name))
 	}
 
-	// Set BLCU packet ID mappings if BLCU is configured
+	// If BLCU is configured set BLCU packet ID mappings
 	if common.Contains(config.Vehicle.Boards, "BLCU") {
-		// Use configurable packet IDs or defaults
-		downloadOrderId := config.Blcu.DownloadOrderId
-		uploadOrderId := config.Blcu.UploadOrderId
-		if downloadOrderId == 0 {
-			downloadOrderId = boards.DefaultBlcuDownloadOrderId
-		}
-		if uploadOrderId == 0 {
-			uploadOrderId = boards.DefaultBlcuUploadOrderId
-		}
-
-		transp.SetIdTarget(abstraction.PacketId(downloadOrderId), abstraction.TransportTarget("BLCU"))
-		transp.SetIdTarget(abstraction.PacketId(uploadOrderId), abstraction.TransportTarget("BLCU"))
-
-		// Use BLCU address from config, ADJ, or default
-		blcuIP := config.Blcu.IP
-		if blcuIP == "" {
-			if adjBlcuIP, exists := adj.Info.Addresses[BLCU]; exists {
-				blcuIP = adjBlcuIP
-			} else {
-				blcuIP = "127.0.0.1"
-			}
-		}
-		transp.SetTargetIp(blcuIP, abstraction.TransportTarget("BLCU"))
+		configureBLCUTransport(adj, transp, config)
 	}
 
-	// Start handling TCP client connections
-	i := 0
+	// Start handling TCP CLIENT connections
+	configureTCPClientTransport(adj, podData, transp, config)
+
+	// Start handling TCP SERVER connections
+	configureTCPServerTransport(adj, transp)
+
+	// Start handling network packets using UDP server
+	configureUDPServerTransport(adj, transp)
+
+}
+
+// configureBLCUTransport sets the packet IDs and target IP for the BLCU board.
+// It prefers values from config, falls back to ADJ and finally to a loopback default.
+func configureBLCUTransport(adj adj_module.ADJ,
+	transp *transport.Transport,
+	config config.Config) {
+	// Use configurable packet IDs or defaults
+	downloadOrderID := config.Blcu.DownloadOrderId
+	uploadOrderID := config.Blcu.UploadOrderId
+	if downloadOrderID == 0 {
+		downloadOrderID = boards.DefaultBlcuDownloadOrderId
+	}
+	if uploadOrderID == 0 {
+		uploadOrderID = boards.DefaultBlcuUploadOrderId
+	}
+
+	transp.SetIdTarget(abstraction.PacketId(downloadOrderID), abstraction.TransportTarget("BLCU"))
+	transp.SetIdTarget(abstraction.PacketId(uploadOrderID), abstraction.TransportTarget("BLCU"))
+
+	// Use BLCU address from config, ADJ, or default
+	blcuIP := config.Blcu.IP
+	if blcuIP == "" {
+		if adjBlcuIP, exists := adj.Info.Addresses[BLCU]; exists {
+			blcuIP = adjBlcuIP
+		} else {
+			blcuIP = "127.0.0.1"
+		}
+	}
+	transp.SetTargetIp(blcuIP, abstraction.TransportTarget("BLCU"))
+}
+
+func configureTCPClientTransport(
+	adj adj_module.ADJ,
+	podData pod_data.PodData,
+	transp *transport.Transport,
+	config config.Config) {
+
+	// counter used to allocate incremental local ports for multiple clients
+	i := 0 // count
+
+	// map of remote server addresses to transport targets for boards not present in vehicle config
 	serverTargets := make(map[string]abstraction.TransportTarget)
 	for _, board := range podData.Boards {
 		if !common.Contains(config.Vehicle.Boards, board.Name) {
@@ -87,6 +114,7 @@ func configureTransport(
 		// Create TCP client config with custom parameters from config
 		clientConfig := tcp.NewClientConfig(backendTcpClientAddr)
 
+		// Apply configurations
 		// Apply custom timeout if specified
 		if config.TCP.ConnectionTimeout > 0 {
 			clientConfig.Timeout = time.Duration(config.TCP.ConnectionTimeout) * time.Millisecond
@@ -122,8 +150,13 @@ func configureTransport(
 		go transp.HandleClient(clientConfig, fmt.Sprintf("%s:%d", adj.Info.Addresses[board.Name], adj.Info.Ports[TcpServer]))
 		i++
 	}
+}
 
-	// Start handling TCP server connections
+// configureTCPServerTransport starts the TCP server handler using a ListenConfig with KeepAlive.
+func configureTCPServerTransport(
+	adj adj_module.ADJ,
+	transp *transport.Transport,
+) {
 	go transp.HandleServer(tcp.ServerConfig{
 		ListenConfig: net.ListenConfig{
 			KeepAlive: time.Second,
@@ -131,7 +164,13 @@ func configureTransport(
 		Context: context.TODO(),
 	}, fmt.Sprintf("%s:%d", adj.Info.Addresses[BACKEND], adj.Info.Ports[TcpServer]))
 
-	// Start handling network packets using UDP server
+}
+
+// configureUDPServerTransport creates and starts the UDP server then delegates handling to transport.
+func configureUDPServerTransport(
+	adj adj_module.ADJ,
+	transp *transport.Transport,
+) {
 	trace.Info().Msg("Starting UDP server")
 	udpServer := udp.NewServer(adj.Info.Addresses[BACKEND], adj.Info.Ports[UDP], &trace.Logger)
 	err := udpServer.Start()
@@ -139,9 +178,10 @@ func configureTransport(
 		panic("failed to start UDP server: " + err.Error())
 	}
 	go transp.HandleUDPServer(udpServer)
-
 }
 
+// getTransportDecEnc builds presentation decoder/encoder based on podData descriptors.
+// Registers data decoders/encoders per packet and special decoders for BLCU ack, state orders and protection.
 func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presentation.Decoder, *presentation.Encoder) {
 	decoder := presentation.NewDecoder(binary.LittleEndian, trace.Logger)
 	encoder := presentation.NewEncoder(binary.LittleEndian, trace.Logger)
@@ -154,6 +194,7 @@ func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presen
 		for _, packet := range board.Packets {
 			descriptor := make(data.Descriptor, len(packet.Measurements))
 			for i, measurement := range packet.Measurements {
+				// Map measurement types to concrete data descriptors.
 				switch meas := measurement.(type) {
 				case pod_data.NumericMeasurement:
 					podOps := getOps(meas.PodUnits)
@@ -200,11 +241,13 @@ func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presen
 		}
 	}
 
+	// Register data decoder/encoder for all packet IDs.
 	for _, id := range ids {
 		decoder.SetPacketDecoder(id, dataDecoder)
 		encoder.SetPacketEncoder(id, dataEncoder)
 	}
 
+	// Register BLCU ack decoder
 	decoder.SetPacketDecoder(abstraction.PacketId(info.MessageIds[BlcuAck]), blcu_packet.NewDecoder())
 
 	// TODO Solve this foking mess, I have tried...
@@ -214,6 +257,8 @@ func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presen
 	decoder.SetPacketDecoder(abstraction.PacketId(info.MessageIds[AddStateOrder]), stateOrdersDecoder)
 	decoder.SetPacketDecoder(abstraction.PacketId(info.MessageIds[RemoveStateOrder]), stateOrdersDecoder)
 
+	// Protection: configure severity mapping for known codes, then assign the protection decoder
+	// to all protection-related packet IDs.
 	protectionDecoder := protection.NewDecoder(binary.LittleEndian)
 	protectionDecoder.SetSeverity(1000, protection.FaultSeverity).SetSeverity(2000, protection.WarningSeverity).SetSeverity(3000, protection.OkSeverity)
 	protectionDecoder.SetSeverity(1111, protection.FaultSeverity).SetSeverity(2111, protection.WarningSeverity).SetSeverity(3111, protection.OkSeverity)
@@ -238,6 +283,7 @@ func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presen
 	return decoder, encoder
 }
 
+// getOps converts utils.Units operations into data.ConversionDescriptor entries.
 func getOps(units utils.Units) data.ConversionDescriptor {
 	output := make(data.ConversionDescriptor, len(units.Operations))
 	for i, operation := range units.Operations {
