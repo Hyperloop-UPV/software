@@ -1,17 +1,13 @@
 import {
-  Badge,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-  Separator,
 } from "@workspace/ui";
-import { Activity, ChevronDown } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo } from "react";
 import { useStore } from "../../../../../store/store";
 import type { Packet } from "../../../../../types/data/packet";
-import { VariableItem } from "./VariableItem";
 import { PacketHeader } from "./PacketHeader";
+import { VariableItem } from "./VariableItem";
 
 interface PacketItemProps {
   item: Packet;
