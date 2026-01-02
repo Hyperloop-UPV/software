@@ -9,7 +9,7 @@ interface AppModeRouterProps {
 export const AppModeRouter = ({ children }: AppModeRouterProps) => {
   const appMode = useStore((s) => s.appMode);
 
-  // Handle special modes
+  // For loading mode
   if (appMode === "loading") {
     return <Loading />;
   }

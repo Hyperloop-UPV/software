@@ -21,13 +21,13 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
   return (
     <div className="bg-background flex h-full w-full flex-col items-center justify-center p-6">
       <div className="flex max-w-[700px] flex-col items-center space-y-7">
-        {/* Panic Monkey Container */}
+        {/* Icon Container */}
         <div className="relative">
           <div className="bg-destructive/10 absolute -inset-4 animate-pulse rounded-full blur-2xl" />
           <div className="border-destructive/20 bg-destructive/5 border-5 relative flex h-60 w-60 items-center justify-center overflow-hidden rounded-full shadow-[0_0_40px_-12px_rgba(239,68,68,0.3)]">
             <img
               src={errorGif}
-              alt="Panic Monkey"
+              alt="Panicking anime girl"
               className="h-full w-full object-cover opacity-80"
             />
           </div>
