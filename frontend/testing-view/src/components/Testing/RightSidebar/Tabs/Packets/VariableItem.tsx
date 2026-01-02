@@ -1,5 +1,6 @@
 import { Badge } from "@workspace/ui";
 import { cn } from "@workspace/ui/lib";
+import { useShallow } from "zustand/shallow";
 import { getTypeBadgeClass } from "../../../../../lib/utils";
 import { useStore } from "../../../../../store/store";
 import type { Variable } from "../../../../../types/data/packet";
@@ -20,15 +21,18 @@ interface VariableItemProps {
 }
 
 export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
+  const { activeWorkspaceId, charts, addSeries, addChart } = useStore(
+    useShallow((s) => ({
+      activeWorkspaceId: s.getActiveWorkspaceId(),
+      charts: s.getActiveWorkspaceCharts(),
+      addSeries: s.addSeriesToChart,
+      addChart: s.addChart,
+    })),
+  );
+
   const liveValue = useStore(
     (s) => s.telemetry[packetId]?.measurementUpdates[variable.id],
   );
-
-  const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
-  const charts = useStore((s) => s.getActiveWorkspaceCharts());
-
-  const addSeries = useStore((s) => s.addSeriesToChart);
-  const addChart = useStore((s) => s.addChart);
 
   const handleAddToChart = (chartId: string) => {
     if (!activeWorkspaceId) return;

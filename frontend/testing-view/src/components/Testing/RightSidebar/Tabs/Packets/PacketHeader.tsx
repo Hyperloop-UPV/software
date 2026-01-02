@@ -2,6 +2,7 @@ import { Badge, Separator } from "@workspace/ui";
 import { Activity, ChevronDown } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../../../store/store";
 
 interface PacketHeaderProps {
@@ -11,9 +12,12 @@ interface PacketHeaderProps {
 }
 
 export const PacketHeader = ({ packet, onToggle }: PacketHeaderProps) => {
-  const isExpanded = useStore((s) => s.isItemExpanded("packets", packet.id));
-
-  const liveData = useStore((s) => s.telemetry[packet.id]);
+  const { isExpanded, liveData } = useStore(
+    useShallow((s) => ({
+      isExpanded: s.isItemExpanded("packets", packet.id),
+      liveData: s.telemetry[packet.id],
+    })),
+  );
 
   const [isActive, setIsActive] = useState(false);
   const lastCountRef = useRef<number | undefined>(liveData?.count);
