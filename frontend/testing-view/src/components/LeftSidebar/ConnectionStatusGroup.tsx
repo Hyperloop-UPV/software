@@ -6,7 +6,7 @@ import {
   SidebarMenuItem,
 } from "@workspace/ui";
 import { Plug, Unplug } from "@workspace/ui/icons";
-import { useStore } from "../../store/store";
+import useConnections from "../../hooks/useConnections";
 
 interface ConnectionStatusGroupProps {
   backendConnected: boolean;
@@ -15,7 +15,7 @@ interface ConnectionStatusGroupProps {
 const ConnectionStatusGroup = ({
   backendConnected,
 }: ConnectionStatusGroupProps) => {
-  const connections = useStore((s) => s.connections);
+  const connections = useConnections();
 
   return (
     <SidebarGroup className="p-0">
