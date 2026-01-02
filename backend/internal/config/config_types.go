@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/server"
@@ -12,7 +12,6 @@ type App struct {
 
 type Adj struct {
 	Branch string `toml:"branch"`
-	Test   bool   `toml:"test"`
 }
 
 type Network struct {

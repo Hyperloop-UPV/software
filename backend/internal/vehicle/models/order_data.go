@@ -5,6 +5,7 @@ import (
 
 	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 )
 
 const (
@@ -139,9 +140,9 @@ func getField(m pod_data.Measurement) (any, error) {
 }
 
 type OrderDescription struct {
-	Id     uint16         `json:"id"`
-	Name   string         `json:"name"`
-	Fields map[string]any `json:"fields"`
+	Id     abstraction.PacketId `json:"id"`
+	Name   string               `json:"name"`
+	Fields map[string]any       `json:"fields"`
 }
 
 type fieldDescription struct {

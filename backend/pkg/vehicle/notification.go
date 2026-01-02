@@ -54,7 +54,7 @@ func (vehicle *Vehicle) handlePacketNotification(notification transport.PacketNo
 			return errors.Join(fmt.Errorf("update data to frontend (data with id %d from %s to %s)", p.Id(), notification.From, notification.To), err)
 		}
 
-		from, exists := vehicle.idToBoardName[uint16(notification.Packet.Id())]
+		from, exists := vehicle.idToBoardName[notification.Packet.Id()]
 		if !exists {
 			from = notification.From
 		}
@@ -64,7 +64,7 @@ func (vehicle *Vehicle) handlePacketNotification(notification transport.PacketNo
 		if to_ip == "192.168.0.9" || to_ip == "127.0.0.9" {
 			to = "backend"
 		} else {
-			to, exists = vehicle.idToBoardName[uint16(notification.Packet.Id())]
+			to, exists = vehicle.idToBoardName[notification.Packet.Id()]
 			if !exists {
 				to = notification.From
 			}
@@ -84,7 +84,7 @@ func (vehicle *Vehicle) handlePacketNotification(notification transport.PacketNo
 
 	case *protection.Packet:
 		boardId := vehicle.ipToBoardId[strings.Split(notification.From, ":")[0]]
-		err := vehicle.broker.Push(message_topic.Push(p, vehicle.idToBoardName[uint16(p.Id())]))
+		err := vehicle.broker.Push(message_topic.Push(p, vehicle.idToBoardName[p.Id()]))
 		if err != nil {
 			vehicle.trace.Error().Stack().Err(err).Msg("broker push")
 			return errors.Join(fmt.Errorf("update protection to frontend (%s protection with id %d and kind %d from %s to %s)", p.Severity(), p.Id(), p.Kind, notification.From, notification.To), err)

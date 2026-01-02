@@ -22,29 +22,29 @@ const ORDER_UP_LIMIT = 200
 const ORDER_LO_LIMIT = 1
 
 type UpdateFactory struct {
-	count           map[uint16]uint64
+	count           map[abstraction.PacketId]uint64
 	averageMx       *sync.Mutex
-	cycleTimeAvg    map[uint16]*common.MovingAverage[float64]
-	timestamp       map[uint16]uint64
-	fieldAvg        map[uint16]map[string]*common.MovingAverage[float64]
+	cycleTimeAvg    map[abstraction.PacketId]*common.MovingAverage[float64]
+	timestamp       map[abstraction.PacketId]uint64
+	fieldAvg        map[abstraction.PacketId]map[string]*common.MovingAverage[float64]
 	countMx         *sync.Mutex
-	packetCount     map[uint16]uint
-	lastPacketCount map[uint16]float64
+	packetCount     map[abstraction.PacketId]uint
+	lastPacketCount map[abstraction.PacketId]float64
 	trace           zerolog.Logger
-	boardToPackets  map[abstraction.TransportTarget][]uint16
+	boardToPackets  map[abstraction.TransportTarget][]abstraction.PacketId
 }
 
-func NewFactory(boardToPackets map[abstraction.TransportTarget][]uint16) *UpdateFactory {
+func NewFactory(boardToPackets map[abstraction.TransportTarget][]abstraction.PacketId) *UpdateFactory {
 	trace.Info().Msg("new update factory")
 	factory := &UpdateFactory{
-		count:           make(map[uint16]uint64),
+		count:           make(map[abstraction.PacketId]uint64),
 		averageMx:       &sync.Mutex{},
-		cycleTimeAvg:    make(map[uint16]*common.MovingAverage[float64]),
-		timestamp:       make(map[uint16]uint64),
-		fieldAvg:        make(map[uint16]map[string]*common.MovingAverage[float64]),
+		cycleTimeAvg:    make(map[abstraction.PacketId]*common.MovingAverage[float64]),
+		timestamp:       make(map[abstraction.PacketId]uint64),
+		fieldAvg:        make(map[abstraction.PacketId]map[string]*common.MovingAverage[float64]),
 		countMx:         &sync.Mutex{},
-		packetCount:     make(map[uint16]uint),
-		lastPacketCount: make(map[uint16]float64),
+		packetCount:     make(map[abstraction.PacketId]uint),
+		lastPacketCount: make(map[abstraction.PacketId]float64),
 		trace:           trace.With().Str("component", "updateFactory").Logger(),
 		boardToPackets:  boardToPackets,
 	}
@@ -70,7 +70,7 @@ func (factory *UpdateFactory) ClearPacketsFor(target abstraction.TransportTarget
 	}
 }
 
-func (factory *UpdateFactory) clearPacket(id uint16) {
+func (factory *UpdateFactory) clearPacket(id abstraction.PacketId) {
 	delete(factory.count, id)
 	delete(factory.cycleTimeAvg, id)
 	delete(factory.timestamp, id)
@@ -80,7 +80,7 @@ func (factory *UpdateFactory) clearPacket(id uint16) {
 }
 
 func (factory *UpdateFactory) NewUpdate(packet *data.Packet) models.Update {
-	factory.updateCount(uint16(packet.Id()))
+	factory.updateCount(packet.Id())
 
 	factory.averageMx.Lock()
 	defer factory.averageMx.Unlock()
@@ -88,13 +88,13 @@ func (factory *UpdateFactory) NewUpdate(packet *data.Packet) models.Update {
 	return models.Update{
 		Id:        uint16(packet.Id()),
 		HexValue:  "",
-		Values:    factory.getFields(uint16(packet.Id()), packet.GetValues()),
-		Count:     factory.getCount(uint16(packet.Id())),
-		CycleTime: factory.getCycleTime(uint16(packet.Id()), uint64(packet.Timestamp().UnixNano())),
+		Values:    factory.getFields(packet.Id(), packet.GetValues()),
+		Count:     factory.getCount(packet.Id()),
+		CycleTime: factory.getCycleTime(packet.Id(), uint64(packet.Timestamp().UnixNano())),
 	}
 }
 
-func (factory *UpdateFactory) updateCount(id uint16) {
+func (factory *UpdateFactory) updateCount(id abstraction.PacketId) {
 	factory.countMx.Lock()
 	defer factory.countMx.Unlock()
 	factory.packetCount[id]++
@@ -124,7 +124,7 @@ func (factory *UpdateFactory) resetCount() {
 	}
 }
 
-func (factory *UpdateFactory) updateOrder(id uint16, count uint, prev float64) {
+func (factory *UpdateFactory) updateOrder(id abstraction.PacketId, count uint, prev float64) {
 	newSize := getNewSize(count, prev)
 	factory.lastPacketCount[id] = (float64)(newSize)
 	for _, fieldAvg := range factory.fieldAvg[id] {
@@ -144,7 +144,7 @@ func getNewSize(count uint, prev float64) uint {
 	}
 }
 
-func (factory *UpdateFactory) getCount(id uint16) uint64 {
+func (factory *UpdateFactory) getCount(id abstraction.PacketId) uint64 {
 	if _, ok := factory.count[id]; !ok {
 		factory.count[id] = 0
 	}
@@ -158,7 +158,7 @@ type numeric interface {
 	Value() float64
 }
 
-func (factory *UpdateFactory) getFields(id uint16, fields map[data.ValueName]data.Value) map[string]models.UpdateValue {
+func (factory *UpdateFactory) getFields(id abstraction.PacketId, fields map[data.ValueName]data.Value) map[string]models.UpdateValue {
 	updateFields := make(map[string]models.UpdateValue, len(fields))
 
 	for name, value := range fields {
@@ -201,7 +201,7 @@ func replaceNaN() float64 {
 	return 0
 }
 
-func (factory *UpdateFactory) getNumericField(id uint16, name string, value numeric) models.NumericValue {
+func (factory *UpdateFactory) getNumericField(id abstraction.PacketId, name string, value numeric) models.NumericValue {
 	lastVal := replaceInvalidNumber(value.Value())
 	avg := factory.getAverage(id, name)
 	lastAvg := avg.Add(lastVal)
@@ -215,7 +215,7 @@ func (factory *UpdateFactory) getNumericField(id uint16, name string, value nume
 	return models.NumericValue{Value: lastVal, Average: lastAvg}
 }
 
-func (factory *UpdateFactory) getAverage(id uint16, name string) *common.MovingAverage[float64] {
+func (factory *UpdateFactory) getAverage(id abstraction.PacketId, name string) *common.MovingAverage[float64] {
 	averages, ok := factory.fieldAvg[id]
 	if !ok {
 		averages = make(map[string]*common.MovingAverage[float64])
@@ -231,10 +231,10 @@ func (factory *UpdateFactory) getAverage(id uint16, name string) *common.MovingA
 	return average
 }
 
-func (factory *UpdateFactory) resetAverage(id uint16, name string) {
+func (factory *UpdateFactory) resetAverage(id abstraction.PacketId, name string) {
 	averages, ok := factory.fieldAvg[id]
 	if !ok {
-		factory.trace.Warn().Uint16("id", id).Msg("packet average not found")
+		factory.trace.Warn().Uint16("id", uint16(id)).Msg("packet average not found")
 		return
 	}
 
@@ -248,7 +248,7 @@ func (factory *UpdateFactory) resetAverage(id uint16, name string) {
 
 }
 
-func (factory *UpdateFactory) getCycleTime(id uint16, timestamp uint64) uint64 {
+func (factory *UpdateFactory) getCycleTime(id abstraction.PacketId, timestamp uint64) uint64 {
 	average, ok := factory.cycleTimeAvg[id]
 	if !ok {
 		average = common.NewMovingAverage[float64](DEFAULT_ORDER)

@@ -18,7 +18,7 @@ const StateName abstraction.BrokerTopic = "order/stateOrders"
 
 type State struct {
 	enabledOrders map[string]map[abstraction.PacketId]struct{}
-	idToBoard     map[uint16]string
+	idToBoard     map[abstraction.PacketId]string
 	connectionMx  *sync.Mutex
 	subscribers   map[websocket.ClientId]struct{}
 	pool          *websocket.Pool
@@ -26,7 +26,7 @@ type State struct {
 	logger        zerolog.Logger
 }
 
-func NewState(idToBoard map[uint16]string, baseLogger zerolog.Logger) *State {
+func NewState(idToBoard map[abstraction.PacketId]string, baseLogger zerolog.Logger) *State {
 	enabled := make(map[string]map[abstraction.PacketId]struct{})
 	for _, board := range idToBoard {
 		enabled[board] = make(map[abstraction.PacketId]struct{})
@@ -65,7 +65,7 @@ func (state *State) Push(push abstraction.BrokerPush) error {
 
 func (state *State) addOrders(add *order.Add) error {
 	for _, addedOrder := range add.Orders() {
-		board, ok := state.idToBoard[uint16(addedOrder)]
+		board, ok := state.idToBoard[addedOrder]
 		if !ok {
 			state.logger.Warn().Uint16("id", uint16(addedOrder)).Msg("unrecognized topic")
 			continue
@@ -79,7 +79,7 @@ func (state *State) addOrders(add *order.Add) error {
 
 func (state *State) removeOrders(remove *order.Remove) error {
 	for _, removedOrder := range remove.Orders() {
-		board, ok := state.idToBoard[uint16(removedOrder)]
+		board, ok := state.idToBoard[removedOrder]
 		if !ok {
 			state.logger.Warn().Uint16("id", uint16(removedOrder)).Msg("unrecognized topic")
 			continue

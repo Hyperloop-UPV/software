@@ -1,6 +1,9 @@
 package pod_data
 
-import "github.com/HyperloopUPV-H8/h9-backend/internal/utils"
+import (
+	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
+)
 
 type PodData struct {
 	Boards []Board `json:"boards"`
@@ -12,13 +15,13 @@ type Board struct {
 }
 
 type Packet struct {
-	Id           uint16        `json:"id"`
-	Name         string        `json:"name"`
-	Type         string        `json:"type"` //TODO: add in front
-	HexValue     string        `json:"hexValue"`
-	Count        uint16        `json:"count"`
-	CycleTime    int64         `json:"cycleTime"`
-	Measurements []Measurement `json:"measurements"`
+	Id           abstraction.PacketId `json:"id"`
+	Name         string               `json:"name"`
+	Type         string               `json:"type"` //TODO: add in front
+	HexValue     string               `json:"hexValue"`
+	Count        uint16               `json:"count"`
+	CycleTime    int64                `json:"cycleTime"`
+	Measurements []Measurement        `json:"measurements"`
 }
 
 type Measurement interface {

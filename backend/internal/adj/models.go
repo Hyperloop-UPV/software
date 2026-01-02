@@ -1,6 +1,9 @@
 package adj
 
-import "github.com/HyperloopUPV-H8/h9-backend/internal/utils"
+import (
+	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
+)
 
 type ADJ struct {
 	Info   Info
@@ -40,9 +43,9 @@ type Board struct {
 }
 
 type Packet struct {
-	Id           uint16 `json:"id"`
-	Name         string `json:"name"`
-	Type         string `json:"type"`
+	Id           abstraction.PacketId `json:"id"`
+	Name         string               `json:"name"`
+	Type         string               `json:"type"`
 	Variables    []Measurement
 	VariablesIds []string `json:"variables"`
 }
