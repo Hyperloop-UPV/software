@@ -44,7 +44,7 @@ export const TelemetryChart = ({ id, series }: TelemetryChartProps) => {
       {/* Delete Button */}
       <button
         onClick={() => activeWorkspaceId && removeChart(activeWorkspaceId, id)}
-        className="text-muted-foreground hover:text-destructive absolute right-4 top-4 z-10 p-1 opacity-0 transition-all group-hover:opacity-100"
+        className="text-muted-foreground hover:text-destructive z-5 absolute right-4 top-4 p-1 opacity-0 transition-all group-hover:opacity-100"
       >
         <Trash2 className="h-4 w-4" />
       </button>

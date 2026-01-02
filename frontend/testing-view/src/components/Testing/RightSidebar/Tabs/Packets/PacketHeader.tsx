@@ -42,10 +42,10 @@ export const PacketHeader = ({ packet, onToggle }: PacketHeaderProps) => {
         clearTimeout(timeoutRef.current);
       }
 
-      // Set inactive after 2 seconds
+      // Set inactive after 500ms
       timeoutRef.current = setTimeout(() => {
         setIsActive(false);
-      }, 2000);
+      }, 500);
     }
 
     // Cleanup on unmount
@@ -78,7 +78,7 @@ export const PacketHeader = ({ packet, onToggle }: PacketHeaderProps) => {
           />
           <div
             className={cn(
-              "absolute right-0 top-0 h-1.5 w-1.5 animate-pulse rounded-full",
+              "absolute right-0 top-0 h-1.5 w-1.5 rounded-full opacity-100",
               isActive ? "bg-green-500" : "bg-primary",
             )}
           />
