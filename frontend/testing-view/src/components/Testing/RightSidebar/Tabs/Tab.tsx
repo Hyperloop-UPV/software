@@ -1,58 +1,59 @@
-import { Button } from "@workspace/ui";
-import { ListFilterPlus } from "@workspace/ui/icons";
-import { type ComponentType } from "react";
+import type { ComponentType } from "react";
+import { usePacketRows } from "../../../../hooks/usePacketRows";
 import { useStore } from "../../../../store/store";
 import type { Item } from "../../../../types/common/item";
 import type { BoardName } from "../../../../types/data/board";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
-import { CategoryItem } from "./CategoryItem";
 import { EmptyTab } from "./EmptyTab";
+import { PacketRow } from "./Packets/PacketRow";
+import { StandardList } from "./StandardList";
+import { TabHeader } from "./TabHeader";
+import { VirtualizedList } from "./VirtualizedList";
 
 interface TabProps {
   title: string;
   scope: SidebarTab;
   categories: readonly BoardName[];
   ItemComponent: ComponentType<{ item: Item }>;
+  virtualized?: boolean;
 }
 
-export const Tab = ({ title, scope, categories, ItemComponent }: TabProps) => {
-  const openFilterDialog = useStore((state) => state.openFilterDialog);
-  const totalCount = useStore((state) => state.getTotalCount(scope));
+export const Tab = ({
+  title,
+  scope,
+  categories,
+  ItemComponent,
+  virtualized,
+}: TabProps) => {
   const filteredCount = useStore((state) => state.getFilteredCount(scope));
+  const packetRows = usePacketRows(categories);
+  const openFilterDialog = useStore((state) => state.openFilterDialog);
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-2 pb-3">
-        <h3 className="text-foreground text-lg font-semibold">
-          {title}
-          <span className="text-muted-foreground ml-2 text-sm font-normal">
-            {filteredCount} / {totalCount}
-          </span>
-        </h3>
-        <Button
-          onClick={() => openFilterDialog(scope)}
-          size="sm"
-          variant="secondary"
-          className="ring-border/50 hover:ring-primary/30 gap-2 shadow-sm ring-1 transition-all"
-        >
-          <ListFilterPlus className="h-4 w-4" />
-          Filter
-        </Button>
-      </div>
+    <div className="flex h-full flex-col">
+      <TabHeader title={title} scope={scope} />
 
-      {/* Show empty state when no items are filtered */}
       {filteredCount === 0 ? (
         <EmptyTab title={title} onOpenFilter={() => openFilterDialog(scope)} />
       ) : (
-        <div className="space-y-1">
-          {categories.map((category) => (
-            <CategoryItem
-              key={category}
-              category={category}
+        <div className="flex-1 overflow-hidden">
+          {virtualized ? (
+            <VirtualizedList
+              rows={packetRows}
+              estimateSize={(row) => {
+                if (row.type === "category") return 50;
+                if (row.type === "packet") return 42;
+                return 48.8;
+              }}
+              renderRow={(row) => <PacketRow row={row} />}
+            />
+          ) : (
+            <StandardList
               scope={scope}
+              categories={categories}
               ItemComponent={ItemComponent}
             />
-          ))}
+          )}
         </div>
       )}
     </div>

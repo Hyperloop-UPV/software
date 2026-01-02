@@ -1,15 +1,15 @@
-import { webSocket, WebSocketSubject } from "rxjs/webSocket";
 import {
+  asyncScheduler,
+  BehaviorSubject,
   filter,
   map,
-  ReplaySubject,
   Observable,
-  switchMap,
-  BehaviorSubject,
+  ReplaySubject,
   shareReplay,
+  switchMap,
   throttleTime,
-  asyncScheduler,
 } from "rxjs";
+import { webSocket, WebSocketSubject } from "rxjs/webSocket";
 import { logger } from "./logger";
 
 const BACKEND_URL = "ws://127.0.0.1:4000/backend";

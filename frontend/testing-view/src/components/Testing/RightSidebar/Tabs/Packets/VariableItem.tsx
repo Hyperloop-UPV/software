@@ -17,15 +17,13 @@ interface VariableItemProps {
     | boolean
     | string
     | number;
-  isFirst?: boolean;
 }
 
-export const VariableItem = ({
-  packetId,
-  variable,
-  liveValue,
-  isFirst = false,
-}: VariableItemProps) => {
+export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
+  const liveValue = useStore(
+    (s) => s.telemetry[packetId]?.measurementUpdates[variable.id],
+  );
+
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
 
@@ -52,8 +50,7 @@ export const VariableItem = ({
   return (
     <div
       className={cn(
-        "hover:bg-accent/30 group flex items-center justify-between gap-3 border-t py-2 pl-6 pr-3 transition-all",
-        isFirst && "border-t-0",
+        "hover:bg-accent/30 group flex items-center justify-between gap-3 border-t py-2 pl-6 pr-3",
         hasValue && "bg-accent/5",
       )}
     >

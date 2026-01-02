@@ -47,6 +47,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
                 ItemComponent={(props) => (
                   <PacketItem item={props.item as Packet} />
                 )}
+                virtualized
               />
             </div>
           </ResizablePanel>
@@ -90,6 +91,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
           scope="packets"
           categories={BOARD_NAMES}
           ItemComponent={(props) => <PacketItem item={props.item as Packet} />}
+          virtualized
         />
       </TabsContent>
 

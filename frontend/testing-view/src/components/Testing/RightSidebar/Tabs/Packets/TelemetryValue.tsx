@@ -1,5 +1,5 @@
 import { Badge } from "@workspace/ui";
-import { Check, TrendingDown, TrendingUp, X } from "@workspace/ui/icons";
+import { Check, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 
 interface TelemetryValueProps {
@@ -16,27 +16,10 @@ export const TelemetryValue = ({
   const renderValueContent = () => {
     // Numeric with average
     if (typeof value === "object" && value !== null && "average" in value) {
-      const trend = value.last > value.average;
       return (
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-end leading-none">
             <div className="flex items-center gap-1.5">
-              {showAverage && (
-                <div
-                  className={cn(
-                    "h-3 w-3 rounded-full p-0.5",
-                    trend
-                      ? "bg-green-500/20 text-green-600"
-                      : "bg-primary/20 text-primary",
-                  )}
-                >
-                  {trend ? (
-                    <TrendingUp className="h-full w-full" />
-                  ) : (
-                    <TrendingDown className="h-full w-full" />
-                  )}
-                </div>
-              )}
               <span className="text-foreground font-mono text-sm font-bold tabular-nums">
                 {value.last.toFixed(2)}
               </span>
