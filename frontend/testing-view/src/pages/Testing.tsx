@@ -3,7 +3,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@workspace/ui";
-import { WorkspaceFilterController } from "../components/Testing/Filters/FilterController";
+import { FilterController } from "../components/Testing/Filters/FilterController";
 import { MainPanel } from "../components/Testing/MainPanel";
 import { RightSidebar } from "../components/Testing/RightSidebar/RightSidebar";
 import { useStore } from "../store/store";
@@ -21,7 +21,7 @@ export const Testing = () => {
 
   return (
     <>
-      <WorkspaceFilterController />
+      <FilterController />
 
       <div className="relative h-full w-full">
         <ResizablePanelGroup direction="horizontal" className="h-full w-full">
