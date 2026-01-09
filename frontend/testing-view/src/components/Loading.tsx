@@ -17,7 +17,6 @@ export const Loading = () => {
               className="h-full w-full object-cover opacity-80"
             />
 
-            {/* Subtle "Scanning" overlay to make it look technical */}
             <div className="from-primary/10 to-primary/10 bg-linear-to-b pointer-events-none absolute inset-0 via-transparent" />
           </div>
         </div>
@@ -33,7 +32,6 @@ export const Loading = () => {
           </p>
         </div>
 
-        {/* Minimal Progress Indicator */}
         <div className="flex flex-col items-center gap-2">
           <div className="bg-primary/20 relative h-[2px] w-32 overflow-hidden">
             <div className="bg-primary/40 absolute inset-0 animate-pulse duration-100" />

@@ -30,10 +30,6 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
     })),
   );
 
-  const liveValue = useStore(
-    (s) => s.telemetry[packetId]?.measurementUpdates[variable.id],
-  );
-
   const handleAddToChart = (chartId: string) => {
     if (!activeWorkspaceId) return;
     addSeries(activeWorkspaceId, chartId, {
@@ -49,13 +45,10 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
     handleAddToChart(newChartId);
   };
 
-  const hasValue = liveValue !== undefined;
-
   return (
     <div
       className={cn(
         "hover:bg-accent/30 group flex items-center justify-between gap-3 border-t py-2 pl-6 pr-3",
-        hasValue && "bg-accent/5",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -94,7 +87,11 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
       </div>
 
       {/* Live Value */}
-      <TelemetryValue value={liveValue} units={variable.units} />
+      <TelemetryValue
+        units={variable.units}
+        packetId={packetId}
+        variableId={variable.id}
+      />
     </div>
   );
 };

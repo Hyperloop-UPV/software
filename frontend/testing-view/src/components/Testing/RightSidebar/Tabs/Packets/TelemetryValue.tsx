@@ -1,19 +1,27 @@
 import { Badge } from "@workspace/ui";
 import { Check, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
+import { useCallback } from "react";
+import { useStore } from "../../../../../store/store";
 
 interface TelemetryValueProps {
-  value: any;
   units?: string;
   showAverage?: boolean;
+  packetId: number;
+  variableId: string;
 }
 
 export const TelemetryValue = ({
-  value,
   units,
   showAverage = true,
+  packetId,
+  variableId,
 }: TelemetryValueProps) => {
-  const renderValueContent = () => {
+  const value = useStore(
+    (s) => s.telemetry[packetId]?.measurementUpdates[variableId],
+  );
+
+  const renderValueContent = useCallback(() => {
     // Numeric with average
     if (typeof value === "object" && value !== null && "average" in value) {
       return (
@@ -84,7 +92,7 @@ export const TelemetryValue = ({
 
     // No value
     return <span className="text-muted-foreground font-mono text-sm">—</span>;
-  };
+  }, [value, showAverage, units]);
 
   return (
     <div className="flex shrink-0 items-center">{renderValueContent()}</div>

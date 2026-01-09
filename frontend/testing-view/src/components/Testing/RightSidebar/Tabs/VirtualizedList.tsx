@@ -1,7 +1,7 @@
 // frontend/testing-view/src/components/common/VirtualizedList.tsx
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "@workspace/ui/lib";
-import { useRef, type ReactNode } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import type { VirtualRow } from "../../../../types/data/virtualization";
 
 interface VirtualizedListProps<T> {
@@ -23,6 +23,7 @@ export const VirtualizedList = <T extends VirtualRow>({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => estimateSize(rows[index]),
+    getItemKey: useCallback((index: number) => rows[index].id, [rows]),
     overscan: 3,
   });
 
