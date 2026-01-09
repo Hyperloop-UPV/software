@@ -3,7 +3,7 @@ import { useStore } from "../../../store/store";
 import { FilterCategoryItem } from "./FilterCategoryItem";
 import { FilterDialog } from "./FilterDialog";
 
-export const WorkspaceFilterController = () => {
+export const FilterController = () => {
   const { isOpen, scope } = useStore((s) => s.filterDialog);
   const close = useStore((s) => s.closeFilterDialog);
 
