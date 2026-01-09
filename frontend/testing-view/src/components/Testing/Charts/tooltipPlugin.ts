@@ -12,7 +12,6 @@ export const createTooltipPlugin = (series: VariableSeries[]) => {
       init: (u: uPlot) => {
         tooltip = document.createElement("div");
 
-        // REPLACED: Object.assign style with Tailwind classes
         tooltip.className =
           "pointer-events-none absolute z-20 hidden rounded-lg border border-border bg-popover p-2 shadow-lg font-archivo text-[11px] text-popover-foreground will-change-transform";
 
@@ -65,7 +64,7 @@ export const createTooltipPlugin = (series: VariableSeries[]) => {
 
         const isRight = left > u.bbox.width * 0.65;
         const x = isRight ? left - 15 : left + 15;
-        // Keep transform inline for performance (avoid layout thrashing)
+
         tooltip.style.transform = `translate(${x}px, ${top - 40}px) ${isRight ? "translateX(-100%)" : ""}`;
       },
     },

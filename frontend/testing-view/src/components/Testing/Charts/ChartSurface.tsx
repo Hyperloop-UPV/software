@@ -11,6 +11,9 @@ interface ChartSurfaceProps {
   disabledIndices: Set<number>;
 }
 
+// IMPORTANT: This component was almost completely vibe-coded
+// It could provoke bugs, thus it could be improved
+
 export const ChartSurface = memo(
   ({ series, disabledIndices }: ChartSurfaceProps) => {
     const containerRef = useRef<HTMLDivElement>(null);

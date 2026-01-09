@@ -19,6 +19,7 @@ export function useBoardData(
   appMode: AppMode,
 ) {
   const transformedBoards = useMemo<TransformedBoards>(() => {
+    // For now 'boards' property is not used, I keep it because it could be useful
     if (appMode === "loading") {
       logger.testingView.log("[useBoardData] Loading mode");
       return {
@@ -49,6 +50,9 @@ export function useBoardData(
     }
 
     logger.testingView.log("[useBoardData] Transforming boards...");
+
+    // If data fetched successfully, I transform it into a different format
+    // (also add label prop for the name I display)
 
     const packetsResult: Record<string, Packet[]> = {};
     const commandsResult: Record<string, Command[]> = {};

@@ -1,3 +1,4 @@
+import { memo, useCallback } from "react";
 import { useStore } from "../../../../../store/store";
 import type { VirtualRow } from "../../../../../types/data/virtualization";
 import { CategoryHeader } from "../CategoryHeader";
@@ -8,11 +9,13 @@ interface PacketRowProps {
   row: VirtualRow;
 }
 
-export const PacketRow = ({ row }: PacketRowProps) => {
+export const PacketRow = memo(({ row }: PacketRowProps) => {
   const isExpanded = useStore((s) => s.isItemExpanded("packets", row.id));
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
 
-  const handleToggle = () => toggleExpandedItem("packets", row.id);
+  const handleToggle = useCallback(() => {
+    toggleExpandedItem("packets", row.id);
+  }, [toggleExpandedItem, row.id]);
 
   if (row.type === "category") {
     return (
@@ -42,4 +45,4 @@ export const PacketRow = ({ row }: PacketRowProps) => {
       <VariableItem variable={row.data} packetId={row.packetId} />
     </div>
   );
-};
+});
