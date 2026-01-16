@@ -52,11 +52,6 @@ func main() {
 		defer traceFile.Close()
 	}
 
-	//! Does not guarante that os.TempDir() is always the same
-	// pidPath := path.Join(os.TempDir(), "backendPid")
-	// createPid(pidPath)
-	// defer RemovePid(pidPath)
-
 	// Set use to all available CPUs and setup CPU profiling if enabled
 	cleanup := setupRuntimeCPU()
 	defer cleanup()
