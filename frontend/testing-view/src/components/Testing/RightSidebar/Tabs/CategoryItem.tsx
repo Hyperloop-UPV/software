@@ -39,7 +39,7 @@ export const CategoryItem = ({
         <CollapsibleContent>
           <div className="bg-muted/30 border-t">
             {filteredItems.map((item) => (
-              <ItemComponent item={item} />
+              <ItemComponent item={item} key={item.id} />
             ))}
           </div>
         </CollapsibleContent>
