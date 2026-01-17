@@ -1,6 +1,6 @@
 import type { BoardName, BoardOrdersData, BoardPacketsData } from "./board";
-import type { Command } from "./command";
-import type { Packet } from "./packet";
+import type { CommandCatalogItem } from "./commandCatalogItem";
+import type { TelemetryCatalogItem } from "./telemetryCatalogItem";
 
 // Packets fetching return data type
 export interface PacketsData {
@@ -13,7 +13,7 @@ export interface OrdersData {
 }
 
 export interface TransformedBoards {
-  packets: Record<string, Packet[]>;
-  commands: Record<string, Command[]>;
+  telemetryCatalog: Record<string, TelemetryCatalogItem[]>;
+  commandsCatalog: Record<string, CommandCatalogItem[]>;
   boards: Set<BoardName>;
 }

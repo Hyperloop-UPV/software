@@ -18,26 +18,26 @@ import { cn } from "@workspace/ui/lib";
 import { useState } from "react";
 import { useStore } from "../../../../../store/store";
 import type {
-  Command,
+  CommandCatalogItem,
   CommandParameter,
   EnumCommandParameter,
   NumericCommandParameter,
-} from "../../../../../types/data/command";
+} from "../../../../../types/data/commandCatalogItem";
 
 interface CommandItemProps {
-  item: Command;
+  item: CommandCatalogItem;
 }
 
-export const CommandItem = ({ item: command }: CommandItemProps) => {
+export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
   const isExpanded = useStore((s) =>
-    s.isItemExpanded("commands", "packet", command.id),
+    s.isItemExpanded("commands", "packet", commandCatalogItem.id),
   );
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
 
   const [parameterValues, setParameterValues] = useState<Record<string, any>>(
     () => {
       const defaults: Record<string, any> = {};
-      Object.entries(command.fields).forEach(([key, field]) => {
+      Object.entries(commandCatalogItem.fields).forEach(([key, field]) => {
         if (field.kind === "numeric") {
           defaults[key] = "";
         } else if (field.kind === "enum") {
@@ -50,14 +50,14 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
     },
   );
 
-  const hasParameters = Object.keys(command.fields).length > 0;
-  const paramCount = Object.keys(command.fields).length;
+  const hasParameters = Object.keys(commandCatalogItem.fields).length > 0;
+  const paramCount = Object.keys(commandCatalogItem.fields).length;
 
   const handleRun = (e: React.MouseEvent) => {
     e.stopPropagation();
     logger.testingView.log(
       "Running command:",
-      command.name,
+      commandCatalogItem.name,
       "with params:",
       parameterValues,
     );
@@ -166,7 +166,7 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
         <Collapsible
           open={isExpanded}
           onOpenChange={() =>
-            toggleExpandedItem("commands", "packet", command.id)
+            toggleExpandedItem("commands", "packet", commandCatalogItem.id)
           }
         >
           <CollapsibleTrigger className="hover:bg-accent/50 group flex w-full items-center gap-2 px-3 py-2 transition-colors">
@@ -180,10 +180,10 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
             <div className="flex flex-1 items-center gap-2">
               <div className="flex flex-1 items-center gap-2">
                 <span className="text-foreground max-w-1/2 truncate text-left text-sm font-medium">
-                  {command.label}
+                  {commandCatalogItem.label}
                 </span>
                 <Badge variant="outline" className="h-4 px-1.5 text-xs">
-                  {command.id}
+                  {commandCatalogItem.id}
                 </Badge>
               </div>
               <Badge variant="secondary" className="h-4 px-1.5 text-xs">
@@ -201,8 +201,8 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
 
           <CollapsibleContent>
             <div className="bg-muted/30 flex flex-col items-end space-y-3 border-t px-5 py-3">
-              {Object.values(command.fields).map((field: CommandParameter) =>
-                renderParameterInput(field),
+              {Object.values(commandCatalogItem.fields).map(
+                (field: CommandParameter) => renderParameterInput(field),
               )}
 
               {/* Send button at bottom */}
@@ -227,10 +227,10 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
 
           <div className="flex flex-1 items-center gap-2">
             <span className="text-foreground max-w-1/2 truncate text-left text-sm font-medium">
-              {command.label}
+              {commandCatalogItem.label}
             </span>
             <Badge variant="outline" className="h-4 px-1.5 text-xs">
-              {command.id}
+              {commandCatalogItem.id}
             </Badge>
           </div>
         </div>

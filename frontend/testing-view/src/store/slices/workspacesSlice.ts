@@ -8,7 +8,7 @@ import {
 } from "../../lib/utils";
 import type { Item } from "../../types/common/item";
 import type { BoardName } from "../../types/data/board";
-import type { Measurement } from "../../types/data/packet";
+import type { Measurement } from "../../types/data/telemetryCatalogItem";
 import type { VirtualRow } from "../../types/data/virtualization";
 import type {
   FilterScope,

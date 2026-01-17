@@ -15,10 +15,14 @@ export function useTransformedBoards(
   const initializeTabFilters = useStore((s) => s.initializeTabFilters);
 
   useEffect(() => {
-    if (!transformedBoards?.packets || !transformedBoards?.commands) return;
+    if (
+      !transformedBoards?.telemetryCatalog ||
+      !transformedBoards?.commandsCatalog
+    )
+      return;
 
-    setTelemetryCatalog(transformedBoards.packets);
-    setCommandsCatalog(transformedBoards.commands);
+    setTelemetryCatalog(transformedBoards.telemetryCatalog);
+    setCommandsCatalog(transformedBoards.commandsCatalog);
     initializeTabFilters();
   }, [
     transformedBoards,

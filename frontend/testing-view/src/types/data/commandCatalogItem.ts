@@ -24,4 +24,4 @@ export interface RawOrder extends Item {
   fields: CommandParameters;
 }
 
-export type Command = RawOrder;
+export type CommandCatalogItem = RawOrder;

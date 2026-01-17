@@ -17,4 +17,4 @@ export interface RawPacket extends Item {
   measurements: Measurement[];
 }
 
-export type Packet = RawPacket;
+export type TelemetryCatalogItem = RawPacket;
