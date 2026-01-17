@@ -29,7 +29,9 @@ interface CommandItemProps {
 }
 
 export const CommandItem = ({ item: command }: CommandItemProps) => {
-  const isExpanded = useStore((s) => s.isItemExpanded("commands", command.id));
+  const isExpanded = useStore((s) =>
+    s.isItemExpanded("commands", "packet", command.id),
+  );
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
 
   const [parameterValues, setParameterValues] = useState<Record<string, any>>(
@@ -163,7 +165,9 @@ export const CommandItem = ({ item: command }: CommandItemProps) => {
       {hasParameters ? (
         <Collapsible
           open={isExpanded}
-          onOpenChange={() => toggleExpandedItem("commands", command.id)}
+          onOpenChange={() =>
+            toggleExpandedItem("commands", "packet", command.id)
+          }
         >
           <CollapsibleTrigger className="hover:bg-accent/50 group flex w-full items-center gap-2 px-3 py-2 transition-colors">
             <button

@@ -2,22 +2,31 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "@workspace/ui/lib";
 import { useCallback, useRef, type ReactNode } from "react";
+import { usePacketRows } from "../../../../hooks/usePacketRows";
+import type { BoardName } from "../../../../types/data/board";
 import type { VirtualRow } from "../../../../types/data/virtualization";
+import type { SidebarTab } from "../../../../types/workspace/sidebar";
+import { PacketRow } from "./Packets/PacketRow";
 
-interface VirtualizedListProps<T> {
-  rows: T[];
-  estimateSize: (row: T) => number;
-  renderRow: (row: T, index: number) => ReactNode;
+interface VirtualizedListProps {
   className?: string;
+  scope: SidebarTab;
+  categories: readonly BoardName[];
 }
 
-export const VirtualizedList = <T extends VirtualRow>({
-  rows,
-  estimateSize,
-  renderRow,
+export const VirtualizedList = ({
+  scope,
+  categories,
   className,
-}: VirtualizedListProps<T>) => {
+}: VirtualizedListProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const rows = usePacketRows(scope, categories);
+
+  const estimateSize = useCallback((row: VirtualRow) => {
+    if (row.type === "board") return 50;
+    if (row.type === "packet") return 42;
+    return 48.8;
+  }, []);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -50,7 +59,7 @@ export const VirtualizedList = <T extends VirtualRow>({
               contain: "content",
             }}
           >
-            {renderRow(rows[virtualRow.index], virtualRow.index)}
+            <PacketRow row={rows[virtualRow.index]} />
           </div>
         ))}
       </div>

@@ -10,14 +10,16 @@ interface PacketRowProps {
 }
 
 export const PacketRow = memo(({ row }: PacketRowProps) => {
-  const isExpanded = useStore((s) => s.isItemExpanded("packets", row.id));
+  const isExpanded = useStore((s) =>
+    s.isItemExpanded("packets", row.type, row.id),
+  );
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
 
   const handleToggle = useCallback(() => {
-    toggleExpandedItem("packets", row.id);
+    toggleExpandedItem("packets", row.type, row.id);
   }, [toggleExpandedItem, row.id]);
 
-  if (row.type === "category") {
+  if (row.type === "board") {
     return (
       <CategoryHeader
         name={row.label}

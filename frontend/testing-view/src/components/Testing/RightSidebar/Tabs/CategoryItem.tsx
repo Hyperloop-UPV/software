@@ -22,7 +22,9 @@ export const CategoryItem = ({
     useShallow((state) => state.getFilteredItemsByCategory(scope, category)),
   );
 
-  const isExpanded = useStore((state) => state.isItemExpanded(scope, category));
+  const isExpanded = useStore((state) =>
+    state.isItemExpanded(scope, "board", category),
+  );
   const toggleExpandedItem = useStore((state) => state.toggleExpandedItem);
 
   return (
@@ -32,7 +34,7 @@ export const CategoryItem = ({
           name={category}
           count={filteredItems.length}
           isExpanded={isExpanded}
-          onToggle={() => toggleExpandedItem(scope, category)}
+          onToggle={() => toggleExpandedItem(scope, "board", category)}
         />
         <CollapsibleContent>
           <div className="bg-muted/30 border-t">

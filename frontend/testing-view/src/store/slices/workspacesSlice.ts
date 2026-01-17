@@ -7,6 +7,8 @@ import {
 } from "../../lib/utils";
 import type { Item } from "../../types/common/item";
 import type { BoardName } from "../../types/data/board";
+import type { Measurement } from "../../types/data/packet";
+import type { VirtualRow } from "../../types/data/virtualization";
 import type {
   FilterScope,
   TabFilter,
@@ -96,8 +98,20 @@ export interface WorkspacesSlice {
 
   // Expanded items (per workspace)
   expandedItems: Record<string, WorkspaceExpandedItems>;
-  isItemExpanded: (scope: SidebarTab, itemId: number | string) => boolean;
-  toggleExpandedItem: (scope: SidebarTab, itemId: number | string) => void;
+  isItemExpanded: (
+    scope: SidebarTab,
+    type: string,
+    itemId: number | string,
+  ) => boolean;
+  toggleExpandedItem: (
+    scope: SidebarTab,
+    type: string,
+    itemId: number | string,
+  ) => void;
+  getFlattenedRows: (
+    scope: SidebarTab,
+    categories: readonly BoardName[],
+  ) => VirtualRow[];
 
   // Filter dialog
   filterDialog: {
@@ -354,16 +368,16 @@ export const createWorkspacesSlice: StateCreator<
 
   // Expanded items
   expandedItems: {},
-  isItemExpanded: (scope, itemId) => {
+  isItemExpanded: (scope, type, itemId) => {
     const activeWorkspaceId = get().getActiveWorkspaceId();
     if (!activeWorkspaceId) return false;
 
     const expandedItems = get().expandedItems[activeWorkspaceId]?.[scope];
     if (!expandedItems) return false;
 
-    return expandedItems.has(itemId);
+    return expandedItems.has(`${type}:${itemId}`);
   },
-  toggleExpandedItem: (scope, itemId) => {
+  toggleExpandedItem: (scope, type, itemId) => {
     const activeWorkspaceId = get().getActiveWorkspaceId();
     if (!activeWorkspaceId) return;
 
@@ -372,10 +386,10 @@ export const createWorkspacesSlice: StateCreator<
         state.expandedItems[activeWorkspaceId]?.[scope] || new Set();
       const newExpandedItems = new Set(expandedItems);
 
-      if (newExpandedItems.has(itemId)) {
-        newExpandedItems.delete(itemId);
+      if (newExpandedItems.has(`${type}:${itemId}`)) {
+        newExpandedItems.delete(`${type}:${itemId}`);
       } else {
-        newExpandedItems.add(itemId);
+        newExpandedItems.add(`${type}:${itemId}`);
       }
 
       return {
@@ -389,7 +403,52 @@ export const createWorkspacesSlice: StateCreator<
       };
     });
   },
+  getFlattenedRows: (scope, categories) => {
+    const rows: VirtualRow[] = [];
 
+    const expandedItems = get().getActiveExpanded(scope);
+
+    categories.forEach((category) => {
+      const items = get().getFilteredItemsByCategory(scope, category);
+      if (items.length === 0) return;
+
+      // Add the Header (Board)
+      rows.push({
+        type: "board",
+        id: category,
+        label: category,
+        count: items.length,
+      });
+
+      // If the board is expanded, add its packets
+      if (get().isItemExpanded(scope, "board", category)) {
+        items.forEach((item) => {
+          rows.push({
+            type: "packet",
+            id: item.id,
+            data: item,
+          });
+
+          // If the packet is expanded, add its variables/measurements
+          if (get().isItemExpanded(scope, "packet", item.id)) {
+            if ("measurements" in item) {
+              const variables = item.measurements as Measurement[];
+              variables.forEach((m) => {
+                rows.push({
+                  type: "variable",
+                  id: `${item.id}-${m.id}`,
+                  data: m,
+                  packetId: item.id,
+                });
+              });
+            }
+          }
+        });
+      }
+    });
+
+    return rows;
+  },
   // Filter dialog
   filterDialog: {
     isOpen: false,
