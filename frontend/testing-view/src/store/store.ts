@@ -7,6 +7,10 @@ import {
   type ConnectionsSlice,
 } from "./slices/connectionsSlice";
 import {
+  createMessagesSlice,
+  type MessagesSlice,
+} from "./slices/messagesSlice";
+import {
   createRightSidebarSlice,
   type RightSidebarSlice,
 } from "./slices/rightSidebarSlice";
@@ -24,7 +28,8 @@ export type Store = AppSlice &
   WorkspacesSlice &
   TelemetrySlice &
   RightSidebarSlice &
-  ConnectionsSlice;
+  ConnectionsSlice &
+  MessagesSlice;
 
 export const useStore = create<Store>()(
   // devtools(
@@ -36,6 +41,7 @@ export const useStore = create<Store>()(
       ...createTelemetrySlice(...a),
       ...createRightSidebarSlice(...a),
       ...createConnectionsSlice(...a),
+      ...createMessagesSlice(...a),
     }),
     {
       // Partial persist
