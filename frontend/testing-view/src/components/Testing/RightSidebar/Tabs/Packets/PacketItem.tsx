@@ -15,21 +15,23 @@ interface PacketItemProps {
 
 export const PacketItem = memo(({ item: packet }: PacketItemProps) => {
   const isExpanded = useStore((s) =>
-    s.isItemExpanded("packets", "packet", packet.id),
+    s.isItemExpanded("telemetry", "packet", packet.id),
   );
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
 
   return (
     <Collapsible
       open={isExpanded}
-      onOpenChange={() => toggleExpandedItem("packets", "packet", packet.id)}
+      onOpenChange={() => toggleExpandedItem("telemetry", "packet", packet.id)}
     >
       <div className="border-b last:border-b-0">
         <CollapsibleTrigger asChild>
           <PacketHeader
             packet={packet}
             isExpanded={isExpanded}
-            onToggle={() => toggleExpandedItem("packets", "packet", packet.id)}
+            onToggle={() =>
+              toggleExpandedItem("telemetry", "packet", packet.id)
+            }
           />
         </CollapsibleTrigger>
 

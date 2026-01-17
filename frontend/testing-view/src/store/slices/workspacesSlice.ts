@@ -4,6 +4,7 @@ import {
   createEmptyFilter,
   createFullFilter,
   generateInitialFilters,
+  getCatalogKey,
 } from "../../lib/utils";
 import type { Item } from "../../types/common/item";
 import type { BoardName } from "../../types/data/board";
@@ -182,8 +183,10 @@ export const createWorkspacesSlice: StateCreator<
 
   // Internal helpers
   getCatalog: (scope: FilterScope) => {
-    const catalogKey = scope === "logs" ? "packets" : scope;
-    return get()[catalogKey] as Record<BoardName, Item[]>;
+    const catalogKey = getCatalogKey(scope);
+    if (!catalogKey) return {};
+
+    return get()[catalogKey];
   },
 
   // Tabs (per workspace)
@@ -205,8 +208,8 @@ export const createWorkspacesSlice: StateCreator<
   // Filters (per workspace)
   tabFilters: {},
   initializeTabFilters: () => {
-    const commands = get().commands;
-    const packets = get().packets;
+    const commands = get().commandsCatalog;
+    const telemetry = get().telemetryCatalog;
 
     const currentFilters = get().tabFilters;
 
@@ -215,8 +218,8 @@ export const createWorkspacesSlice: StateCreator<
       set({
         tabFilters: generateInitialFilters({
           commands: createFullFilter(commands),
-          packets: createFullFilter(packets),
-          logs: createFullFilter(packets),
+          telemetry: createFullFilter(telemetry),
+          logs: createFullFilter(telemetry),
         }),
       });
     }
@@ -311,9 +314,7 @@ export const createWorkspacesSlice: StateCreator<
     const workspaceId = get().getActiveWorkspaceId();
     if (!workspaceId) return;
 
-    // Map logs to packets since they share the same catalog
-    const catalogKey = scope === "logs" ? "packets" : scope;
-    const items = get()[catalogKey] as Record<BoardName, Item[]>;
+    const items = get().getCatalog(scope);
 
     const fullFilter = createFullFilter(items);
     get().updateFilters(scope, fullFilter);
@@ -328,15 +329,13 @@ export const createWorkspacesSlice: StateCreator<
     const workspaceId = get().getActiveWorkspaceId();
     if (!workspaceId) return;
 
-    // Map logs to packets since they share the same catalog
-    const catalogKey = scope === "logs" ? "packets" : scope;
-    const catalogItems = get()[catalogKey] as Record<BoardName, Item[]>;
+    const catalog = get().getCatalog(scope);
 
     const currentFilters =
       get().tabFilters[workspaceId]?.[scope] || createEmptyFilter();
 
     const newItems = checked
-      ? catalogItems[category]?.map((item) => item.id) || []
+      ? catalog?.[category]?.map((item) => item.id) || []
       : [];
 
     get().updateFilters(scope, {
@@ -405,8 +404,6 @@ export const createWorkspacesSlice: StateCreator<
   },
   getFlattenedRows: (scope, categories) => {
     const rows: VirtualRow[] = [];
-
-    const expandedItems = get().getActiveExpanded(scope);
 
     categories.forEach((category) => {
       const items = get().getFilteredItemsByCategory(scope, category);
