@@ -1,12 +1,12 @@
 // frontend/testing-view/src/components/common/VirtualizedList.tsx
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "@workspace/ui/lib";
-import { useCallback, useRef, type ReactNode } from "react";
+import { useCallback, useRef } from "react";
 import { usePacketRows } from "../../../../hooks/usePacketRows";
 import type { BoardName } from "../../../../types/data/board";
 import type { VirtualRow } from "../../../../types/data/virtualization";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
-import { PacketRow } from "./Packets/PacketRow";
+import { TelemetryRow } from "./Telemetry/TelemetryRow";
 
 interface VirtualizedListProps {
   className?: string;
@@ -59,7 +59,7 @@ export const VirtualizedList = ({
               contain: "content",
             }}
           >
-            <PacketRow row={rows[virtualRow.index]} />
+            <TelemetryRow row={rows[virtualRow.index]} />
           </div>
         ))}
       </div>

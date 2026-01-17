@@ -6,14 +6,14 @@ import {
 import { memo } from "react";
 import { useStore } from "../../../../../store/store";
 import type { Packet } from "../../../../../types/data/packet";
-import { PacketHeader } from "./PacketHeader";
+import { TelemetryHeader } from "./TelemetryHeader";
 import { VariableItem } from "./VariableItem";
 
-interface PacketItemProps {
+interface TelemetryItemProps {
   item: Packet;
 }
 
-export const PacketItem = memo(({ item: packet }: PacketItemProps) => {
+export const TelemetryItem = memo(({ item: packet }: TelemetryItemProps) => {
   const isExpanded = useStore((s) =>
     s.isItemExpanded("telemetry", "packet", packet.id),
   );
@@ -26,7 +26,7 @@ export const PacketItem = memo(({ item: packet }: PacketItemProps) => {
     >
       <div className="border-b last:border-b-0">
         <CollapsibleTrigger asChild>
-          <PacketHeader
+          <TelemetryHeader
             packet={packet}
             isExpanded={isExpanded}
             onToggle={() =>

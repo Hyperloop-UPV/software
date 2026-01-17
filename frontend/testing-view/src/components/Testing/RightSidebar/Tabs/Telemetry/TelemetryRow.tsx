@@ -2,14 +2,14 @@ import { memo, useCallback } from "react";
 import { useStore } from "../../../../../store/store";
 import type { VirtualRow } from "../../../../../types/data/virtualization";
 import { CategoryHeader } from "../CategoryHeader";
-import { PacketHeader } from "./PacketHeader";
+import { TelemetryHeader } from "./TelemetryHeader";
 import { VariableItem } from "./VariableItem";
 
-interface PacketRowProps {
+interface TelemetryRowProps {
   row: VirtualRow;
 }
 
-export const PacketRow = memo(({ row }: PacketRowProps) => {
+export const TelemetryRow = memo(({ row }: TelemetryRowProps) => {
   const isExpanded = useStore((s) =>
     s.isItemExpanded("telemetry", row.type, row.id),
   );
@@ -33,7 +33,7 @@ export const PacketRow = memo(({ row }: PacketRowProps) => {
   if (row.type === "packet") {
     return (
       <div className="border-accent/20 h-full w-full border-l-2">
-        <PacketHeader
+        <TelemetryHeader
           packet={row.data}
           isExpanded={isExpanded}
           onToggle={handleToggle}
