@@ -3,6 +3,7 @@ import { BOARD_NAMES } from "../constants/boards";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
 import type { Item } from "../types/common/item";
 import type { BoardName } from "../types/data/board";
+import type { MessageTimestamp } from "../types/data/message";
 import type {
   FilterScope,
   TabFilter,
@@ -108,4 +109,9 @@ export const getCatalogKey = (scope: FilterScope) => {
   if (scope === "commands") return "commandsCatalog";
   if (scope === "telemetry" || scope === "logs") return "telemetryCatalog";
   return null;
+};
+
+// Function for formatting the timestamp in messages
+export const formatTimestamp = (ts: MessageTimestamp) => {
+  return `${ts.hour.toString().padStart(2, "0")}:${ts.minute.toString().padStart(2, "0")}:${ts.second.toString().padStart(2, "0")}`;
 };
