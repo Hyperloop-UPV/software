@@ -34,7 +34,7 @@ export const TelemetryRow = memo(({ row }: TelemetryRowProps) => {
     return (
       <div className="border-accent/20 h-full w-full border-l-2">
         <TelemetryHeader
-          packet={row.data}
+          telemetryCatalogItem={row.data}
           isExpanded={isExpanded}
           onToggle={handleToggle}
         />

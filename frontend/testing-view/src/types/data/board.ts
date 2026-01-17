@@ -1,5 +1,5 @@
-import type { Command } from "./command";
-import type { Packet } from "./packet";
+import type { Command } from "./commandCatalogItem";
+import type { Packet } from "./telemetryCatalogItem";
 
 export type BoardName = string;
 export interface BoardData {

@@ -3,17 +3,17 @@ import { Activity, ChevronDown } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { memo, useEffect, useRef, useState } from "react";
 import { useStore } from "../../../../../store/store";
-import type { Packet } from "../../../../../types/data/packet";
+import type { TelemetryCatalogItem } from "../../../../../types/data/telemetryCatalogItem";
 
 interface TelemetryHeaderProps {
-  packet: Packet;
+  telemetryCatalogItem: TelemetryCatalogItem;
   isExpanded: boolean;
   onToggle: () => void;
 }
 
 export const TelemetryHeader = memo(
-  ({ packet, onToggle, isExpanded }: TelemetryHeaderProps) => {
-    const liveData = useStore((s) => s.telemetry[packet.id]);
+  ({ telemetryCatalogItem, onToggle, isExpanded }: TelemetryHeaderProps) => {
+    const liveData = useStore((s) => s.telemetry[telemetryCatalogItem.id]);
 
     const [isActive, setIsActive] = useState(false);
     const lastCountRef = useRef<number | undefined>(liveData?.count);
@@ -81,10 +81,10 @@ export const TelemetryHeader = memo(
         {/* Packet Name + ID */}
         <div className="flex flex-1 items-center gap-2 overflow-hidden">
           <span className="text-foreground truncate text-sm font-semibold">
-            {packet.label}
+            {telemetryCatalogItem.label}
           </span>
           <Badge variant="outline" className="h-4 px-1.5 font-mono text-xs">
-            {packet.id}
+            {telemetryCatalogItem.id}
           </Badge>
         </div>
 

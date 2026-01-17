@@ -3,7 +3,7 @@ import { cn } from "@workspace/ui/lib";
 import { useShallow } from "zustand/shallow";
 import { getTypeBadgeClass } from "../../../../../lib/utils";
 import { useStore } from "../../../../../store/store";
-import type { Variable } from "../../../../../types/data/packet";
+import type { Variable } from "../../../../../types/data/telemetryCatalogItem";
 import ChartPicker from "./ChartPicker";
 import { TelemetryValue } from "./TelemetryValue";
 

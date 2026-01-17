@@ -9,8 +9,8 @@ import {
 } from "@workspace/ui";
 import { BOARD_NAMES } from "../../../../constants/boards";
 import { useStore } from "../../../../store/store";
-import type { Command } from "../../../../types/data/command";
-import type { Packet } from "../../../../types/data/packet";
+import type { CommandCatalogItem } from "../../../../types/data/commandCatalogItem";
+import type { TelemetryCatalogItem } from "../../../../types/data/telemetryCatalogItem";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { CommandItem } from "../Tabs/Commands/CommandItem";
 import { Tab } from "../Tabs/Tab";
@@ -45,7 +45,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
                 scope="telemetry"
                 categories={BOARD_NAMES}
                 ItemComponent={(props) => (
-                  <TelemetryItem item={props.item as Packet} />
+                  <TelemetryItem item={props.item as TelemetryCatalogItem} />
                 )}
                 virtualized
               />
@@ -61,7 +61,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
                 scope="commands"
                 categories={BOARD_NAMES}
                 ItemComponent={(props) => (
-                  <CommandItem item={props.item as Command} />
+                  <CommandItem item={props.item as CommandCatalogItem} />
                 )}
               />
             </div>
@@ -91,7 +91,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
           scope="telemetry"
           categories={BOARD_NAMES}
           ItemComponent={(props) => (
-            <TelemetryItem item={props.item as Packet} />
+            <TelemetryItem item={props.item as TelemetryCatalogItem} />
           )}
           virtualized
         />
@@ -106,7 +106,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
           scope="commands"
           categories={BOARD_NAMES}
           ItemComponent={(props) => (
-            <CommandItem item={props.item as Command} />
+            <CommandItem item={props.item as CommandCatalogItem} />
           )}
         />
       </TabsContent>

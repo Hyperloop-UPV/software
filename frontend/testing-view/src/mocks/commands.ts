@@ -1,7 +1,7 @@
 import type { BoardName } from "../types/data/board";
-import type { Command } from "../types/data/command";
+import type { CommandCatalogItem } from "../types/data/commandCatalogItem";
 
-export const MOCK_COMMANDS: Record<BoardName, Command[]> = {
+export const MOCK_COMMANDS_CATALOG: Record<BoardName, CommandCatalogItem[]> = {
   BCU: [
     {
       id: 1799,

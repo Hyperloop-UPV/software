@@ -1,12 +1,12 @@
 import { logger } from "@workspace/core";
 import { useMemo } from "react";
 import { formatName } from "../lib/utils";
-import { MOCK_COMMANDS } from "../mocks/commands";
-import { MOCK_PACKETS } from "../mocks/packets";
+import { MOCK_COMMANDS_CATALOG } from "../mocks/commands";
+import { MOCK_TELEMETRY_CATALOG } from "../mocks/packets";
 import type { AppMode } from "../types/app/mode";
 import type { BoardName } from "../types/data/board";
-import type { Command } from "../types/data/command";
-import type { Packet } from "../types/data/packet";
+import type { CommandCatalogItem } from "../types/data/commandCatalogItem";
+import type { TelemetryCatalogItem } from "../types/data/telemetryCatalogItem";
 import type {
   OrdersData,
   PacketsData,
@@ -23,8 +23,8 @@ export function useBoardData(
     if (appMode === "loading") {
       logger.testingView.log("[useBoardData] Loading mode");
       return {
-        packets: {},
-        commands: {},
+        telemetryCatalog: {},
+        commandsCatalog: {},
         boards: new Set(),
       };
     }
@@ -32,19 +32,19 @@ export function useBoardData(
     if (appMode === "mock" || appMode === "mock-active") {
       logger.testingView.warn("[useBoardData] Mock mode");
       return {
-        packets: MOCK_PACKETS,
-        commands: MOCK_COMMANDS,
+        telemetryCatalog: MOCK_TELEMETRY_CATALOG,
+        commandsCatalog: MOCK_COMMANDS_CATALOG,
         boards: new Set(),
       };
     }
 
     if (appMode === "error") {
       logger.testingView.error(
-        "[useBoardData] Error mode. No packets or commands found",
+        "[useBoardData] Error mode. No telemetry catalog or commands catalog found",
       );
       return {
-        packets: {},
-        commands: {},
+        telemetryCatalog: {},
+        commandsCatalog: {},
         boards: new Set(),
       };
     }
@@ -54,45 +54,49 @@ export function useBoardData(
     // If data fetched successfully, I transform it into a different format
     // (also add label prop for the name I display)
 
-    const packetsResult: Record<string, Packet[]> = {};
-    const commandsResult: Record<string, Command[]> = {};
+    const telemetryCatalogResult: Record<string, TelemetryCatalogItem[]> = {};
+    const commandsCatalogResult: Record<string, CommandCatalogItem[]> = {};
     const availableBoards: Set<BoardName> = new Set();
 
     // Process packets data
     packets?.boards.forEach((board) => {
       availableBoards.add(board.name);
 
-      if (!packetsResult[board.name]) {
-        packetsResult[board.name] = [];
+      if (!telemetryCatalogResult[board.name]) {
+        telemetryCatalogResult[board.name] = [];
       }
 
-      packetsResult[board.name] = (board.packets || []).map((packet) => ({
-        ...packet,
-        label: formatName(packet.name),
-      }));
+      telemetryCatalogResult[board.name] = (board.packets || []).map(
+        (packet) => ({
+          ...packet,
+          label: formatName(packet.name),
+        }),
+      );
     });
 
-    logger.testingView.log("[useBoardData] Packets data processed");
+    logger.testingView.log("[useBoardData] Telemetry catalog data processed");
 
     // Process commands data
     commands?.boards.forEach((board) => {
       availableBoards.add(board.name);
 
-      if (!commandsResult[board.name]) {
-        commandsResult[board.name] = [];
+      if (!commandsCatalogResult[board.name]) {
+        commandsCatalogResult[board.name] = [];
       }
 
-      commandsResult[board.name] = (board.orders || []).map((command) => ({
-        ...command,
-        label: formatName(command.name),
-      }));
+      commandsCatalogResult[board.name] = (board.orders || []).map(
+        (command) => ({
+          ...command,
+          label: formatName(command.name),
+        }),
+      );
     });
 
     logger.testingView.log("[useBoardData] Commands data processed");
 
     return {
-      packets: packetsResult,
-      commands: commandsResult,
+      telemetryCatalog: telemetryCatalogResult,
+      commandsCatalog: commandsCatalogResult,
       boards: availableBoards,
     };
   }, [packets, commands, appMode]);
