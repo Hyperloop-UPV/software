@@ -1,12 +1,9 @@
-import { useCallback, type ComponentType } from "react";
-import { usePacketRows } from "../../../../hooks/usePacketRows";
+import { type ComponentType } from "react";
 import { useStore } from "../../../../store/store";
 import type { Item } from "../../../../types/common/item";
 import type { BoardName } from "../../../../types/data/board";
-import type { VirtualRow } from "../../../../types/data/virtualization";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { EmptyTab } from "./EmptyTab";
-import { PacketRow } from "./Packets/PacketRow";
 import { StandardList } from "./StandardList";
 import { TabHeader } from "./TabHeader";
 import { VirtualizedList } from "./VirtualizedList";
@@ -27,18 +24,7 @@ export const Tab = ({
   virtualized,
 }: TabProps) => {
   const filteredCount = useStore((state) => state.getFilteredCount(scope));
-  const packetRows = usePacketRows(categories);
   const openFilterDialog = useStore((state) => state.openFilterDialog);
-
-  const renderRow = useCallback((row: VirtualRow) => {
-    return <PacketRow row={row} />;
-  }, []);
-
-  const estimateSize = useCallback((row: VirtualRow) => {
-    if (row.type === "category") return 50;
-    if (row.type === "packet") return 42;
-    return 48.8;
-  }, []);
 
   return (
     <div className="flex h-full flex-col">
@@ -49,11 +35,7 @@ export const Tab = ({
       ) : (
         <div className="flex-1 overflow-hidden">
           {virtualized ? (
-            <VirtualizedList
-              rows={packetRows}
-              estimateSize={estimateSize}
-              renderRow={renderRow}
-            />
+            <VirtualizedList scope={scope} categories={categories} />
           ) : (
             <StandardList
               scope={scope}
