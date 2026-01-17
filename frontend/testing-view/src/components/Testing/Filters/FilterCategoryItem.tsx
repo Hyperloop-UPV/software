@@ -15,12 +15,10 @@ export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { scope } = useStore((s) => s.filterDialog);
   if (!scope) return null;
-  const dialogScope = scope === "logs" ? "packets" : scope;
-
   const toggleCategoryFilter = useStore((s) => s.toggleCategoryFilter);
   const toggleItemFilter = useStore((s) => s.toggleItemFilter);
 
-  const items = useStore((s) => s[dialogScope][category]);
+  const items = useStore((s) => s.getCatalog(scope)[category]);
   const totalItems = items.length;
 
   const selectedIds = useStore(

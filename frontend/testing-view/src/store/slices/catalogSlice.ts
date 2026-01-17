@@ -5,19 +5,19 @@ import type { Store } from "../store";
 
 export interface CatalogSlice {
   // Commands catalog
-  commands: Record<BoardName, Item[]>;
-  setCommands: (commands: Record<BoardName, Item[]>) => void;
+  commandsCatalog: Record<BoardName, Item[]>;
+  setCommandsCatalog: (commandsCatalog: Record<BoardName, Item[]>) => void;
 
-  // Packets catalog
-  packets: Record<BoardName, Item[]>;
-  setPackets: (packets: Record<BoardName, Item[]>) => void;
+  // Telemetry catalog
+  telemetryCatalog: Record<BoardName, Item[]>;
+  setTelemetryCatalog: (telemetryCatalog: Record<BoardName, Item[]>) => void;
 }
 
 export const createCatalogSlice: StateCreator<Store, [], [], CatalogSlice> = (
   set,
 ) => ({
-  commands: {} as Record<BoardName, Item[]>,
-  packets: {} as Record<BoardName, Item[]>,
-  setCommands: (commands) => set({ commands }),
-  setPackets: (packets) => set({ packets }),
+  commandsCatalog: {} as Record<BoardName, Item[]>,
+  telemetryCatalog: {} as Record<BoardName, Item[]>,
+  setCommandsCatalog: (commandsCatalog) => set({ commandsCatalog }),
+  setTelemetryCatalog: (telemetryCatalog) => set({ telemetryCatalog }),
 });

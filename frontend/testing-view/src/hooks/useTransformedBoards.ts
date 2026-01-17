@@ -10,17 +10,22 @@ export function useTransformedBoards(
   const appMode = useStore((s) => s.appMode);
   const transformedBoards = useBoardData(packets, commands, appMode);
 
-  const setPackets = useStore((s) => s.setPackets);
-  const setCommands = useStore((s) => s.setCommands);
+  const setTelemetryCatalog = useStore((s) => s.setTelemetryCatalog);
+  const setCommandsCatalog = useStore((s) => s.setCommandsCatalog);
   const initializeTabFilters = useStore((s) => s.initializeTabFilters);
 
   useEffect(() => {
     if (!transformedBoards?.packets || !transformedBoards?.commands) return;
 
-    setPackets(transformedBoards.packets);
-    setCommands(transformedBoards.commands);
+    setTelemetryCatalog(transformedBoards.packets);
+    setCommandsCatalog(transformedBoards.commands);
     initializeTabFilters();
-  }, [transformedBoards, setPackets, setCommands, initializeTabFilters]);
+  }, [
+    transformedBoards,
+    setTelemetryCatalog,
+    setCommandsCatalog,
+    initializeTabFilters,
+  ]);
 
   // Debug logs
   //   useEffect(() => {

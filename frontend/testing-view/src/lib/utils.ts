@@ -18,7 +18,7 @@ export const generateInitialFilters = (
     (acc, workspace) => {
       acc[workspace.id] = {
         commands: filters.commands,
-        packets: filters.packets,
+        telemetry: filters.telemetry,
         logs: filters.logs,
       };
       return acc;
@@ -101,4 +101,11 @@ export const formatName = (name: string): string => {
     .join(" ");
 
   return formatted;
+};
+
+// Map logs to telemetry since they share the same catalog
+export const getCatalogKey = (scope: FilterScope) => {
+  if (scope === "commands") return "commandsCatalog";
+  if (scope === "telemetry" || scope === "logs") return "telemetryCatalog";
+  return null;
 };

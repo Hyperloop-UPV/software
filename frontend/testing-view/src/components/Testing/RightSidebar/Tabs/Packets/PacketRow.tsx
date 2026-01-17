@@ -11,12 +11,12 @@ interface PacketRowProps {
 
 export const PacketRow = memo(({ row }: PacketRowProps) => {
   const isExpanded = useStore((s) =>
-    s.isItemExpanded("packets", row.type, row.id),
+    s.isItemExpanded("telemetry", row.type, row.id),
   );
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
 
   const handleToggle = useCallback(() => {
-    toggleExpandedItem("packets", row.type, row.id);
+    toggleExpandedItem("telemetry", row.type, row.id);
   }, [toggleExpandedItem, row.id]);
 
   if (row.type === "board") {

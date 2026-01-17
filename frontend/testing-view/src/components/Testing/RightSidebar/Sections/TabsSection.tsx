@@ -41,8 +41,8 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="flex h-full flex-1 flex-col overflow-y-auto p-4">
               <Tab
-                title="Packets"
-                scope="packets"
+                title="Telemetry"
+                scope="telemetry"
                 categories={BOARD_NAMES}
                 ItemComponent={(props) => (
                   <PacketItem item={props.item as Packet} />
@@ -78,17 +78,17 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
       className="flex h-full flex-1 flex-col overflow-y-auto"
     >
       <TabsList className="flex w-full rounded-none">
-        <TabsTrigger value="packets">Packets</TabsTrigger>
+        <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
         <TabsTrigger value="commands">Commands</TabsTrigger>
       </TabsList>
 
       <TabsContent
-        value="packets"
+        value="telemetry"
         className="mt-0 flex h-full flex-1 flex-col overflow-y-auto p-4"
       >
         <Tab
-          title="Packets"
-          scope="packets"
+          title="Telemetry"
+          scope="telemetry"
           categories={BOARD_NAMES}
           ItemComponent={(props) => <PacketItem item={props.item as Packet} />}
           virtualized
