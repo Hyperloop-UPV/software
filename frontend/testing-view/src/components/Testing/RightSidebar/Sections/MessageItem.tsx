@@ -7,6 +7,8 @@ import {
 import { ChevronDown } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { useState } from "react";
+import { MESSAGE_KIND_COLORS } from "../../../../constants/messageKindColors";
+import { formatTimestamp } from "../../../../lib/utils";
 import type { Message } from "../../../../types/data/message";
 
 interface MessageItemProps {
@@ -15,17 +17,6 @@ interface MessageItemProps {
 
 export const MessageItem = ({ message }: MessageItemProps) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  const kindStyles: Record<Message["kind"], string> = {
-    info: "border-blue-500 hover:bg-blue-500/5",
-    warning: "border-yellow-500 hover:bg-yellow-500/5",
-    fault: "border-red-500 hover:bg-red-500/5",
-    ok: "border-green-500 hover:bg-green-500/5",
-  };
-
-  const formatTimestamp = (ts: Message["timestamp"]) => {
-    return `${ts.hour.toString().padStart(2, "0")}:${ts.minute.toString().padStart(2, "0")}:${ts.second.toString().padStart(2, "0")}`;
-  };
 
   const renderMessageContent = (payload: any) => {
     // 1. Simple string (Info messages)
@@ -60,7 +51,7 @@ export const MessageItem = ({ message }: MessageItemProps) => {
       onOpenChange={setIsOpen}
       className={cn(
         "bg-accent/30 border-l-4 transition-all",
-        kindStyles[message.kind] || "border-muted",
+        MESSAGE_KIND_COLORS[message.kind] || "border-muted",
       )}
     >
       <CollapsibleTrigger className="flex w-full flex-col items-start">
