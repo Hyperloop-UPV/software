@@ -170,12 +170,13 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
           }
         >
           <CollapsibleTrigger className="hover:bg-accent/50 group flex w-full items-center gap-2 px-3 py-2 transition-colors">
-            <button
+            <div
+              role="button"
               onClick={handleRun}
               className="hover:bg-primary/90 hover:text-primary-foreground bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
             >
               <Play className="h-3.5 w-3.5 fill-current" />
-            </button>
+            </div>
 
             <div className="flex flex-1 items-center gap-2">
               <div className="flex flex-1 items-center gap-2">
