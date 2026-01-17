@@ -68,7 +68,7 @@ class SocketService {
     return this.messages$.pipe(
       filter((msg) => msg.topic === topic),
       map((msg) => msg.payload),
-      throttleTime(100, asyncScheduler),
+      throttleTime(80, asyncScheduler),
     );
   }
 
