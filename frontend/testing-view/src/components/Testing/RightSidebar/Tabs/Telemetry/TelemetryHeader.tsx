@@ -3,15 +3,16 @@ import { Activity, ChevronDown } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { memo, useEffect, useRef, useState } from "react";
 import { useStore } from "../../../../../store/store";
+import type { Packet } from "../../../../../types/data/packet";
 
-interface PacketHeaderProps {
-  packet: any;
+interface TelemetryHeaderProps {
+  packet: Packet;
   isExpanded: boolean;
   onToggle: () => void;
 }
 
-export const PacketHeader = memo(
-  ({ packet, onToggle, isExpanded }: PacketHeaderProps) => {
+export const TelemetryHeader = memo(
+  ({ packet, onToggle, isExpanded }: TelemetryHeaderProps) => {
     const liveData = useStore((s) => s.telemetry[packet.id]);
 
     const [isActive, setIsActive] = useState(false);

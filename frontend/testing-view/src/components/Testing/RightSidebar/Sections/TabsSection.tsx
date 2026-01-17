@@ -13,8 +13,8 @@ import type { Command } from "../../../../types/data/command";
 import type { Packet } from "../../../../types/data/packet";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { CommandItem } from "../Tabs/Commands/CommandItem";
-import { PacketItem } from "../Tabs/Packets/PacketItem";
 import { Tab } from "../Tabs/Tab";
+import { TelemetryItem } from "../Tabs/Telemetry/TelemetryItem";
 
 interface TabsSectionProps {
   isSplit: boolean;
@@ -45,7 +45,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
                 scope="telemetry"
                 categories={BOARD_NAMES}
                 ItemComponent={(props) => (
-                  <PacketItem item={props.item as Packet} />
+                  <TelemetryItem item={props.item as Packet} />
                 )}
                 virtualized
               />
@@ -90,7 +90,9 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
           title="Telemetry"
           scope="telemetry"
           categories={BOARD_NAMES}
-          ItemComponent={(props) => <PacketItem item={props.item as Packet} />}
+          ItemComponent={(props) => (
+            <TelemetryItem item={props.item as Packet} />
+          )}
           virtualized
         />
       </TabsContent>
