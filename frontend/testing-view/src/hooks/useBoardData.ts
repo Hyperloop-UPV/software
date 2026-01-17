@@ -2,7 +2,7 @@ import { logger } from "@workspace/core";
 import { useMemo } from "react";
 import { formatName } from "../lib/utils";
 import { MOCK_COMMANDS_CATALOG } from "../mocks/commands";
-import { MOCK_TELEMETRY_CATALOG } from "../mocks/packets";
+import { MOCK_TELEMETRY_CATALOG } from "../mocks/telemetry";
 import type { AppMode } from "../types/app/mode";
 import type { BoardName } from "../types/data/board";
 import type { CommandCatalogItem } from "../types/data/commandCatalogItem";
