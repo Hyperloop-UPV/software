@@ -14,6 +14,7 @@ import { Logs } from "./pages/Logs";
 import { Testing } from "./pages/Testing";
 import { useStore } from "./store/store";
 import type { Connection } from "./types/common/connection";
+import type { MessagePacket } from "./types/data/message";
 import type { TelemetryData } from "./types/telemetry/telemetry";
 
 function App() {
@@ -46,6 +47,17 @@ function App() {
   // Subscribe to connection updates
   useTopic<Record<string, Connection>>("connection/update", (data) => {
     updateConnections(data);
+  });
+
+  // Callback executed when messages are received
+  const addMessage = useStore((s) => s.addMessage);
+
+  useTopic<MessagePacket>("message/update", (data) => {
+    console.log("Message received:", data);
+    addMessage({
+      ...data,
+      id: crypto.randomUUID(),
+    });
   });
 
   return (

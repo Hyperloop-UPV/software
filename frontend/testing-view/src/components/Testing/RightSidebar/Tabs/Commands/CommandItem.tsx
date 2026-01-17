@@ -1,4 +1,4 @@
-import { logger } from "@workspace/core";
+import { logger, socketService } from "@workspace/core";
 import {
   Badge,
   Checkbox,
@@ -39,7 +39,7 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
       const defaults: Record<string, any> = {};
       Object.entries(commandCatalogItem.fields).forEach(([key, field]) => {
         if (field.kind === "numeric") {
-          defaults[key] = "";
+          defaults[key] = 0;
         } else if (field.kind === "enum") {
           defaults[key] = (field as EnumCommandParameter).options[0] || "";
         } else if (field.kind === "boolean") {
@@ -55,13 +55,33 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
 
   const handleRun = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    const payload = {
+      id: commandCatalogItem.id,
+      fields: Object.entries(commandCatalogItem.fields).reduce(
+        (acc, [key, field]) => {
+          acc[key] = {
+            value:
+              field.kind === "numeric"
+                ? parseFloat(parameterValues[key])
+                : parameterValues[key],
+            isEnabled: true, // Set to true by default, could be implemented in the future, but does not really make any sense for me
+            type: field.type,
+          };
+          return acc;
+        },
+        {} as Record<string, any>,
+      ),
+    };
+
     logger.testingView.log(
       "Running command:",
       commandCatalogItem.name,
-      "with params:",
-      parameterValues,
+      "with payload:",
+      payload,
     );
-    // TODO: Send command to backend
+
+    socketService.post("order/send", payload);
   };
 
   const handleParameterChange = (fieldId: string, value: any) => {
@@ -71,10 +91,10 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
   const renderParameterInput = (field: CommandParameter) => {
     if (field.kind === "numeric") {
       const numField = field as NumericCommandParameter;
-      const min = numField.warningRange[0];
-      const max = numField.warningRange[1];
-      const placeholder =
-        min !== null && max !== null ? `${min} - ${max}` : field.type;
+      const minSafeRange = numField.safeRange[0];
+      const maxSafeRange = numField.safeRange[1];
+      const minWarningRange = numField.warningRange[0];
+      const maxWarningRange = numField.warningRange[1];
 
       return (
         <div key={field.id} className="w-full space-y-1.5">
@@ -82,19 +102,24 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
             htmlFor={field.id}
             className="text-muted-foreground text-xs font-medium"
           >
-            {field.name}
+            {field.name} (default: 0)
           </Label>
           <Input
             id={field.id}
             type="number"
-            placeholder={placeholder}
+            placeholder={field.type}
             value={parameterValues[field.id] || ""}
             onChange={(e) => handleParameterChange(field.id, e.target.value)}
             className="h-8 text-xs"
           />
-          {min !== null && max !== null && (
+          {minSafeRange !== null && maxSafeRange !== null && (
             <p className="text-muted-foreground text-[10px]">
-              Range: {min} to {max}
+              Range: {minSafeRange} to {maxSafeRange}
+            </p>
+          )}
+          {minWarningRange !== null && maxWarningRange !== null && (
+            <p className="text-muted-foreground text-[10px]">
+              Warning range: {minWarningRange} to {maxWarningRange}
             </p>
           )}
         </div>
@@ -201,7 +226,7 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
           </CollapsibleTrigger>
 
           <CollapsibleContent>
-            <div className="bg-muted/30 flex flex-col items-end space-y-3 border-t px-5 py-3">
+            <div className="bg-muted/30 flex flex-col items-end space-y-3.5 border-t px-5 py-3">
               {Object.values(commandCatalogItem.fields).map(
                 (field: CommandParameter) => renderParameterInput(field),
               )}
