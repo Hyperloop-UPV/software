@@ -1,0 +1,106 @@
+import { get, set } from "lodash";
+import { SETTINGS_SCHEMA } from "../../constants/settingsSchema";
+import type { SettingField } from "../../types/common/settings";
+import { BooleanField } from "./BooleanField";
+import { MultiCheckboxField } from "./MultiCheckboxField";
+import { PathField } from "./PathField";
+import { SelectField } from "./SelectField";
+import { TextField } from "./TextField";
+
+interface SettingsConfig {
+  [key: string]: SettingField;
+}
+
+interface SettingsFormProps {
+  config: SettingsConfig;
+  onChange: (newConfig: SettingsConfig) => void;
+}
+
+export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
+  const handleFieldChange = (
+    path: string,
+    value: string | number | boolean | string[],
+  ) => {
+    const nextConfig = { ...config };
+    set(nextConfig, path, value);
+    onChange(nextConfig);
+  };
+
+  const renderField = (field: SettingField) => {
+    const currentValue = get(config, field.path);
+
+    switch (field.type) {
+      case "text":
+        return (
+          <TextField
+            field={field}
+            value={currentValue as unknown as string}
+            onChange={(value) => handleFieldChange(field.path, value)}
+          />
+        );
+
+      case "number":
+        return (
+          <TextField
+            field={field}
+            value={currentValue as unknown as string}
+            onChange={(value) => handleFieldChange(field.path, Number(value))}
+          />
+        );
+
+      case "boolean":
+        return (
+          <BooleanField
+            field={field}
+            value={currentValue as unknown as boolean}
+            onChange={(value) => handleFieldChange(field.path, value)}
+          />
+        );
+
+      case "multi-checkbox":
+        return (
+          <MultiCheckboxField
+            field={field}
+            value={currentValue as unknown as string[]}
+            onChange={(value) => handleFieldChange(field.path, value)}
+          />
+        );
+
+      case "path":
+        return (
+          <PathField
+            field={field}
+            value={currentValue as unknown as string}
+            onChange={(value) => handleFieldChange(field.path, value)}
+          />
+        );
+
+      case "select":
+        return (
+          <SelectField
+            field={field}
+            value={currentValue as unknown as string}
+            onChange={(value) => handleFieldChange(field.path, value)}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {SETTINGS_SCHEMA.map((section) => (
+        <section key={section.title} className="space-y-4">
+          <h3 className="text-muted-foreground border-b pb-1 text-sm font-bold uppercase tracking-wider">
+            {section.title}
+          </h3>
+          <div className="grid gap-4">
+            {section.fields.map((field) => renderField(field))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+};

@@ -23,9 +23,9 @@ export const VirtualizedList = ({
   const rows = usePacketRows(scope, categories);
 
   const estimateSize = useCallback((row: VirtualRow) => {
-    if (row.type === "board") return 50;
-    if (row.type === "packet") return 42;
-    return 48.8;
+    if (row.type === "board") return 50; // Board list item height
+    if (row.type === "packet") return 42; // Packet list item height
+    return 48.8; // Variable list item height
   }, []);
 
   const virtualizer = useVirtualizer({
@@ -44,9 +44,8 @@ export const VirtualizedList = ({
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
-          width: "100%",
-          position: "relative",
         }}
+        className="relative w-full"
       >
         {virtualizer.getVirtualItems().map((virtualRow) => (
           <div
