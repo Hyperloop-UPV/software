@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import Footer from "../components/Footer";
 import Header from "../components/Header/Header";
 import AppSidebar from "../components/LeftSidebar/AppSidebar";
+import { SettingsDialog } from "../components/LeftSidebar/SettingsDialog";
 import { useStore } from "../store/store";
 
 interface AppLayoutProps {
@@ -43,6 +44,7 @@ export const AppLayout = ({ children, backendConnected }: AppLayoutProps) => {
           </SidebarInset>
         </div>
       </SidebarProvider>
+      <SettingsDialog />
     </div>
   );
 };

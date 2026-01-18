@@ -1,1 +1,2 @@
-export { AlertTriangle, Check } from "lucide-react";
+export { AlertTriangle, Check, CheckCircle2 } from "lucide-react";
+
