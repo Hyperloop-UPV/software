@@ -33,6 +33,7 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
       case "text":
         return (
           <TextField
+            key={field.path}
             field={field}
             value={currentValue as unknown as string}
             onChange={(value) => handleFieldChange(field.path, value)}
@@ -42,6 +43,7 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
       case "number":
         return (
           <TextField
+            key={field.path}
             field={field}
             value={currentValue as unknown as string}
             onChange={(value) => handleFieldChange(field.path, Number(value))}
@@ -51,6 +53,7 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
       case "boolean":
         return (
           <BooleanField
+            key={field.path}
             field={field}
             value={currentValue as unknown as boolean}
             onChange={(value) => handleFieldChange(field.path, value)}
@@ -60,6 +63,7 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
       case "multi-checkbox":
         return (
           <MultiCheckboxField
+            key={field.path}
             field={field}
             value={currentValue as unknown as string[]}
             onChange={(value) => handleFieldChange(field.path, value)}
@@ -69,6 +73,7 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
       case "path":
         return (
           <PathField
+            key={field.path}
             field={field}
             value={currentValue as unknown as string}
             onChange={(value) => handleFieldChange(field.path, value)}
@@ -78,6 +83,7 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
       case "select":
         return (
           <SelectField
+            key={field.path}
             field={field}
             value={currentValue as unknown as string}
             onChange={(value) => handleFieldChange(field.path, value)}
