@@ -205,7 +205,7 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
 
             <div className="flex flex-1 items-center gap-2">
               <div className="flex flex-1 items-center gap-2">
-                <span className="text-foreground max-w-1/2 truncate text-left text-sm font-medium">
+                <span className="text-foreground max-w-4/5 truncate text-left text-sm font-medium">
                   {commandCatalogItem.label}
                 </span>
                 <Badge variant="outline" className="h-4 px-1.5 text-xs">

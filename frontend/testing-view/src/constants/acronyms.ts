@@ -18,4 +18,6 @@ export const acronyms = [
   "PWM",
   "DCLV",
   "BMS",
+  "LDU",
+  "SVPWM",
 ];

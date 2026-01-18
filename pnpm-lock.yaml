@@ -228,6 +228,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.14
         version: 3.13.14(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@types/lodash':
+        specifier: ^4.17.23
+        version: 4.17.23
       '@vitejs/plugin-react-swc':
         specifier: ^4.2.2
         version: 4.2.2(vite@7.3.0(@types/node@20.19.27)(jiti@2.6.1)(lightningcss@1.30.2))
@@ -237,6 +240,9 @@ importers:
       '@workspace/ui':
         specifier: workspace:*
         version: link:../frontend-kit/ui
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       react:
         specifier: ^19.2.3
         version: 19.2.3
@@ -1412,6 +1418,9 @@ packages:
 
   '@types/keyv@3.1.4':
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
+
+  '@types/lodash@4.17.23':
+    resolution: {integrity: sha512-RDvF6wTulMPjrNdCoYRC8gNR880JNGT8uB+REUpC2Ns4pRqQJhGz90wh7rgdXDPpCczF3VGktDuFGVnz8zP7HA==}
 
   '@types/minimatch@6.0.0':
     resolution: {integrity: sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA==}
@@ -5325,6 +5334,8 @@ snapshots:
   '@types/keyv@3.1.4':
     dependencies:
       '@types/node': 20.19.27
+
+  '@types/lodash@4.17.23': {}
 
   '@types/minimatch@6.0.0':
     dependencies:

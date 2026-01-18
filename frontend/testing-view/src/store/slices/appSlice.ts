@@ -1,7 +1,8 @@
 import type { StateCreator } from "zustand";
-import type { Store } from "../store";
-import type { AppMode } from "../../types/app/mode";
 import type { ColorScheme } from "../../types/app/colorSchema";
+import type { AppMode } from "../../types/app/mode";
+import type { ConfigData } from "../../types/common/config";
+import type { Store } from "../store";
 
 export interface AppSlice {
   // App mode
@@ -33,6 +34,14 @@ export interface AppSlice {
   };
   setTestingColumns: (columns: number) => void;
   setTestingSidebarVisible: (isSidebarVisible: boolean) => void;
+
+  // Config and settings
+  isSettingsOpen: boolean;
+  setSettingsOpen: (isOpen: boolean) => void;
+  config: ConfigData | null;
+  setConfig: (config: ConfigData | null) => void;
+  isLoadingConfig: boolean;
+  setIsLoadingConfig: (loading: boolean) => void;
 }
 
 export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
@@ -72,4 +81,12 @@ export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
     set((state) => ({
       testingPage: { ...state.testingPage, isSidebarVisible },
     })),
+
+  // Config and settings
+  isSettingsOpen: false,
+  setSettingsOpen: (isOpen: boolean) => set({ isSettingsOpen: isOpen }),
+  config: null,
+  setConfig: (config: ConfigData | null) => set({ config }),
+  isLoadingConfig: false,
+  setIsLoadingConfig: (loading: boolean) => set({ isLoadingConfig: loading }),
 });
