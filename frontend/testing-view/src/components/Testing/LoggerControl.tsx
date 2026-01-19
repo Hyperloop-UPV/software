@@ -79,7 +79,7 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
           className="text-muted-foreground hover:text-foreground h-8 w-8"
           onClick={() => openFilterDialog("logs")}
           title="Configure Logger Variables"
-          disabled={disabled || status !== "standby"}
+          disabled={disabled || status === "loading" || status === "recording"}
         >
           <Settings2 size={14} />
         </Button>
