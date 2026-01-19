@@ -29,9 +29,9 @@ export const LOGGER_CONTROL_CONFIG: Record<LoggerStatus, LoggerControlOption> =
       className: "text-amber-500",
     },
     error: {
-      color: "bg-amber-600",
-      text: "Error",
+      color: "bg-amber-800",
+      text: "Time out",
       icon: <AlertCircle size={14} />,
-      className: "text-amber-600",
+      className: "text-amber-800",
     },
   };
