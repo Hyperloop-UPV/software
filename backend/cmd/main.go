@@ -217,6 +217,15 @@ func main() {
 	connections := make(chan *websocket.Client)
 	upgrader := websocket.NewUpgrader(connections, trace.Logger)
 	pool := websocket.NewPool(connections, trace.Logger)
+	pool.SetOnDisconnect(func(count int) {
+		if count == 0 {
+			trace.Info().Msg("no clients connected, stopping logger")
+			loggerHandler.Stop()
+			if err := loggerTopic.NotifyStopped(); err != nil {
+				trace.Error().Err(err).Msg("failed to notify logger stopped")
+			}
+		}
+	})
 	broker.SetPool(pool)
 	blcu_topics.RegisterTopics(broker, pool)
 
