@@ -16,5 +16,6 @@ export * from "./medical";
 export * from "./notifications";
 export * from "./photography";
 export * from "./science";
+export * from "./shapes";
 export * from "./social";
 export * from "./text";

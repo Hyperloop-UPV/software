@@ -17,11 +17,11 @@ import {
 import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../store/store";
 
-interface TabSwitcherProps {
+interface WorkspaceSwitcherProps {
   disabled: boolean;
 }
 
-const TabSwitcher = ({ disabled }: TabSwitcherProps) => {
+const WorkspaceSwitcher = ({ disabled }: WorkspaceSwitcherProps) => {
   const { isMobile } = useSidebar();
   const activeWorkspace = useStore((s) => s.activeWorkspace);
   const setActiveWorkspace = useStore((s) => s.setActiveWorkspace);
@@ -90,4 +90,4 @@ const TabSwitcher = ({ disabled }: TabSwitcherProps) => {
   );
 };
 
-export default TabSwitcher;
+export default WorkspaceSwitcher;

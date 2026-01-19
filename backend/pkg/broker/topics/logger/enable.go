@@ -84,11 +84,25 @@ func (enable *Enable) handleToggle(_ websocket.ClientId, message *websocket.Mess
 		return err
 	}
 
+	// If we are already in the state the user wants,
+	// just confirm it immediately and don't bother the rest of the system.
+	if enable.isRunning.Load() == request {
+		return enable.broadcastState()
+	}
+
 	status := newStatus(request)
 	go enable.api.UserPush(status)
 
 	go func() {
-		enable.isRunning.Store(<-status.response)
+		response := <-status.response
+
+		enable.isRunning.Store(response)
+
+		if request && response {
+			// Successfully started logging: do nothing because NotifyStarted already broadcasts the state
+			return
+		}
+
 		enable.broadcastState()
 	}()
 	return nil
