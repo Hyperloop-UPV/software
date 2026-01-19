@@ -15,15 +15,8 @@ export const createMessagesSlice: StateCreator<Store, [], [], MessagesSlice> = (
 ) => ({
   messages: [],
   addMessage: (message) =>
-    set((state) => {
-      // Avoid duplicate messages if they have the same ID
-      const messageExists = state.messages.some((m) => m.id === message.id);
-      if (messageExists) return state;
-
-      // Add to start of array and limit to 200
-      return {
-        messages: [message, ...state.messages].slice(0, MAX_MESSAGES),
-      };
-    }),
+    set((state) => ({
+      messages: [message, ...state.messages].slice(0, MAX_MESSAGES),
+    })),
   clearMessages: () => set({ messages: [] }),
 });
