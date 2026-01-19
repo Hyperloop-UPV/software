@@ -1,5 +1,5 @@
-import type { Command } from "./commandCatalogItem";
-import type { Packet } from "./telemetryCatalogItem";
+import type { CommandCatalogItem } from "./commandCatalogItem";
+import type { TelemetryCatalogItem } from "./telemetryCatalogItem";
 
 export type BoardName = string;
 export interface BoardData {
@@ -7,9 +7,9 @@ export interface BoardData {
 }
 
 export interface BoardOrdersData extends BoardData {
-  orders: Command[];
+  orders: CommandCatalogItem[];
 }
 
 export interface BoardPacketsData extends BoardData {
-  packets: Packet[];
+  packets: TelemetryCatalogItem[];
 }
