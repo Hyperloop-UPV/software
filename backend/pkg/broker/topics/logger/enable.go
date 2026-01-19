@@ -62,6 +62,24 @@ func (enable *Enable) ClientMessage(id websocket.ClientId, message *websocket.Me
 		fmt.Printf("logger/response subscribed %s\n", uuid.UUID(id).String())
 		enable.subscribers[id] = struct{}{}
 
+		// Get current logger state
+		payload, err := json.Marshal(enable.isRunning.Load())
+		if err != nil {
+			fmt.Printf("error marshaling logger state: %v\n", err)
+		}
+
+		// Prepare message
+		message := websocket.Message{
+			Topic:   ResponseName,
+			Payload: payload,
+		}
+
+		// Send current logger state to client that just subscribed
+		err = enable.pool.Write(id, message)
+		if err != nil {
+			fmt.Printf("error sending logger state to client: %v\n", err)
+		}
+
 	case VariablesName:
 		err := enable.handleVariables(id, message)
 		if err != nil {
@@ -120,6 +138,11 @@ func (enable *Enable) handleVariables(_ websocket.ClientId, message *websocket.M
 
 func (enable *Enable) NotifyStarted() error {
 	enable.isRunning.Store(true)
+	return enable.broadcastState()
+}
+
+func (enable *Enable) NotifyStopped() error {
+	enable.isRunning.Store(false)
 	return enable.broadcastState()
 }
 
