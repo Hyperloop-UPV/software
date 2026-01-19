@@ -1,3 +1,4 @@
+import { logger } from "@workspace/core";
 import { useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { Route, Routes } from "react-router";
 import { AppModeRouter } from "./components/AppModeRouter";
@@ -20,6 +21,8 @@ import type { TelemetryData } from "./types/telemetry/telemetry";
 function App() {
   const { isConnected } = useWebSocket();
   const { reportError } = useErrorHandler();
+
+  logger.testingView.log("App started");
 
   // Fetch app configs
   const { packets, commands, isLoading } = useAppConfigs(isConnected);

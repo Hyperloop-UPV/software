@@ -32,7 +32,6 @@ export const FilterDialog = ({
 }: FilterDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* TODO: apply correctly colors from theme variables */}
       <DialogContent className="bg-background text-foreground max-h-[85vh] w-full min-w-[600px] max-w-2xl overflow-y-auto px-10 py-8">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">{title}</DialogTitle>

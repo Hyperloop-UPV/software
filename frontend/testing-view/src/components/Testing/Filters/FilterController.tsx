@@ -14,7 +14,8 @@ export const FilterController = () => {
 
   return (
     <FilterDialog
-      title={`Filter ${scope === "commands" ? "Commands" : "Packets"}`}
+      title={`Filter ${scope === "commands" ? "commands" : "telemetry packets"}`}
+      description={`Filter ${scope === "commands" ? "commands" : "packets"} by category`}
       isOpen={isOpen}
       onClose={close}
       onClearAll={() => clearFilters(scope)}

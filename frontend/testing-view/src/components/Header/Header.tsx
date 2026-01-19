@@ -1,10 +1,11 @@
 import { Separator, SidebarTrigger } from "@workspace/ui";
 import { useLocation } from "react-router";
-import TabSwitcher from "./TabSwitcher";
-import { ModeBadge } from "./ModeBadge";
 import { PAGES } from "../../constants/pages";
-import { ReconnectButton } from "./ReconnectButton";
 import { useStore } from "../../store/store";
+import { LoggerControl } from "../Testing/LoggerControl";
+import WorkspaceSwitcher from "../Testing/WorkspaceSwitcher";
+import { ModeBadge } from "./ModeBadge";
+import { ReconnectButton } from "./ReconnectButton";
 
 const Header = () => {
   const location = useLocation();
@@ -33,7 +34,14 @@ const Header = () => {
               orientation="vertical"
               className="data-[orientation=vertical]:h-4"
             />
-            <TabSwitcher
+            <LoggerControl
+              disabled={appMode === "loading" || appMode === "error"}
+            />
+            <Separator
+              orientation="vertical"
+              className="data-[orientation=vertical]:h-4"
+            />
+            <WorkspaceSwitcher
               disabled={appMode === "loading" || appMode === "error"}
             />
           </>
