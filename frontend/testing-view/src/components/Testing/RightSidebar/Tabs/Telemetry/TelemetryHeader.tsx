@@ -35,10 +35,10 @@ export const TelemetryHeader = memo(
           clearTimeout(timeoutRef.current);
         }
 
-        // Set inactive after 500ms
+        // Set inactive after 1s
         timeoutRef.current = setTimeout(() => {
           setIsActive(false);
-        }, 500);
+        }, 1000);
       }
 
       // Cleanup on unmount
