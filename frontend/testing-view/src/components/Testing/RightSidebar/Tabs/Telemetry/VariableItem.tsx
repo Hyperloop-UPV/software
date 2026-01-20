@@ -34,10 +34,11 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `draggable-${packetId}-${variable.id}`,
+      disabled: variable.type === "enum",
       data: {
         type: "variable",
         packetId,
-        variable: variable.name,
+        variable: variable.id,
       },
     });
 
@@ -69,7 +70,10 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
       {...attributes}
       {...listeners}
       className={cn(
-        "hover:bg-accent/30 group flex cursor-grab items-center justify-between gap-3 border-t py-2 pl-6 pr-3 active:cursor-grabbing",
+        "hover:bg-accent/30 group flex items-center justify-between gap-3 border-t py-2 pl-6 pr-3",
+        variable.type === "enum"
+          ? "cursor-default"
+          : "cursor-grab active:cursor-grabbing",
         isDragging
           ? "scale-[0.98] border-dashed opacity-20 grayscale"
           : "opacity-100",

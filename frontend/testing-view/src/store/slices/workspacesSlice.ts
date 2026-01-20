@@ -515,8 +515,7 @@ export const createWorkspacesSlice: StateCreator<
 
   reorderCharts: (workspaceId, oldIndex, newIndex) => {
     if (oldIndex < 0 || newIndex < 0) return;
-    console.log("old index", oldIndex);
-    console.log("new index", newIndex);
+
     set((state) => {
       const charts = [...(state.charts[workspaceId] || [])];
       const [removed] = charts.splice(oldIndex, 1);
