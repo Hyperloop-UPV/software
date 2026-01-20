@@ -28,15 +28,15 @@ const Header = () => {
       />
       <h1 className="text-foreground text-xl font-bold">{pageTitle}</h1>
       <div className="ml-auto flex items-center gap-2">
+        <Separator
+          orientation="vertical"
+          className="data-[orientation=vertical]:h-4"
+        />
+        <LoggerControl
+          disabled={appMode === "loading" || appMode === "error"}
+        />
         {isTestingPage && (
           <>
-            <Separator
-              orientation="vertical"
-              className="data-[orientation=vertical]:h-4"
-            />
-            <LoggerControl
-              disabled={appMode === "loading" || appMode === "error"}
-            />
             <Separator
               orientation="vertical"
               className="data-[orientation=vertical]:h-4"

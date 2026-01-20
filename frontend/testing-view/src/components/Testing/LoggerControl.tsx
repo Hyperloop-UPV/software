@@ -2,6 +2,7 @@ import { Button, Separator } from "@workspace/ui";
 import { Settings2 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { LOGGER_CONTROL_CONFIG } from "../../constants/loggerControlConfig";
+import useConfirmClose from "../../hooks/useConfirmClose";
 import { useLogger } from "../../hooks/useLogger";
 import { useStore } from "../../store/store";
 import type { TelemetryCatalogItem } from "../../types/data/telemetryCatalogItem";
@@ -14,6 +15,8 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
   const { status, startLogging, stopLogging } = useLogger();
   const openFilterDialog = useStore((s) => s.openFilterDialog);
   const getFilteredItems = useStore((s) => s.getFilteredItems);
+
+  useConfirmClose(status === "recording");
 
   const handleToggle = () => {
     if (status === "loading") return;
