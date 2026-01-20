@@ -1,4 +1,5 @@
 import { Trash2 } from "@workspace/ui/icons";
+import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
 import "uplot/dist/uPlot.min.css";
 import { useStore } from "../../../store/store";
@@ -9,9 +10,14 @@ import { ChartSurface } from "./ChartSurface";
 interface TelemetryChartProps {
   id: string;
   series: VariableSeries[];
+  isDragging: boolean;
 }
 
-export const TelemetryChart = ({ id, series }: TelemetryChartProps) => {
+export const TelemetryChart = ({
+  id,
+  series,
+  isDragging,
+}: TelemetryChartProps) => {
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const removeChart = useStore((s) => s.removeChart);
   const removeSeries = useStore((s) => s.removeSeriesFromChart);
@@ -39,8 +45,20 @@ export const TelemetryChart = ({ id, series }: TelemetryChartProps) => {
     });
   };
 
+  if (isDragging) {
+    return (
+      <div className="h-full w-full">
+        <div className="bg-muted-foreground/10 border-muted-foreground/20 h-full min-h-[300px] w-full rounded-xl border-2 border-dashed"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-all">
+    <div
+      className={cn(
+        "border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-colors",
+      )}
+    >
       {/* Delete Button */}
       <button
         onClick={() => activeWorkspaceId && removeChart(activeWorkspaceId, id)}

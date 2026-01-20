@@ -128,6 +128,11 @@ export interface WorkspacesSlice {
   getActiveWorkspaceCharts: () => WorkspaceChartConfig[];
   addChart: (workspaceId: string) => string;
   removeChart: (workspaceId: string, chartId: string) => void;
+  reorderCharts: (
+    workspaceId: string,
+    oldIndex: number,
+    newIndex: number,
+  ) => void;
   addSeriesToChart: (
     workspaceId: string,
     chartId: string,
@@ -506,6 +511,23 @@ export const createWorkspacesSlice: StateCreator<
         [activeWorkspaceId]: [],
       },
     }));
+  },
+
+  reorderCharts: (workspaceId, oldIndex, newIndex) => {
+    if (oldIndex < 0 || newIndex < 0) return;
+    console.log("old index", oldIndex);
+    console.log("new index", newIndex);
+    set((state) => {
+      const charts = [...(state.charts[workspaceId] || [])];
+      const [removed] = charts.splice(oldIndex, 1);
+      charts.splice(newIndex, 0, removed);
+      return {
+        charts: {
+          ...state.charts,
+          [workspaceId]: charts,
+        },
+      };
+    });
   },
 
   addSeriesToChart: (workspaceId, chartId, series) =>

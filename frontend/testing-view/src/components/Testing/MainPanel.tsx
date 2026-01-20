@@ -4,6 +4,7 @@ import { EmptyWorkspace } from "./EmptyWorkspace";
 import { TestingToolbar } from "./Toolbar";
 
 interface MainPanelProps {
+  activeChartId: string | null;
   columns: number;
   onColumnsChange: (columns: number) => void;
   showSidebarButton: boolean;
@@ -11,6 +12,7 @@ interface MainPanelProps {
 }
 
 export const MainPanel = ({
+  activeChartId,
   columns,
   onColumnsChange,
   showSidebarButton,
@@ -36,7 +38,11 @@ export const MainPanel = ({
       />
 
       {charts.length > 0 ? (
-        <ChartsGrid charts={charts} columns={columns} />
+        <ChartsGrid
+          charts={charts}
+          columns={columns}
+          activeChartId={activeChartId}
+        />
       ) : (
         <EmptyWorkspace onAddChart={handleAddChart} />
       )}
