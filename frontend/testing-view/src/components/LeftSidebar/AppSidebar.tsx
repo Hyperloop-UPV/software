@@ -2,14 +2,16 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarHeader,
   SidebarRail,
 } from "@workspace/ui/components";
-import NavigationGroup from "./NavigationGroup";
-import ConnectionStatusGroup from "./ConnectionStatusGroup";
-import SettingsItem from "./SettingsItem";
-import ThemeToggleItem from "./ThemeToggleItem";
 import { PAGES_ARRAY } from "../../constants/pages";
 import ColorSchemeToggle from "./ColorSchemeToggle";
+import ConnectionStatusGroup from "./ConnectionStatusGroup";
+import Logo from "./Logo";
+import NavigationGroup from "./NavigationGroup";
+import SettingsItem from "./SettingsItem";
+import ThemeToggleItem from "./ThemeToggleItem";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   backendConnected: boolean;
@@ -18,6 +20,9 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 const AppSidebar = ({ backendConnected, ...props }: AppSidebarProps) => {
   return (
     <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <Logo />
+      </SidebarHeader>
       <SidebarContent>
         <NavigationGroup items={PAGES_ARRAY} />
       </SidebarContent>
