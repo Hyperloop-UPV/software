@@ -1,3 +1,4 @@
+import { useDraggable } from "@dnd-kit/core";
 import { Badge } from "@workspace/ui";
 import { cn } from "@workspace/ui/lib";
 import { useShallow } from "zustand/shallow";
@@ -30,6 +31,22 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
     })),
   );
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `draggable-${packetId}-${variable.id}`,
+      data: {
+        type: "variable",
+        packetId,
+        variable: variable.name,
+      },
+    });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined;
+
   const handleAddToChart = (chartId: string) => {
     if (!activeWorkspaceId) return;
     addSeries(activeWorkspaceId, chartId, {
@@ -47,8 +64,15 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       className={cn(
-        "hover:bg-accent/30 group flex items-center justify-between gap-3 border-t py-2 pl-6 pr-3",
+        "hover:bg-accent/30 group flex cursor-grab items-center justify-between gap-3 border-t py-2 pl-6 pr-3 active:cursor-grabbing",
+        isDragging
+          ? "scale-[0.98] border-dashed opacity-20 grayscale"
+          : "opacity-100",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
