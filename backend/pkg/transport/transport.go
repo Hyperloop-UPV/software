@@ -259,6 +259,10 @@ func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger
 
 			logger.Trace().Type("type", packet).Msg("packet")
 			transport.api.Notification(NewPacketNotification(packet, from, to, time.Now()))
+
+			//if dataPacket, ok := packet.(*data.Packet); ok {
+			//	data.ReleasePacket(dataPacket)
+			//}
 		}
 	}()
 }
@@ -464,6 +468,10 @@ func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 	
 	// Send notification
 	transport.api.Notification(NewPacketNotification(packet, srcAddr, dstAddr, udpPacket.Timestamp))
+
+	//if dataPacket, ok := packet.(*data.Packet); ok {
+	//	data.ReleasePacket(dataPacket)
+	//s}
 }
 
 // handleConversation is called when the sniffer detects a new conversation and handles its specific packets
@@ -488,6 +496,10 @@ func (transport *Transport) handleConversation(socket network.Socket, reader io.
 
 			// Send notification
 			transport.api.Notification(NewPacketNotification(packet, srcAddr, dstAddr, time.Now()))
+
+			//if dataPacket, ok := packet.(*data.Packet); ok {
+			//	data.ReleasePacket(dataPacket)
+			//}
 		}
 	}()
 }
