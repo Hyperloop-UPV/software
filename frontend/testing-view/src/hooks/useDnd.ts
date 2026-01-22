@@ -1,6 +1,5 @@
 import {
   type DragEndEvent,
-  type DragOverEvent,
   type DragStartEvent,
   PointerSensor,
   useSensor,
