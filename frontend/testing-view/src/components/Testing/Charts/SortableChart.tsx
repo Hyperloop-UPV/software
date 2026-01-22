@@ -11,9 +11,7 @@ export function SortableChart({ id, series }: { id: string; series: any[] }) {
     isDragging,
   } = useSortable({
     id,
-    data: {
-      chartId: id,
-    },
+    data: { chartId: id },
   });
 
   const style = {
