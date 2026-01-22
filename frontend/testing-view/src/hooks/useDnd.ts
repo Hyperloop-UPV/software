@@ -1,5 +1,6 @@
 import {
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
   PointerSensor,
   useSensor,
@@ -14,6 +15,7 @@ export function useDnd() {
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
   const reorderCharts = useStore((s) => s.reorderCharts);
   const addSeries = useStore((s) => s.addSeriesToChart);
+  const addChart = useStore((s) => s.addChart);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -33,14 +35,26 @@ export function useDnd() {
     if (active.data.current?.type === "variable") {
       const chartId = over.data.current?.chartId;
       const { packetId, variableId } = active.data.current;
-      if (chartId)
+      // Add a variable to an existing chart
+      if (chartId) {
         addSeries(activeWorkspaceId, chartId, {
           packetId,
           variable: variableId,
         });
+        // Add a new chart to the main panel
+      } else if (over.id === "main-panel-droppable") {
+        const newChartId = addChart(activeWorkspaceId);
+        addSeries(activeWorkspaceId, newChartId, {
+          packetId,
+          variable: variableId,
+        });
+      }
     }
     // Logic for reordering charts
-    else if (active.id !== over.id) {
+    else if (
+      active.data.current?.type !== "variable" &&
+      active.id !== over.id
+    ) {
       const oldIndex = charts.findIndex((c) => c.id === active.id);
       const newIndex = charts.findIndex((c) => c.id === over.id);
       if (oldIndex !== -1 && newIndex !== -1)
@@ -48,5 +62,10 @@ export function useDnd() {
     }
   };
 
-  return { sensors, activeData, handleDragStart, handleDragEnd };
+  return {
+    sensors,
+    activeData,
+    handleDragStart,
+    handleDragEnd,
+  };
 }

@@ -1,13 +1,12 @@
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@workspace/ui/lib";
 import type { WorkspaceChartConfig } from "../../../store/slices/workspacesSlice";
+import { SortableChart } from "./SortableChart";
 
 interface ChartsGridProps {
   charts: WorkspaceChartConfig[];
   columns: number;
 }
-
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { SortableChart } from "./SortableChart";
 
 export const ChartsGrid = ({ charts, columns }: ChartsGridProps) => {
   return (
@@ -18,6 +17,7 @@ export const ChartsGrid = ({ charts, columns }: ChartsGridProps) => {
       <div
         className={cn(
           "grid w-full gap-4 p-4",
+          "grid-auto-rows-[1fr]",
           columns === 1 ? "grid-cols-1" : "grid-cols-2",
         )}
       >

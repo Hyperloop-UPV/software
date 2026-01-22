@@ -44,6 +44,7 @@ export const Testing = () => {
                 onColumnsChange={setColumns}
                 showSidebarButton={!isSidebarVisible}
                 onOpenSidebar={() => setIsSidebarVisible(true)}
+                activeData={activeData}
               />
             </ResizablePanel>
 
