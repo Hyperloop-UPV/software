@@ -56,13 +56,13 @@ export const TelemetryChart = ({
   return (
     <div
       className={cn(
-        "border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-colors",
+        "border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-colors duration-200",
       )}
     >
       {/* Delete Button */}
       <button
         onClick={() => activeWorkspaceId && removeChart(activeWorkspaceId, id)}
-        className="text-muted-foreground hover:text-destructive z-5 absolute right-4 top-4 p-1 opacity-0 transition-all group-hover:opacity-100"
+        className="text-muted-foreground hover:text-destructive z-5 absolute right-4 top-4 p-1 opacity-0 transition-opacity group-hover:opacity-100"
       >
         <Trash2 className="h-4 w-4" />
       </button>

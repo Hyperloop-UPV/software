@@ -21,7 +21,7 @@ export const ChartsDndOverlay = ({
         </div>
       ) : (
         // Chart Ghost
-        <div className="w-[400px] rotate-1 scale-105 shadow-2xl">
+        <div className="w-full rotate-2 scale-105 cursor-grabbing shadow-2xl brightness-110">
           <TelemetryChart
             id={activeData.chartId}
             series={

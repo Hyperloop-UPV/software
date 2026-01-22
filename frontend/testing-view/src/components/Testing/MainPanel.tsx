@@ -1,3 +1,5 @@
+import { useDroppable } from "@dnd-kit/core";
+import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../store/store";
 import { ChartsGrid } from "./Charts/ChartsGrid";
 import { EmptyWorkspace } from "./EmptyWorkspace";
@@ -8,6 +10,7 @@ interface MainPanelProps {
   onColumnsChange: (columns: number) => void;
   showSidebarButton: boolean;
   onOpenSidebar: () => void;
+  activeData: any;
 }
 
 export const MainPanel = ({
@@ -15,6 +18,7 @@ export const MainPanel = ({
   onColumnsChange,
   showSidebarButton,
   onOpenSidebar,
+  activeData,
 }: MainPanelProps) => {
   const activeWorkspace = useStore((s) => s.activeWorkspace);
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
@@ -26,8 +30,20 @@ export const MainPanel = ({
     }
   };
 
+  const { setNodeRef, isOver } = useDroppable({
+    id: "main-panel-droppable",
+  });
+
+  const isVariableOver = isOver && activeData?.type === "variable";
+
   return (
-    <div className="relative flex h-full flex-col items-center overflow-y-auto">
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "relative flex h-full flex-col items-center overflow-y-auto",
+        isVariableOver ? "border-primary/20 bg-primary/5" : "",
+      )}
+    >
       <TestingToolbar
         columns={columns}
         onColumnsChange={onColumnsChange}
