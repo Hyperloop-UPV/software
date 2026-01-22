@@ -38,7 +38,9 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
       data: {
         type: "variable",
         packetId,
-        variable: variable.id,
+        variableId: variable.id,
+        variableName: variable.name,
+        variableType: variable.type,
       },
     });
 
@@ -63,7 +65,18 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
     handleAddToChart(newChartId);
   };
 
+  const isEnum = variable.type === "enum";
+
+  const cursorStyle = isEnum
+    ? "cursor-default"
+    : "cursor-grab active:cursor-grabbing";
+
+  const opacityStyle = isDragging
+    ? "scale-[0.98] border-dashed opacity-20 grayscale"
+    : "opacity-100";
+
   return (
+    // Draggable container
     <div
       ref={setNodeRef}
       style={style}
@@ -71,12 +84,8 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
       {...listeners}
       className={cn(
         "hover:bg-accent/30 group flex items-center justify-between gap-3 border-t py-2 pl-6 pr-3",
-        variable.type === "enum"
-          ? "cursor-default"
-          : "cursor-grab active:cursor-grabbing",
-        isDragging
-          ? "scale-[0.98] border-dashed opacity-20 grayscale"
-          : "opacity-100",
+        opacityStyle,
+        cursorStyle,
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -103,7 +112,7 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
         </div>
 
         {/* Chart Picker */}
-        {variable.type !== "enum" && (
+        {!isEnum && (
           <div className="opacity-0 transition-opacity group-hover:opacity-100">
             <ChartPicker
               charts={charts}
