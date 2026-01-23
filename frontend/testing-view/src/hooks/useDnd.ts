@@ -7,9 +7,10 @@ import {
 } from "@dnd-kit/core";
 import { useState } from "react";
 import { useStore } from "../store/store";
+import type { DndActiveData } from "../types/app/dndData";
 
 export function useDnd() {
-  const [activeData, setActiveData] = useState<any>(null);
+  const [activeData, setActiveData] = useState<DndActiveData | null>(null);
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
   const reorderCharts = useStore((s) => s.reorderCharts);
@@ -21,7 +22,7 @@ export function useDnd() {
   );
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveData(event.active.data.current);
+    setActiveData(event.active.data.current as DndActiveData);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {

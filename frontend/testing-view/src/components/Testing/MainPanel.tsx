@@ -1,6 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../store/store";
+import type { DndActiveData } from "../../types/app/dndData";
 import { ChartsGrid } from "./Charts/ChartsGrid";
 import { EmptyWorkspace } from "./EmptyWorkspace";
 import { TestingToolbar } from "./Toolbar";
@@ -10,7 +11,7 @@ interface MainPanelProps {
   onColumnsChange: (columns: number) => void;
   showSidebarButton: boolean;
   onOpenSidebar: () => void;
-  activeData: any;
+  activeDragData: DndActiveData | null;
 }
 
 export const MainPanel = ({
@@ -18,7 +19,7 @@ export const MainPanel = ({
   onColumnsChange,
   showSidebarButton,
   onOpenSidebar,
-  activeData,
+  activeDragData,
 }: MainPanelProps) => {
   const activeWorkspace = useStore((s) => s.activeWorkspace);
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
@@ -34,7 +35,7 @@ export const MainPanel = ({
     id: "main-panel-droppable",
   });
 
-  const isVariableOver = isOver && activeData?.type === "variable";
+  const isVariableOver = isOver && activeDragData?.type === "variable";
 
   return (
     <div

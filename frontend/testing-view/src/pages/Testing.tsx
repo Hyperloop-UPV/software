@@ -4,7 +4,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@workspace/ui";
-import { ChartsDndOverlay } from "../components/Testing/Charts/ChartsDndOverlay";
+import { DndOverlay } from "../components/Testing/DndOverlay";
 import { FilterController } from "../components/Testing/Filters/FilterController";
 import { MainPanel } from "../components/Testing/MainPanel";
 import { RightSidebar } from "../components/Testing/RightSidebar/RightSidebar";
@@ -23,7 +23,12 @@ export const Testing = () => {
     return <p>No active workspace</p>;
   }
 
-  const { sensors, activeData, handleDragStart, handleDragEnd } = useDnd();
+  const {
+    sensors,
+    activeData: activeDragData,
+    handleDragStart,
+    handleDragEnd,
+  } = useDnd();
 
   return (
     <>
@@ -44,7 +49,7 @@ export const Testing = () => {
                 onColumnsChange={setColumns}
                 showSidebarButton={!isSidebarVisible}
                 onOpenSidebar={() => setIsSidebarVisible(true)}
-                activeData={activeData}
+                activeDragData={activeDragData}
               />
             </ResizablePanel>
 
@@ -60,7 +65,7 @@ export const Testing = () => {
         </div>
 
         {/* Dnd Overlay */}
-        <ChartsDndOverlay activeData={activeData} charts={charts} />
+        <DndOverlay activeDragData={activeDragData} charts={charts} />
       </DndContext>
     </>
   );
