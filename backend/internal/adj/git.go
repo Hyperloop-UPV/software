@@ -23,7 +23,7 @@ func updateRepo(AdjBranch string) error {
 		return nil
 	} else {
 		cloneOptions := &git.CloneOptions{
-			URL:           RepoUrl,
+			URL:           RepoURL,
 			ReferenceName: plumbing.NewBranchReferenceName(AdjBranch),
 			SingleBranch:  true,
 			Depth:         1,
