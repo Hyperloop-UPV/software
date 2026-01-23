@@ -6,9 +6,15 @@ import (
 	"path"
 )
 
+// getBoards reads and parses the board JSON files listed in boardsList,
+// returning a map of Board structs.
 func getBoards(RepoPath string, boardsList map[string]string) (map[string]Board, error) {
 	boards := make(map[string]Board, len(boardsList))
+
+	// Parse each board
 	for boardName, boardPath := range boardsList {
+
+		// Read board file
 		fullPath := path.Join(RepoPath, boardPath)
 		boardRaw, err := os.ReadFile(fullPath)
 		if err != nil {
@@ -20,28 +26,31 @@ func getBoards(RepoPath string, boardsList map[string]string) (map[string]Board,
 			return nil, err
 		}
 
+		// Generate full paths for measurements
 		measPathsFr := make([]string, 0)
 		for _, measPath := range boardJSON.MeasurementsPaths {
 			measPathsFr = append(measPathsFr, path.Join(RepoPath, "boards", boardName, measPath))
 		}
 		boardJSON.MeasurementsPaths = measPathsFr
 
+		// Generate full paths for packets
 		packetPathsFr := make([]string, 0)
 		for _, packetPath := range boardJSON.PacketsPaths {
 			packetPathsFr = append(packetPathsFr, path.Join(RepoPath, "boards", boardName, packetPath))
 		}
 		boardJSON.PacketsPaths = packetPathsFr
 
+		// Build Board struct
 		board := Board{
 			Name: boardName,
 			IP:   boardJSON.IP,
 		}
 
+		// Parse packets and measurements
 		boardPackets, err := getBoardPackets(boardJSON.PacketsPaths)
 		if err != nil {
 			return nil, err
 		}
-
 		board.Measurements, err = getBoardMeasurements(boardJSON.MeasurementsPaths)
 		if err != nil {
 			return nil, err
@@ -78,25 +87,31 @@ func lookUpMeas(packetsTMP []Packet, lookUpMeas map[string]Measurement) []Packet
 	return packetsFNL
 }
 
+// getBoardPackets reads and parses the packet JSON files listed in packetsPaths,
 func getBoardPackets(packetsPaths []string) ([]Packet, error) {
 	packets := make([]Packet, 0)
 
+	// for each packet file
 	for _, packetPath := range packetsPaths {
+
+		// check if the file exists
 		if _, err := os.Stat(packetPath); os.IsNotExist(err) {
 			continue
 		}
 
+		// reads the file
 		packetRaw, err := os.ReadFile(packetPath)
 		if err != nil {
 			return nil, err
 		}
 
+		// unmarshals the file content
 		packet := make([]Packet, 0)
-
 		if err = json.Unmarshal(packetRaw, &packet); err != nil {
 			return nil, err
 		}
 
+		// appends the packets
 		packets = append(packets, packet...)
 	}
 
@@ -107,19 +122,20 @@ func getBoardPackets(packetsPaths []string) ([]Packet, error) {
 func getBoardMeasurements(measurementsPaths []string) ([]Measurement, error) {
 	measurementsJSON := make([]Measurement, 0)
 
+	// for each measurement file
 	for _, measurementPath := range measurementsPaths {
 		if _, err := os.Stat(measurementPath); os.IsNotExist(err) {
-			println("ADJ Error: Measurement file path not found")
+			println("ADJ Error: Measurement file path" + measurementPath + "not found")
 			continue
 		}
 
+		// reads the file and parses the measurements
 		measTMP := make([]Measurement, 0)
 
 		measurementRaw, err := os.ReadFile(measurementPath)
 		if err != nil {
 			return nil, err
 		}
-
 		if err = json.Unmarshal(measurementRaw, &measTMP); err != nil {
 			return nil, err
 		}
@@ -127,6 +143,7 @@ func getBoardMeasurements(measurementsPaths []string) ([]Measurement, error) {
 		measurementsJSON = append(measurementsJSON, measTMP...)
 	}
 
+	// Translate measurements
 	measurements, err := measTranslate(measurementsJSON)
 	if err != nil {
 		return nil, err
@@ -135,6 +152,7 @@ func getBoardMeasurements(measurementsPaths []string) ([]Measurement, error) {
 	return measurements, nil
 }
 
+// Converts MeasurementJSON to Measurement, processing ranges
 func measTranslate(measurementsTMP []Measurement) ([]Measurement, error) {
 	measurements := make([]Measurement, 0)
 
@@ -152,6 +170,7 @@ func measTranslate(measurementsTMP []Measurement) ([]Measurement, error) {
 	return measurements, nil
 }
 
+// getRanges processes the range information for a measurement and returns
 func getRanges(measTMP Measurement) ([]*float64, []*float64, error) {
 	safeRange := make([]*float64, 0)
 	warningRange := make([]*float64, 0)
@@ -197,6 +216,7 @@ func getRanges(measTMP Measurement) ([]*float64, []*float64, error) {
 	return safeRange, warningRange, nil
 }
 
+// getBoardIds reads each board JSON file listed in boards and extracts their IDs.
 func getBoardIds(boards map[string]string) (map[string]uint16, error) {
 	boardIds := make(map[string]uint16, len(boards))
 	for boardName, boardPath := range boards {
@@ -229,6 +249,7 @@ func getBoardStructures(board Board) []Structure {
 	return structures
 }
 
+// getAddresses constructs a map of board names to their IP addresses.
 func getAddresses(boards map[string]Board) (map[string]string, error) {
 	addresses := make(map[string]string, len(boards))
 	for boardName, board := range boards {
