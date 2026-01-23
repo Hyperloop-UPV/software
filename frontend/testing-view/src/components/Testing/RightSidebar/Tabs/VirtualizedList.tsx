@@ -50,7 +50,7 @@ export const VirtualizedList = ({
         {virtualizer.getVirtualItems().map((virtualRow) => (
           <div
             key={virtualRow.key}
-            className="absolute left-0 top-0 w-full"
+            className="absolute left-0 top-0 w-full px-0.5"
             style={{
               height: `${virtualRow.size}px`,
               transform: `translateY(${virtualRow.start}px)`,
