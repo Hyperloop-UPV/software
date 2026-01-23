@@ -11,12 +11,14 @@ interface TelemetryChartProps {
   id: string;
   series: VariableSeries[];
   isDragging: boolean;
+  isOver?: boolean;
 }
 
 export const TelemetryChart = ({
   id,
   series,
   isDragging,
+  isOver,
 }: TelemetryChartProps) => {
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const removeChart = useStore((s) => s.removeChart);
@@ -57,6 +59,7 @@ export const TelemetryChart = ({
     <div
       className={cn(
         "border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-colors duration-200",
+        isOver ? "border-primary/20 bg-primary/5" : "",
       )}
     >
       {/* Delete Button */}

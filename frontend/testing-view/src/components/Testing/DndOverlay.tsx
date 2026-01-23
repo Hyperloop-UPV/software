@@ -16,7 +16,7 @@ export const DndOverlay = ({ activeDragData, charts }: DndOverlayProps) => {
     <DragOverlay dropAnimation={{ duration: 200 }}>
       {activeDragData.type === "variable" ? (
         // Variable Ghost
-        <div className="bg-primary flex rotate-3 scale-110 items-center gap-2 rounded-lg px-3 py-2 text-white opacity-90 shadow-2xl">
+        <div className="bg-primary flex max-w-[200px] rotate-3 scale-110 items-center gap-2 rounded-lg px-3 py-2 text-white opacity-90 shadow-2xl">
           <Badge className="bg-white/20">{activeDragData.variableType}</Badge>
           <span className="text-xs font-bold">
             {activeDragData.variableName}
