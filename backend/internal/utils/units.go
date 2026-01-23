@@ -1,3 +1,4 @@
+// Package utils provides utility functions for handling unit conversions and operations.
 package utils
 
 import (
@@ -13,6 +14,7 @@ const (
 	Separator    = "#"
 )
 
+// operationExp matches an operator followed by a decimal number
 var operationExp = regexp.MustCompile(fmt.Sprintf(`([+\-\/*]{1})(%s)`, DecimalRegex))
 
 type Units struct {
@@ -20,6 +22,7 @@ type Units struct {
 	Operations Operations
 }
 
+// ParseUnits given a units literal string and a map of global units, returns the corresponding Units
 func ParseUnits(literal string, globalUnits map[string]Operations) (Units, error) { // TODO: puede fallar si no tiene op y no estan en global o si las op que tiene estan mal
 	if literal == "" {
 		return Units{
@@ -59,19 +62,26 @@ func ParseUnits(literal string, globalUnits map[string]Operations) (Units, error
 	}, nil
 }
 
+// Operations is a list of operations to be applied in order
 type Operations []Operation
 
+// NewOperations given an operations literal string, returns the corresponding Operations
 func NewOperations(literal string) (Operations, error) {
+	// Empty operations
 	if literal == "" {
 		return make(Operations, 0), nil
 	}
 
+	// Find all operations in the literal
+	// match structure [[full_match, operator, operand], ...]
 	matches := operationExp.FindAllStringSubmatch(literal, -1)
 
+	// If no matches found, return an error
 	if matches == nil {
 		return nil, fmt.Errorf("incorrect operations: %s", literal)
 	}
 
+	// create a operation for each match
 	operations := make([]Operation, 0)
 	for _, match := range matches {
 		operation := getOperation(match[1], match[2])
@@ -80,6 +90,7 @@ func NewOperations(literal string) (Operations, error) {
 	return operations, nil
 }
 
+// given an operator and operand string, returns the corresponding Operation
 func getOperation(operator string, operand string) Operation {
 	numOperand, err := strconv.ParseFloat(operand, 64)
 	if err != nil {
@@ -91,6 +102,7 @@ func getOperation(operator string, operand string) Operation {
 	}
 }
 
+// Convert applies each operation in order to the value given
 func (operations Operations) Convert(value float64) float64 {
 	result := value
 	for _, op := range operations {
@@ -99,6 +111,7 @@ func (operations Operations) Convert(value float64) float64 {
 	return result
 }
 
+// Revert reverts each operation in reverse order from the value given
 func (operations Operations) Revert(value float64) float64 {
 	result := value
 	for i := len(operations) - 1; i >= 0; i-- {
@@ -107,11 +120,13 @@ func (operations Operations) Revert(value float64) float64 {
 	return result
 }
 
+// Operation representation of a single operation composed by a operator and an operand
 type Operation struct {
-	Operator string
-	Operand  float64
+	Operator string  // "+", "-", "*", "/"
+	Operand  float64 // number
 }
 
+// applies the operation to the given value
 func (operation Operation) convert(value float64) float64 {
 	switch operation.Operator {
 	case "+":
@@ -126,6 +141,7 @@ func (operation Operation) convert(value float64) float64 {
 	return value
 }
 
+// reverts the operation from the given value
 func (operation Operation) revert(value float64) float64 {
 	switch operation.Operator {
 	case "+":
