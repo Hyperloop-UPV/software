@@ -9,7 +9,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-// WARNING: Doing tricks on it
+// updateRepo ensures that the local ADJ repository matches the specified remote branch.
+// It first performs a test clone to verify remote accessibility (including internet
+// connectivity). If the remote branch is accessible, the local repository is completely
+// removed and replaced with a clean, shallow clone of that branch.
+// If the remote is not accessible, the existing local repository is left untouched.
+
 func updateRepo(AdjBranch string) error {
 	var err error
 
@@ -45,6 +50,7 @@ func updateRepo(AdjBranch string) error {
 			return err
 		}
 
+		// After checking that the repo is accessible, clone or update (overwrite) the local ADJ repo
 		if _, err = os.Stat(RepoPath); os.IsNotExist(err) {
 			_, err = git.PlainClone(RepoPath, false, cloneOptions)
 			if err != nil {
