@@ -9,10 +9,14 @@ export function SortableChart({ id, series }: { id: string; series: any[] }) {
     transform,
     transition,
     isDragging,
+    isOver,
+    active,
   } = useSortable({
     id,
     data: { chartId: id },
   });
+
+  const isVariableOver = isOver && active?.data.current?.type === "variable";
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -27,7 +31,12 @@ export function SortableChart({ id, series }: { id: string; series: any[] }) {
         {...listeners}
         className="cursor-grab active:cursor-grabbing"
       >
-        <TelemetryChart id={id} series={series} isDragging={false} />
+        <TelemetryChart
+          id={id}
+          series={series}
+          isDragging={false}
+          isOver={isVariableOver}
+        />
       </div>
     </div>
   );
