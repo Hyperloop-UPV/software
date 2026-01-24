@@ -35,6 +35,7 @@ var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 var enableSNTP = flag.Bool("sntp", false, "enables a simple SNTP server on port 123")
 var blockprofile = flag.Int("blockprofile", 0, "number of block profiles to include")
 var versionFlag = flag.Bool("version", false, "Show the backend version")
+var enableL = flag.Bool("L", false, "enable logging")
 
 func main() {
 	// Parse command line flags
@@ -132,6 +133,14 @@ func main() {
 	terminate := configureSNTP(adj)
 	if terminate {
 		os.Exit(1)
+	}
+
+	// Start logger
+	if *enableL {
+		err = loggerHandler.Start()
+		if err != nil {
+			trace.Fatal().Err(err).Msg("starting logger")
+		}
 	}
 
 	// Open browser tabs
