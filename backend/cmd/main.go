@@ -1,13 +1,14 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
+	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
@@ -28,22 +29,13 @@ const (
 	RemoveStateOrder = "remove_state_order"
 )
 
-var configFile = flag.String("config", "config.toml", "path to configuration file")
-var traceLevel = flag.String("trace", "info", "set the trace level (\"fatal\", \"error\", \"warn\", \"info\", \"debug\", \"trace\")")
-var traceFile = flag.String("log", "", "set the trace log file")
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-var enableSNTP = flag.Bool("sntp", false, "enables a simple SNTP server on port 123")
-var blockprofile = flag.Int("blockprofile", 0, "number of block profiles to include")
-var versionFlag = flag.Bool("version", false, "Show the backend version")
-var enableL = flag.Bool("L", false, "enable logging")
-
 func main() {
 	// Parse command line flags
-	flag.Parse()
+	flags.Init()
 	handleVersionFlag()
 
 	// Configure trace
-	traceFile := initTrace(*traceLevel, *traceFile)
+	traceFile := initTrace(flags.TraceLevel, flags.TraceFile)
 	if traceFile != nil {
 		defer traceFile.Close()
 	}
@@ -53,7 +45,8 @@ func main() {
 	defer cleanup()
 
 	// <--- config --->
-	config, err := config.GetConfig(*configFile)
+	fmt.Println(flags.ConfigFile)
+	config, err := config.GetConfig(flags.ConfigFile)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("error unmarshaling toml file")
 	}
@@ -136,7 +129,7 @@ func main() {
 	}
 
 	// Start logger
-	if *enableL {
+	if flags.EnableLooger {
 		err = loggerHandler.Start()
 		if err != nil {
 			trace.Fatal().Err(err).Msg("starting logger")
