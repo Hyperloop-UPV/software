@@ -1,3 +1,4 @@
+// Package logger provides logging functionality for the HyperLoop backend.
 package logger
 
 import (
@@ -12,7 +13,7 @@ import (
 const (
 	Name            = "loggerHandler"
 	HandlerName     = "logger"
-	TimestampFormat = "02-Jan-2006_15-04-05.000"
+	TimestampFormat = "2006-01-02T15-04-05" // ISO 8601 date for ensuring correct lexicographical order
 )
 
 // Logger is a struct that implements the abstraction.Logger interface
@@ -33,7 +34,7 @@ type Logger struct {
 ***************/
 var _ abstraction.Logger = &Logger{}
 
-// Used on subloggers to get the current timestamp for folder or file names
+// Timestamp is used on subloggers to get the current timestamp for folder or file names
 var Timestamp = time.Now()
 
 var BasePath = "."
@@ -167,7 +168,7 @@ func (logger *Logger) Stop() error {
 	return nil
 }
 
-// Configures the logger atributes before inicialicing it
+// ConfigureLogger configures the logger attributes before initializing it.
 func ConfigureLogger(unit TimeUnit, basePath string) {
 
 	// Start the sublogger
