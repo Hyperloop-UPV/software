@@ -200,7 +200,7 @@ func (transport *Transport) targetFromTCPConn(conn net.Conn) (abstraction.Transp
 }
 
 // rejectIfConnectedTCPConn closes and rejects conn if target already has an active connection.
-func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger,) error {
+func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger) error {
 	transport.connectionsMx.Lock()
 	defer transport.connectionsMx.Unlock()
 
@@ -233,7 +233,7 @@ func (transport *Transport) registerTCPConn(target abstraction.TransportTarget, 
 func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger) {
 	from := conn.RemoteAddr().String()
 	to := conn.LocalAddr().String()
-	
+
 	go func() {
 		for {
 			packet, err := transport.decoder.DecodeNext(conn)
@@ -257,7 +257,6 @@ func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger
 		}
 	}()
 }
-
 
 // SendMessage triggers an event to send something to the vehicle. Some messages
 // might additional means to pass information around (e.g. file read and write)
@@ -402,7 +401,7 @@ func (transport *Transport) HandleSniffer(sniffer *sniffer.Sniffer) {
 func (transport *Transport) HandleUDPServer(server *udp.Server) {
 	packetsCh := server.GetPackets()
 	errorsCh := server.GetErrors()
-	
+
 	for {
 		select {
 		case packet := <-packetsCh:
@@ -417,10 +416,10 @@ func (transport *Transport) HandleUDPServer(server *udp.Server) {
 func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 	srcAddr := fmt.Sprintf("%s:%d", udpPacket.SourceIP, udpPacket.SourcePort)
 	dstAddr := fmt.Sprintf("%s:%d", udpPacket.DestIP, udpPacket.DestPort)
-	
+
 	// Create a reader from the payload
 	reader := bytes.NewReader(udpPacket.Payload)
-	
+
 	// Decode the packet
 	packet, err := transport.decoder.DecodeNext(reader)
 	if err != nil {
@@ -432,7 +431,7 @@ func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 		transport.errChan <- err
 		return
 	}
-	
+
 	// Intercept packets with id == 0 and replicate
 	if transport.propagateFault && packet.Id() == 0 {
 		transport.logger.Info().Msg("replicating packet with id 0 to all boards")
@@ -441,7 +440,7 @@ func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 			transport.logger.Error().Err(err).Msg("failed to replicate packet")
 		}
 	}
-	
+
 	// Send notification
 	transport.api.Notification(NewPacketNotification(packet, srcAddr, dstAddr, udpPacket.Timestamp))
 }
