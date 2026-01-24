@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -45,7 +44,6 @@ func main() {
 	defer cleanup()
 
 	// <--- config --->
-	fmt.Println(flags.ConfigFile)
 	config, err := config.GetConfig(flags.ConfigFile)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("error unmarshaling toml file")
