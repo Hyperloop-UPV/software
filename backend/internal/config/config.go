@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/pelletier/go-toml/v2"
 	trace "github.com/rs/zerolog/log"
 )
@@ -22,8 +23,13 @@ func GetConfig(path string) (Config, error) {
 
 	var config Config
 
-	// TODO: add strict mode (DisallowUnkownFields)
-	decodeErr := toml.NewDecoder(reader).Decode(&config)
+	decode := toml.NewDecoder(reader)
+
+	// Set whether to disallow unknown fields based on the flag
+	if !flags.ConfigAllowUnknown {
+		decode.DisallowUnknownFields()
+	}
+	decodeErr := decode.Decode(&config)
 
 	if decodeErr != nil {
 

@@ -3,13 +3,18 @@ package flags
 
 import "flag"
 
-// ConfigFile specifies the path to the configuration file.
 var (
+
+	// ConfigFile specifies the path to the configuration file.
 	ConfigFile string
+	// ConfigAllowUnknown enables non-strict mode for configuration parsing.
+	ConfigAllowUnknown bool
+
 	// TraceLevel sets the logging level for tracing.
 	TraceLevel string
 	// TraceFile specifies the file to write trace logs to.
 	TraceFile string
+
 	// CPUProfile specifies the file to write CPU profiling data to.
 	CPUProfile string
 	// EnableSNTP enables a simple SNTP server on port 123.
@@ -25,6 +30,7 @@ var (
 // Init sets up the command-line flags with their default values and descriptions.
 func Init() {
 	flag.StringVar(&ConfigFile, "config", "config.toml", "path to configuration file")
+	flag.BoolVar(&ConfigAllowUnknown, "config-allow-unknown", false, "allow unknown fields in configuration file")
 	flag.StringVar(&TraceLevel, "trace", "info", "set the trace level (\"fatal\", \"error\", \"warn\", \"info\", \"debug\", \"trace\")")
 	flag.StringVar(&TraceFile, "log", "", "set the trace log file")
 	flag.StringVar(&CPUProfile, "cpuprofile", "", "write cpu profile to file")
