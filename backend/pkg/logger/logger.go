@@ -21,7 +21,7 @@ type Logger struct {
 	running        *atomic.Bool
 	subloggersLock *sync.RWMutex
 	// The subloggers are only the loggers selected at the start of the log
-	subloggers map[abstraction.LoggerName]abstraction.Logger
+	subloggers abstraction.SubloggersMap
 
 	trace zerolog.Logger
 
@@ -40,7 +40,7 @@ var BasePath = "."
 
 func (Logger) HandlerName() string { return HandlerName }
 
-func NewLogger(keys map[abstraction.LoggerName]abstraction.Logger, baseLogger zerolog.Logger) *Logger {
+func NewLogger(keys abstraction.SubloggersMap, baseLogger zerolog.Logger) *Logger {
 	trace := baseLogger.Sample(zerolog.LevelSampler{
 		TraceSampler: zerolog.RandomSampler(25000),
 		DebugSampler: zerolog.RandomSampler(1),

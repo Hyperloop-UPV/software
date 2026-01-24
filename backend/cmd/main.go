@@ -11,7 +11,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	trace "github.com/rs/zerolog/log"
@@ -36,8 +35,6 @@ var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 var enableSNTP = flag.Bool("sntp", false, "enables a simple SNTP server on port 123")
 var blockprofile = flag.Int("blockprofile", 0, "number of block profiles to include")
 var versionFlag = flag.Bool("version", false, "Show the backend version")
-
-type SubloggersMap map[abstraction.LoggerName]abstraction.Logger
 
 func main() {
 	// Parse command line flags

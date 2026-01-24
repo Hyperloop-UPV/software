@@ -33,7 +33,7 @@ import (
 	trace "github.com/rs/zerolog/log"
 )
 
-func configureBroker(subloggers SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string, connections chan *websocket.Client) (*broker.Broker, func()) {
+func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string, connections chan *websocket.Client) (*broker.Broker, func()) {
 
 	broker := broker.New(trace.Logger)
 

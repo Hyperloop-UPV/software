@@ -134,9 +134,9 @@ func createLookupTables(
 		createBoardToPackets(podData)
 }
 
-func setUpLogger(config config.Config) (*logger.Logger, SubloggersMap) {
+func setUpLogger(config config.Config) (*logger.Logger, abstraction.SubloggersMap) {
 
-	var subloggers = SubloggersMap{
+	var subloggers = abstraction.SubloggersMap{
 		data_logger.Name:  data_logger.NewLogger(),
 		order_logger.Name: order_logger.NewLogger(),
 	}
