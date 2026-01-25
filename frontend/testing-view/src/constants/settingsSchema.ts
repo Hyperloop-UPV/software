@@ -33,12 +33,6 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     ],
   },
   {
-    title: "Network Configuration",
-    fields: [
-      { label: "Manual Selection", path: "network.manual", type: "boolean" },
-    ],
-  },
-  {
     title: "Transport Configuration",
     fields: [
       {
