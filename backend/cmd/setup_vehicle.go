@@ -64,6 +64,16 @@ func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger
 	broker.AddTopic(message_topic.UpdateName, messageTopic)
 
 	pool := websocket.NewPool(connections, trace.Logger)
+	pool.SetOnDisconnect(func(count int) {
+		if count == 0 {
+			trace.Info().Msg("no clients connected, stopping logger")
+			loggerHandler.Stop()
+			if err := loggerTopic.NotifyStopped(); err != nil {
+				trace.Error().Err(err).Msg("failed to notify logger stopped")
+			}
+		}
+	})
+
 	broker.SetPool(pool)
 	blcu_topics.RegisterTopics(broker, pool)
 
