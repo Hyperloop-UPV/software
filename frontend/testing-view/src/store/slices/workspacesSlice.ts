@@ -30,6 +30,7 @@ export interface WorkspaceChartSeries {
 export interface WorkspaceChartConfig {
   id: string;
   series: WorkspaceChartSeries[];
+  historyLimit: number;
 }
 
 export type CheckboxState = boolean | "indeterminate";
@@ -142,6 +143,11 @@ export interface WorkspacesSlice {
     workspaceId: string,
     chartId: string,
     variable: string,
+  ) => void;
+  setChartHistoryLimit: (
+    workspaceId: string,
+    chartId: string,
+    newHistoryLimit: number,
   ) => void;
 }
 
@@ -484,7 +490,7 @@ export const createWorkspacesSlice: StateCreator<
         ...state.charts,
         [workspaceId]: [
           ...(state.charts[workspaceId] || []),
-          { id: newChartId, series: [] },
+          { id: newChartId, series: [], historyLimit: 200 },
         ],
       },
     }));
@@ -547,6 +553,16 @@ export const createWorkspacesSlice: StateCreator<
           c.id === chartId
             ? { ...c, series: c.series.filter((s) => s.variable !== variable) }
             : c,
+        ),
+      },
+    })),
+
+  setChartHistoryLimit: (workspaceId, chartId, newHistoryLimit) =>
+    set((state) => ({
+      charts: {
+        ...state.charts,
+        [workspaceId]: (state.charts[workspaceId] || []).map((c) =>
+          c.id === chartId ? { ...c, historyLimit: newHistoryLimit } : c,
         ),
       },
     })),

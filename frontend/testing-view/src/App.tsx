@@ -37,9 +37,13 @@ function App() {
   const addTelemetry = useStore((s) => s.addTelemetry);
 
   // Subscribe to telemetry updates
-  useTopic<TelemetryData>("podData/update", (data) => {
-    addTelemetry(data);
-  });
+  useTopic<TelemetryData>(
+    "podData/update",
+    (data) => {
+      addTelemetry(data);
+    },
+    { downsample: "min-max", throttle: 100 },
+  );
 
   // Callback executed when connection updates are received
   const updateConnections = useStore((s) => s.updateConnections);

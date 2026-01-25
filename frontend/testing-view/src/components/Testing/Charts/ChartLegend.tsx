@@ -1,8 +1,10 @@
 import { X } from "@workspace/ui/icons";
 import { COLORS } from "../../../constants/chartsColors";
 import type { VariableSeries } from "../../../types/workspace/charts";
+import { ChartSettings } from "./ChartSettings";
 
 interface ChartLegendProps {
+  chartId: string;
   series: VariableSeries[];
   disabledIndices: Set<number>;
   onToggle: (index: number) => void;
@@ -10,12 +12,13 @@ interface ChartLegendProps {
 }
 
 export const ChartLegend = ({
+  chartId,
   series,
   disabledIndices,
   onToggle,
   onRemove,
 }: ChartLegendProps) => (
-  <div className="border-border mb-4 flex flex-wrap gap-2 border-b pb-3 pr-8">
+  <div className="border-border mb-4 flex flex-wrap gap-2 border-b pb-3 pr-14">
     {series.map((p, i) => (
       <div
         key={i}
@@ -43,5 +46,6 @@ export const ChartLegend = ({
         </button>
       </div>
     ))}
+    <ChartSettings chartId={chartId} />
   </div>
 );

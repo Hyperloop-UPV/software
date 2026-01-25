@@ -1,7 +1,10 @@
 import {
   asyncScheduler,
   BehaviorSubject,
+  bufferTime,
+  concatMap,
   filter,
+  from,
   map,
   Observable,
   ReplaySubject,
@@ -11,6 +14,8 @@ import {
 } from "rxjs";
 import { webSocket, WebSocketSubject } from "rxjs/webSocket";
 import { logger } from "./logger";
+import { minMaxDownsample } from "./minMaxDownsample";
+import { TopicOptions } from "./types";
 
 const BACKEND_URL = "ws://127.0.0.1:4000/backend";
 
@@ -64,12 +69,33 @@ class SocketService {
     this.status$.next("disconnected");
   }
 
-  onTopic(topic: string) {
-    return this.messages$.pipe(
+  onTopic(topic: string, options: TopicOptions = {}) {
+    let pipe$ = this.messages$.pipe(
       filter((msg) => msg.topic === topic),
       map((msg) => msg.payload),
-      throttleTime(100, asyncScheduler),
     );
+
+    if (options.downsample == "min-max") {
+      pipe$ = pipe$.pipe(
+        bufferTime(options.throttle || 100),
+        filter((buffer) => buffer.length > 0),
+        concatMap((buffer) => {
+          if (buffer.length <= 2) return from(buffer);
+
+          const result = minMaxDownsample(buffer);
+          logger.core.log(
+            `[Downsample] ${topic}: ${buffer.length} in -> ${result.length} out`,
+          );
+          return from(result);
+        }),
+      );
+    }
+
+    if (options.throttle) {
+      pipe$ = pipe$.pipe(throttleTime(options.throttle, asyncScheduler));
+    }
+
+    return pipe$;
   }
 
   post(topic: string, payload: any) {

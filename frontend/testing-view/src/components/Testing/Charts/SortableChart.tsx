@@ -26,18 +26,14 @@ export function SortableChart({ id, series }: { id: string; series: any[] }) {
 
   return (
     <div ref={setNodeRef} style={style} className="relative h-full w-full">
-      <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing"
-      >
-        <TelemetryChart
-          id={id}
-          series={series}
-          isDragging={false}
-          isOver={isVariableOver}
-        />
-      </div>
+      <TelemetryChart
+        id={id}
+        series={series}
+        isDragging={false}
+        isOver={isVariableOver}
+        dragAttributes={attributes}
+        dragListeners={listeners}
+      />
     </div>
   );
 }

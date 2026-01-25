@@ -1,4 +1,4 @@
-import { Trash2 } from "@workspace/ui/icons";
+import { GripVertical, Trash2 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
 import "uplot/dist/uPlot.min.css";
@@ -12,6 +12,8 @@ interface TelemetryChartProps {
   series: VariableSeries[];
   isDragging: boolean;
   isOver?: boolean;
+  dragAttributes: any;
+  dragListeners: any;
 }
 
 export const TelemetryChart = ({
@@ -19,6 +21,8 @@ export const TelemetryChart = ({
   series,
   isDragging,
   isOver,
+  dragAttributes,
+  dragListeners,
 }: TelemetryChartProps) => {
   const activeWorkspaceId = useStore((s) => s.getActiveWorkspaceId());
   const removeChart = useStore((s) => s.removeChart);
@@ -62,22 +66,40 @@ export const TelemetryChart = ({
         isOver ? "border-primary/20 bg-primary/5" : "",
       )}
     >
-      {/* Delete Button */}
-      <button
-        onClick={() => activeWorkspaceId && removeChart(activeWorkspaceId, id)}
-        className="text-muted-foreground hover:text-destructive z-5 absolute right-4 top-4 p-1 opacity-0 transition-opacity group-hover:opacity-100"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      <div className="z-5 absolute right-4 top-4 flex items-center gap-2 group-hover:opacity-100">
+        {/* Drag Handle */}
+        <button
+          {...dragAttributes}
+          {...dragListeners}
+          className="text-muted-foreground/80 hover:text-muted-foreground cursor-grab p-1 opacity-0 transition-opacity active:cursor-grabbing group-hover:opacity-100"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+
+        {/* Delete Button */}
+        <button
+          onClick={() =>
+            activeWorkspaceId && removeChart(activeWorkspaceId, id)
+          }
+          className="text-muted-foreground hover:text-destructive p-1 opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
 
       <ChartLegend
+        chartId={id}
         series={series}
         disabledIndices={disabledIndices}
         onToggle={toggleSeries}
         onRemove={(v, i) => handleRemoveSeries(v, i)}
       />
 
-      <ChartSurface series={series} disabledIndices={disabledIndices} />
+      <ChartSurface
+        chartId={id}
+        series={series}
+        disabledIndices={disabledIndices}
+      />
     </div>
   );
 };

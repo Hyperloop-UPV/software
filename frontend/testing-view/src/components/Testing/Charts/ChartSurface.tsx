@@ -1,4 +1,7 @@
-import { memo, useEffect, useRef } from "react";
+import { Button } from "@workspace/ui";
+import { ChevronLeft, ChevronRight, X } from "@workspace/ui/icons";
+import { cn } from "@workspace/ui/lib";
+import { memo, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";
 import { COLORS } from "../../../constants/chartsColors";
@@ -7,6 +10,7 @@ import type { VariableSeries } from "../../../types/workspace/charts";
 import { createTooltipPlugin } from "./tooltipPlugin";
 
 interface ChartSurfaceProps {
+  chartId: string;
   series: VariableSeries[];
   disabledIndices: Set<number>;
 }
@@ -15,14 +19,48 @@ interface ChartSurfaceProps {
 // It could provoke bugs, thus it could be improved
 
 export const ChartSurface = memo(
-  ({ series, disabledIndices }: ChartSurfaceProps) => {
+  ({ chartId, series, disabledIndices }: ChartSurfaceProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const uplotRef = useRef<uPlot | null>(null);
     const historyRef = useRef<any[]>([]);
 
+    const [isZooming, setIsZooming] = useState(false);
+
+    const activeWorkspace = useStore((s) => s.activeWorkspace);
+
+    const historyLimit = useStore(
+      (s) =>
+        s.charts[activeWorkspace?.id ?? ""]?.find((c) => c.id === chartId)
+          ?.historyLimit ?? 200,
+    );
+
     const packets = useStore(
       useShallow((state) => series.map((p) => state.telemetry[p.packetId])),
     );
+
+    const panChart = (direction: "left" | "right") => {
+      const u = uplotRef.current;
+      if (!u) return;
+
+      const xMin = u.scales.x.min!;
+      const xMax = u.scales.x.max!;
+      const range = xMax - xMin;
+      const shift = range * 0.2;
+
+      const latestDataCount =
+        historyRef.current[historyRef.current.length - 1].count;
+
+      let newMin, newMax;
+      if (direction === "left") {
+        newMin = xMin - shift;
+        newMax = xMax - shift;
+      } else {
+        newMax = Math.min(xMax + shift, latestDataCount + shift);
+        newMin = newMax - range;
+      }
+
+      u.setScale("x", { min: newMin, max: newMax });
+    };
 
     // Clear history if series definition changes
     useEffect(() => {
@@ -39,6 +77,10 @@ export const ChartSurface = memo(
         });
       }
     }, [disabledIndices, series]);
+
+    const handleDoubleClick = () => {
+      setIsZooming(false);
+    };
 
     const tooltipPlugin = createTooltipPlugin(series);
 
@@ -101,7 +143,10 @@ export const ChartSurface = memo(
             size: 40,
           },
         ],
-        cursor: { drag: { setScale: false, x: false, y: false } },
+        cursor: { drag: { setScale: true, x: true, y: false } },
+        hooks: {
+          setSelect: [(_) => setIsZooming(true)],
+        },
       };
 
       uplotRef.current = new uPlot(
@@ -110,7 +155,15 @@ export const ChartSurface = memo(
         containerRef.current,
       );
 
-      return () => uplotRef.current?.destroy();
+      containerRef.current.addEventListener("dblclick", handleDoubleClick);
+
+      return () => {
+        uplotRef.current?.destroy();
+        containerRef.current?.removeEventListener(
+          "dblclick",
+          handleDoubleClick,
+        );
+      };
     }, [series]);
 
     // Update Chart Data (Runs only when 'data' actually changes)
@@ -131,14 +184,40 @@ export const ChartSurface = memo(
 
       const lastStored = historyRef.current[historyRef.current.length - 1];
       if (!lastStored || lastStored.count !== snapshot.count) {
-        historyRef.current = [...historyRef.current, snapshot].slice(-7);
+        const prevLatestCount = lastStored?.count ?? 0;
+
+        historyRef.current = [...historyRef.current, snapshot].slice(
+          -historyLimit,
+        );
+
         const xData = historyRef.current.map((h) => h.count);
         const yData = series.map((_, i) =>
           historyRef.current.map((h) => h.values[i]),
         );
-        uplotRef.current.setData([xData, ...yData] as uPlot.AlignedData);
+
+        const u = uplotRef.current;
+
+        u.setData([xData, ...yData] as uPlot.AlignedData, !isZooming);
+
+        if (isZooming && u) {
+          const currentXMax = u.scales.x.max!;
+          const currentXMin = u.scales.x.min!;
+
+          const range = currentXMax - currentXMin;
+          const shift = range * 0.2;
+
+          // If the view was already at the "Present" before this update...
+          if (currentXMax >= prevLatestCount) {
+            const currentXMin = u.scales.x.min!;
+            const range = currentXMax - currentXMin;
+            const newMax = snapshot.count + shift;
+            const newMin = newMax - range;
+
+            u.setScale("x", { min: newMin, max: newMax });
+          }
+        }
       }
-    }, [packets, series]);
+    }, [packets, series, isZooming]);
 
     useEffect(() => {
       if (!containerRef.current) return;
@@ -171,6 +250,86 @@ export const ChartSurface = memo(
       );
     }
 
-    return <div ref={containerRef} className="h-[250px] w-full" />;
+    const latestCount =
+      historyRef.current[historyRef.current.length - 1]?.count ?? 0;
+    const currentMax = uplotRef.current?.scales.x.max ?? 0;
+    const isAtEdge = currentMax >= latestCount;
+
+    return (
+      <div className="relative w-full">
+        <div ref={containerRef} className="h-[250px] w-full" />
+        {/* Integrated Status Bar - Pinned Top Right */}
+        <div className="absolute -top-1 right-2 z-20 flex items-center gap-2">
+          <div className="bg-background/60 border-border/50 hover:bg-background/80 flex items-center gap-2 rounded-full border py-1 pl-3 pr-1 shadow-sm backdrop-blur-md transition-all">
+            {/* Mode Indicator & Label */}
+            <div
+              className={cn(
+                "flex items-center gap-2 pr-2",
+                isZooming ? "border-border/50 border-r" : "",
+              )}
+            >
+              <div
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  !isZooming
+                    ? "animate-pulse bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                    : isAtEdge
+                      ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                      : "bg-orange-500",
+                )}
+              />
+              <span className="text-foreground/70 select-none text-[9px] font-black uppercase tracking-tight">
+                {!isZooming ? "Live" : isAtEdge ? "Follow-Zoom" : "Reviewing"}
+              </span>
+            </div>
+
+            {/* Exit Button (X) - Only shows when zoomed */}
+            {isZooming && (
+              <button
+                onClick={handleDoubleClick}
+                className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-5 w-5 items-center justify-center rounded-full transition-colors"
+                title="Reset View"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        {isZooming && (
+          <>
+            <div className="pointer-events-none absolute inset-y-0 flex w-full items-center justify-between px-2">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="pointer-events-auto h-8 w-8 rounded-full opacity-70 shadow-md hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  panChart("left");
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {uplotRef.current &&
+                uplotRef.current.scales.x.max! <
+                  (historyRef.current[historyRef.current.length - 1]?.count ??
+                    0) && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="pointer-events-auto h-8 w-8 rounded-full opacity-70 shadow-md hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      panChart("right");
+                    }}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
+            </div>
+          </>
+        )}
+      </div>
+    );
   },
 );
