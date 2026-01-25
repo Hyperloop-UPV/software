@@ -14,10 +14,6 @@ type Adj struct {
 	Branch string `toml:"branch"`
 }
 
-type Network struct {
-	Manual bool `toml:"manual"`
-}
-
 type Transport struct {
 	PropagateFault bool `toml:"propagate_fault"`
 }
@@ -55,7 +51,6 @@ type Config struct {
 	Vehicle   vehicle.Config
 	Server    server.Config
 	Adj       Adj
-	Network   Network
 	Transport Transport
 	TFTP      TFTP
 	TCP       TCP

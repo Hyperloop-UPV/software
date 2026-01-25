@@ -1,3 +1,4 @@
+// Package abstraction provides interfaces for logging functionality.
 package abstraction
 
 // LoggerName is the name of the logger that manages a piece of data
@@ -23,3 +24,6 @@ type Logger interface {
 	// PullRecord will retrieve a record from disk
 	PullRecord(LoggerRequest) (LoggerRecord, error)
 }
+
+// SubloggersMap is a map of logger names to their respective loggers
+type SubloggersMap map[LoggerName]Logger

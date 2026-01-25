@@ -19,10 +19,6 @@ boards = ["BCU", "BMSL", "HVSCU", "HVSCU-Cabinet", "LCU", "PCU", "VCU", "BLCU"]
 [adj]
 branch = "main" # Leave blank when using ADJ as a submodule (like this: "")
 
-# Network Configuration
-[network]
-manual = false # Manual network device selection
-
 # Transport Configuration
 [transport]
 propagate_fault = false

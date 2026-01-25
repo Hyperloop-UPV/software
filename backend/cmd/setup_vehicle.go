@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
 	h "github.com/HyperloopUPV-H8/h9-backend/pkg/http"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
@@ -33,7 +34,7 @@ import (
 	trace "github.com/rs/zerolog/log"
 )
 
-func configureBroker(subloggers SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string, connections chan *websocket.Client) (*broker.Broker, func()) {
+func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string, connections chan *websocket.Client) (*broker.Broker, func()) {
 
 	broker := broker.New(trace.Logger)
 
@@ -135,7 +136,7 @@ func configureVehicle(
 
 func configureSNTP(adj adj_module.ADJ) bool {
 
-	if *enableSNTP {
+	if flags.EnableSNTP {
 		sntpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", adj.Info.Addresses[BACKEND], adj.Info.Ports[SNTP]))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error resolving sntp address: %v\n", err)
