@@ -1,6 +1,7 @@
 import { acronyms } from "../constants/acronyms";
 import { BOARD_NAMES } from "../constants/boards";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
+import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
 import type { Item } from "../types/common/item";
 import type { BoardName } from "../types/data/board";
 import type { MessageTimestamp } from "../types/data/message";
@@ -49,7 +50,7 @@ export const getTypeBadgeClass = (type: string) => {
     case "float":
     case "float32":
     case "float64":
-      return "bg-sky-500/20 text-sky-400 border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-300";
+      return variablesBadgeClasses.float;
 
     case "integer":
     case "int":
@@ -57,24 +58,24 @@ export const getTypeBadgeClass = (type: string) => {
     case "int16":
     case "int32":
     case "int64":
-      return "bg-emerald-500/20 text-emerald-500 border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-400";
+      return variablesBadgeClasses.integer;
 
     case "uint8":
     case "uint16":
     case "uint32":
     case "uint64":
-      return "bg-orange-500/20 text-orange-500 border-orange-500/40 dark:bg-orange-500/15 dark:text-orange-400";
+      return variablesBadgeClasses.uint8;
 
     case "string":
     case "enum":
-      return "bg-violet-500/20 text-violet-500 border-violet-500/40 dark:bg-violet-500/15 dark:text-violet-400";
+      return variablesBadgeClasses.enum;
 
     case "boolean":
     case "bool":
-      return "bg-amber-500/20 text-amber-500 border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-400";
+      return variablesBadgeClasses.boolean;
 
     default:
-      return "bg-slate-500/20 text-slate-400 border-slate-500/40 dark:bg-slate-500/15 dark:text-slate-300";
+      return variablesBadgeClasses.unknown;
   }
 };
 
@@ -82,9 +83,10 @@ export const formatName = (name: string): string => {
   const withoutParentheses = name.replace(/[()]/g, "");
 
   // Remove common board prefixes
-  const withoutPrefix = withoutParentheses
-    .replace(/(bcu|pcu|lcu|hvscu|bmsl|vcu)_/, "")
-    .replace(/hvscu_cabinet_/, "");
+  const withoutPrefix = withoutParentheses.replace(
+    /(bcu|pcu|lcu|hvscu_cabinet|hvscu|bmsl|vcu)_/,
+    "",
+  );
 
   // Split by underscore and capitalize each word
   const words = withoutPrefix.split(/[_ ]+/);
@@ -96,6 +98,7 @@ export const formatName = (name: string): string => {
       if (acronyms.includes(upperWord)) {
         return upperWord;
       }
+
       // Capitalize first letter, lowercase the rest
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
@@ -113,5 +116,6 @@ export const getCatalogKey = (scope: FilterScope) => {
 
 // Function for formatting the timestamp in messages
 export const formatTimestamp = (ts: MessageTimestamp) => {
+  if (!ts) return "00:00:00";
   return `${ts.hour.toString().padStart(2, "0")}:${ts.minute.toString().padStart(2, "0")}:${ts.second.toString().padStart(2, "0")}`;
 };
