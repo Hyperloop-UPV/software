@@ -1,4 +1,4 @@
-import { logger, socketService, TopicOptions } from "@workspace/core";
+import { logger, socketService, type TopicOptions } from "@workspace/core";
 import { useEffect, useRef } from "react";
 import { useWebSocket } from "./useWebSocket";
 

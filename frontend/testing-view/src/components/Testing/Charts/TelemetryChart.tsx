@@ -12,8 +12,8 @@ interface TelemetryChartProps {
   series: VariableSeries[];
   isDragging: boolean;
   isOver?: boolean;
-  dragAttributes: any;
-  dragListeners: any;
+  dragAttributes?: any;
+  dragListeners?: any;
 }
 
 export const TelemetryChart = ({
