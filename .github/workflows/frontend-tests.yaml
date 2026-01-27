@@ -39,7 +39,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter="./frontend/**"
 
       - name: Run tests
         run: pnpm test --filter="./frontend/**"
