@@ -6,7 +6,8 @@
     "dev:main": "turbo dev:main",
     "build": "turbo build",
     "lint": "turbo lint",
-    "preview": "turbo preview"
+    "preview": "turbo preview",
+    "test": "turbo test"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",

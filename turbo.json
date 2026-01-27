@@ -37,6 +37,10 @@
     },
     "preview": {
       "dependsOn": ["^preview"]
+    },
+    "test": {
+      "dependsOn": ["^test"],
+      "env": ["GOCACHE", "LocalAppData", "GOPATH"]
     }
   }
 }

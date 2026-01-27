@@ -3,6 +3,9 @@ trace.json
 
 /bin
 
+# Test coverage
+*testfile
+
 # Build artifacts
 /bin/
 backend
