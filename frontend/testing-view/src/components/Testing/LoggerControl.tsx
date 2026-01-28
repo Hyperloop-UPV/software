@@ -5,6 +5,7 @@ import { LOGGER_CONTROL_CONFIG } from "../../constants/loggerControlConfig";
 import useConfirmClose from "../../hooks/useConfirmClose";
 import { useLogger } from "../../hooks/useLogger";
 import { useStore } from "../../store/store";
+import type { BoardName } from "../../types/data/board";
 import type { TelemetryCatalogItem } from "../../types/data/telemetryCatalogItem";
 
 interface LoggerControlProps {
@@ -24,12 +25,24 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
     if (status === "recording") {
       stopLogging();
     } else {
-      const selectedPackets = getFilteredItems(
-        "logs",
-      ) as TelemetryCatalogItem[];
-      const variableNames = selectedPackets.flatMap((p) =>
-        p.measurements.map((m) => m.name),
+      const catalog = useStore.getState().getCatalog("logs");
+      const filters = useStore.getState().getActiveFilters("logs");
+
+      if (!catalog || !filters) return;
+
+      const variableNames = Object.entries(catalog).flatMap(
+        ([boardName, items]) => {
+          const selectedIds = filters[boardName as BoardName] || [];
+          const selectedPackets = items.filter((item) =>
+            selectedIds.includes(item.id),
+          ) as TelemetryCatalogItem[];
+
+          return selectedPackets.flatMap((p) =>
+            p.measurements.map((m) => `${boardName}/${m.id}`),
+          );
+        },
       );
+
       startLogging(variableNames);
     }
   };
