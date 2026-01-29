@@ -72,7 +72,6 @@ function App() {
             <Route path="/logs" element={<Logs />} />
           </Routes>
         </AppModeRouter>
-
         <ModeSwitcher />
       </AppLayout>
     </ErrorBoundary>
