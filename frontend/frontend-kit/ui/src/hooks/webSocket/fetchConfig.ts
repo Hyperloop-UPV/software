@@ -1,7 +1,7 @@
 import { logger } from "@workspace/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export function useFetchConfig<T>(endpoint: string) {
+export function useFetchConfig<T>(baseUrl: string, endpoint: string) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -15,7 +15,7 @@ export function useFetchConfig<T>(endpoint: string) {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:4000/backend/${endpoint}`, {
+      const res = await fetch(`${baseUrl}/${endpoint}`, {
         signal: abortControllerRef.current.signal,
       });
       const json = await res.json();

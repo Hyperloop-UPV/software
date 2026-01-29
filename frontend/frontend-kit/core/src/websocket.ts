@@ -17,8 +17,6 @@ import { logger } from "./logger";
 import { minMaxDownsample } from "./minMaxDownsample";
 import { type TopicOptions } from "./types";
 
-const BACKEND_URL = "ws://127.0.0.1:4000/backend";
-
 class SocketService {
   private socketSource$ = new ReplaySubject<WebSocketSubject<any>>(1);
   public status$ = new BehaviorSubject<
@@ -32,14 +30,14 @@ class SocketService {
 
   private ws: WebSocketSubject<any> | null = null;
 
-  connect() {
+  connect(port: number = 4000) {
     if (this.ws) return;
 
     logger.core.log("Connecting to WebSocket...");
     this.status$.next("connecting");
 
     this.ws = webSocket({
-      url: BACKEND_URL,
+      url: `ws://127.0.0.1:${port}/backend`,
       deserializer: (e) => JSON.parse(e.data),
       openObserver: {
         next: () => {

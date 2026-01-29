@@ -3,16 +3,18 @@ import { useEffect } from "react";
 import type { OrdersData, PacketsData } from "../types/data/transformedBoards";
 
 const useAppConfigs = (isConnected: boolean) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const {
     data: packets,
     loading: packetsLoading,
     refetch: refetchPackets,
-  } = useFetchConfig<PacketsData>("podDataStructure");
+  } = useFetchConfig<PacketsData>(backendUrl, "podDataStructure");
   const {
     data: commands,
     loading: commandsLoading,
     refetch: refetchCommands,
-  } = useFetchConfig<OrdersData>("orderStructures");
+  } = useFetchConfig<OrdersData>(backendUrl, "orderStructures");
 
   useEffect(() => {
     if (isConnected && packets !== null && commands !== null) {

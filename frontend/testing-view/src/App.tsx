@@ -41,7 +41,7 @@ function App() {
     (data) => {
       addTelemetry(data);
     },
-    { downsample: "min-max", throttle: 100 },
+    { downsample: "none", throttle: 100 },
   );
 
   // Callback executed when connection updates are received
