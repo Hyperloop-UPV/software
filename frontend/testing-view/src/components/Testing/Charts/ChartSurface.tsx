@@ -259,32 +259,27 @@ export const ChartSurface = memo(
       <div className="relative w-full">
         <div ref={containerRef} className="h-[250px] w-full" />
         {/* Integrated Status Bar - Pinned Top Right */}
-        <div className="absolute -top-1 right-2 z-20 flex items-center gap-2">
-          <div className="bg-background/60 border-border/50 hover:bg-background/80 flex items-center gap-2 rounded-full border py-1 pl-3 pr-1 shadow-sm backdrop-blur-md transition-all">
-            {/* Mode Indicator & Label */}
-            <div
-              className={cn(
-                "flex items-center gap-2 pr-2",
-                isZooming ? "border-border/50 border-r" : "",
-              )}
-            >
+        <div className="z-5 absolute -top-1 right-2 flex items-center gap-2">
+          {/* Mode Indicator & Label */}
+          {isZooming && (
+            <div className="bg-background/60 border-border/50 hover:bg-background/80 flex items-center gap-2 rounded-full border py-1 pl-3 pr-1 shadow-sm backdrop-blur-md transition-all">
               <div
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  !isZooming
-                    ? "animate-pulse bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
-                    : isAtEdge
+                  "border-border/50 flex items-center gap-2 border-r pr-2",
+                )}
+              >
+                <div
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    isAtEdge
                       ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
                       : "bg-orange-500",
-                )}
-              />
-              <span className="text-foreground/70 select-none text-[9px] font-black uppercase tracking-tight">
-                {!isZooming ? "Live" : isAtEdge ? "Follow-Zoom" : "Reviewing"}
-              </span>
-            </div>
-
-            {/* Exit Button (X) - Only shows when zoomed */}
-            {isZooming && (
+                  )}
+                />
+                <span className="text-foreground/70 select-none text-[9px] font-black uppercase tracking-tight">
+                  {isAtEdge ? "Follow-Zoom" : "Reviewing"}
+                </span>
+              </div>
               <button
                 onClick={handleDoubleClick}
                 className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-5 w-5 items-center justify-center rounded-full transition-colors"
@@ -292,8 +287,8 @@ export const ChartSurface = memo(
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         {isZooming && (
           <>
