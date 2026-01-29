@@ -42,7 +42,7 @@ func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger
 	cleanup := func() { dataTopic.Stop() }
 	connectionTopic := connection_topic.NewUpdateTopic()
 	orderTopic := order_topic.NewSendTopic()
-	loggerTopic := logger_topic.NewEnableTopic()
+	loggerTopic := logger_topic.NewEnableTopic(trace.Logger)
 	loggerTopic.SetDataLogger(subloggers[data_logger.Name].(*data_logger.Logger))
 	loggerHandler.SetOnStart(func() {
 		if err := loggerTopic.NotifyStarted(); err != nil {
