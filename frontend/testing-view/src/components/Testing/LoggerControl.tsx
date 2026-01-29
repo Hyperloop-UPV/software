@@ -15,7 +15,6 @@ interface LoggerControlProps {
 export const LoggerControl = ({ disabled }: LoggerControlProps) => {
   const { status, startLogging, stopLogging } = useLogger();
   const openFilterDialog = useStore((s) => s.openFilterDialog);
-  const getFilteredItems = useStore((s) => s.getFilteredItems);
 
   useConfirmClose(status === "recording");
 
