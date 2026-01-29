@@ -16,7 +16,7 @@ trace.json
 c.out
 
 # Logs
-/cmd/logger/
+cmd/logger/
 cmd/cmd
 cmd/adj
 
