@@ -142,7 +142,7 @@ export const ChartSurface = memo(
             size: 40,
           },
         ],
-        cursor: { drag: { setScale: true, x: true, y: false } },
+        cursor: { drag: { setScale: true, x: true, y: true } },
         hooks: {
           setSelect: [(_) => setIsZooming(true)],
         },
