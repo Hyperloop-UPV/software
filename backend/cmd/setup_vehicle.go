@@ -171,7 +171,7 @@ func configureSNTP(adj adj_module.ADJ) bool {
 	return false
 }
 
-func configureHttpServer(
+func configureHTTPServer(
 	adj adj_module.ADJ,
 	podData pod_data.PodData,
 	vehicleOrders vehicle_models.VehicleOrders,
