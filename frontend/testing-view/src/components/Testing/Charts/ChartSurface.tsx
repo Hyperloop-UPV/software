@@ -121,10 +121,9 @@ export const ChartSurface = memo(
             width: 2,
             points: {
               show: true,
-              size: 5,
+              size: 2,
               fill: COLORS[i % COLORS.length],
-              stroke: getStyle("--background"),
-              width: 2,
+              width: 0,
             },
           })),
         ],
