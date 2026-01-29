@@ -112,6 +112,7 @@ func (pool *Pool) Broadcast(message Message) {
 }
 
 func (pool *Pool) SetOnDisconnect(onDisconnect func(count int)) {
+	pool.logger.Trace().Msg("set on disconnect")
 	pool.onDisconnect = onDisconnect
 }
 
