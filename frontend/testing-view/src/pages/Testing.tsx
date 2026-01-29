@@ -4,6 +4,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@workspace/ui";
+import { SquareLibrary } from "@workspace/ui/icons";
 import { DndOverlay } from "../components/Testing/DndOverlay";
 import { FilterController } from "../components/Testing/Filters/FilterController";
 import { MainPanel } from "../components/Testing/MainPanel";
@@ -19,16 +20,31 @@ export const Testing = () => {
   const setIsSidebarVisible = useStore((s) => s.setTestingSidebarVisible);
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
 
-  if (!activeWorkspace) {
-    return <p>No active workspace</p>;
-  }
-
   const {
     sensors,
     activeData: activeDragData,
     handleDragStart,
     handleDragEnd,
   } = useDnd();
+
+  if (!activeWorkspace) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="space-y-4 text-center">
+          <div className="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+            <SquareLibrary className="text-muted-foreground h-8 w-8" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">No Active Workspace</h2>
+            <p className="text-muted-foreground mt-2 max-w-[500px]">
+              Create your first workspace to start organizing your commands,
+              telemetry, and charts.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

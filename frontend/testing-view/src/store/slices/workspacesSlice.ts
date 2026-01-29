@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import { DEFAULT_WORKSPACES } from "../../constants/defaultWorkspaces";
+import { EMPTY_ARRAY } from "../../constants/emptyArray";
 import {
   createEmptyFilter,
   createFullFilter,
@@ -40,8 +41,9 @@ export interface WorkspacesSlice {
   activeWorkspace: Workspace | null;
   workspaces: Workspace[];
   setActiveWorkspace: (workspace: Workspace) => void;
-  //   removeWorkspace: (id: string) => void;
-  //   addWorkspace: (workspace: Workspace) => void;
+  updateWorkspace: (id: string, name: string, description: string) => void;
+  removeWorkspace: (id: string) => void;
+  addWorkspace: (name: string, description: string) => void;
   getActiveWorkspaceId: () => string | null;
 
   // Internal helpers
@@ -161,6 +163,118 @@ export const createWorkspacesSlice: StateCreator<
   activeWorkspace: DEFAULT_WORKSPACES[0],
   workspaces: DEFAULT_WORKSPACES,
   setActiveWorkspace: (workspace) => set({ activeWorkspace: workspace }),
+  addWorkspace: (name, description) => {
+    const newWorkspaceId = crypto.randomUUID();
+
+    const newWorkspace: Workspace = {
+      id: newWorkspaceId,
+      name,
+      description,
+    };
+
+    set((state) => {
+      // Add the new workspace
+      const newWorkspaces = [...state.workspaces, newWorkspace];
+
+      // Initialize filters for the new workspace
+      const commands = state.commandsCatalog;
+      const telemetry = state.telemetryCatalog;
+
+      const newTabFilters = {
+        ...state.tabFilters,
+        [newWorkspaceId]: {
+          commands: createFullFilter(commands),
+          telemetry: createFullFilter(telemetry),
+          logs: createFullFilter(telemetry),
+        },
+      };
+
+      // Initialize expanded items for the new workspace
+      const newExpandedItems = {
+        ...state.expandedItems,
+        [newWorkspaceId]: {
+          commands: new Set<number | string>(),
+          telemetry: new Set<number | string>(),
+          logs: new Set<number | string>(),
+        },
+      };
+
+      // Initialize active tab for the new workspace
+      const newActiveTabs = {
+        ...state.activeTab,
+        [newWorkspaceId]: "commands" as SidebarTab,
+      };
+
+      // Initialize charts for the new workspace
+      const newCharts = {
+        ...state.charts,
+        [newWorkspaceId]: [],
+      };
+
+      return {
+        workspaces: newWorkspaces,
+        activeWorkspace: newWorkspace, // Auto-switch to the new workspace
+        tabFilters: newTabFilters,
+        expandedItems: newExpandedItems,
+        activeTab: newActiveTabs,
+        charts: newCharts,
+      };
+    });
+  },
+
+  updateWorkspace: (id, name, description) => {
+    set((state) => {
+      const newWorkspaces = state.workspaces.map((workspace) =>
+        workspace.id === id ? { ...workspace, name, description } : workspace,
+      );
+
+      // Update activeWorkspace if it's the one being edited
+      const newActiveWorkspace =
+        state.activeWorkspace?.id === id
+          ? { ...state.activeWorkspace, name, description }
+          : state.activeWorkspace;
+
+      return {
+        workspaces: newWorkspaces,
+        activeWorkspace: newActiveWorkspace,
+      };
+    });
+  },
+
+  removeWorkspace: (id) => {
+    set((state) => {
+      const newWorkspaces = state.workspaces.filter(
+        (workspace) => workspace.id !== id,
+      );
+
+      // Determine new active workspace
+      let newActiveWorkspace = state.activeWorkspace;
+      if (state.activeWorkspace?.id === id) {
+        // If we're deleting the active workspace, switch to another one
+        newActiveWorkspace = newWorkspaces[0] || null;
+      }
+
+      // Clean up workspace-specific data
+      const newTabFilters = { ...state.tabFilters };
+      const newExpandedItems = { ...state.expandedItems };
+      const newActiveTabs = { ...state.activeTab };
+      const newCharts = { ...state.charts };
+
+      delete newTabFilters[id];
+      delete newExpandedItems[id];
+      delete newActiveTabs[id];
+      delete newCharts[id];
+
+      return {
+        workspaces: newWorkspaces,
+        activeWorkspace: newActiveWorkspace,
+        tabFilters: newTabFilters,
+        expandedItems: newExpandedItems,
+        activeTab: newActiveTabs,
+        charts: newCharts,
+      };
+    });
+  },
   //   removeWorkspace: (id) =>
   //     set((state) => {
   //       const newWorkspaces = state.workspaces.filter(
@@ -479,7 +593,8 @@ export const createWorkspacesSlice: StateCreator<
 
   getActiveWorkspaceCharts: () => {
     const id = get().getActiveWorkspaceId();
-    return id ? get().charts[id] || [] : [];
+    if (!id) return EMPTY_ARRAY as WorkspaceChartConfig[];
+    return get().charts[id] || EMPTY_ARRAY;
   },
 
   // Future-proofing Actions
