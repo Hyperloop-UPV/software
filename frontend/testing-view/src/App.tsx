@@ -9,7 +9,6 @@ import { useChartsConfiguration } from "./hooks/useChartsConfiguration";
 import { useErrorHandler } from "./hooks/useErrorHandler";
 import { useTransformedBoards } from "./hooks/useTransformedBoards";
 import { AppLayout } from "./layout/AppLayout";
-import { CameraView } from "./pages/CameraView";
 import { Logs } from "./pages/Logs";
 import { Testing } from "./pages/Testing";
 import { useStore } from "./store/store";
@@ -71,7 +70,6 @@ function App() {
           <Routes>
             <Route path="/" element={<Testing />} />
             <Route path="/logs" element={<Logs />} />
-            <Route path="/camera-view" element={<CameraView />} />
           </Routes>
         </AppModeRouter>
 
