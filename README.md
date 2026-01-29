@@ -58,3 +58,6 @@ All Turbo scripts support filtering to target specific workspaces:
 - `pnpm test` – Runs all test suites across the repo (Vitest, Go tests, and Cargo tests).
 - `pnpm lint` – Runs ESLint across all TypeScript packages.
 - `pnpm preview` – Previews the production Vite builds for the frontend applications.
+- `pnpm ui:add <component-name>` - To add shadcn/ui components
+
+  > Note: don't forget to also include it in frontend-kit/ui/src/components/shadcn/index.ts to be able to access it from @workspace/ui

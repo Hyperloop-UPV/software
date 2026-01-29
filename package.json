@@ -7,7 +7,8 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "preview": "turbo preview",
-    "test": "turbo test"
+    "test": "turbo test",
+    "ui:add": "pnpm dlx shadcn@latest add -c frontend/frontend-kit/ui"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
