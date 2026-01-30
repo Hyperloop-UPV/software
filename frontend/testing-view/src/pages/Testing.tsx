@@ -10,6 +10,7 @@ import { FilterController } from "../components/Testing/Filters/FilterController
 import { MainPanel } from "../components/Testing/MainPanel";
 import { RightSidebar } from "../components/Testing/RightSidebar/RightSidebar";
 import { useDnd } from "../hooks/useDnd";
+import { useGlobalKeyBindings } from "../hooks/useGlobalKeyBindings";
 import { useStore } from "../store/store";
 
 export const Testing = () => {
@@ -19,6 +20,8 @@ export const Testing = () => {
   const isSidebarVisible = useStore((s) => s.testingPage.isSidebarVisible);
   const setIsSidebarVisible = useStore((s) => s.setTestingSidebarVisible);
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
+
+  useGlobalKeyBindings();
 
   const {
     sensors,

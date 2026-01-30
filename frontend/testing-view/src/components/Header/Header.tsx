@@ -2,6 +2,7 @@ import { Separator, SidebarTrigger } from "@workspace/ui";
 import { useLocation } from "react-router";
 import { PAGES } from "../../constants/pages";
 import { useStore } from "../../store/store";
+import { KeyBindingsButton } from "../Testing/KeyBindings/KeyBindingsButton";
 import { LoggerControl } from "../Testing/LoggerControl";
 import WorkspaceSwitcher from "../Testing/WorkspaceSwitcher";
 import { ModeBadge } from "./ModeBadge";
@@ -37,6 +38,13 @@ const Header = () => {
         />
         {isTestingPage && (
           <>
+            <Separator
+              orientation="vertical"
+              className="data-[orientation=vertical]:h-4"
+            />
+            <KeyBindingsButton
+              disabled={appMode === "loading" || appMode === "error"}
+            />
             <Separator
               orientation="vertical"
               className="data-[orientation=vertical]:h-4"

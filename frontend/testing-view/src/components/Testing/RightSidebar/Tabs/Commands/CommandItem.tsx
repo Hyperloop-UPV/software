@@ -1,28 +1,17 @@
 import { logger, socketService } from "@workspace/core";
 import {
   Badge,
-  Checkbox,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@workspace/ui";
 import { ChevronDown, Play, Send } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { useState } from "react";
+import { getDefaultParameterValues } from "../../../../../lib/commandUtils";
 import { useStore } from "../../../../../store/store";
-import type {
-  CommandCatalogItem,
-  CommandParameter,
-  EnumCommandParameter,
-  NumericCommandParameter,
-} from "../../../../../types/data/commandCatalogItem";
+import type { CommandCatalogItem } from "../../../../../types/data/commandCatalogItem";
+import { CommandParameters } from "./CommandParameters";
 
 interface CommandItemProps {
   item: CommandCatalogItem;
@@ -33,21 +22,12 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
     s.isItemExpanded("commands", "packet", commandCatalogItem.id),
   );
   const toggleExpandedItem = useStore((s) => s.toggleExpandedItem);
+  const keyBinding = useStore((s) =>
+    s.getKeyBindingForCommand(commandCatalogItem.id),
+  );
 
   const [parameterValues, setParameterValues] = useState<Record<string, any>>(
-    () => {
-      const defaults: Record<string, any> = {};
-      Object.entries(commandCatalogItem.fields).forEach(([key, field]) => {
-        if (field.kind === "numeric") {
-          defaults[key] = 0;
-        } else if (field.kind === "enum") {
-          defaults[key] = (field as EnumCommandParameter).options[0] || "";
-        } else if (field.kind === "boolean") {
-          defaults[key] = false;
-        }
-      });
-      return defaults;
-    },
+    () => getDefaultParameterValues(commandCatalogItem.fields),
   );
 
   const hasParameters = Object.keys(commandCatalogItem.fields).length > 0;
@@ -88,103 +68,6 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
     setParameterValues((prev) => ({ ...prev, [fieldId]: value }));
   };
 
-  const renderParameterInput = (field: CommandParameter) => {
-    if (field.kind === "numeric") {
-      const numField = field as NumericCommandParameter;
-      const minSafeRange = numField.safeRange[0];
-      const maxSafeRange = numField.safeRange[1];
-      const minWarningRange = numField.warningRange[0];
-      const maxWarningRange = numField.warningRange[1];
-
-      return (
-        <div key={field.id} className="w-full space-y-1.5">
-          <Label
-            htmlFor={field.id}
-            className="text-muted-foreground text-xs font-medium"
-          >
-            {field.name} (default: 0)
-          </Label>
-          <Input
-            id={field.id}
-            type="number"
-            placeholder={field.type}
-            value={parameterValues[field.id] || ""}
-            onChange={(e) => handleParameterChange(field.id, e.target.value)}
-            className="h-8 text-xs"
-          />
-          {minSafeRange !== null && maxSafeRange !== null && (
-            <p className="text-muted-foreground text-[10px]">
-              Range: {minSafeRange} to {maxSafeRange}
-            </p>
-          )}
-          {minWarningRange !== null && maxWarningRange !== null && (
-            <p className="text-muted-foreground text-[10px]">
-              Warning range: {minWarningRange} to {maxWarningRange}
-            </p>
-          )}
-        </div>
-      );
-    }
-
-    if (field.kind === "enum") {
-      const enumField = field as EnumCommandParameter;
-      return (
-        <div key={field.id} className="w-full space-y-1.5">
-          <Label
-            htmlFor={field.id}
-            className="text-muted-foreground text-xs font-medium"
-          >
-            {field.name}
-          </Label>
-          <Select
-            value={parameterValues[field.id] || ""}
-            onValueChange={(value) => handleParameterChange(field.id, value)}
-          >
-            <SelectTrigger className="text-xs">
-              <SelectValue placeholder="Select option" />
-            </SelectTrigger>
-            <SelectContent>
-              {enumField.options.map((option) => (
-                <SelectItem
-                  key={option}
-                  value={option}
-                  className="py-1 text-xs"
-                >
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      );
-    }
-
-    if (field.kind === "boolean") {
-      return (
-        <div
-          key={field.id}
-          className="flex w-full items-center justify-between rounded-md border p-2"
-        >
-          <Label
-            htmlFor={field.id}
-            className="text-foreground cursor-pointer text-xs font-medium"
-          >
-            {field.name}
-          </Label>
-          <Checkbox
-            id={field.id}
-            checked={parameterValues[field.id] || false}
-            onCheckedChange={(checked) =>
-              handleParameterChange(field.id, checked)
-            }
-          />
-        </div>
-      );
-    }
-
-    return null;
-  };
-
   return (
     <div className="border-b last:border-b-0">
       {hasParameters ? (
@@ -211,6 +94,15 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
                 <Badge variant="outline" className="h-4 px-1.5 text-xs">
                   {commandCatalogItem.id}
                 </Badge>
+
+                {keyBinding && (
+                  <Badge
+                    variant="default"
+                    className="h-4 bg-purple-500 px-1.5 font-mono text-xs font-bold text-white"
+                  >
+                    {keyBinding}
+                  </Badge>
+                )}
               </div>
               <Badge variant="secondary" className="h-4 px-1.5 text-xs">
                 {paramCount}
@@ -227,9 +119,11 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
 
           <CollapsibleContent>
             <div className="bg-muted/30 flex flex-col items-end space-y-3.5 border-t px-5 py-3">
-              {Object.values(commandCatalogItem.fields).map(
-                (field: CommandParameter) => renderParameterInput(field),
-              )}
+              <CommandParameters
+                fields={commandCatalogItem.fields}
+                values={parameterValues}
+                onChange={handleParameterChange}
+              />
 
               {/* Send button at bottom */}
               <button

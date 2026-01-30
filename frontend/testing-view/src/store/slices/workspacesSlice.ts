@@ -16,6 +16,7 @@ import type {
   TabFilter,
   WorkspaceFilters,
 } from "../../types/workspace/filters";
+import type { KeyBinding } from "../../types/workspace/keyBinding";
 import type {
   SidebarTab,
   WorkspaceExpandedItems,
@@ -151,6 +152,21 @@ export interface WorkspacesSlice {
     chartId: string,
     newHistoryLimit: number,
   ) => void;
+
+  // Key Bindings
+  addKeyBinding: (
+    commandId: number,
+    key: string,
+    parameters: Record<string, any>,
+  ) => void;
+  removeKeyBinding: (bindingId: string) => void;
+  getKeyBindings: () => KeyBinding[];
+  getCommandIdsByKey: (key: string) => number[];
+  getKeyBindingForCommand: (commandId: number) => string | undefined;
+  getKeyBindingParameters: (
+    commandId: number,
+    key: string,
+  ) => Record<string, any> | undefined;
 }
 
 export const createWorkspacesSlice: StateCreator<
@@ -170,6 +186,7 @@ export const createWorkspacesSlice: StateCreator<
       id: newWorkspaceId,
       name,
       description,
+      keyBindings: [],
     };
 
     set((state) => {
@@ -275,32 +292,7 @@ export const createWorkspacesSlice: StateCreator<
       };
     });
   },
-  //   removeWorkspace: (id) =>
-  //     set((state) => {
-  //       const newWorkspaces = state.workspaces.filter(
-  //         (workspace) => workspace.id !== id,
-  //       );
-  //       const newActiveWorkspace =
-  //         state.activeWorkspace?.id === id
-  //           ? newWorkspaces[0] || null
-  //           : state.activeWorkspace;
 
-  //       // Clean up workspace-specific data when removing
-  //       const newTabFilters = { ...state.tabFilters };
-  //       const newExpandedItems = { ...state.expandedItems };
-  //       const newActiveTabs = { ...state.activeTab };
-  //       delete newTabFilters[id];
-  //       delete newExpandedItems[id];
-  //       delete newActiveTabs[id];
-
-  //       return {
-  //         workspaces: newWorkspaces,
-  //         activeWorkspace: newActiveWorkspace,
-  //         tabFilters: newTabFilters,
-  //         expandedItems: newExpandedItems,
-  //         activeTab: newActiveTabs,
-  //       };
-  //     }),
   getActiveWorkspaceId: () => {
     const activeWorkspace = get().activeWorkspace;
     return activeWorkspace?.id ?? null;
@@ -681,4 +673,90 @@ export const createWorkspacesSlice: StateCreator<
         ),
       },
     })),
+
+  // Key Bindings
+  addKeyBinding: (commandId, key, parameters) => {
+    const activeWorkspaceId = get().getActiveWorkspaceId();
+    if (!activeWorkspaceId) return;
+
+    const bindingId = crypto.randomUUID();
+
+    set((state) => {
+      const updatedWorkspaces = state.workspaces.map((workspace) => {
+        if (workspace.id === activeWorkspaceId) {
+          return {
+            ...workspace,
+            keyBindings: [
+              ...(workspace.keyBindings || []),
+              { id: bindingId, commandId, key, parameters },
+            ],
+          };
+        }
+        return workspace;
+      });
+
+      const updatedActiveWorkspace = updatedWorkspaces.find(
+        (w) => w.id === activeWorkspaceId,
+      );
+
+      return {
+        workspaces: updatedWorkspaces,
+        activeWorkspace: updatedActiveWorkspace || state.activeWorkspace,
+      };
+    });
+  },
+
+  removeKeyBinding: (bindingId) => {
+    const activeWorkspaceId = get().getActiveWorkspaceId();
+    if (!activeWorkspaceId) return;
+
+    set((state) => {
+      const updatedWorkspaces = state.workspaces.map((workspace) => {
+        if (workspace.id === activeWorkspaceId) {
+          return {
+            ...workspace,
+            keyBindings: (workspace.keyBindings || []).filter(
+              (binding) => binding.id !== bindingId,
+            ),
+          };
+        }
+        return workspace;
+      });
+
+      const updatedActiveWorkspace = updatedWorkspaces.find(
+        (w) => w.id === activeWorkspaceId,
+      );
+
+      return {
+        workspaces: updatedWorkspaces,
+        activeWorkspace: updatedActiveWorkspace || state.activeWorkspace,
+      };
+    });
+  },
+
+  getKeyBindings: () => {
+    const activeWorkspace = get().activeWorkspace;
+    return activeWorkspace?.keyBindings || [];
+  },
+
+  getCommandIdsByKey: (key) => {
+    const bindings = get().getKeyBindings();
+    return bindings
+      .filter((binding) => binding.key === key)
+      .map((binding) => binding.commandId);
+  },
+
+  getKeyBindingForCommand: (commandId) => {
+    const bindings = get().getKeyBindings();
+    const binding = bindings.find((b) => b.commandId === commandId);
+    return binding?.key;
+  },
+
+  getKeyBindingParameters: (commandId, key) => {
+    const bindings = get().getKeyBindings();
+    const binding = bindings.find(
+      (b) => b.commandId === commandId && b.key === key,
+    );
+    return binding?.parameters;
+  },
 });
