@@ -152,6 +152,15 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
             <Badge variant="outline" className="h-4 px-1.5 text-xs">
               {commandCatalogItem.id}
             </Badge>
+
+            {keyBinding && (
+              <Badge
+                variant="default"
+                className="h-4 bg-purple-500 px-1.5 font-mono text-xs font-bold text-white"
+              >
+                {keyBinding}
+              </Badge>
+            )}
           </div>
         </div>
       )}
