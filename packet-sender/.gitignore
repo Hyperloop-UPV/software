@@ -1,17 +1,2 @@
-# Rust build artifacts
+# Rust target directory
 /target/
-**/*.rs.bk
-
-# Editor directories and files
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Test output
-*.log

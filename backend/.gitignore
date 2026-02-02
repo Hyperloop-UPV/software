@@ -1,31 +1,22 @@
 log
 trace.json
 
-# Windows build
-*.exe
-# Linux build
-Backend-H8
+/bin
+
+# Test coverage
+*testfile
+
+# Build artifacts
+/bin/
 backend
-!build
-# MacOS build
-cmd/cmd
-cmd/logger/
-
-# EXCEL
-*.xlsx
-
-static
-
-.vscode
-
-downloads
-
-audience_static
-
-cmd/adj/
-cmd/config.toml
-
+trace.json
 
 # Test data
+*.out
 c.out
-cover.out
+
+# Logs
+cmd/logger/
+cmd/cmd
+cmd/adj
+/logger/

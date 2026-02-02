@@ -1,0 +1,9 @@
+packages:
+  # Frontend packages
+  - "frontend/frontend-kit/**"
+  - "frontend/testing-view"
+  - "frontend/competition-view"
+
+  - "backend"
+  - "electron-app"
+  - "packet-sender"

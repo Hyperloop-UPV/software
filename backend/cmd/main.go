@@ -112,7 +112,7 @@ func main() {
 	)
 
 	// <--- http server --->
-	configureHttpServer(
+	configureHTTPServer(
 		adj,
 		podData,
 		vehicleOrders,

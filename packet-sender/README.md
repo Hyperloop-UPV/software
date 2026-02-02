@@ -39,12 +39,14 @@ cargo build --release
 ### Testing Without Backend
 
 1. **Start a test listener** (in one terminal):
+
 ```bash
 ./target/release/packet-sender listen
 # This starts a UDP listener on 127.0.0.9:8000
 ```
 
 2. **Send packets** (in another terminal):
+
 ```bash
 # Send random packets from BCU at 10 packets/second
 ./target/release/packet-sender random -b BCU -r 10
@@ -72,6 +74,7 @@ The packet-sender now supports two modes:
 ```
 
 ### Interactive Mode
+
 ```bash
 ./target/release/packet-sender interactive
 # Or in dev mode
@@ -79,6 +82,7 @@ The packet-sender now supports two modes:
 ```
 
 Interactive mode commands:
+
 - `help` / `h` - Show available commands
 - `list` / `l` - List all boards
 - `board` / `b <name>` - Show board information
@@ -101,6 +105,7 @@ The new `manual` command provides an interactive way to send packets with custom
    - Safe/warning ranges (if configured in ADJ)
 
 Example session:
+
 ```
 > manual VCU
 Available packets for board VCU:
@@ -127,6 +132,7 @@ Packet sent successfully!
 ```
 
 ### Random Generation
+
 ```bash
 # Generate packets from all boards at 100 pps
 ./target/release/packet-sender random
@@ -139,6 +145,7 @@ Packet sent successfully!
 ```
 
 ### Board Simulation
+
 ```bash
 # Simulate BCU board with random data
 ./target/release/packet-sender board BCU --mode random
@@ -151,6 +158,7 @@ Packet sent successfully!
 ```
 
 ### List Available Boards
+
 ```bash
 ./target/release/packet-sender list
 ```
@@ -175,6 +183,7 @@ The packet sender includes special handling for macOS:
 ## Packet Format
 
 Packets follow the backend's binary format:
+
 - 2 bytes: Packet ID (little-endian)
 - Variable data based on packet type and definition
 
@@ -189,12 +198,14 @@ Packets follow the backend's binary format:
 ### Testing with Backend
 
 #### Production Mode (with Sniffer)
+
 1. Start the backend with `dev_mode = false` in config.toml
 2. Ensure network interfaces are configured with board IPs
 3. Run the packet sender without the `--dev` flag
 4. Monitor backend logs for received packets
 
 #### Dev Mode (with UDP Server)
+
 1. Start the backend with `dev_mode = true` in config.toml or dev-config.toml
 2. Run the packet sender with the `--dev` flag
 3. Monitor backend logs for received packets
@@ -202,10 +213,12 @@ Packets follow the backend's binary format:
 ## Troubleshooting
 
 ### "Address already in use" errors
+
 - The tool sets SO_REUSEADDR/PORT, but check for other processes
 - Use `lsof -i :PORT` to find conflicting processes
 
 ### Packets not reaching backend
+
 - Verify backend is listening on the correct address/port
 - Check firewall settings (especially on macOS)
 - Use Wireshark to monitor localhost traffic

@@ -42,7 +42,7 @@ func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger
 	cleanup := func() { dataTopic.Stop() }
 	connectionTopic := connection_topic.NewUpdateTopic()
 	orderTopic := order_topic.NewSendTopic()
-	loggerTopic := logger_topic.NewEnableTopic()
+	loggerTopic := logger_topic.NewEnableTopic(trace.Logger)
 	loggerTopic.SetDataLogger(subloggers[data_logger.Name].(*data_logger.Logger))
 	loggerHandler.SetOnStart(func() {
 		if err := loggerTopic.NotifyStarted(); err != nil {
@@ -64,6 +64,16 @@ func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger
 	broker.AddTopic(message_topic.UpdateName, messageTopic)
 
 	pool := websocket.NewPool(connections, trace.Logger)
+	pool.SetOnDisconnect(func(count int) {
+		if count == 0 {
+			trace.Info().Msg("no clients connected, stopping logger")
+			loggerHandler.Stop()
+			if err := loggerTopic.NotifyStopped(); err != nil {
+				trace.Error().Err(err).Msg("failed to notify logger stopped")
+			}
+		}
+	})
+
 	broker.SetPool(pool)
 	blcu_topics.RegisterTopics(broker, pool)
 
@@ -161,7 +171,7 @@ func configureSNTP(adj adj_module.ADJ) bool {
 	return false
 }
 
-func configureHttpServer(
+func configureHTTPServer(
 	adj adj_module.ADJ,
 	podData pod_data.PodData,
 	vehicleOrders vehicle_models.VehicleOrders,

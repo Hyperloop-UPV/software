@@ -1,12 +1,13 @@
 {
-  "name": "hyperloop-backend",
+  "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "author": "Hyperloop UPV Team",
+  "license": "MIT",
   "scripts": {
-    "start": "node index.js"
-  },
-  "author": "",
-  "license": "ISC",
-  "keywords": [],
-  "description": ""
+    "dev": "go run ./cmd --config ./cmd/dev-config.toml",
+    "dev:main": "go run ./cmd --config ./cmd/config.toml",
+    "build": "go build -o bin/backend ./cmd",
+    "test": "go test ./..."
+  }
 }
