@@ -5,9 +5,9 @@ import {
 } from "@workspace/ui";
 import { Activity } from "react";
 import { useStore } from "../../../../store/store";
-import MessagesSection from "../../testing/RightSidebar/Sections/MessagesSection";
-import { NoneSelectedSection } from "../../testing/RightSidebar/Sections/NoneSelectedSection";
-import TabsSection from "../../testing/RightSidebar/Sections/TabsSection";
+import MessagesSection from "./sections/MessagesSection";
+import { NoneSelectedSection } from "./sections/NoneSelectedSection";
+import TabsSection from "./sections/TabsSection";
 
 interface RightSidebarContentProps {}
 

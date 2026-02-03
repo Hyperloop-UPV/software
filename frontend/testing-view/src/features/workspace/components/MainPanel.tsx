@@ -3,7 +3,7 @@ import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../../store/store";
 import type { DndActiveData } from "../../../types/app/dndData";
 import { ChartsGrid } from "../../charts/components/ChartsGrid";
-import { EmptyWorkspace } from "../testing/EmptyWorkspace";
+import { EmptyWorkspace } from "./EmptyWorkspace";
 import { TestingToolbar } from "./Toolbar";
 
 interface MainPanelProps {
