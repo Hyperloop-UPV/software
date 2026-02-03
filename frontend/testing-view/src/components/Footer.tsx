@@ -1,4 +1,7 @@
-const Footer = () => {
+/**
+ * Renders a footer with the app name, current year and the copyright notice
+ */
+export const Footer = () => {
   const currentYear = new Date().getFullYear();
   const dateRange =
     currentYear <= 2025 ? `${currentYear}` : `2025-${currentYear}`;

@@ -5,10 +5,18 @@ import errorGif from "../assets/error.gif";
 import { useStore } from "../store/store";
 
 interface ErrorProps {
+  /** Optional error to display. Can be null or undefined. In this case component will show default error message */
   error?: Error | null;
+  /** Optional component stack trace to display. Can be null or undefined. In this case component will not show anything */
   componentStack?: string | null;
 }
 
+/**
+ * Renders error page with the given error and component stack
+ *
+ * Displays an error message, optional component stack trace,\
+ * and provides actions to reload the application or inspect the stack.
+ */
 export const Error = ({ error: propError, componentStack }: ErrorProps) => {
   const storeError = useStore((s) => s.error);
   const error = propError || storeError;

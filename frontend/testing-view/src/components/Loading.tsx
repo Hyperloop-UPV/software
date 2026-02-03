@@ -1,5 +1,8 @@
 import loadingGif from "../assets/loading-monkey.gif";
 
+/**
+ * Renders a loading page with a monkey GIF, text and a glowing loading indicator
+ */
 export const Loading = () => {
   return (
     <div className="bg-background flex h-full w-full flex-col items-center justify-center p-6">
@@ -32,6 +35,7 @@ export const Loading = () => {
           </p>
         </div>
 
+        {/* Simple glowing loading indicator */}
         <div className="flex flex-col items-center gap-2">
           <div className="bg-primary/20 relative h-[2px] w-32 overflow-hidden">
             <div className="bg-primary/40 absolute inset-0 animate-pulse duration-100" />

@@ -6,6 +6,12 @@ interface AppModeRouterProps {
   children: React.ReactNode;
 }
 
+/**
+ * This component works as a router
+ * and renders the appropriate page based on the app mode.
+ *
+ * Note: If mode is not loading or error, it renders the children normally
+ */
 export const AppModeRouter = ({ children }: AppModeRouterProps) => {
   const appMode = useStore((s) => s.appMode);
 

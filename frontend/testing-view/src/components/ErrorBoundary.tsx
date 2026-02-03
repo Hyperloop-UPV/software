@@ -13,6 +13,12 @@ interface State {
   componentStack?: string | null;
 }
 
+/**
+ * This component works as a wrapper and
+ * catches and handles any unhandled errors and unhandled promise rejections.
+ *
+ * The idea is to prevent the app from crashing when an unhandled error occurs.
+ */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
