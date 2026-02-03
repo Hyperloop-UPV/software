@@ -1,5 +1,5 @@
 /**
- * One item of the catalog (commands or telemetry).
+ * Raw item from the catalog (commands or telemetry) as it arrives from the backend.
  */
 export interface Item {
   /** Unique (If firmware fixes it) ID of the item from ADJ */
@@ -7,7 +7,12 @@ export interface Item {
 
   /** Name of the item from ADJ */
   name: string;
+}
 
+/**
+ * Item from the catalog (commands or telemetry) with my label.
+ */
+export interface CatalogItem extends Item {
   /** Label of the item generated from the name on frontend startup */
   label: string;
 }

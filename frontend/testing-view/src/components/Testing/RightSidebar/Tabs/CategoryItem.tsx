@@ -2,7 +2,7 @@ import { Collapsible, CollapsibleContent } from "@workspace/ui";
 import { type ComponentType } from "react";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../../store/store";
-import type { Item } from "../../../../types/common/item";
+import type { CatalogItem } from "../../../../types/common/item";
 import type { BoardName } from "../../../../types/data/board";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { CategoryHeader } from "./CategoryHeader";
@@ -10,7 +10,7 @@ import { CategoryHeader } from "./CategoryHeader";
 interface CategoryItemProps {
   category: BoardName;
   scope: SidebarTab;
-  ItemComponent: ComponentType<{ item: Item }>;
+  ItemComponent: ComponentType<{ item: CatalogItem }>;
 }
 
 export const CategoryItem = ({

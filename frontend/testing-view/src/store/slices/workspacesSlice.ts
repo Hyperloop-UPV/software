@@ -7,9 +7,9 @@ import {
   generateInitialFilters,
   getCatalogKey,
 } from "../../lib/utils";
-import type { Item } from "../../types/common/item";
+import type { CatalogItem } from "../../types/common/item";
 import type { BoardName } from "../../types/data/board";
-import type { Measurement } from "../../types/data/telemetryCatalogItem";
+import type { Variable } from "../../types/data/telemetryCatalogItem";
 import type { VirtualRow } from "../../types/data/virtualization";
 import type {
   FilterScope,
@@ -48,7 +48,7 @@ export interface WorkspacesSlice {
   getActiveWorkspaceId: () => string | null;
 
   // Internal helpers
-  getCatalog: (scope: FilterScope) => Record<BoardName, Item[]>;
+  getCatalog: (scope: FilterScope) => Record<BoardName, CatalogItem[]>;
 
   // Tabs (per workspace)
   activeTab: Record<string, SidebarTab>;
@@ -65,7 +65,7 @@ export interface WorkspacesSlice {
   getActiveExpanded: (scope: FilterScope) => Set<number | string> | undefined;
 
   // Getters for filtered items
-  getFilteredItems: (scope: FilterScope) => Item[];
+  getFilteredItems: (scope: FilterScope) => CatalogItem[];
   getFilteredItemsIds: (scope: FilterScope) => number[];
   getFilteredItemsIdsByCategory: (
     scope: FilterScope,
@@ -74,7 +74,7 @@ export interface WorkspacesSlice {
   getFilteredItemsByCategory: (
     scope: FilterScope,
     category: BoardName,
-  ) => Item[];
+  ) => CatalogItem[];
 
   // Stats getters
   getFilteredCount: (scope: FilterScope) => number;
@@ -546,7 +546,7 @@ export const createWorkspacesSlice: StateCreator<
           // If the packet is expanded, add its variables/measurements
           if (get().isItemExpanded(scope, "packet", item.id)) {
             if ("measurements" in item) {
-              const variables = item.measurements as Measurement[];
+              const variables = item.measurements as Variable[];
               variables.forEach((m) => {
                 rows.push({
                   type: "variable",

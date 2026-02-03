@@ -1,6 +1,6 @@
 import { useFetchConfig } from "@workspace/ui/hooks";
 import { useEffect } from "react";
-import type { OrdersData, PacketsData } from "../types/data/transformedBoards";
+import type { OrdersData, PacketsData } from "../types/data/board";
 
 const useAppConfigs = (isConnected: boolean) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;

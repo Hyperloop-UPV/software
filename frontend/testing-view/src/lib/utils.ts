@@ -2,7 +2,7 @@ import { acronyms } from "../constants/acronyms";
 import { BOARD_NAMES } from "../constants/boards";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
 import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
-import type { Item } from "../types/common/item";
+import type { CatalogItem } from "../types/common/item";
 import type { BoardName } from "../types/data/board";
 import type { MessageTimestamp } from "../types/data/message";
 import type {
@@ -37,7 +37,7 @@ export const createEmptyFilter = (): TabFilter => {
 };
 
 export const createFullFilter = (
-  dataSource: Record<BoardName, Item[]>,
+  dataSource: Record<BoardName, CatalogItem[]>,
 ): TabFilter => {
   return BOARD_NAMES.reduce((acc, category) => {
     acc[category] = dataSource[category]?.map((item) => item.id) || [];

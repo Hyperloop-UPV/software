@@ -1,6 +1,6 @@
 import { type ComponentType } from "react";
 import { useStore } from "../../../../store/store";
-import type { Item } from "../../../../types/common/item";
+import type { CatalogItem } from "../../../../types/common/item";
 import type { BoardName } from "../../../../types/data/board";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { EmptyTab } from "./EmptyTab";
@@ -12,7 +12,7 @@ interface TabProps {
   title: string;
   scope: SidebarTab;
   categories: readonly BoardName[];
-  ItemComponent: ComponentType<{ item: Item }>;
+  ItemComponent: ComponentType<{ item: CatalogItem }>;
   virtualized?: boolean;
 }
 

@@ -1,8 +1,8 @@
 import { Badge, Checkbox } from "@workspace/ui";
-import type { Item } from "../../../types/common/item";
+import type { CatalogItem } from "../../../types/common/item";
 
 interface FilterItemProps {
-  item: Item;
+  item: CatalogItem;
   isChecked: boolean;
   onToggle: () => void;
 }

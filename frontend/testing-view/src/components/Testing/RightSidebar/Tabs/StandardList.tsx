@@ -1,5 +1,5 @@
 import { type ComponentType } from "react";
-import type { Item } from "../../../../types/common/item";
+import type { CatalogItem } from "../../../../types/common/item";
 import type { BoardName } from "../../../../types/data/board";
 import type { SidebarTab } from "../../../../types/workspace/sidebar";
 import { CategoryItem } from "./CategoryItem";
@@ -7,7 +7,7 @@ import { CategoryItem } from "./CategoryItem";
 interface StandardListProps {
   scope: SidebarTab;
   categories: readonly BoardName[];
-  ItemComponent: ComponentType<{ item: Item }>;
+  ItemComponent: ComponentType<{ item: CatalogItem }>;
 }
 
 export const StandardList = ({
