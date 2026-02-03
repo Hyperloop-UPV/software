@@ -1,6 +1,13 @@
+/**
+ * Key binding definition.
+ */
 export interface KeyBinding {
-  id: string; // UUID for this binding
-  commandId: number; // The command's ID
-  key: string; // The key (e.g., "1", "a")
+  /** UUID for this binding */
+  id: string;
+  /** The command's ID */
+  commandId: number;
+  /** The key (e.g., "1", "a") */
+  key: string;
+  /** The parameters for this binding executed with the command */
   parameters: Record<string, any>;
 }

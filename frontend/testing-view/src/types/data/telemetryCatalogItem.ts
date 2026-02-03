@@ -18,7 +18,7 @@ export interface RawPacket extends Item {
   cycleTime: number;
   type: string;
   measurements: Variable[];
-  /** Currently unused (always equals to "000000" placeholder) */
+  /** Currently unused (always equals to "000000" placeholder on the backend) */
   hexValue: string;
 }
 

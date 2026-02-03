@@ -1,7 +1,7 @@
 import { DragOverlay } from "@dnd-kit/core";
 import { Badge } from "@workspace/ui";
-import type { WorkspaceChartConfig } from "../../store/slices/workspacesSlice";
 import type { DndActiveData } from "../../types/app/dndData";
+import type { WorkspaceChartConfig } from "../../types/workspace/charts";
 import { TelemetryChart } from "./Charts/TelemetryChart";
 
 interface DndOverlayProps {

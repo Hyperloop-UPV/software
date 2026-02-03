@@ -1,6 +1,6 @@
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@workspace/ui/lib";
-import type { WorkspaceChartConfig } from "../../../store/slices/workspacesSlice";
+import type { WorkspaceChartConfig } from "../../../types/workspace/charts";
 import { SortableChart } from "./SortableChart";
 
 interface ChartsGridProps {

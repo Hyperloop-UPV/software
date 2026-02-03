@@ -6,12 +6,12 @@ import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";
 import { COLORS } from "../../../constants/chartsColors";
 import { useStore } from "../../../store/store";
-import type { VariableSeries } from "../../../types/workspace/charts";
+import type { WorkspaceChartSeries } from "../../../types/workspace/charts";
 import { createTooltipPlugin } from "./tooltipPlugin";
 
 interface ChartSurfaceProps {
   chartId: string;
-  series: VariableSeries[];
+  series: WorkspaceChartSeries[];
   disabledIndices: Set<number>;
 }
 

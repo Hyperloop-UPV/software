@@ -1,11 +1,11 @@
 import { X } from "@workspace/ui/icons";
 import { COLORS } from "../../../constants/chartsColors";
-import type { VariableSeries } from "../../../types/workspace/charts";
+import type { WorkspaceChartSeries } from "../../../types/workspace/charts";
 import { ChartSettings } from "./ChartSettings";
 
 interface ChartLegendProps {
   chartId: string;
-  series: VariableSeries[];
+  series: WorkspaceChartSeries[];
   disabledIndices: Set<number>;
   onToggle: (index: number) => void;
   onRemove: (variable: string, index: number) => void;

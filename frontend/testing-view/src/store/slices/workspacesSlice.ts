@@ -12,6 +12,11 @@ import type { BoardName } from "../../types/data/board";
 import type { Variable } from "../../types/data/telemetryCatalogItem";
 import type { VirtualRow } from "../../types/data/virtualization";
 import type {
+  CheckboxState,
+  WorkspaceChartConfig,
+  WorkspaceChartSeries,
+} from "../../types/workspace/charts";
+import type {
   FilterScope,
   TabFilter,
   WorkspaceFilters,
@@ -23,19 +28,6 @@ import type {
 } from "../../types/workspace/sidebar";
 import type { Workspace } from "../../types/workspace/workspace";
 import type { Store } from "../store";
-
-export interface WorkspaceChartSeries {
-  packetId: number;
-  variable: string;
-}
-
-export interface WorkspaceChartConfig {
-  id: string;
-  series: WorkspaceChartSeries[];
-  historyLimit: number;
-}
-
-export type CheckboxState = boolean | "indeterminate";
 
 export interface WorkspacesSlice {
   // Workspaces

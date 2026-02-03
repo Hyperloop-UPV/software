@@ -3,13 +3,13 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
 import "uplot/dist/uPlot.min.css";
 import { useStore } from "../../../store/store";
-import type { VariableSeries } from "../../../types/workspace/charts";
+import type { WorkspaceChartSeries } from "../../../types/workspace/charts";
 import { ChartLegend } from "./ChartLegend";
 import { ChartSurface } from "./ChartSurface";
 
 interface TelemetryChartProps {
   id: string;
-  series: VariableSeries[];
+  series: WorkspaceChartSeries[];
   isDragging: boolean;
   isOver?: boolean;
   dragAttributes?: any;
