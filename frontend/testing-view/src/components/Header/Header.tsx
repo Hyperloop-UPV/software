@@ -1,10 +1,10 @@
 import { Separator, SidebarTrigger } from "@workspace/ui";
 import { useLocation } from "react-router";
 import { PAGES } from "../../constants/pages";
+import { KeyBindingsButton } from "../../features/keyBindings/components/KeyBindingsButton";
+import { LoggerControl } from "../../features/workspace/components/LoggerControl";
+import WorkspaceSwitcher from "../../features/workspace/components/WorkspaceSwitcher";
 import { useStore } from "../../store/store";
-import { KeyBindingsButton } from "../Testing/KeyBindings/KeyBindingsButton";
-import { LoggerControl } from "../Testing/LoggerControl";
-import WorkspaceSwitcher from "../Testing/WorkspaceSwitcher";
 import { ModeBadge } from "./ModeBadge";
 import { ReconnectButton } from "./ReconnectButton";
 

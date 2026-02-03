@@ -1,7 +1,7 @@
 import { useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { Route, Routes } from "react-router";
 import { AppModeRouter } from "./components/AppModeRouter";
-import { ModeSwitcher } from "./components/DevTools/ModeSwitcher";
+import { ModeSwitcher } from "./components/devTools/ModeSwitcher";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import useAppConfigs from "./hooks/useAppConfigs";
 import { useAppMode } from "./hooks/useAppMode";

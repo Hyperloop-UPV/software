@@ -1,9 +1,9 @@
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
 import React, { useEffect } from "react";
 import Footer from "../components/Footer";
-import Header from "../components/Header/Header";
-import AppSidebar from "../components/LeftSidebar/AppSidebar";
-import { SettingsDialog } from "../components/Settings/SettingsDialog";
+import Header from "../components/header/Header";
+import AppSidebar from "../components/leftSidebar/AppSidebar";
+import { SettingsDialog } from "../components/settings/SettingsDialog";
 import { useStore } from "../store/store";
 
 interface AppLayoutProps {
