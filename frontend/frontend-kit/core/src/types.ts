@@ -2,13 +2,10 @@
  * Options for the `onTopic` method of the `SocketService` class.
  */
 export interface TopicOptions {
-  /**
-   * The downsampling method to use.
-   */
+  /** The downsampling method to use. */
   downsample?: "min-max" | "none";
-  /**
-   * The throttle time in milliseconds.
-   */
+
+  /** The throttle time in milliseconds. */
   throttle?: number;
 }
 
