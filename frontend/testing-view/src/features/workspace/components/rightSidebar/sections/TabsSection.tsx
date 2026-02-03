@@ -11,7 +11,7 @@ import { BOARD_NAMES } from "../../../../../constants/boards";
 import { useStore } from "../../../../../store/store";
 import type { CommandCatalogItem } from "../../../../../types/data/commandCatalogItem";
 import type { TelemetryCatalogItem } from "../../../../../types/data/telemetryCatalogItem";
-import type { SidebarTab } from "../../../../../types/workspace/sidebar";
+import type { SidebarTab } from "../../../types/sidebar";
 import { CommandItem } from "../tabs/commands/CommandItem";
 import { Tab } from "../tabs/Tab";
 import { TelemetryItem } from "../tabs/telemetry/TelemetryItem";

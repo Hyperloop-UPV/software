@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useShallow } from "zustand/shallow";
-import { useStore } from "../store/store";
-import type { BoardName } from "../types/data/board";
-import type { SidebarTab } from "../types/workspace/sidebar";
+import { useStore } from "../../../store/store";
+import type { BoardName } from "../../../types/data/board";
+import type { SidebarTab } from "../../../types/workspace/sidebar";
 
 export const usePacketRows = (
   scope: SidebarTab,

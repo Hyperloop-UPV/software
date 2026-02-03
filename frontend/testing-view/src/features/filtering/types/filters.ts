@@ -1,5 +1,5 @@
-import type { BoardName } from "../data/board";
-import type { SidebarTab } from "./sidebar";
+import type { BoardName } from "../../../types/data/board";
+import type { SidebarTab } from "../../workspace/types/sidebar";
 
 /**
  * Filter scope identifiers.

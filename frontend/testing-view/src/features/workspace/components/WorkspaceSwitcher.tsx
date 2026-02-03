@@ -19,7 +19,7 @@ import {
 import { cn } from "@workspace/ui/lib";
 import { useState } from "react";
 import { useStore } from "../../../store/store";
-import type { Workspace } from "../../../types/workspace/workspace";
+import type { Workspace } from "../types/workspace";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 
 interface WorkspaceSwitcherProps {

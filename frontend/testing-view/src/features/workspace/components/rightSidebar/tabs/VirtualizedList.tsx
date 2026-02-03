@@ -2,10 +2,10 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "@workspace/ui/lib";
 import { useCallback, useRef } from "react";
-import { usePacketRows } from "../../../../../hooks/usePacketRows";
 import type { BoardName } from "../../../../../types/data/board";
 import type { VirtualRow } from "../../../../../types/data/virtualization";
-import type { SidebarTab } from "../../../../../types/workspace/sidebar";
+import { usePacketRows } from "../../../hooks/usePacketRows";
+import type { SidebarTab } from "../../../types/sidebar";
 import { TelemetryRow } from "./telemetry/TelemetryRow";
 
 interface VirtualizedListProps {

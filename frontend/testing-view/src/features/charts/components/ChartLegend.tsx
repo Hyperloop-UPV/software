@@ -1,6 +1,6 @@
 import { X } from "@workspace/ui/icons";
-import { COLORS } from "../../../constants/chartsColors";
-import type { WorkspaceChartSeries } from "../../../types/workspace/charts";
+import { COLORS } from "../constants/chartsColors";
+import type { WorkspaceChartSeries } from "../types/charts";
 import { ChartSettings } from "./ChartSettings";
 
 interface ChartLegendProps {

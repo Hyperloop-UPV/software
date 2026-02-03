@@ -4,9 +4,9 @@ import { cn } from "@workspace/ui/lib";
 import { memo, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";
-import { COLORS } from "../../../constants/chartsColors";
 import { useStore } from "../../../store/store";
-import type { WorkspaceChartSeries } from "../../../types/workspace/charts";
+import { COLORS } from "../constants/chartsColors";
+import type { WorkspaceChartSeries } from "../types/charts";
 import { createTooltipPlugin } from "./tooltipPlugin";
 
 interface ChartSurfaceProps {

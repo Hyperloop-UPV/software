@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Store } from "../store";
+import type { Store } from "../../../store/store";
 
 export interface RightSidebarSlice {
   // Section visibility

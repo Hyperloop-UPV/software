@@ -6,8 +6,8 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useState } from "react";
-import { useStore } from "../store/store";
-import type { DndActiveData } from "../types/app/dndData";
+import { useStore } from "../../../store/store";
+import type { DndActiveData } from "../types/dndData";
 
 export function useDnd() {
   const [activeData, setActiveData] = useState<DndActiveData | null>(null);

@@ -17,11 +17,11 @@ import {
 } from "@workspace/ui";
 import { X } from "@workspace/ui/icons";
 import { useEffect, useRef, useState } from "react";
-import { SPECIAL_KEY_BINDINGS } from "../../../constants/specialKeyBindings";
 import { getDefaultParameterValues } from "../../../lib/commandUtils";
 import { useStore } from "../../../store/store";
 import type { CommandCatalogItem } from "../../../types/data/commandCatalogItem";
 import { CommandParameters } from "../../workspace/components/rightSidebar/tabs/commands/CommandParameters";
+import { SPECIAL_KEY_BINDINGS } from "../constants/specialKeyBindings";
 
 interface AddKeyBindingDialogProps {
   open: boolean;

@@ -1,4 +1,4 @@
-import type { WorkspaceChartConfig } from "../types/workspace/charts";
+import type { WorkspaceChartConfig } from "../features/charts/types/charts";
 
 export const MOCK_CHARTS: Record<string, WorkspaceChartConfig[]> = {
   "workspace-1": [

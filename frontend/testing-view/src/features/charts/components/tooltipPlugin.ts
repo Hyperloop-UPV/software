@@ -1,5 +1,5 @@
-import { COLORS } from "../../../constants/chartsColors";
-import type { WorkspaceChartSeries } from "../../../types/workspace/charts";
+import { COLORS } from "../constants/chartsColors";
+import type { WorkspaceChartSeries } from "../types/charts";
 
 export const createTooltipPlugin = (series: WorkspaceChartSeries[]) => {
   let tooltip: HTMLDivElement,

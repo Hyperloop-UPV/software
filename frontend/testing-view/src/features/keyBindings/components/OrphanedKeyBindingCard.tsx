@@ -1,7 +1,7 @@
 import { Badge, Button } from "@workspace/ui";
 import { AlertTriangle, X } from "@workspace/ui/icons";
 import { useStore } from "../../../store/store";
-import type { KeyBinding } from "../../../types/workspace/keyBinding";
+import type { KeyBinding } from "../types/keyBinding";
 
 interface OrphanedKeyBindingCardProps {
   binding: KeyBinding;

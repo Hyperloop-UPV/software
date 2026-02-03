@@ -1,9 +1,9 @@
 import { logger, socketService } from "@workspace/core";
 import { useEffect } from "react";
+import { getDefaultParameterValues } from "../../../lib/commandUtils";
+import { useStore } from "../../../store/store";
+import type { CommandCatalogItem } from "../../../types/data/commandCatalogItem";
 import { SPECIAL_KEY_BINDINGS } from "../constants/specialKeyBindings";
-import { getDefaultParameterValues } from "../lib/commandUtils";
-import { useStore } from "../store/store";
-import type { CommandCatalogItem } from "../types/data/commandCatalogItem";
 
 export const useGlobalKeyBindings = () => {
   const getKeyBindings = useStore((s) => s.getKeyBindings);

@@ -1,10 +1,10 @@
 import type { StateCreator } from "zustand";
-import { EMPTY_ARRAY } from "../../constants/emptyArray";
+import { EMPTY_ARRAY } from "../../../constants/emptyArray";
+import type { Store } from "../../../store/store";
 import type {
   WorkspaceChartConfig,
   WorkspaceChartSeries,
-} from "../../types/workspace/charts";
-import type { Store } from "../store";
+} from "../types/charts";
 
 export interface ChartsSlice {
   /** Map of WorkspaceID -> List of Charts */

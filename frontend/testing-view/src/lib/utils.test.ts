@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
+import type { FilterScope } from "../features/filtering/types/filters";
 import type { MessageTimestamp } from "../types/data/message";
-import type { FilterScope } from "../types/workspace/filters";
 import {
   createEmptyFilter,
   createFullFilter,

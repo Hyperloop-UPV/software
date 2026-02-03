@@ -4,22 +4,22 @@ import {
   createFullFilter,
   generateInitialFilters,
   getCatalogKey,
-} from "../../lib/utils";
-import type { CatalogItem } from "../../types/common/item";
-import type { BoardName } from "../../types/data/board";
-import type { Variable } from "../../types/data/telemetryCatalogItem";
-import type { VirtualRow } from "../../types/data/virtualization";
-import type { CheckboxState } from "../../types/workspace/charts";
+} from "../../../lib/utils";
+import type { Store } from "../../../store/store";
+import type { CatalogItem } from "../../../types/common/item";
+import type { BoardName } from "../../../types/data/board";
+import type { Variable } from "../../../types/data/telemetryCatalogItem";
+import type { VirtualRow } from "../../../types/data/virtualization";
+import type { CheckboxState } from "../../charts/types/charts";
+import type {
+  SidebarTab,
+  WorkspaceExpandedItems,
+} from "../../workspace/types/sidebar";
 import type {
   FilterScope,
   TabFilter,
   WorkspaceFilters,
-} from "../../types/workspace/filters";
-import type {
-  SidebarTab,
-  WorkspaceExpandedItems,
-} from "../../types/workspace/sidebar";
-import type { Store } from "../store";
+} from "../types/filters";
 
 export interface FilteringSlice {
   /** Sidebar Navigation */

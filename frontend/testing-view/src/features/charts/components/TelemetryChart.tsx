@@ -3,7 +3,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
 import "uplot/dist/uPlot.min.css";
 import { useStore } from "../../../store/store";
-import type { WorkspaceChartSeries } from "../../../types/workspace/charts";
+import type { WorkspaceChartSeries } from "../types/charts";
 import { ChartLegend } from "./ChartLegend";
 import { ChartSurface } from "./ChartSurface";
 

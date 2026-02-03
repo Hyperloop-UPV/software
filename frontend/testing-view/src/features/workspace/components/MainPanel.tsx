@@ -1,8 +1,8 @@
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@workspace/ui/lib";
 import { useStore } from "../../../store/store";
-import type { DndActiveData } from "../../../types/app/dndData";
 import { ChartsGrid } from "../../charts/components/ChartsGrid";
+import type { DndActiveData } from "../types/dndData";
 import { EmptyWorkspace } from "./EmptyWorkspace";
 import { TestingToolbar } from "./Toolbar";
 

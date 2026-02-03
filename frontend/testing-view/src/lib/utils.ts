@@ -1,15 +1,15 @@
 import { acronyms } from "../constants/acronyms";
 import { BOARD_NAMES } from "../constants/boards";
-import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
 import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
-import type { CatalogItem } from "../types/common/item";
-import type { BoardName } from "../types/data/board";
-import type { MessageTimestamp } from "../types/data/message";
 import type {
   FilterScope,
   TabFilter,
   WorkspaceFilters,
-} from "../types/workspace/filters";
+} from "../features/filtering/types/filters";
+import { DEFAULT_WORKSPACES } from "../features/workspace/constants/defaultWorkspaces";
+import type { CatalogItem } from "../types/common/item";
+import type { BoardName } from "../types/data/board";
+import type { MessageTimestamp } from "../types/data/message";
 
 type InitialFilters = Record<FilterScope, TabFilter>;
 

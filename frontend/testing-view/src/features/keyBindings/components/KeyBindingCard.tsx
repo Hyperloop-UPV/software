@@ -3,7 +3,7 @@ import { ChevronDown, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { useState } from "react";
 import { useStore } from "../../../store/store";
-import type { KeyBinding } from "../../../types/workspace/keyBinding";
+import type { KeyBinding } from "../types/keyBinding";
 
 interface KeyBindingCardProps {
   binding: KeyBinding;

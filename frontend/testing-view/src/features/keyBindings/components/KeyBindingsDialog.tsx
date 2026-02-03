@@ -10,7 +10,7 @@ import { Plus } from "@workspace/ui/icons";
 import { useState } from "react";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../store/store";
-import type { KeyBinding } from "../../../types/workspace/keyBinding";
+import type { KeyBinding } from "../types/keyBinding";
 import { AddKeyBindingDialog } from "./AddKeyBindingDialog";
 import { KeyBindingCard } from "./KeyBindingCard";
 import { OrphanedKeyBindingCard } from "./OrphanedKeyBindingCard";

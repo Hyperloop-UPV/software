@@ -1,4 +1,4 @@
-import type { KeyBinding } from "./keyBinding";
+import type { KeyBinding } from "../../keyBindings/types/keyBinding";
 
 /**
  * Workspace definition.

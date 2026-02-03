@@ -1,10 +1,10 @@
 import type { StateCreator } from "zustand";
-import { DEFAULT_WORKSPACES } from "../../constants/defaultWorkspaces";
-import { createFullFilter } from "../../lib/utils";
-import type { KeyBinding } from "../../types/workspace/keyBinding";
-import type { SidebarTab } from "../../types/workspace/sidebar";
-import type { Workspace } from "../../types/workspace/workspace";
-import type { Store } from "../store";
+import { createFullFilter } from "../../../lib/utils";
+import type { Store } from "../../../store/store";
+import type { KeyBinding } from "../../keyBindings/types/keyBinding";
+import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
+import type { SidebarTab } from "../types/sidebar";
+import type { Workspace } from "../types/workspace";
 
 export interface WorkspacesSlice {
   /** Workspaces */
