@@ -11,14 +11,15 @@ export interface Variable {
 }
 
 /**
- * Definition of a TelemetryPacket as it arrives from the backend.
+ * Definition of a telemetry packet as it arrives from the backend.
  */
 export interface RawPacket extends Item {
-  hexValue: string;
   count: number;
   cycleTime: number;
   type: string;
   measurements: Variable[];
+  /** Currently unused (always equals to "000000" placeholder) */
+  hexValue: string;
 }
 
 /**
