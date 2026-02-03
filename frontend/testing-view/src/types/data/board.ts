@@ -3,7 +3,7 @@ import type { TelemetryCatalogItem } from "./telemetryCatalogItem";
 
 /**
  * Name of a board, like LCU or HVBMS.\
- * I decided not to use array of string in case a new board is added in the future.
+ * I decided not to use array of predefined strings in case a new board is added in the future.
  */
 export type BoardName = string;
 
