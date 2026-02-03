@@ -1,4 +1,4 @@
-import { TelemetryPacket, VariableValue } from "./types";
+import { type TelemetryPacket, type VariableValue } from "./types";
 
 /**
  * Helper to extract a numeric value for comparison.
