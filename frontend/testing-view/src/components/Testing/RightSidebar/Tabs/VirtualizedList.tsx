@@ -14,6 +14,15 @@ interface VirtualizedListProps {
   categories: readonly BoardName[];
 }
 
+/**
+ * A highly optimized list renderer for data. Only used for Telemetry data.
+ *
+ * Unlike StandardList, this component flattens the Board -> Packet -> Variable tree
+ * into a single virtualized array to handle thousands of items without lag by rerendering only the visible items.
+ *
+ * It relies on `usePacketRows` (which calls `getFlattenedRows` from the store)
+ * to maintain the visual illusion of a tree structure while actually rendering a flat list.
+ */
 export const VirtualizedList = ({
   scope,
   categories,

@@ -16,6 +16,17 @@ interface TelemetryChartProps {
   dragListeners?: any;
 }
 
+/**
+ * A draggable, interactive chart container for visualizing telemetry data.
+ *
+ * Features:
+ * - Data Visualization: Renders high-frequency data using `uPlot` via `ChartSurface`.
+ * - Displays a `ChartLegend` to toggle or remove individual data series.
+ * - Supports drag-and-drop reordering within the grid.
+ *
+ * It manages local state for "disabled series" (toggled off in legend but still in config),
+ * preventing data loss when users just want to temporarily hide a line.
+ */
 export const TelemetryChart = ({
   id,
   series,

@@ -10,6 +10,12 @@ interface StandardListProps {
   ItemComponent: ComponentType<{ item: CatalogItem }>;
 }
 
+/**
+ * Standard tree renderer for smaller catalogs. Right now used for commands tab.\
+ * Based on categories (board names) and item component recieved as prop.
+ *
+ * It's counterpart is VirtualizedList, which is used for Telemetry data and implements virtualization.
+ */
 export const StandardList = ({
   scope,
   categories,
