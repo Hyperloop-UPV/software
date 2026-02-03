@@ -2,10 +2,15 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createAppSlice, type AppSlice } from "./slices/appSlice";
 import { createCatalogSlice, type CatalogSlice } from "./slices/catalogSlice";
+import { createChartsSlice, type ChartsSlice } from "./slices/chartsSlice";
 import {
   createConnectionsSlice,
   type ConnectionsSlice,
 } from "./slices/connectionsSlice";
+import {
+  createFilteringSlice,
+  type FilteringSlice,
+} from "./slices/filteringSlice";
 import {
   createMessagesSlice,
   type MessagesSlice,
@@ -29,7 +34,9 @@ export type Store = AppSlice &
   TelemetrySlice &
   RightSidebarSlice &
   ConnectionsSlice &
-  MessagesSlice;
+  MessagesSlice &
+  ChartsSlice &
+  FilteringSlice;
 
 export const useStore = create<Store>()(
   // devtools(
@@ -42,6 +49,8 @@ export const useStore = create<Store>()(
       ...createRightSidebarSlice(...a),
       ...createConnectionsSlice(...a),
       ...createMessagesSlice(...a),
+      ...createChartsSlice(...a),
+      ...createFilteringSlice(...a),
     }),
     {
       // Partial persist
@@ -61,7 +70,7 @@ export const useStore = create<Store>()(
 
         // Workspace UI state
         activeTab: state.activeTab,
-        tabFilters: state.tabFilters,
+        tabFilters: state.workspaceFilters,
       }),
     },
   ),

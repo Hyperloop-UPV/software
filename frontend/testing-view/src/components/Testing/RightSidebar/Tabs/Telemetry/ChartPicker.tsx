@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui";
 import { Plus } from "@workspace/ui/icons";
-import type { WorkspaceChartConfig } from "../../../../../store/slices/workspacesSlice";
+import type { WorkspaceChartConfig } from "../../../../../types/workspace/charts";
 
 interface ChartPickerProps {
   charts: WorkspaceChartConfig[];

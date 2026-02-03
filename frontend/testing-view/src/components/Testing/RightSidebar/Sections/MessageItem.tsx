@@ -82,12 +82,14 @@ export const MessageItem = ({ message }: MessageItemProps) => {
         <CollapsibleContent className="w-full cursor-auto select-text px-3 pb-2 pt-0 text-xs">
           <div onClick={(e) => e.stopPropagation()}>
             <div className="flex w-full items-end justify-between gap-1">
-              {/* If it's a protection message, showing the sub-kind can be helpful */}
-              {message.payload?.kind && (
-                <span className="text-muted-foreground text-[10px] font-bold uppercase opacity-70">
-                  {message.payload.kind.replace("_", " ")}
-                </span>
-              )}
+              {/* If it's a detailed message, showing the sub-kind can be helpful */}
+              {message.payload &&
+                typeof message.payload === "object" &&
+                message.payload.kind && (
+                  <span className="text-muted-foreground text-[10px] font-bold uppercase opacity-70">
+                    {message.payload.kind.replace("_", " ")}
+                  </span>
+                )}
               <p className="whitespace-pre-wrap font-medium leading-relaxed">
                 {renderMessageContent(message.payload)}
               </p>
