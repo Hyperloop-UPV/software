@@ -1,15 +1,4 @@
-export type Variables = Record<
-  string,
-  { last: number; average: number } | boolean | string | number
->;
-
-export interface TelemetryPacket {
-  count: number;
-  cycleTime: number;
-  hexValue: string;
-  id: number;
-  measurementUpdates: Variables;
-}
+import type { TelemetryPacket } from "@workspace/core";
 
 export type TelemetryData = Record<number, TelemetryPacket>;
 
