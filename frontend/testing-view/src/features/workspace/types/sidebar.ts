@@ -1,4 +1,4 @@
-import type { FilterScope } from "./filters";
+import type { FilterScope } from "../../filtering/types/filters";
 
 /**
  * Sidebar tab identifiers.

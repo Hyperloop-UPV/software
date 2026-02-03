@@ -7,12 +7,12 @@ export interface Variable {
   id: string;
   name: string;
   type: string;
+  units?: string;
 }
 
 export interface NumericVariable extends Variable {
   safeRange: (number | null)[];
   warningRange: (number | null)[];
-  units: string;
 }
 
 export interface EnumVariable extends Variable {

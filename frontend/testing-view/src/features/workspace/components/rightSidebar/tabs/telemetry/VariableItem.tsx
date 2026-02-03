@@ -125,7 +125,7 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
 
       {/* Live Value */}
       <TelemetryValue
-        units={variable.units}
+        units={variable.units ?? ""}
         packetId={packetId}
         variableId={variable.id}
       />
