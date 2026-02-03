@@ -4,7 +4,7 @@ import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../../../store/store";
 import type { CatalogItem } from "../../../../../types/common/item";
 import type { BoardName } from "../../../../../types/data/board";
-import type { SidebarTab } from "../../../../../types/workspace/sidebar";
+import type { SidebarTab } from "../../../types/sidebar";
 import { CategoryHeader } from "./CategoryHeader";
 
 interface CategoryItemProps {

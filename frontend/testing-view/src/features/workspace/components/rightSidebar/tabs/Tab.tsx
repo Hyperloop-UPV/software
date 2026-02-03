@@ -2,11 +2,11 @@ import { type ComponentType } from "react";
 import { useStore } from "../../../../../store/store";
 import type { CatalogItem } from "../../../../../types/common/item";
 import type { BoardName } from "../../../../../types/data/board";
-import type { SidebarTab } from "../../../../../types/workspace/sidebar";
 import { EmptyTab } from "./EmptyTab";
 import { StandardList } from "./StandardList";
 import { TabHeader } from "./TabHeader";
 import { VirtualizedList } from "./VirtualizedList";
+import type { SidebarTab } from "../../../types/sidebar";
 
 interface TabProps {
   title: string;

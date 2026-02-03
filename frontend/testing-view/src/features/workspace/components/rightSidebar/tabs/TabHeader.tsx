@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui";
 import { ListFilterPlus } from "@workspace/ui/icons";
 import { useStore } from "../../../../../store/store";
-import type { SidebarTab } from "../../../../../types/workspace/sidebar";
+import type { SidebarTab } from "../../../types/sidebar";
 
 interface TabHeaderProps {
   title: string;

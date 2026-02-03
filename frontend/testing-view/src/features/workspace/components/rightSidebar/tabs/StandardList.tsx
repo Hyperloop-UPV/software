@@ -1,8 +1,8 @@
 import { type ComponentType } from "react";
 import type { CatalogItem } from "../../../../../types/common/item";
 import type { BoardName } from "../../../../../types/data/board";
-import type { SidebarTab } from "../../../../../types/workspace/sidebar";
 import { CategoryItem } from "./CategoryItem";
+import type { SidebarTab } from "../../../types/sidebar";
 
 interface StandardListProps {
   scope: SidebarTab;
