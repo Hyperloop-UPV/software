@@ -7,11 +7,12 @@ export function useAppMode(
   packets: PacketsData | null,
   commands: OrdersData | null,
   isLoading: boolean,
-  backendConnected: boolean,
 ) {
   const setAppMode = useStore((s) => s.setAppMode);
   const appMode = useStore((s) => s.appMode);
   const modeOverride = useStore((s) => s.modeOverride);
+  const isRestarting = useStore((s) => s.isRestarting);
+  const error = useStore((s) => s.error);
 
   const determineAppMode = useCallback(() => {
     // If there's an override, use it
@@ -22,8 +23,9 @@ export function useAppMode(
 
     const isForceDev = import.meta.env.VITE_FORCE_DEV === "true";
     const isDev = import.meta.env.DEV || isForceDev;
+
     const hasData = !!(packets?.boards && commands?.boards);
-    const hasError = !hasData || !backendConnected;
+    const hasError = !hasData || error;
 
     // Debug logs
     // logger.testingView.log("[DEBUG] isDev", isDev);
@@ -32,11 +34,20 @@ export function useAppMode(
     // logger.testingView.log("[DEBUG] backendConnected", backendConnected);
     // logger.testingView.log("[DEBUG] hasError", hasError);
 
-    if (isLoading) return "loading";
+    if (isLoading || isRestarting) return "loading";
+
+    if (!packets || !commands) {
+      // If we have an explicit error, show it.
+      if (hasError) return "error";
+
+      // Otherwise, we are just waiting for data.
+      return "loading";
+    }
+
     if (!hasError) return "active";
     if (isDev) return "mock";
     return "error";
-  }, [isLoading, packets, commands, backendConnected, modeOverride]);
+  }, [isLoading, packets, commands, isRestarting, modeOverride]);
 
   // Determine and set app mode
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { socketService } from "@workspace/core";
 import { Badge, Button } from "@workspace/ui";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { SettingsForm } from "./SettingsForm";
 export const SettingsDialog = () => {
   const isSettingsOpen = useStore((s) => s.isSettingsOpen);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
+  const setRestarting = useStore((s) => s.setRestarting);
   const [localConfig, setLocalConfig] = useState<any>(null);
   const [isSynced, setIsSynced] = useState(false);
 
@@ -55,7 +57,14 @@ export const SettingsDialog = () => {
     } else {
       console.log("Electron API not available. Using default config.");
     }
-    setSettingsOpen(false);
+
+    setRestarting(true);
+
+    setTimeout(() => {
+      socketService.connect();
+      setSettingsOpen(false);
+      setRestarting(false);
+    }, 500);
   };
 
   return (

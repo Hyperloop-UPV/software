@@ -73,7 +73,7 @@ export const useStore = create<Store>()(
 
         // Workspace UI state
         activeTab: state.activeTab,
-        tabFilters: state.workspaceFilters,
+        workspaceFilters: state.workspaceFilters,
       }),
     },
   ),

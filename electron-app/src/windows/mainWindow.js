@@ -5,8 +5,8 @@
  */
 
 import { BrowserWindow, app, dialog } from "electron";
-import path from "path";
 import fs from "fs";
+import path from "path";
 import { createMenu } from "../menu/menu.js";
 import { getAppPath } from "../utils/paths.js";
 
@@ -16,7 +16,7 @@ const appPath = getAppPath();
 // Store the main window instance
 let mainWindow = null;
 // Track the currently loaded view
-let currentView = "ethernet-view";
+let currentView = "testing-view";
 
 /**
  * Creates and initializes the main application window.
@@ -44,7 +44,7 @@ function createWindow() {
   });
 
   // Load ethernet view by default
-  loadView("ethernet-view");
+  loadView(currentView);
 
   // Create application menu
   createMenu(mainWindow);
@@ -117,4 +117,4 @@ function getMainWindow() {
   return mainWindow;
 }
 
-export { createWindow, loadView, getCurrentView, getMainWindow };
+export { createWindow, getCurrentView, getMainWindow, loadView };

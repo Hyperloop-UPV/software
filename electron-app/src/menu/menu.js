@@ -4,13 +4,13 @@
  * Defines menu structure with File, View, Tools, and Help sections with keyboard shortcuts and actions.
  */
 
-import { Menu, dialog, app } from "electron";
-import { getBinaryPath } from "../utils/paths.js";
-import {
-  startPacketSender,
-  getPacketSenderProcess,
-} from "../processes/packetSender.js";
+import { Menu, app, dialog } from "electron";
 import fs from "fs";
+import {
+  getPacketSenderProcess,
+  startPacketSender,
+} from "../processes/packetSender.js";
+import { getBinaryPath } from "../utils/paths.js";
 import { loadView } from "../windows/mainWindow.js";
 
 /**
@@ -46,16 +46,14 @@ function createMenu(mainWindow) {
           label: "Control Station",
           accelerator: "CmdOrCtrl+1",
           click: () => {
-            loadView("control-station");
-            loadView("control-station");
+            loadView("competition-view");
           },
         },
         {
           label: "Ethernet View",
           accelerator: "CmdOrCtrl+2",
           click: () => {
-            loadView("ethernet-view");
-            loadView("ethernet-view");
+            loadView("testing-view");
           },
         },
         { type: "separator" },

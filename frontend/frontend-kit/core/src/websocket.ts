@@ -2,13 +2,16 @@ import {
   asyncScheduler,
   BehaviorSubject,
   bufferTime,
+  catchError,
   concatMap,
+  EMPTY,
   filter,
   from,
   map,
   Observable,
   ReplaySubject,
   shareReplay,
+  Subject,
   switchMap,
   throttleTime,
 } from "rxjs";
@@ -34,10 +37,25 @@ class SocketService {
   >("disconnected");
 
   /**
+   * Subject that holds the error of the WebSocket connection.
+   *
+   * The idea is to emit only one error event for each error.\
+   * Without this subject error gets duplicated because of shareReplay operator.
+   */
+  public error$ = new Subject<Error>();
+
+  /**
    * Observable that emits the messages from the WebSocket server.
    */
   public messages$: Observable<any> = this.socketSource$.pipe(
-    switchMap((socket) => socket),
+    switchMap((socket) =>
+      socket.pipe(
+        catchError((err) => {
+          this.error$.next(err);
+          return EMPTY;
+        }),
+      ),
+    ),
     shareReplay(1),
   );
 
@@ -70,6 +88,8 @@ class SocketService {
     this.ws.subscribe({
       error: (err) => {
         logger.core.error("WebSocket Error:", err);
+        this.error$.next(err);
+
         this.status$.next("disconnected");
         this.cleanup();
       },
@@ -143,6 +163,15 @@ class SocketService {
       return;
     }
     this.ws.next({ topic, payload });
+  }
+
+  /**
+   * Subscribes to the error subject.
+   * @param callback - the callback to call when an error occurs.
+   * @returns a subscription to the error subject.
+   */
+  onError(callback: (err: Error) => void) {
+    return this.error$.subscribe(callback);
   }
 }
 
