@@ -379,12 +379,13 @@ func TestEncoder(t *testing.T) {
 
 			output := make([]byte, 0, len(test.output))
 			for i := 0; i < len(test.input); i++ {
-				encoded, err := encoder.Encode(test.input[i])
+				buf, err := encoder.Encode(test.input[i])
 				if err != nil {
 					t.Fatalf("\nError encoding (%d) packet: %s\n", i+1, err)
 				}
 
-				output = append(output, encoded...)
+				output = append(output, buf.Bytes()...)
+				encoder.ReleaseBuffer(buf)
 
 			}
 

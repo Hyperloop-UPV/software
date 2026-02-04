@@ -1,18 +1,30 @@
 package transport
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/sniffer"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
+	"github.com/google/gopacket/pcapgo"
+	tftpv3 "github.com/pin/tftp/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -74,6 +86,26 @@ func (api *TestTransportAPI) Reset() {
 	api.connectionUpdates = api.connectionUpdates[:0]
 	api.notifications = api.notifications[:0]
 }
+
+// simpleConn is a net.Conn with specified local and remote addresses
+type simpleConn struct {
+	net.Conn
+	local  net.Addr
+	remote net.Addr
+}
+
+func (c *simpleConn) LocalAddr() net.Addr  { return c.local }
+func (c *simpleConn) RemoteAddr() net.Addr { return c.remote }
+
+func defaultLogger() zerolog.Logger {
+	return zerolog.New(zerolog.Nop())
+}
+
+// noopTransportAPI is a no-op implementation of abstraction.TransportAPI
+type noopTransportAPI struct{}
+
+func (noopTransportAPI) Notification(abstraction.TransportNotification)     {}
+func (noopTransportAPI) ConnectionUpdate(abstraction.TransportTarget, bool) {}
 
 // MockBoardServer simulates a vehicle board
 type MockBoardServer struct {
@@ -234,6 +266,7 @@ func createTestTransport(t *testing.T) (*Transport, *TestTransportAPI) {
 	enc := presentation.NewEncoder(binary.BigEndian, logger)
     dec := presentation.NewDecoder(binary.BigEndian, logger)
     wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
+	wireTestPacketCodec(enc, dec, abstraction.PacketId(0))
 
 
 	transport := NewTransport(logger).
@@ -253,6 +286,19 @@ func getAvailablePort(t testing.TB) string {
 	}
 	defer listener.Close()
 	return listener.Addr().String()
+}
+
+func getAvailableUDPPort(t testing.TB) uint16 {
+	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Failed to resolve UDP addr: %v", err)
+	}
+	conn, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		t.Fatalf("Failed to listen UDP: %v", err)
+	}
+	defer conn.Close()
+	return uint16(conn.LocalAddr().(*net.UDPAddr).Port)
 }
 
 // waitForCondition waits for a condition to be true within a timeout
@@ -333,39 +379,206 @@ func TestTransport_SetTargetIp(t *testing.T) {
 	}
 }
 
-func TestTransport_InvalidInputs(t *testing.T) {
-	transport, _ := createTestTransport(t)
+func TestWithTFTP(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	client := &tftp.Client{}
 
-	// Test invalid ID input
-	err := transport.SetIdTarget(0, "")
-	if err == nil {
-		t.Errorf("Expected error for invalid ID input, got nil")
-	}
-
-	// Test invalid IP input
-	err = transport.SetTargetIp("", "")
-	if err == nil {
-		t.Errorf("Expected error for invalid IP input, got nil")
+	out := tr.WithTFTP(client)
+	if out.tftp != client {
+		t.Fatalf("expected tftp client to be set")
 	}
 }
 
-func TestTransport_RemoveTargets(t *testing.T) {
-	transport, _ := createTestTransport(t)
-
-	// Add entries
-	transport.SetIdTarget(100, "TEST_BOARD")
-	transport.SetTargetIp("192.168.1.100", "TEST_BOARD")
-
-	// Remove entries
-	delete(transport.idToTarget, 100)
-	delete(transport.ipToTarget, "192.168.1.100")
-
-	// Verify removal
-	if _, exists := transport.idToTarget[100]; exists {
-		t.Errorf("Expected ID 100 to be removed, but it still exists")
+func TestTransportErrors(t *testing.T) {
+	tests := []struct {
+		err  error
+		want string
+	}{
+		{ErrUnrecognizedEvent{Event: PacketEvent}, "unrecognized event packet"},
+		{ErrTargetAlreadyConnected{Target: "X"}, "X is already connected"},
+		{ErrUnrecognizedId{Id: 7}, "could not find target for packet with id 7"},
+		{ErrConnClosed{Target: "Y"}, "connection with Y is closed"},
+		{ErrUnknownTarget{Remote: &net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 1234}}, "unknown target for 1.2.3.4:1234"},
 	}
-	if _, exists := transport.ipToTarget["192.168.1.100"]; exists {
-		t.Errorf("Expected IP 192.168.1.100 to be removed, but it still exists")
+
+	for _, tt := range tests {
+		if got := tt.err.Error(); !strings.Contains(got, tt.want) {
+			t.Fatalf("expected %q to contain %q", got, tt.want)
+		}
+	}
+}
+
+func TestMessages(t *testing.T) {
+	pm := NewPacketMessage(nil)
+	if pm.Event() != PacketEvent {
+		t.Fatalf("packet event mismatch")
+	}
+
+	fr := bytes.NewBuffer(nil)
+	fwm := NewFileWriteMessage("a.bin", fr)
+	if fwm.Event() != FileWriteEvent || fwm.Filename() != "a.bin" {
+		t.Fatalf("file write message mismatch")
+	}
+
+	fw := bytes.NewBuffer(nil)
+	frm := NewFileReadMessage("b.bin", fw)
+	if frm.Event() != FileReadEvent || frm.Filename() != "b.bin" {
+		t.Fatalf("file read message mismatch")
+	}
+}
+
+func TestNotifications(t *testing.T) {
+	pn := NewPacketNotification(nil, "from", "to", zeroTime)
+	if pn.Event() != PacketEvent || pn.From != "from" || pn.To != "to" {
+		t.Fatalf("packet notification mismatch")
+	}
+
+	en := NewErrorNotification(io.EOF)
+	if en.Event() != ErrorEvent || en.Err != io.EOF {
+		t.Fatalf("error notification mismatch")
+	}
+}
+
+func TestSetpropagateFault(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	if tr.propagateFault {
+		t.Fatalf("expected propagateFault false by default")
+	}
+	tr.SetpropagateFault(true)
+	if !tr.propagateFault {
+		t.Fatalf("expected propagateFault true after setter")
+	}
+}
+
+func TestTargetFromTCPConnKnown(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	tr.ipToTarget["127.0.0.1"] = "KNOWN"
+	pr, pw := net.Pipe()
+	defer pw.Close()
+	conn := &simpleConn{
+		Conn:   pr,
+		local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+		remote: &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 2},
+	}
+
+	target, err := tr.targetFromTCPConn(conn)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if target != "KNOWN" {
+		t.Fatalf("expected target KNOWN, got %s", target)
+	}
+}
+
+func TestTargetFromTCPConnUnknown(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	pr, pw := net.Pipe()
+	defer pw.Close()
+	conn := &simpleConn{
+		Conn:   pr,
+		local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+		remote: &net.TCPAddr{IP: net.ParseIP("10.0.0.1"), Port: 2},
+	}
+
+	_, err := tr.targetFromTCPConn(conn)
+	if err == nil {
+		t.Fatalf("expected error for unknown target")
+	}
+	if _, ok := err.(ErrUnknownTarget); !ok {
+		t.Fatalf("expected ErrUnknownTarget, got %T", err)
+	}
+}
+
+func TestRejectIfConnectedTCPConn(t *testing.T) {
+	tr := NewTransport(defaultLogger())
+	tr.SetAPI(noopTransportAPI{})
+	tr.connections["X"] = &simpleConn{}
+
+	// new conn to reject
+	pr, pw := net.Pipe()
+	defer pw.Close()
+	conn := &simpleConn{
+		Conn:   pr,
+		local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+		remote: &net.TCPAddr{IP: net.ParseIP("127.0.0.2"), Port: 2},
+	}
+
+	err := tr.rejectIfConnectedTCPConn("X", conn, defaultLogger())
+	if _, ok := err.(ErrTargetAlreadyConnected); !ok {
+		t.Fatalf("expected ErrTargetAlreadyConnected, got %v", err)
+	}
+	// conn should be closed
+	if _, werr := conn.Write([]byte("test")); werr == nil {
+		t.Fatalf("expected write to fail on closed conn")
+	}
+}
+
+func TestHandlePacketEvent_TargetNotConnected(t *testing.T) {
+	tr, _ := createTestTransport(t)
+	tr.SetpropagateFault(false)
+	tr.idToTarget[42] = "TARGET"
+	// encoder/decoder wired only for id 100; id 42 will cause ErrUnexpectedId in encoder
+	pkt := data.NewPacket(42)
+	err := tr.handlePacketEvent(NewPacketMessage(pkt))
+	if err == nil {
+		t.Fatalf("expected error for missing encoder/connection")
+	}
+}
+
+func TestReplicateFaultBroadcast(t *testing.T) {
+	tr, api := createTestTransport(t)
+	tr.SetpropagateFault(true)
+	// create a connection to receive broadcast
+	c1, c2 := net.Pipe()
+	tr.connectionsMx.Lock()
+	tr.connections["TARGET"] = c1
+	tr.connectionsMx.Unlock()
+	defer c1.Close()
+	defer c2.Close()
+
+	go tr.replicateFault(data.NewPacket(0), tr.logger)
+
+	buf := make([]byte, 2)
+	if _, err := io.ReadFull(c2, buf); err != nil {
+		t.Fatalf("expected broadcast data, got err %v", err)
+	}
+	// ensure no error notifications
+	if len(api.GetNotifications()) != 0 {
+		t.Fatalf("expected no notifications during replicateFault")
+	}
+}
+
+func TestHandleUDPPacket_Success(t *testing.T) {
+	tr, api := createTestTransport(t)
+	tr.SetpropagateFault(false)
+
+	pkt := data.NewPacket(100)
+	pkt.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(pkt)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+
+	payload := append([]byte(nil), buf.Bytes()...)
+	tr.encoder.ReleaseBuffer(buf)
+
+	udpPkt := udp.Packet{
+		SourceIP:   net.ParseIP("127.0.0.1"),
+		SourcePort: 9999,
+		DestIP:     net.ParseIP("127.0.0.1"),
+		DestPort:   9998,
+		Payload:    payload,
+		Timestamp:  time.Unix(0, 0),
+	}
+
+	tr.handleUDPPacket(udpPkt)
+
+	if len(api.GetNotifications()) == 0 {
+		t.Fatalf("expected notification after UDP packet")
 	}
 }
 
@@ -687,6 +900,239 @@ func TestTransport_ReconnectionBehavior(t *testing.T) {
 		return false
 	}, 5*time.Second, "Should receive reconnection update")
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHandleServer_AcceptsAndDispatches(t *testing.T) {
+	tr, api := createTestTransport(t)
+	target := abstraction.TransportTarget("SERVER_TARGET")
+	tr.SetTargetIp("127.0.0.1", target)
+	tr.SetIdTarget(100, target)
+
+	local := getAvailablePort(t)
+	cfg := tcp.NewServerConfig()
+	ctx, cancel := context.WithCancel(context.Background())
+	cfg.Context = ctx
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		_ = tr.HandleServer(cfg, local)
+		close(done)
+	}()
+
+	var conn net.Conn
+	var err error
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		conn, err = net.Dial("tcp", local)
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if conn == nil {
+		t.Fatalf("failed to dial server: %v", err)
+	}
+	defer conn.Close()
+
+	packet := data.NewPacket(100)
+	packet.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(packet)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+	defer tr.encoder.ReleaseBuffer(buf)
+
+	if _, err := conn.Write(buf.Bytes()); err != nil {
+		t.Fatalf("failed to write packet: %v", err)
+	}
+
+	if err := waitForCondition(func() bool {
+		return len(api.GetNotifications()) > 0
+	}, 2*time.Second, "Should receive notification from server connection"); err != nil {
+		t.Fatal(err)
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(500 * time.Millisecond):
+	}
+}
+
+func TestHandleUDPServer_Dispatches(t *testing.T) {
+	tr, api := createTestTransport(t)
+	tr.SetpropagateFault(false)
+
+	port := getAvailableUDPPort(t)
+	logger := zerolog.Nop()
+	server := udp.NewServer("127.0.0.1", port, &logger)
+	if err := server.Start(); err != nil {
+		t.Fatalf("failed to start UDP server: %v", err)
+	}
+	defer server.Stop()
+
+	go tr.HandleUDPServer(server)
+
+	packet := data.NewPacket(100)
+	packet.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(packet)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+	defer tr.encoder.ReleaseBuffer(buf)
+
+	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: int(port)})
+	if err != nil {
+		t.Fatalf("failed to dial UDP server: %v", err)
+	}
+	defer conn.Close()
+
+	if _, err := conn.Write(buf.Bytes()); err != nil {
+		t.Fatalf("failed to send UDP packet: %v", err)
+	}
+
+	if err := waitForCondition(func() bool {
+		return len(api.GetNotifications()) > 0
+	}, 2*time.Second, "Should receive notification from UDP server"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHandleFileWriteRead_WithRealTFTP(t *testing.T) {
+	readHandler := func(filename string, rf io.ReaderFrom) error {
+		_, err := rf.ReadFrom(bytes.NewBufferString("from-server"))
+		return err
+	}
+	writeBuf := &bytes.Buffer{}
+	writeHandler := func(filename string, wt io.WriterTo) error {
+		_, err := wt.WriteTo(writeBuf)
+		return err
+	}
+	server := tftpv3.NewServer(readHandler, writeHandler)
+	addr := fmt.Sprintf("127.0.0.1:%d", getAvailableUDPPort(t))
+	go func() {
+		_ = server.ListenAndServe(addr)
+	}()
+	defer server.Shutdown()
+	time.Sleep(20 * time.Millisecond)
+
+	client, err := tftp.NewClient(addr)
+	if err != nil {
+		t.Fatalf("failed to create tftp client: %v", err)
+	}
+
+	tr := NewTransport(defaultLogger()).WithTFTP(client)
+	tr.SetAPI(NewTestTransportAPI())
+
+	if err := tr.handleFileWrite(NewFileWriteMessage("file.bin", bytes.NewBufferString("hello"))); err != nil {
+		t.Fatalf("handleFileWrite error: %v", err)
+	}
+	if writeBuf.String() != "hello" {
+		t.Fatalf("expected written data 'hello', got %q", writeBuf.String())
+	}
+
+	out := &bytes.Buffer{}
+	if err := tr.handleFileRead(NewFileReadMessage("file.bin", out)); err != nil {
+		t.Fatalf("handleFileRead error: %v", err)
+	}
+	if out.String() != "from-server" {
+		t.Fatalf("expected read data 'from-server', got %q", out.String())
+	}
+}
+
+func TestHandleFileWriteRead_ErrorPath(t *testing.T) {
+	// Point to an unused UDP port to force WriteFile/ReadFile errors.
+	addr := fmt.Sprintf("127.0.0.1:%d", getAvailableUDPPort(t))
+	client, err := tftp.NewClient(addr, tftp.WithTimeout(50*time.Millisecond), tftp.WithRetries(1))
+	if err != nil {
+		t.Fatalf("failed to create tftp client: %v", err)
+	}
+
+	tr := NewTransport(defaultLogger()).WithTFTP(client)
+	api := NewTestTransportAPI()
+	tr.SetAPI(api)
+
+	if err := tr.handleFileWrite(NewFileWriteMessage("file.bin", bytes.NewBufferString("hello"))); err == nil {
+		t.Fatalf("expected error writing to unreachable TFTP server")
+	}
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) > 0 }, time.Second, "error notification"); err != nil {
+		t.Fatalf("expected error notification")
+	}
+
+	api.Reset()
+	if err := tr.handleFileRead(NewFileReadMessage("file.bin", &bytes.Buffer{})); err == nil {
+		t.Fatalf("expected error reading from unreachable TFTP server")
+	}
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) > 0 }, time.Second, "error notification"); err != nil {
+		t.Fatalf("expected error notification")
+	}
+}
+
+func TestHandleSniffer_Dispatches(t *testing.T) {
+	tr, api := createTestTransport(t)
+
+	// empty pcap (header only) to drive HandleSniffer through EOF path
+	tmp, err := os.CreateTemp("", "sniffer*.pcap")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	writer := pcapgo.NewWriter(tmp)
+	if err := writer.WriteFileHeader(65535, layers.LinkTypeEthernet); err != nil {
+		t.Fatalf("write header failed: %v", err)
+	}
+	tmp.Close()
+
+	handle, err := pcap.OpenOffline(tmp.Name())
+	if err != nil {
+		t.Fatalf("failed to open pcap: %v", err)
+	}
+	sn := sniffer.New(handle, nil, defaultLogger())
+
+	done := make(chan struct{})
+	go func() {
+		tr.HandleSniffer(sn)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("HandleSniffer did not return on EOF")
+	}
+
+	// No notifications expected; just ensure no panic/block.
+	_ = api
+}
+
+func TestHandleConversation_DispatchesAndStopsOnError(t *testing.T) {
+	tr, api := createTestTransport(t)
+
+	pkt := data.NewPacket(100)
+	pkt.SetTimestamp(time.Unix(0, 0))
+	buf, err := tr.encoder.Encode(pkt)
+	if err != nil {
+		t.Fatalf("encode failed: %v", err)
+	}
+	defer tr.encoder.ReleaseBuffer(buf)
+
+	socket := network.Socket{
+		SrcIP:   "127.0.0.1",
+		SrcPort: 8000,
+		DstIP:   "127.0.0.1",
+		DstPort: 8001,
+	}
+
+	reader := bytes.NewReader(buf.Bytes())
+	tr.handleConversation(socket, reader)
+
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) >= 1 }, time.Second, "packet notification"); err != nil {
+		t.Fatal(err)
+	}
+	// After the first packet, DecodeNext will hit EOF and SendFault will result in an error notification.
+	if err := waitForCondition(func() bool { return len(api.GetNotifications()) >= 2 }, 2*time.Second, "error notification"); err != nil {
 		t.Fatal(err)
 	}
 }
