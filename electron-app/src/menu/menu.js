@@ -9,6 +9,7 @@ import fs from "fs";
 import {
   getPacketSenderProcess,
   startPacketSender,
+  stopPacketSender,
 } from "../processes/packetSender.js";
 import { getBinaryPath } from "../utils/paths.js";
 import { loadView } from "../windows/mainWindow.js";
@@ -82,7 +83,7 @@ function createMenu(mainWindow) {
             }
             const packetSenderProcess = getPacketSenderProcess();
             if (!packetSenderProcess || packetSenderProcess.killed) {
-              startPacketSender(["--help"]);
+              startPacketSender(["random"]);
             }
           },
         },
