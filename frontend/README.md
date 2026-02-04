@@ -31,14 +31,25 @@ The frontend is organized as 6 workspaces out of 9 in the whole monorepo, divide
 
 ## State Management
 
-The application uses **Zustand** with a slice-based architecture:
+The application uses **Zustand** with a slice-based architecture, organized by feature domain:
 
-- `workspacesSlice` - Manages workspaces, filters, charts, and tabs
-- `catalogSlice` - Stores telemetry and command catalogs
-- `telemetrySlice` - Real-time telemetry data
+### Global Slices
+
+- `appSlice` - Application mode, settings, and configuration
+- `connectionsSlice` - WebSockets connection statuses
+- `telemetrySlice` - Real-time telemetry data buffer
 - `messagesSlice` - System messages and logs
-- `appSlice` - Application mode and settings
-- `rightSidebarSlice` - UI state for sidebar panels
+- `catalogSlice` - Static definitions for telemetry packets and commands
+
+### Feature Slices
+
+- **Workspace Feature** (`features/workspace`)
+  - `workspacesSlice` - Manages workspace layout
+  - `rightSidebarSlice` - UI state for the collapsible sidebar and its tabs
+- **Charts Feature** (`features/charts`)
+  - `chartsSlice` - Manages chart instances, series configuration, and visualization settings
+- **Filtering Feature** (`features/filtering`)
+  - `filteringSlice` - Manages active filters, search queries, and category selection
 
 ### Workspace System
 
@@ -98,7 +109,7 @@ import { Plus, Settings } from "@workspace/ui/icons";
 - **CSS Variables** for theming (defined in `globals.css`)
 - **Tailwind CSS** for utility classes
 - **Dark mode** support via CSS class toggling
-- Multiple color schemes (default, pink, etc.)
+- Multiple color schemes (default and pink)
 
 ### Adding Icons
 
@@ -133,13 +144,14 @@ frontend/
 ├── testing-view/
 │   ├── src/
 │   │   ├── assets/            # Assets (images, gifs, etc.)
-│   │   ├── components/        # UI components
+│   │   ├── components/        # Global UI components
+│   │   ├── features/          # Components, hooks, types and store slices related to features
 │   │   ├── layout/            # App layout
 │   │   ├── pages/             # Route pages
-│   │   ├── store/             # Zustand store slices
-│   │   ├── hooks/             # Custom hooks
+│   │   ├── store/             # Global Zustand store slices
+│   │   ├── hooks/             # Global custom hooks
 │   │   ├── constants/         # Config and constants
-│   │   ├── types/             # TypeScript types
+│   │   ├── types/             # Global TypeScript types
 │   │   ├── mocks/             # Mocks
 │   │   └── lib/               # Utilities
 │   └── public/                # Static assets
