@@ -44,14 +44,14 @@ function createMenu(mainWindow) {
       label: "View",
       submenu: [
         {
-          label: "Control Station",
+          label: "Competition View",
           accelerator: "CmdOrCtrl+1",
           click: () => {
             loadView("competition-view");
           },
         },
         {
-          label: "Ethernet View",
+          label: "Testing View",
           accelerator: "CmdOrCtrl+2",
           click: () => {
             loadView("testing-view");
