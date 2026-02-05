@@ -6,6 +6,7 @@ import {
   PopoverTrigger,
 } from "@workspace/ui";
 import { Settings2 } from "@workspace/ui/icons";
+import { config } from "../../../../config";
 import { useStore } from "../../../store/store";
 
 interface ChartSettingsProps {
@@ -17,7 +18,7 @@ export const ChartSettings = ({ chartId }: ChartSettingsProps) => {
   const historyLimit = useStore(
     (s) =>
       s.charts[activeWorkspace?.id ?? ""]?.find((c) => c.id === chartId)
-        ?.historyLimit ?? 200,
+        ?.historyLimit ?? config.FALLBACK_CHART_HISTORY_LIMIT,
   );
   const setHistoryLimit = useStore((s) => s.setChartHistoryLimit);
 
