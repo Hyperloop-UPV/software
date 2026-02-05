@@ -32,8 +32,8 @@ export const createRightSidebarSlice: StateCreator<
   toggleMessages: () => set({ isMessagesVisible: !get().isMessagesVisible }),
 
   // Layout settings
-  isHorizontal: true,
-  isSplit: false,
+  isHorizontal: false,
+  isSplit: true,
   toggleLayout: () => set({ isHorizontal: !get().isHorizontal }),
   toggleSplit: () => set({ isSplit: !get().isSplit }),
 

@@ -27,7 +27,7 @@ export const RightSidebarContent = ({}: RightSidebarContentProps) => {
     return (
       <ResizablePanelGroup
         orientation={isHorizontal ? "horizontal" : "vertical"}
-        defaultLayout={{ tabs: 60, messages: 40 }}
+        defaultLayout={{ tabs: 80, messages: 20 }}
       >
         <ResizablePanel id="tabs" minSize="20%">
           <Activity mode={isTabsVisible ? "visible" : "hidden"}>
