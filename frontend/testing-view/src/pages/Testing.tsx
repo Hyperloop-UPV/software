@@ -58,10 +58,14 @@ export const Testing = () => {
         onDragEnd={handleDragEnd}
       >
         <div className="relative h-full w-full">
-          <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+          <ResizablePanelGroup
+            orientation="horizontal"
+            className="h-full w-full"
+          >
             <ResizablePanel
-              defaultSize={isSidebarVisible ? 60 : 100}
-              minSize={30}
+              id="main"
+              defaultSize={isSidebarVisible ? "60%" : "100%"}
+              minSize="30%"
             >
               <MainPanel
                 columns={columns}
@@ -75,7 +79,12 @@ export const Testing = () => {
             {isSidebarVisible && (
               <>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={40} minSize={20} maxSize={70}>
+                <ResizablePanel
+                  id="sidebar"
+                  defaultSize="40%"
+                  minSize="20%"
+                  maxSize="70%"
+                >
                   <RightSidebar onClose={() => setIsSidebarVisible(false)} />
                 </ResizablePanel>
               </>

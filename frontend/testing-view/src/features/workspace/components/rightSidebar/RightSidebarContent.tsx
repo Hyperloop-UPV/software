@@ -25,19 +25,22 @@ export const RightSidebarContent = ({}: RightSidebarContentProps) => {
 
   if (bothVisible) {
     return (
-      <ResizablePanelGroup direction={isHorizontal ? "horizontal" : "vertical"}>
-        <Activity mode={isTabsVisible ? "visible" : "hidden"}>
-          <ResizablePanel defaultSize={60} minSize={20}>
+      <ResizablePanelGroup
+        orientation={isHorizontal ? "horizontal" : "vertical"}
+        defaultLayout={{ tabs: 60, messages: 40 }}
+      >
+        <ResizablePanel id="tabs" minSize="20%">
+          <Activity mode={isTabsVisible ? "visible" : "hidden"}>
             <TabsSection isSplit={isSplit} />
-          </ResizablePanel>
-          {isMessagesVisible && <ResizableHandle withHandle />}
-        </Activity>
+          </Activity>
+        </ResizablePanel>
+        {isMessagesVisible && <ResizableHandle withHandle />}
 
-        <Activity mode={isMessagesVisible ? "visible" : "hidden"}>
-          <ResizablePanel defaultSize={40} minSize={15}>
+        <ResizablePanel id="messages" minSize="15%">
+          <Activity mode={isMessagesVisible ? "visible" : "hidden"}>
             <MessagesSection />
-          </ResizablePanel>
-        </Activity>
+          </Activity>
+        </ResizablePanel>
       </ResizablePanelGroup>
     );
   }

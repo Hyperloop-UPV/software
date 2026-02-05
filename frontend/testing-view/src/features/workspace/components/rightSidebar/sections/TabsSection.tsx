@@ -37,8 +37,12 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
         </div>
 
         {/* Split view - both tabs side by side */}
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="flex-1"
+          defaultLayout={{ telemetry: 50, commands: 50 }}
+        >
+          <ResizablePanel id="telemetry" minSize="30%">
             <div className="flex h-full flex-1 flex-col overflow-y-auto p-4">
               <Tab
                 title="Telemetry"
@@ -54,7 +58,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
 
           <ResizableHandle withHandle />
 
-          <ResizablePanel defaultSize={50} minSize={30}>
+          <ResizablePanel id="commands" minSize="30%">
             <div className="flex h-full flex-1 flex-col overflow-y-auto p-4">
               <Tab
                 title="Commands"
