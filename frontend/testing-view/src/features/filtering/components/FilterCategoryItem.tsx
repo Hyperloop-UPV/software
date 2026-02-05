@@ -11,7 +11,11 @@ import { useStore } from "../../../store/store";
 import type { BoardName } from "../../../types/data/board";
 import { FilterItem } from "./FilterItem";
 
-export const FilterCategoryItem = ({ category }: { category: BoardName }) => {
+interface FilterCategoryItemProps {
+  category: BoardName;
+}
+
+export const FilterCategoryItem = ({ category }: FilterCategoryItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { scope } = useStore((s) => s.filterDialog);
   if (!scope) return null;

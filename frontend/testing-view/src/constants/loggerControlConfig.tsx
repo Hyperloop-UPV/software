@@ -8,6 +8,7 @@ interface LoggerControlOption {
   className: string;
 }
 
+/** Appearance configuration for the logger control state. */
 export const LOGGER_CONTROL_CONFIG: Record<LoggerStatus, LoggerControlOption> =
   {
     standby: {

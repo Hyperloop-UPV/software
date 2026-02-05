@@ -28,16 +28,17 @@ export interface FieldProps<T> {
  * One item of the settings schema from config.toml.
  */
 export interface SettingField {
-  /** Label of the field */
+  /** Label of the field. The text showed above the field itself. */
   label: string;
 
-  /** Type of the field */
+  /** Type of the field. It affects what kind of component is showed in the interface.\
+   * **E.g.** checkboxes or multiple choice section. */
   type: FieldType;
 
   /** Options of the field */
   options?: string[];
 
-  /** Placeholder of the field */
+  /** Placeholder of the field. The text showed inside the field when it is empty. */
   placeholder?: string;
 
   /** Path to the field in the config.toml configuration.\

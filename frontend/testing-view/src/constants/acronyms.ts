@@ -1,5 +1,7 @@
-// Special cases for acronyms that should stay uppercase for format name function
-export const acronyms = [
+/**
+ * Special cases for acronyms that should stay uppercase for format name function
+ */
+export const ACRONYMS = [
   "SOC",
   "SOH",
   "CAN",
@@ -20,4 +22,4 @@ export const acronyms = [
   "BMS",
   "LDU",
   "SVPWM",
-];
+] as const;

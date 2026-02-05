@@ -1,4 +1,7 @@
-const variablesBadgeClasses = {
+/**
+ * Classes for the badge showed at the left side of the variable item in the telemetry tab.
+ */
+export const variablesBadgeClasses = {
   float:
     "bg-sky-500/20 text-sky-400 border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-300",
   integer:
@@ -11,5 +14,3 @@ const variablesBadgeClasses = {
   unknown:
     "bg-slate-500/20 text-slate-400 border-slate-500/40 dark:bg-slate-500/15 dark:text-slate-300",
 };
-
-export { variablesBadgeClasses };
