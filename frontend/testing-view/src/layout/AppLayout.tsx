@@ -1,6 +1,5 @@
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
 import React, { useEffect } from "react";
-import Footer from "../components/Footer";
 import Header from "../components/header/Header";
 import AppSidebar from "../components/leftSidebar/AppSidebar";
 import { SettingsDialog } from "../components/settings/SettingsDialog";
@@ -40,7 +39,6 @@ export const AppLayout = ({ children, backendConnected }: AppLayoutProps) => {
           <SidebarInset className="flex h-full flex-col">
             <Header />
             <div className="flex-1 overflow-auto">{children}</div>
-            <Footer />
           </SidebarInset>
         </div>
       </SidebarProvider>
