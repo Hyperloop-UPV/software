@@ -1,5 +1,7 @@
 import type { ConfigData } from "../types/common/config";
 
+/** Default configuration for the application.
+ * Used when the configuration is not found or when opened without electron API. */
 export const DEFAULT_CONFIG: ConfigData = {
   vehicle: {
     boards: [
