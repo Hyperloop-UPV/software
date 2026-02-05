@@ -109,8 +109,7 @@ function createMenu(mainWindow) {
               type: "info",
               title: "About",
               message: "Hyperloop UPV Control Station",
-              detail:
-                "Version 1.0.0\n\nControl and monitoring software for Hyperloop pod.",
+              detail: `Version ${app.getVersion()}\n\nControl and monitoring software for Hyperloop pod.`,
             });
           },
         },

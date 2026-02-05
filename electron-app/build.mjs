@@ -56,7 +56,7 @@ const CONFIG = {
     type: "rust",
     path: join(ROOT, "packet-sender"),
     output: join(__dirname, "binaries"),
-    commands: ["pnpm install --frozen-lockfile", "pnpm run build"],
+    commands: ["pnpm run build"],
     binaryPath: "target/release/packet-sender",
     platforms: [
       { id: "win64", ext: ".exe", tags: ["win", "windows"] },
@@ -68,13 +68,19 @@ const CONFIG = {
     type: "frontend",
     path: join(ROOT, "frontend/testing-view"),
     dest: join(__dirname, "renderer/testing-view"),
-    commands: ["pnpm install --frozen-lockfile", "pnpm run build"],
+    commands: [
+      "pnpm --filter testing-view install --frozen-lockfile",
+      "pnpm run build",
+    ],
   },
   "competition-view": {
     type: "frontend",
     path: join(ROOT, "frontend/competition-view"),
     dest: join(__dirname, "renderer/competition-view"),
-    commands: ["pnpm install --frozen-lockfile", "pnpm run build"],
+    commands: [
+      "pnpm --filter competition-view install --frozen-lockfile",
+      "pnpm run build",
+    ],
     optional: true,
   },
 };
@@ -262,7 +268,7 @@ logger.header("Hyperloop Control Station Build");
 
   if (frontendBuilt && !process.env.CI) {
     logger.info("Finalizing Electron...");
-    run("pnpm install --frozen-lockfile", __dirname);
+    run("pnpm --filter electron-app install --frozen-lockfile", __dirname);
   }
 
   if (allSuccess) {
