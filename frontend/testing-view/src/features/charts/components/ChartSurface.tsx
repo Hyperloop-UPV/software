@@ -242,14 +242,6 @@ export const ChartSurface = memo(
       };
     }, []);
 
-    if (series.length === 0) {
-      return (
-        <div className="border-muted-foreground/20 text-muted-foreground/50 flex h-[275px] w-full items-center justify-center rounded-lg border-2 border-dashed text-center">
-          Add a variable here to start visualizing data
-        </div>
-      );
-    }
-
     const latestCount =
       historyRef.current[historyRef.current.length - 1]?.count ?? 0;
     const currentMax = uplotRef.current?.scales.x.max ?? 0;
