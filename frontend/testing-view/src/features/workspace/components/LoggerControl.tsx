@@ -15,6 +15,7 @@ interface LoggerControlProps {
 export const LoggerControl = ({ disabled }: LoggerControlProps) => {
   const { status, startLogging, stopLogging } = useLogger();
   const openFilterDialog = useStore((s) => s.openFilterDialog);
+  const filteredCount = useStore((state) => state.getFilteredCount("logs"));
 
   useConfirmClose(status === "recording");
 
@@ -64,7 +65,7 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
           ></span>
         </div>
         <div className="flex flex-col">
-          <span className="text-muted-foreground text-[10px] font-bold uppercase leading-none tracking-wider">
+          <span className="text-muted-foreground text-[11px] font-bold uppercase leading-none tracking-wider">
             Logger
           </span>
           <span className="text-xs font-medium leading-tight">
@@ -91,12 +92,15 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
         <Button
           variant="ghost"
           size="icon"
-          className="text-muted-foreground hover:text-foreground h-8 w-8"
+          className="text-muted-foreground hover:text-foreground relative h-8 w-8"
           onClick={() => openFilterDialog("logs")}
           title="Configure Logger Variables"
           disabled={disabled || status === "loading" || status === "recording"}
         >
           <Settings2 size={14} />
+          <span className="bg-primary text-primary-foreground absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-xl px-1 text-[10px] font-bold shadow-sm">
+            {filteredCount}
+          </span>
         </Button>
       </div>
     </div>
