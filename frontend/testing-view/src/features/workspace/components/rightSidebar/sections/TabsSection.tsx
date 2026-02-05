@@ -43,7 +43,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
           defaultLayout={{ telemetry: 50, commands: 50 }}
         >
           <ResizablePanel id="telemetry" minSize="30%">
-            <div className="flex h-full flex-1 flex-col overflow-y-auto p-4">
+            <div className="flex h-full flex-1 flex-col overflow-y-auto px-4">
               <Tab
                 title="Telemetry"
                 scope="telemetry"
@@ -59,7 +59,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
           <ResizableHandle withHandle />
 
           <ResizablePanel id="commands" minSize="30%">
-            <div className="flex h-full flex-1 flex-col overflow-y-auto p-4">
+            <div className="flex h-full flex-1 flex-col overflow-y-auto px-4">
               <Tab
                 title="Commands"
                 scope="commands"
@@ -88,7 +88,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
 
       <TabsContent
         value="telemetry"
-        className="mt-0 flex h-full flex-1 flex-col overflow-y-auto p-4"
+        className="mt-0 flex h-full flex-1 flex-col overflow-y-auto px-4"
       >
         <Tab
           title="Telemetry"
@@ -103,7 +103,7 @@ const TabsSection = ({ isSplit }: TabsSectionProps) => {
 
       <TabsContent
         value="commands"
-        className="mt-0 flex h-full flex-1 flex-col overflow-y-auto p-4"
+        className="mt-0 flex h-full flex-1 flex-col overflow-y-auto px-4"
       >
         <Tab
           title="Commands"

@@ -14,7 +14,7 @@ export const TabHeader = ({ title, scope }: TabHeaderProps) => {
   const filteredCount = useStore((state) => state.getFilteredCount(scope));
 
   return (
-    <div className="flex items-center justify-between gap-2 pb-3">
+    <div className="flex items-center justify-between gap-2 py-4">
       <h3 className="text-foreground text-lg font-semibold">
         {title}
         <span className="text-muted-foreground ml-2 text-sm font-normal">
