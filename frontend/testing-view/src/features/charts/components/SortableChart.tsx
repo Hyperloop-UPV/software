@@ -1,7 +1,14 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { WorkspaceChartSeries } from "../types/charts";
 import { TelemetryChart } from "./TelemetryChart";
-export function SortableChart({ id, series }: { id: string; series: any[] }) {
+
+interface SortableChartProps {
+  id: string;
+  series: WorkspaceChartSeries[];
+}
+
+export function SortableChart({ id, series }: SortableChartProps) {
   const {
     setNodeRef,
     attributes,

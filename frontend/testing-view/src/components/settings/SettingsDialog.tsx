@@ -14,13 +14,14 @@ import {
 } from "../../../../frontend-kit/ui/src/icons/notifications";
 import { DEFAULT_CONFIG } from "../../constants/defaultConfig";
 import { useStore } from "../../store/store";
+import type { ConfigData } from "../../types/common/config";
 import { SettingsForm } from "./SettingsForm";
 
 export const SettingsDialog = () => {
   const isSettingsOpen = useStore((s) => s.isSettingsOpen);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
   const setRestarting = useStore((s) => s.setRestarting);
-  const [localConfig, setLocalConfig] = useState<any>(null);
+  const [localConfig, setLocalConfig] = useState<ConfigData | null>(null);
   const [isSynced, setIsSynced] = useState(false);
 
   const loadConfig = async () => {

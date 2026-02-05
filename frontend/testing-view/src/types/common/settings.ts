@@ -27,7 +27,7 @@ export interface FieldProps<T> {
 /**
  * One item of the settings schema from config.toml.
  */
-export interface SettingField {
+export type SettingField = {
   /** Label of the field. The text showed above the field itself. */
   label: string;
 
@@ -45,15 +45,15 @@ export interface SettingField {
    * **Note:** it should match config.toml section and variable name.\
    * **E.g.** `vehicle.boards` or `adj.branch`. */
   path: string;
-}
+};
 
 /**
  * One section of the settings from config.toml.
  */
-export interface SettingsSection {
+export type SettingsSection = {
   /** Title of the section */
   title: string;
 
   /** Fields of the section */
   fields: SettingField[];
-}
+};
