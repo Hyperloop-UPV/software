@@ -98,7 +98,7 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
           disabled={disabled || status === "loading" || status === "recording"}
         >
           <Settings2 size={14} />
-          <span className="bg-primary text-primary-foreground absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-xl px-1 text-[10px] font-bold shadow-sm">
+          <span className="bg-primary text-primary-foreground absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-xl px-1 text-[11px] font-bold shadow-sm">
             {filteredCount}
           </span>
         </Button>
