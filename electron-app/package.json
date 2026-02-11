@@ -31,7 +31,6 @@
     "build:backend:linux": "node build.mjs --backend --linux",
     "build:backend:mac": "node build.mjs --backend --mac",
     "build:testing": "node build.mjs --testing-view",
-    
     "build:competition": "node build.mjs --competition-view",
     "asar:win": "asar list dist/win-unpacked/resources/app.asar | findstr /V node_modules",
     "asar:mac": "asar list dist/mac-unpacked/resources/app.asar | findstr /V node_modules",
