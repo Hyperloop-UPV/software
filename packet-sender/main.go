@@ -57,8 +57,7 @@ func main() {
 
 	if input == "1" {
 		PacketSender(conns)
-	}
-	if input == "2" {
+	} else if input == "2" {
 		PacketSelector(conns)
 	}
 }
@@ -96,19 +95,15 @@ func getConn(lip string, lport uint16, rip string, rport uint16) *net.UDPConn {
 	return conn
 }
 
+// getADJ loads the same ADJ used by backend directly from backend/cmd/adj.
 func getADJ() adj_module.ADJ {
-	err := os.RemoveAll("adj")
+	adjPath, err := filepath.Abs(path.Join("..", "backend", "cmd", "adj"))
 	if err != nil {
-		log.Fatalf("Failed to delete ADJ")
+		log.Fatalf("Failed to resolve ADJ path: %v", err)
 	}
+	adj_module.RepoPath = adjPath + string(filepath.Separator)
 
-	// Copy the ADJ from the backend folder to ensure they are the same
-	err = CopyDir(path.Join("..", "backend", "cmd", "adj"), "adj")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	adj, err := adj_module.NewADJ("", false)
+	adj, err := adj_module.NewADJ("")
 	if err != nil {
 		log.Fatalf("Failed to load ADJ: %v\n", err)
 	}
