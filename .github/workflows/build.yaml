@@ -161,7 +161,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        view: [testing-view, competition-view]
+        view: [testing-view, 
+        # competition-view] # TODO: Uncomment when competition view is ready
+        ]
     steps:
       # OPTIMIZATION: Try to download existing artifact first
       # Only runs if NO changes were detected and NO rebuild was forced
