@@ -57,6 +57,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          ref: "production"
           filters: |
             backend:
               - 'backend/**/*'
