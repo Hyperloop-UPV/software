@@ -67,17 +67,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "pnpm"
 
       # Update package.json with release version
       - name: Update version in package.json
         working-directory: electron-app
         shell: bash
         run: |
-          npm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
+          pnpm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
           echo "Updated version to:"
           cat package.json | grep version
 
@@ -122,17 +127,6 @@ jobs:
           name: backend-macos-arm64
           path: electron-app/binaries
 
-      # Download frontend builds from latest build
-      # TODO: Uncomment when competition view is ready
-      # - name: Download competition-view
-      #   uses: dawidd6/action-download-artifact@v3
-      #   with:
-      #     workflow: build.yaml
-      #     branch: production
-      #     workflow_conclusion: success
-      #     name: competition-view
-      #     path: electron-app/renderer/competition-view
-
       - name: Download testing-view
         uses: dawidd6/action-download-artifact@v3
         with:
@@ -142,17 +136,26 @@ jobs:
           name: testing-view
           path: electron-app/renderer/testing-view
 
+      # - name: Download competition-view
+      #   uses: dawidd6/action-download-artifact@v3
+      #   with:
+      #     workflow: build.yaml
+      #     branch: production
+      #     workflow_conclusion: success
+      #     name: competition-view
+      #     path: electron-app/renderer/competition-view
+
       - name: Set executable permissions (Unix)
         if: runner.os != 'Windows'
         run: chmod +x electron-app/binaries/*
 
       - name: Install Electron dependencies
         working-directory: electron-app
-        run: npm ci
+        run: pnpm install
 
       - name: Build Electron distribution
         working-directory: electron-app
-        run: npm run dist
+        run: pnpm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
