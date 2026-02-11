@@ -1,6 +1,7 @@
 build
 profiles
 backend/cmd/cmd
+packet-sender/packet_sender
 .ropeproject
 
 # MacOS Files
@@ -16,9 +17,6 @@ CLAUDE*
 .claude
 
 *.exe
-
-# Rust build artifacts
-packet-sender/target/
 
 # VS Code Workspace
 *.code-workspace
