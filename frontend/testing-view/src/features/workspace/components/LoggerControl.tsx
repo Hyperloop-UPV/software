@@ -2,7 +2,6 @@ import { Button, Separator } from "@workspace/ui";
 import { Settings2 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { LOGGER_CONTROL_CONFIG } from "../../../constants/loggerControlConfig";
-import useConfirmClose from "../../../hooks/useConfirmClose";
 import { useLogger } from "../../../hooks/useLogger";
 import { useStore } from "../../../store/store";
 import type { BoardName } from "../../../types/data/board";
@@ -16,8 +15,6 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
   const { status, startLogging, stopLogging } = useLogger();
   const openFilterDialog = useStore((s) => s.openFilterDialog);
   const filteredCount = useStore((state) => state.getFilteredCount("logs"));
-
-  useConfirmClose(status === "recording");
 
   const handleToggle = () => {
     if (status === "loading") return;
@@ -65,10 +62,10 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
           ></span>
         </div>
         <div className="flex flex-col">
-          <span className="text-muted-foreground text-[11px] font-bold uppercase leading-none tracking-wider">
+          <span className="text-muted-foreground text-[11px] leading-none font-bold tracking-wider uppercase">
             Logger
           </span>
-          <span className="text-xs font-medium leading-tight">
+          <span className="text-xs leading-tight font-medium">
             {config.text}
           </span>
         </div>
@@ -98,7 +95,7 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
           disabled={disabled || status === "loading" || status === "recording"}
         >
           <Settings2 size={14} />
-          <span className="bg-primary text-primary-foreground absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-xl px-1 text-[11px] font-bold shadow-sm">
+          <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-xl px-1 text-[11px] font-bold shadow-sm">
             {filteredCount}
           </span>
         </Button>
