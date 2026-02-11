@@ -3,7 +3,7 @@ package pod_data
 import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
 
-	"github.com/HyperloopUPV-H8/h9-backend/internal/adj"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
 )
 

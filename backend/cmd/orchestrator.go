@@ -7,7 +7,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
+	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"

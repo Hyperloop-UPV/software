@@ -11,7 +11,7 @@ import (
 	h "github.com/HyperloopUPV-H8/h9-backend/pkg/http"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 
-	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
+	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/common"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
