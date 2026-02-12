@@ -183,6 +183,7 @@ jobs:
             electron-app/dist/*.dmg
             electron-app/dist/*.zip
             electron-app/dist/*.yml
+            electron-app/dist/*.blockmap
             !electron-app/dist/*-unpacked
             !electron-app/dist/mac
             !electron-app/dist/win-unpacked

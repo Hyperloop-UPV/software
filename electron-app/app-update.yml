@@ -1,4 +1,4 @@
-provider: github
 owner: maximka76667
 repo: hyperloop-control-station
+provider: github
 updaterCacheDirName: hyperloop-control-station/updater

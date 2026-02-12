@@ -43,6 +43,20 @@ app.whenReady().then(async () => {
 
   autoUpdater.forceDevUpdateConfig = true;
   autoUpdater.checkForUpdatesAndNotify();
+  autoUpdater.on("update-downloaded", (info) => {
+    dialog
+      .showMessageBox({
+        type: "info",
+        title: "Update Ready",
+        message: `Version ${info.version} has been downloaded. Restart now to install?`,
+        buttons: ["Restart", "Later"],
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+  });
   // }
 
   // Handle macOS app activation (reopen window when dock icon clicked)
