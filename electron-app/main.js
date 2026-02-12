@@ -21,16 +21,23 @@ setupIpcHandlers();
 // App lifecycle: wait for Electron to be ready
 app.whenReady().then(async () => {
   // Initialize ConfigManager and ensure config exists BEFORE starting backend
-  logger.electron.step("Initializing configuration...");
+  logger.electron.header("Initializing configuration...");
   // Get ConfigManager instance (creates config from template if needed)
   await getConfigManager();
-  logger.electron.step("Configuration ready");
+  logger.electron.header("Configuration ready");
 
   // Start backend process
-  startBackend();
+  try {
+    await startBackend();
+    logger.electron.header("Backend process spawned");
+  } catch (error) {
+    // Start backend already shows these errors
+    return;
+  }
 
   // Create main application window
   createWindow();
+  logger.electron.header("Main application window created");
 
   // Updater setup
   if (!app.isPackaged) {
