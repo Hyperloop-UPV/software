@@ -11,46 +11,53 @@ import (
 )
 
 func PacketSelector(conns []boardConn) {
+	reader := bufio.NewReader(os.Stdin)
 	for {
-		reader := bufio.NewReader(os.Stdin)
-
-		// Mostrar las boards disponibles
-		fmt.Println("Boards disponibles:")
+		// Show available boards
+		fmt.Println("Available boards:")
 		for i, c := range conns {
 			fmt.Printf("[%d] %s\n", i, c.board.Name)
 		}
-		fmt.Print("Selecciona el índice de la board: ")
+		fmt.Print("Select board index: ")
 		boardIdxStr, _ := reader.ReadString('\n')
-		boardIdx, _ := strconv.Atoi(strings.TrimSpace(boardIdxStr))
+		boardIdx, err := strconv.Atoi(strings.TrimSpace(boardIdxStr))
+		if err != nil || boardIdx < 0 || boardIdx >= len(conns) {
+			fmt.Println("Invalid board index")
+			continue
+		}
 		board := &conns[boardIdx]
 
-		// Mostrar los paquetes disponibles
-		fmt.Println("Paquetes disponibles:")
+		// Show available packets
+		fmt.Println("Available packets:")
 		for i, p := range board.packets {
 			fmt.Printf("[%d] ID: %d, Nombre: %s\n", i, p.Id, p.Name)
 		}
-		fmt.Print("Selecciona el índice del paquete: ")
+		fmt.Print("Select packet index: ")
 		packetIdxStr, _ := reader.ReadString('\n')
-		packetIdx, _ := strconv.Atoi(strings.TrimSpace(packetIdxStr))
+		packetIdx, err := strconv.Atoi(strings.TrimSpace(packetIdxStr))
+		if err != nil || packetIdx < 0 || packetIdx >= len(board.packets) {
+			fmt.Println("Invalid packet index")
+			continue
+		}
 		packet := board.packets[packetIdx]
 
-		// Pedir valores para cada variable
+		// Ask values for each variable
 		buff := bytes.NewBuffer(make([]byte, 0))
 		binary.Write(buff, binary.LittleEndian, packet.Id)
 
 		for _, v := range packet.Variables {
-			fmt.Printf("Introduce valor para %s (%s): ", v.Name, v.Type)
+			fmt.Printf("Enter value for %s (%s): ", v.Name, v.Type)
 			valStr, _ := reader.ReadString('\n')
 			valStr = strings.TrimSpace(valStr)
 			writeUserValueAsBytes(valStr, v.Type, buff)
 		}
 
-		// Enviar el paquete
-		_, err := board.conn.Write(buff.Bytes())
+		// Send packet
+		_, err = board.conn.Write(buff.Bytes())
 		if err != nil {
-			fmt.Println("Error enviando paquete:", err)
+			fmt.Println("Error sending packet:", err)
 		} else {
-			fmt.Println("Paquete enviado correctamente.")
+			fmt.Println("Packet sent successfully.")
 		}
 	}
 }
@@ -91,7 +98,7 @@ func writeUserValueAsBytes(valStr, typ string, buff *bytes.Buffer) {
 		v := valStr == "true" || valStr == "1"
 		binary.Write(buff, binary.LittleEndian, v)
 	default:
-		// Para enums y otros tipos, puedes agregar lógica adicional aquí
+		// Add extra handling for enums and other types here.
 		binary.Write(buff, binary.LittleEndian, uint8(0))
 	}
 }
