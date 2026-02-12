@@ -19,4 +19,7 @@ export const config = {
 
   /** Timeout for logger response or time to invalidate logger status after start button click. */
   LOGGER_RESPONSE_TIMEOUT: 2000,
+
+  /** Timeout applied after settings save to give enough time for backend to restart. */
+  SETTINGS_RESPONSE_TIMEOUT: 1000,
 } as const;
