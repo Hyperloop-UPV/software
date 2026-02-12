@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Hyperloop-UPV/software.git"
+    "url": "https://github.com/maximka76667/hyperloop-control-station.git"
   },
   "scripts": {
     "start": "electron .",
@@ -52,8 +52,8 @@
     "appId": "com.hyperloop.controlstation",
     "publish": {
       "provider": "github",
-      "owner": "Hyperloop-UPV",
-      "repo": "software"
+      "owner": "maximka76667",
+      "repo": "hyperloop-control-station"
     },
     "productName": "Hyperloop-Control-Station",
     "directories": {
@@ -85,7 +85,13 @@
         "nsis",
         "portable"
       ],
-      "icon": "icon.ico"
+      "icon": "icon.ico",
+      "nsis": {
+        "artifactName": "${productName}-Setup-${version}.${ext}"
+      },
+      "portable": {
+        "artifactName": "${productName}-Portable-${version}.${ext}"
+      }
     },
     "mac": {
       "target": [

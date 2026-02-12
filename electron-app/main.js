@@ -34,7 +34,13 @@ app.whenReady().then(async () => {
 
   // Check for updates
   // if (app.isPackaged) {
-  autoUpdater.logger = logger.electron;
+  autoUpdater.logger = {
+    info: (message) => logger.electron.info(message),
+    error: (message) => logger.electron.error(message),
+    warn: (message) => logger.electron.warning(message),
+    debug: (message) => logger.electron.debug(message),
+  };
+
   autoUpdater.forceDevUpdateConfig = true;
   autoUpdater.checkForUpdatesAndNotify();
   // }
