@@ -85,13 +85,13 @@
         "nsis",
         "portable"
       ],
-      "icon": "icon.ico",
-      "nsis": {
-        "artifactName": "${productName}-Setup-${version}.${ext}"
-      },
-      "portable": {
-        "artifactName": "${productName}-Portable-${version}.${ext}"
-      }
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "mac": {
       "target": [
