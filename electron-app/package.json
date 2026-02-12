@@ -21,6 +21,7 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "test": "vitest run",
+    "build-icons": "electron-icon-builder --input=./icon.png --output=./ --flatten",
     "build": "node build.mjs",
     "build:win": "node build.mjs --win",
     "build:linux": "node build.mjs --linux",
@@ -86,7 +87,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "icon.ico"
+      "icon": "icons/icon.ico"
     },
     "nsis": {
       "artifactName": "${productName}-Setup-${version}.${ext}"
@@ -99,7 +100,7 @@
         "dmg",
         "zip"
       ],
-      "icon": "icon.icns",
+      "icon": "icons/icon.icns",
       "category": "public.app-category.utilities",
       "artifactName": "${productName}-${version}-macos-${arch}.${ext}"
     },
@@ -108,7 +109,7 @@
         "AppImage",
         "deb"
       ],
-      "icon": "icon.png",
+      "icon": "icons/512x512.png",
       "category": "Utility",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     }
