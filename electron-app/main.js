@@ -4,13 +4,16 @@
  * Handles application lifecycle, initialization, and cleanup of processes and windows.
  */
 
-import { app, dialog, BrowserWindow } from "electron";
-import { createWindow } from "./src/windows/mainWindow.js";
-import { startBackend, stopBackend } from "./src/processes/backend.js";
-import { setupIpcHandlers } from "./src/ipc/handlers.js";
+import { app, BrowserWindow, dialog } from "electron";
+import pkg from "electron-updater";
 import { getConfigManager } from "./src/config/configInstance.js";
+import { setupIpcHandlers } from "./src/ipc/handlers.js";
+import { startBackend, stopBackend } from "./src/processes/backend.js";
 import { stopPacketSender } from "./src/processes/packetSender.js";
 import { logger } from "./src/utils/logger.js";
+import { createWindow } from "./src/windows/mainWindow.js";
+
+const { autoUpdater } = pkg;
 
 // Setup IPC handlers for renderer process communication
 setupIpcHandlers();
@@ -28,6 +31,13 @@ app.whenReady().then(async () => {
 
   // Create main application window
   createWindow();
+
+  // Check for updates
+  // if (app.isPackaged) {
+  autoUpdater.logger = logger.electron;
+  autoUpdater.forceDevUpdateConfig = true;
+  autoUpdater.checkForUpdatesAndNotify();
+  // }
 
   // Handle macOS app activation (reopen window when dock icon clicked)
   app.on("activate", () => {
