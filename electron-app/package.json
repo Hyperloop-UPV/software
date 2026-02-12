@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/maximka76667/hyperloop-control-station.git"
+    "url": "https://github.com/Hyperloop-UPV/software.git"
   },
   "scripts": {
     "start": "electron .",
@@ -39,7 +39,8 @@
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "electron-store": "^11.0.2",
-    "electron-updater": "^6.7.3"
+    "electron-updater": "^6.7.3",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",
@@ -52,8 +53,8 @@
     "appId": "com.hyperloop.controlstation",
     "publish": {
       "provider": "github",
-      "owner": "maximka76667",
-      "repo": "hyperloop-control-station"
+      "owner": "Hyperloop-UPV",
+      "repo": "software"
     },
     "productName": "Hyperloop-Control-Station",
     "directories": {

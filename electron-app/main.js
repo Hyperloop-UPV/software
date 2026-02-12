@@ -21,10 +21,10 @@ setupIpcHandlers();
 // App lifecycle: wait for Electron to be ready
 app.whenReady().then(async () => {
   // Initialize ConfigManager and ensure config exists BEFORE starting backend
-  logger.electron.info("Initializing configuration...");
+  logger.electron.step("Initializing configuration...");
   // Get ConfigManager instance (creates config from template if needed)
   await getConfigManager();
-  logger.electron.info("Configuration ready");
+  logger.electron.step("Configuration ready");
 
   // Start backend process
   startBackend();
@@ -32,8 +32,11 @@ app.whenReady().then(async () => {
   // Create main application window
   createWindow();
 
-  // Check for updates
-  // if (app.isPackaged) {
+  // Updater setup
+  if (!app.isPackaged) {
+    autoUpdater.forceDevUpdateConfig = true;
+  }
+
   autoUpdater.logger = {
     info: (message) => logger.electron.info(message),
     error: (message) => logger.electron.error(message),
@@ -41,8 +44,10 @@ app.whenReady().then(async () => {
     debug: (message) => logger.electron.debug(message),
   };
 
-  autoUpdater.forceDevUpdateConfig = true;
-  autoUpdater.checkForUpdatesAndNotify();
+  // Check for updates
+  autoUpdater.checkForUpdates();
+
+  // Handle update downloaded event
   autoUpdater.on("update-downloaded", (info) => {
     dialog
       .showMessageBox({
@@ -57,7 +62,6 @@ app.whenReady().then(async () => {
         }
       });
   });
-  // }
 
   // Handle macOS app activation (reopen window when dock icon clicked)
   app.on("activate", () => {
