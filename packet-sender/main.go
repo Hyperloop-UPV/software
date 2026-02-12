@@ -20,16 +20,6 @@ type boardConn struct {
 func main() {
 	adj := getADJ()
 
-	backend_address := adj.Info.Addresses["BACKEND"]
-	backend_port := adj.Info.Ports["UDP"]
-
-	// Create a listener so the packets don't get lost (the backend will sniff them)
-	listener, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP(backend_address), Port: int(backend_port)})
-	if err != nil {
-		log.Fatalf("failed to create UDP listener: %v", err)
-	}
-	defer listener.Close()
-
 	conns := getConns(adj)
 
 	defer func() {
@@ -45,7 +35,7 @@ func main() {
 
 	fmt.Print("Do you want to send random packets (1) or manual packets (2)? ")
 	var input string
-	_, err = fmt.Scan(&input)
+	_, err := fmt.Scan(&input)
 	if err != nil {
 		log.Fatalf("failed to read input: %v", err)
 	}
@@ -66,7 +56,7 @@ func getConns(adj adj_module.ADJ) []boardConn {
 	conns := make([]boardConn, 0)
 
 	for _, board := range adj.Boards {
-		conn := getConn(board.IP, 0, "127.0.0.9", 8000)
+		conn := getConn(board.IP, 0, adj.Info.Addresses["backend"], adj.Info.Ports["UDP"])
 		conns = append(conns, boardConn{
 			conn:    conn,
 			packets: []adj_module.Packet{},
