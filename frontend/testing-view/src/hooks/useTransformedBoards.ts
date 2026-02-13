@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useStore } from "../store/store";
-import type { OrdersData, PacketsData } from "../types/data/transformedBoards";
+import type { OrdersData, PacketsData } from "../types/data/board";
 import { useBoardData } from "./useBoardData";
 
 export function useTransformedBoards(
@@ -12,7 +12,9 @@ export function useTransformedBoards(
 
   const setTelemetryCatalog = useStore((s) => s.setTelemetryCatalog);
   const setCommandsCatalog = useStore((s) => s.setCommandsCatalog);
-  const initializeTabFilters = useStore((s) => s.initializeTabFilters);
+  const initializeWorkspaceFilters = useStore(
+    (s) => s.initializeWorkspaceFilters,
+  );
 
   useEffect(() => {
     if (
@@ -23,12 +25,12 @@ export function useTransformedBoards(
 
     setTelemetryCatalog(transformedBoards.telemetryCatalog);
     setCommandsCatalog(transformedBoards.commandsCatalog);
-    initializeTabFilters();
+    initializeWorkspaceFilters();
   }, [
     transformedBoards,
     setTelemetryCatalog,
     setCommandsCatalog,
-    initializeTabFilters,
+    initializeWorkspaceFilters,
   ]);
 
   // Debug logs

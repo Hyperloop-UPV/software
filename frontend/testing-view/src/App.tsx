@@ -1,11 +1,11 @@
 import { useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { Route, Routes } from "react-router";
 import { AppModeRouter } from "./components/AppModeRouter";
-import { ModeSwitcher } from "./components/DevTools/ModeSwitcher";
+import { ModeSwitcher } from "./components/devTools/ModeSwitcher";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useChartsConfiguration } from "./features/charts/hooks/useChartsConfiguration";
 import useAppConfigs from "./hooks/useAppConfigs";
 import { useAppMode } from "./hooks/useAppMode";
-import { useChartsConfiguration } from "./hooks/useChartsConfiguration";
 import { useErrorHandler } from "./hooks/useErrorHandler";
 import { useTransformedBoards } from "./hooks/useTransformedBoards";
 import { AppLayout } from "./layout/AppLayout";

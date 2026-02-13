@@ -2,6 +2,12 @@ import { logger } from "@workspace/core";
 import { useEffect } from "react";
 import { useStore } from "../store/store";
 
+/**
+ * This hook listens for global errors and unhandled promises rejections
+ * and sets the app mode to "error" in global store's app slice.
+ * @returns a function to manually report errors
+ * * Note: returned function is supposed to be used in the ErrorBoundary component
+ */
 export function useErrorHandler() {
   const setError = useStore((s) => s.setError);
   const setAppMode = useStore((s) => s.setAppMode);
@@ -38,7 +44,11 @@ export function useErrorHandler() {
     };
   }, [setError, setAppMode]);
 
-  // Return a function to manually report errors
+  /**
+   * This functions prints the error and the error info in console using logger
+   * and sets the error in global store's app slice.
+   * It is designed to be used in the ErrorBoundary component.
+   */
   const reportError = (error: Error, ErrorInfo?: React.ErrorInfo) => {
     logger.testingView.error(
       `Error${ErrorInfo ? ` in ${ErrorInfo}` : ""}:`,

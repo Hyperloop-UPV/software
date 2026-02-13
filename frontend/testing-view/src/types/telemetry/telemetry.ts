@@ -1,16 +1,12 @@
-export type Variables = Record<
-  string,
-  { last: number; average: number } | boolean | string | number
->;
+import type { TelemetryPacket } from "@workspace/core";
 
-export interface TelemetryPacket {
-  count: number;
-  cycleTime: number;
-  hexValue: string;
-  id: number;
-  measurementUpdates: Variables;
-}
-
+/**
+ * Map of telemetry packets per telemetry packetid.
+ */
 export type TelemetryData = Record<number, TelemetryPacket>;
 
+/**
+ * Full map of telemetry packets per telemetry packetid.\
+ * This is not the same type as TelemetryData conceptually, but they match.
+ */
 export type TelemetryState = Record<number, TelemetryPacket>;

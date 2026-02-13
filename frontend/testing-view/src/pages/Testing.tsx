@@ -5,12 +5,12 @@ import {
   ResizablePanelGroup,
 } from "@workspace/ui";
 import { SquareLibrary } from "@workspace/ui/icons";
-import { DndOverlay } from "../components/Testing/DndOverlay";
-import { FilterController } from "../components/Testing/Filters/FilterController";
-import { MainPanel } from "../components/Testing/MainPanel";
-import { RightSidebar } from "../components/Testing/RightSidebar/RightSidebar";
-import { useDnd } from "../hooks/useDnd";
-import { useGlobalKeyBindings } from "../hooks/useGlobalKeyBindings";
+import { FilterController } from "../features/filtering/components/FilterController";
+import { useGlobalKeyBindings } from "../features/keyBindings/hooks/useGlobalKeyBindings";
+import { DndOverlay } from "../features/workspace/components/DndOverlay";
+import { MainPanel } from "../features/workspace/components/MainPanel";
+import { RightSidebar } from "../features/workspace/components/rightSidebar/RightSidebar";
+import { useDnd } from "../features/workspace/hooks/useDnd";
 import { useStore } from "../store/store";
 
 export const Testing = () => {

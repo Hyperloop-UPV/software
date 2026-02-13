@@ -1,5 +1,21 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  createChartsSlice,
+  type ChartsSlice,
+} from "../features/charts/store/chartsSlice";
+import {
+  createFilteringSlice,
+  type FilteringSlice,
+} from "../features/filtering/store/filteringSlice";
+import {
+  createRightSidebarSlice,
+  type RightSidebarSlice,
+} from "../features/workspace/store/rightSidebarSlice";
+import {
+  createWorkspacesSlice,
+  type WorkspacesSlice,
+} from "../features/workspace/store/workspacesSlice";
 import { createAppSlice, type AppSlice } from "./slices/appSlice";
 import { createCatalogSlice, type CatalogSlice } from "./slices/catalogSlice";
 import {
@@ -11,17 +27,9 @@ import {
   type MessagesSlice,
 } from "./slices/messagesSlice";
 import {
-  createRightSidebarSlice,
-  type RightSidebarSlice,
-} from "./slices/rightSidebarSlice";
-import {
   createTelemetrySlice,
   type TelemetrySlice,
 } from "./slices/telemetrySlice";
-import {
-  createWorkspacesSlice,
-  type WorkspacesSlice,
-} from "./slices/workspacesSlice";
 
 export type Store = AppSlice &
   CatalogSlice &
@@ -29,7 +37,9 @@ export type Store = AppSlice &
   TelemetrySlice &
   RightSidebarSlice &
   ConnectionsSlice &
-  MessagesSlice;
+  MessagesSlice &
+  ChartsSlice &
+  FilteringSlice;
 
 export const useStore = create<Store>()(
   // devtools(
@@ -42,6 +52,8 @@ export const useStore = create<Store>()(
       ...createRightSidebarSlice(...a),
       ...createConnectionsSlice(...a),
       ...createMessagesSlice(...a),
+      ...createChartsSlice(...a),
+      ...createFilteringSlice(...a),
     }),
     {
       // Partial persist
@@ -61,7 +73,7 @@ export const useStore = create<Store>()(
 
         // Workspace UI state
         activeTab: state.activeTab,
-        tabFilters: state.tabFilters,
+        tabFilters: state.workspaceFilters,
       }),
     },
   ),

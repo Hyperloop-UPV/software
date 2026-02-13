@@ -4,18 +4,14 @@ import { formatName } from "../lib/utils";
 import { MOCK_COMMANDS_CATALOG } from "../mocks/commands";
 import { MOCK_TELEMETRY_CATALOG } from "../mocks/telemetry";
 import type { AppMode } from "../types/app/mode";
-import type { BoardName } from "../types/data/board";
+import type { BoardName, OrdersData, PacketsData } from "../types/data/board";
 import type { CommandCatalogItem } from "../types/data/commandCatalogItem";
 import type { TelemetryCatalogItem } from "../types/data/telemetryCatalogItem";
-import type {
-  OrdersData,
-  PacketsData,
-  TransformedBoards,
-} from "../types/data/transformedBoards";
+import type { TransformedBoards } from "../types/data/transformedBoards";
 
 export function useBoardData(
-  packets: PacketsData | null,
-  commands: OrdersData | null,
+  packets: PacketsData | null | undefined,
+  commands: OrdersData | null | undefined,
   appMode: AppMode,
 ) {
   const transformedBoards = useMemo<TransformedBoards>(() => {

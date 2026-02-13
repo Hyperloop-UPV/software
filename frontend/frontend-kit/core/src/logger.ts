@@ -1,24 +1,30 @@
-type LoggerModule = "testing-view" | "competition-view" | "core" | "ui";
+import { loggerColors } from "./loggerColors";
+import type { LoggerModule } from "./types";
 
-const colors = {
-  "testing-view": "\x1b[36m", // Cyan
-  "competition-view": "\x1b[35m", // Magenta
-  core: "\x1b[33m", // Yellow
-  ui: "\x1b[32m", // Green
-  reset: "\x1b[0m",
-};
-
+/**
+ * Creates a logger for a given module
+ * @param module - the module to log for (it's just a colored string that will be shown between `[` and `]` before the message itself)
+ * @returns a logger object with `log`, `warn`, and `error` methods
+ */
 function createLogger(module: LoggerModule) {
-  const color = colors[module];
+  const color = loggerColors[module];
   const prefix = `[${module.toUpperCase()}]`;
 
   return {
-    log: console.log.bind(console, `${color}${prefix}${colors.reset}`),
-    warn: console.warn.bind(console, `${color}${prefix}${colors.reset}`),
-    error: console.error.bind(console, `${color}${prefix}${colors.reset}`),
+    // It's important to use `bind` here to correctly display log file path and line number in the console
+    // Otherwise, console prints will just point to this file
+    log: console.log.bind(console, `${color}${prefix}${loggerColors.reset}`),
+    warn: console.warn.bind(console, `${color}${prefix}${loggerColors.reset}`),
+    error: console.error.bind(
+      console,
+      `${color}${prefix}${loggerColors.reset}`,
+    ),
   };
 }
 
+/**
+ * Logger object with methods for each module
+ */
 export const logger = {
   testingView: createLogger("testing-view"),
   competitionView: createLogger("competition-view"),
