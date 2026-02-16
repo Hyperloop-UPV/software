@@ -1,5 +1,5 @@
 # Hyperloop Control Station H11
- ![Testing View](https://hyperloopupv.com/assets/testing-view.png)
+ ![Testing View](https://raw.githubusercontent.com/Hyperloop-UPV/webpage/5c1c827d82d380689856ee61af43da30da22e0fc/src/assets/backgrounds/testing-view.png)
 
 ## Monorepo usage
 
