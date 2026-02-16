@@ -33,12 +33,6 @@ max_retries = 0              # Maximum retries before cycling (0 = infinite retr
 connection_timeout_ms = 1000 # Connection timeout in milliseconds
 keep_alive_ms = 1000         # Keep-alive interval in milliseconds
 
-# BLCU (Boot Loader Control Unit) Configuration
-[blcu]
-ip = "127.0.0.1"      # TFTP server IP address
-download_order_id = 0 # Packet ID for download orders (0 = use default)
-upload_order_id = 0   # Packet ID for upload orders (0 = use default)
-
 # TFTP Configuration
 [tftp]
 block_size = 131072    # TFTP block size in bytes (128kB)

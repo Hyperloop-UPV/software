@@ -58,7 +58,7 @@ var zeroTime time.Time
 // applying exponential backoff between attempts.
 func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string) error {
 	client := tcp.NewClient(remote, config, transport.logger)
-	clientLogger := transport.logger.With().Str("remoteAddress", remote).Logger() 
+	clientLogger := transport.logger.With().Str("remoteAddress", remote).Logger()
 	defer clientLogger.Warn().Msg("abort connection")
 	var hasConnected = false
 
@@ -205,7 +205,7 @@ func (transport *Transport) targetFromTCPConn(conn net.Conn) (abstraction.Transp
 }
 
 // rejectIfConnectedTCPConn closes and rejects conn if target already has an active connection.
-func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger,) error {
+func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger) error {
 	transport.connectionsMx.Lock()
 	defer transport.connectionsMx.Unlock()
 
@@ -238,7 +238,7 @@ func (transport *Transport) registerTCPConn(target abstraction.TransportTarget, 
 func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger) {
 	from := conn.RemoteAddr().String()
 	to := conn.LocalAddr().String()
-	
+
 	go func() {
 		for {
 			packet, err := transport.decoder.DecodeNext(conn)
@@ -266,7 +266,6 @@ func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger
 		}
 	}()
 }
-
 
 // SendMessage triggers an event to send something to the vehicle. Some messages
 // might additional means to pass information around (e.g. file read and write)
@@ -342,7 +341,7 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 		defer transport.connectionsMx.RUnlock()
 		conn, ok := transport.connections[target]
 		if !ok {
-			eventLogger.Warn().Msg("target not connected")	
+			eventLogger.Warn().Msg("target not connected")
 
 			err := ErrConnClosed{Target: target}
 			return nil, err
@@ -379,24 +378,6 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 	return nil
 }
 
-// handleFileWrite writes a file through tftp to the blcu
-func (transport *Transport) handleFileWrite(message FileWriteMessage) error {
-	_, err := transport.tftp.WriteFile(message.Filename(), tftp.BinaryMode, message)
-	if err != nil {
-		transport.errChan <- err
-	}
-	return err
-}
-
-// handleFileRead reads a file through tftp from the blcu
-func (transport *Transport) handleFileRead(message FileReadMessage) error {
-	_, err := transport.tftp.ReadFile(message.Filename(), tftp.BinaryMode, message)
-	if err != nil {
-		transport.errChan <- err
-	}
-	return err
-}
-
 // HandleSniffer starts listening for packets on the provided sniffer and handles them.
 //
 // This function will block until the sniffer is closed
@@ -414,7 +395,7 @@ func (transport *Transport) HandleSniffer(sniffer *sniffer.Sniffer) {
 func (transport *Transport) HandleUDPServer(server *udp.Server) {
 	packetsCh := server.GetPackets()
 	errorsCh := server.GetErrors()
-	
+
 	for {
 		select {
 		case packet := <-packetsCh:
@@ -437,7 +418,7 @@ func (transport *Transport) replicateFault(packet abstraction.Packet, logger zer
 func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 	srcAddr := fmt.Sprintf("%s:%d", udpPacket.SourceIP, udpPacket.SourcePort)
 	dstAddr := fmt.Sprintf("%s:%d", udpPacket.DestIP, udpPacket.DestPort)
-	
+
 	// Create a reader from the payload
 	readerAny := transport.byteReaderPool.Get()
 	var reader *bytes.Reader
@@ -460,12 +441,12 @@ func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 		transport.errChan <- err
 		return
 	}
-	
+
 	// Intercept packets with id == 0 and replicate
 	if transport.propagateFault && packet.Id() == 0 {
 		transport.replicateFault(packet, transport.logger)
 	}
-	
+
 	// Send notification
 	transport.api.Notification(NewPacketNotification(packet, srcAddr, dstAddr, udpPacket.Timestamp))
 

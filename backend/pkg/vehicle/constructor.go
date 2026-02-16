@@ -75,8 +75,3 @@ func (vehicle *Vehicle) SetIpToBoardId(ipToBoardId map[string]abstraction.BoardI
 	vehicle.ipToBoardId = ipToBoardId
 	vehicle.trace.Info().Msg("set ip to board id")
 }
-
-func (vehicle *Vehicle) SetBlcuId(id abstraction.BoardId) {
-	vehicle.BlcuId = id
-	vehicle.trace.Info().Uint16("blcu_id", uint16(id)).Msg("set blcu id")
-}

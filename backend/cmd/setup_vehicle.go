@@ -18,9 +18,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/broker"
-	blcu_topics "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/blcu"
 	connection_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/connection"
 	data_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/data"
 	logger_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/logger"
@@ -75,7 +73,6 @@ func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger
 	})
 
 	broker.SetPool(pool)
-	blcu_topics.RegisterTopics(broker, pool)
 
 	return broker, cleanup
 }
@@ -100,45 +97,6 @@ func configureVehicle(
 	vehicle.SetIpToBoardId(ipToBoardID)
 	vehicle.SetIdToBoardName(idToBoard)
 	vehicle.SetTransport(transp)
-
-	// Register BLCU board for handling bootloader operations
-	if blcuIP, exists := adj.Info.Addresses[BLCU]; exists {
-		blcuId, idExists := adj.Info.BoardIds["BLCU"]
-		if !idExists {
-			return fmt.Errorf("BLCU IP found in ADJ but board ID missing")
-		} else {
-			// Get configurable order IDs or use defaults
-			downloadOrderId := config.Blcu.DownloadOrderId
-			uploadOrderId := config.Blcu.UploadOrderId
-			if downloadOrderId == 0 {
-				downloadOrderId = boards.DefaultBlcuDownloadOrderId
-			}
-			if uploadOrderId == 0 {
-				uploadOrderId = boards.DefaultBlcuUploadOrderId
-			}
-
-			tftpConfig := boards.TFTPConfig{
-				BlockSize:      config.TFTP.BlockSize,
-				Retries:        config.TFTP.Retries,
-				TimeoutMs:      config.TFTP.TimeoutMs,
-				BackoffFactor:  config.TFTP.BackoffFactor,
-				EnableProgress: config.TFTP.EnableProgress,
-			}
-			blcuBoard := boards.NewWithConfig(blcuIP, tftpConfig, abstraction.BoardId(blcuId), downloadOrderId, uploadOrderId)
-			vehicle.AddBoard(blcuBoard)
-			vehicle.SetBlcuId(abstraction.BoardId(blcuId))
-
-			trace.
-				Info().
-				Str("ip", blcuIP).
-				Int("id", int(blcuId)).
-				Uint16("download_order_id", downloadOrderId).
-				Uint16("upload_order_id", uploadOrderId).
-				Msg("BLCU board registered")
-		}
-	} else {
-		trace.Warn().Msg("BLCU not found in ADJ configuration - bootloader operations unavailable")
-	}
 
 	return nil
 
