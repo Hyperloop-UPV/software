@@ -1,6 +1,7 @@
 import { socketService } from "@workspace/core";
 import { useTopic } from "@workspace/ui/hooks";
 import { useRef, useState } from "react";
+import { config } from "../../config";
 import type { LoggerStatus } from "../types/common/logger";
 
 export function useLogger() {
@@ -17,7 +18,7 @@ export function useLogger() {
     timeoutRef.current = setTimeout(() => {
       setStatus("error");
       timeoutRef.current = null;
-    }, 2000);
+    }, config.LOGGER_RESPONSE_TIMEOUT);
   };
 
   useTopic<boolean>("logger/response", (isLogging) => {

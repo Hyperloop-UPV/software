@@ -1,3 +1,4 @@
+import { socketService } from "@workspace/core";
 import { Badge, Button } from "@workspace/ui";
 import {
   Dialog,
@@ -11,14 +12,17 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "../../../../frontend-kit/ui/src/icons/notifications";
+import { config } from "../../../config";
 import { DEFAULT_CONFIG } from "../../constants/defaultConfig";
 import { useStore } from "../../store/store";
+import type { ConfigData } from "../../types/common/config";
 import { SettingsForm } from "./SettingsForm";
 
 export const SettingsDialog = () => {
   const isSettingsOpen = useStore((s) => s.isSettingsOpen);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
-  const [localConfig, setLocalConfig] = useState<any>(null);
+  const setRestarting = useStore((s) => s.setRestarting);
+  const [localConfig, setLocalConfig] = useState<ConfigData | null>(null);
   const [isSynced, setIsSynced] = useState(false);
 
   const loadConfig = async () => {
@@ -55,12 +59,19 @@ export const SettingsDialog = () => {
     } else {
       console.log("Electron API not available. Using default config.");
     }
-    setSettingsOpen(false);
+
+    setRestarting(true);
+
+    setTimeout(() => {
+      socketService.connect();
+      setSettingsOpen(false);
+      setRestarting(false);
+    }, config.SETTINGS_RESPONSE_TIMEOUT);
   };
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="flex max-h-[85vh] min-w-[800px] max-w-2xl flex-col">
+      <DialogContent className="flex max-h-[85vh] max-w-2xl min-w-[800px] flex-col">
         <DialogHeader className="pr-5">
           <div className="flex items-center justify-between">
             <DialogTitle>System Configuration</DialogTitle>

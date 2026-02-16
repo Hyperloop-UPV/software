@@ -1,9 +1,11 @@
+import type { TelemetryPacket } from "@workspace/core";
 import { Button } from "@workspace/ui";
 import { ChevronLeft, ChevronRight, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { memo, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";
+import { config } from "../../../../config";
 import { useStore } from "../../../store/store";
 import { COLORS } from "../constants/chartsColors";
 import type { WorkspaceChartSeries } from "../types/charts";
@@ -31,7 +33,7 @@ export const ChartSurface = memo(
     const historyLimit = useStore(
       (s) =>
         s.charts[activeWorkspace?.id ?? ""]?.find((c) => c.id === chartId)
-          ?.historyLimit ?? 200,
+          ?.historyLimit ?? config.FALLBACK_CHART_HISTORY_LIMIT,
     );
 
     const packets = useStore(
@@ -96,7 +98,7 @@ export const ChartSurface = memo(
 
       const opts: uPlot.Options = {
         width: containerRef.current.clientWidth - 32,
-        height: 250,
+        height: config.DEFAULT_CHART_HEIGHT,
         legend: {
           show: false,
         },
@@ -118,10 +120,10 @@ export const ChartSurface = memo(
           ...series.map((p, i) => ({
             label: p.variable,
             stroke: COLORS[i % COLORS.length],
-            width: 2,
+            width: config.CHART_LINE_WIDTH,
             points: {
               show: true,
-              size: 2,
+              size: config.CHART_POINT_SIZE,
               fill: COLORS[i % COLORS.length],
               width: 0,
             },
@@ -167,11 +169,16 @@ export const ChartSurface = memo(
 
     // Update Chart Data (Runs only when 'data' actually changes)
     useEffect(() => {
-      const primaryPacket = packets[0];
-      if (!primaryPacket || !uplotRef.current) return;
+      const activePackets = packets.filter(
+        (p): p is TelemetryPacket => p !== undefined,
+      );
+
+      if (activePackets.length === 0 || !uplotRef.current) return;
+
+      const latestCount = Math.max(...activePackets.map((p) => p.count));
 
       const snapshot = {
-        count: primaryPacket.count,
+        count: latestCount,
         values: series.map((p, i) => {
           const pkt = packets[i];
           const m = pkt?.measurementUpdates?.[p.variable];
@@ -205,7 +212,6 @@ export const ChartSurface = memo(
           const range = currentXMax - currentXMin;
           const shift = range * 0.2;
 
-          // If the view was already at the "Present" before this update...
           if (currentXMax >= prevLatestCount) {
             const currentXMin = u.scales.x.min!;
             const range = currentXMax - currentXMin;
@@ -228,7 +234,7 @@ export const ChartSurface = memo(
 
             uplotRef.current.setSize({
               width: width,
-              height: 250,
+              height: config.DEFAULT_CHART_HEIGHT,
             });
           }
         }
@@ -241,14 +247,6 @@ export const ChartSurface = memo(
       };
     }, []);
 
-    if (series.length === 0) {
-      return (
-        <div className="border-muted-foreground/20 text-muted-foreground/50 flex h-[275px] w-full items-center justify-center rounded-lg border-2 border-dashed text-center">
-          Add a variable here to start visualizing data
-        </div>
-      );
-    }
-
     const latestCount =
       historyRef.current[historyRef.current.length - 1]?.count ?? 0;
     const currentMax = uplotRef.current?.scales.x.max ?? 0;
@@ -256,7 +254,10 @@ export const ChartSurface = memo(
 
     return (
       <div className="relative w-full">
-        <div ref={containerRef} className="h-[250px] w-full" />
+        <div
+          ref={containerRef}
+          className={`h-[${config.DEFAULT_CHART_HEIGHT}px] w-full`}
+        />
         {/* Integrated Status Bar - Pinned Top Right */}
         <div className="z-5 absolute -top-1 right-2 flex items-center gap-2">
           {/* Mode Indicator & Label */}

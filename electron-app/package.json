@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HyperloopUPV-H8/software.git"
+    "url": "https://github.com/Hyperloop-UPV/software.git"
   },
   "scripts": {
     "start": "electron .",
@@ -21,37 +21,41 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "test": "vitest run",
+    "build-icons": "electron-icon-builder --input=./icon.png --output=./ --flatten",
     "build": "node build.mjs",
-    "build:win": "node build.mjs --platform windows",
-    "build:linux": "node build.mjs --platform linux",
-    "build:mac": "node build.mjs --platform mac",
-    "build:all": "node build.mjs --platform all",
+    "build:win": "node build.mjs --win",
+    "build:linux": "node build.mjs --linux",
+    "build:mac": "node build.mjs --mac",
     "build:backend": "node build.mjs --backend",
-    "build:backend:win": "node build.mjs --backend --platform windows",
-    "build:backend:linux": "node build.mjs --backend --platform linux",
-    "build:backend:mac": "node build.mjs --backend --platform mac",
-    "build:frontend": "node build.mjs --frontend",
-    "build:common": "node build.mjs --common-front",
-    "build:control-station": "node build.mjs --control-station",
-    "build:ethernet-view": "node build.mjs --ethernet-view",
+    "build:backend:win": "node build.mjs --backend --win",
+    "build:backend:linux": "node build.mjs --backend --linux",
+    "build:backend:mac": "node build.mjs --backend --mac",
+    "build:testing": "node build.mjs --testing-view",
+    "build:competition": "node build.mjs --competition-view",
     "asar:win": "asar list dist/win-unpacked/resources/app.asar | findstr /V node_modules",
     "asar:mac": "asar list dist/mac-unpacked/resources/app.asar | findstr /V node_modules",
     "asar:linux": "asar list dist/linux-unpacked/resources/app.asar | findstr /V node_modules"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
-    "electron-store": "^8.1.0"
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.7.3",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.14",
+    "@vitest/coverage-v8": "^4.0.18",
     "asar": "^3.2.0",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
-    "vitest": "^4.0.14"
+    "electron": "^40.1.0",
+    "electron-builder": "^26.7.0",
+    "vitest": "^4.0.18"
   },
   "build": {
     "appId": "com.hyperloop.controlstation",
-    "publish": null,
+    "publish": {
+      "provider": "github",
+      "owner": "Hyperloop-UPV",
+      "repo": "software"
+    },
     "productName": "Hyperloop-Control-Station",
     "directories": {
       "output": "dist"
@@ -82,14 +86,20 @@
         "nsis",
         "portable"
       ],
-      "icon": "icon.ico"
+      "icon": "icons/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "mac": {
       "target": [
         "dmg",
         "zip"
       ],
-      "icon": "icon.icns",
+      "icon": "icons/icon.icns",
       "category": "public.app-category.utilities",
       "artifactName": "${productName}-${version}-macos-${arch}.${ext}"
     },
@@ -98,7 +108,7 @@
         "AppImage",
         "deb"
       ],
-      "icon": "icon.png",
+      "icon": "icons/512x512.png",
       "category": "Utility",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     }

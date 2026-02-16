@@ -21,6 +21,13 @@ export const Testing = () => {
   const setIsSidebarVisible = useStore((s) => s.setTestingSidebarVisible);
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
 
+  const isCommandsVisible = useStore((s) => s.isCommandsVisible);
+  const isMessagesVisible = useStore((s) => s.isMessagesVisible);
+  const isHorizontal = useStore((s) => s.isHorizontal);
+  const isTelemetryVisible = useStore((s) => s.isTelemetryVisible);
+
+  const showCommandsMessages = isCommandsVisible || isMessagesVisible;
+
   useGlobalKeyBindings();
 
   const {
@@ -58,10 +65,22 @@ export const Testing = () => {
         onDragEnd={handleDragEnd}
       >
         <div className="relative h-full w-full">
-          <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+          <ResizablePanelGroup
+            orientation="horizontal"
+            className="h-full w-full"
+          >
             <ResizablePanel
-              defaultSize={isSidebarVisible ? 60 : 100}
-              minSize={30}
+              id="main"
+              defaultSize={
+                isSidebarVisible
+                  ? isHorizontal && showCommandsMessages && isTelemetryVisible
+                    ? "40%"
+                    : showCommandsMessages
+                      ? "55%"
+                      : "70%"
+                  : "100%"
+              }
+              minSize="30%"
             >
               <MainPanel
                 columns={columns}
@@ -75,7 +94,18 @@ export const Testing = () => {
             {isSidebarVisible && (
               <>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={40} minSize={20} maxSize={70}>
+                <ResizablePanel
+                  id="sidebar"
+                  defaultSize={
+                    isHorizontal && showCommandsMessages && isTelemetryVisible
+                      ? "60%"
+                      : showCommandsMessages
+                        ? "45%"
+                        : "30%"
+                  }
+                  minSize="20%"
+                  maxSize="70%"
+                >
                   <RightSidebar onClose={() => setIsSidebarVisible(false)} />
                 </ResizablePanel>
               </>

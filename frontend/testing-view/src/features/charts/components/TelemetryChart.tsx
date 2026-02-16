@@ -1,3 +1,5 @@
+import type { DraggableAttributes } from "@dnd-kit/core";
+import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical, Trash2 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
@@ -12,8 +14,8 @@ interface TelemetryChartProps {
   series: WorkspaceChartSeries[];
   isDragging: boolean;
   isOver?: boolean;
-  dragAttributes?: any;
-  dragListeners?: any;
+  dragAttributes?: DraggableAttributes;
+  dragListeners?: SyntheticListenerMap;
 }
 
 /**

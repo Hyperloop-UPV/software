@@ -24,7 +24,7 @@ function App() {
   const { packets, commands, isLoading } = useAppConfigs(isConnected);
 
   // Determine app mode
-  useAppMode(packets, commands, isLoading, isConnected);
+  useAppMode(packets, commands, isLoading);
 
   // Transform boards and store in the global store
   useTransformedBoards(packets, commands);

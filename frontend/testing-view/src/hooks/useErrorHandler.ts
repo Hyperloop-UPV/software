@@ -1,4 +1,5 @@
 import { logger } from "@workspace/core";
+import useErrorSubscription from "@workspace/ui/hooks/webSocket/useErrorSubscription";
 import { useEffect } from "react";
 import { useStore } from "../store/store";
 
@@ -10,14 +11,23 @@ import { useStore } from "../store/store";
  */
 export function useErrorHandler() {
   const setError = useStore((s) => s.setError);
-  const setAppMode = useStore((s) => s.setAppMode);
+
+  useErrorSubscription((err) => {
+    const isRestarting = useStore.getState().isRestarting;
+
+    if (err instanceof CloseEvent && err.code == 1006 && isRestarting) {
+      logger.testingView.warn("Restarting app...");
+      return;
+    }
+
+    setError(err);
+  });
 
   useEffect(() => {
     // Global error handler
     const handleError = (event: ErrorEvent) => {
       logger.testingView.error("Uncaught error:", event.error);
       setError(event.error);
-      setAppMode("error");
     };
 
     // Unhandled promise rejection handler
@@ -42,7 +52,7 @@ export function useErrorHandler() {
         handleUnhandledRejection,
       );
     };
-  }, [setError, setAppMode]);
+  }, [setError]);
 
   /**
    * This functions prints the error and the error info in console using logger

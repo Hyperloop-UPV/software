@@ -1,4 +1,4 @@
-import { acronyms } from "../constants/acronyms";
+import { ACRONYMS } from "../constants/acronyms";
 import { BOARD_NAMES } from "../constants/boards";
 import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
 import type {
@@ -95,7 +95,7 @@ export const formatName = (name: string): string => {
     .map((word) => {
       const upperWord = word.toUpperCase();
       // Check if word is an acronym
-      if (acronyms.includes(upperWord)) {
+      if (ACRONYMS.includes(upperWord as (typeof ACRONYMS)[number])) {
         return upperWord;
       }
 

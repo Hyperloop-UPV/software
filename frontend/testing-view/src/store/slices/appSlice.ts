@@ -13,6 +13,9 @@ export interface AppSlice {
   error: Error | null;
   setError: (error: Error | null) => void;
 
+  isRestarting: boolean;
+  setRestarting: (isRestarting: boolean) => void;
+
   // Mode override (only used in dev mode)
   modeOverride: AppMode | null;
   setModeOverride: (mode: AppMode | null) => void;
@@ -52,6 +55,10 @@ export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
   // Error state
   error: null,
   setError: (error) => set({ error }),
+
+  // Happens when we restart the backend on config change
+  isRestarting: false,
+  setRestarting: (isRestarting) => set({ isRestarting }),
 
   // Mode override (only used in dev mode)
   modeOverride: null,

@@ -17,7 +17,7 @@ const useAppConfigs = (isConnected: boolean) => {
   } = useFetchConfig<OrdersData>(backendUrl, "orderStructures");
 
   useEffect(() => {
-    if (isConnected && packets !== null && commands !== null) {
+    if (isConnected) {
       refetchPackets();
       refetchCommands();
     }

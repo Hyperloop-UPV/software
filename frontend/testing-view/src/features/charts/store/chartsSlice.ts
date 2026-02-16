@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import { config } from "../../../../config";
 import { EMPTY_ARRAY } from "../../../constants/emptyArray";
 import type { Store } from "../../../store/store";
 import type {
@@ -67,7 +68,11 @@ export const createChartsSlice: StateCreator<Store, [], [], ChartsSlice> = (
         ...state.charts,
         [workspaceId]: [
           ...(state.charts[workspaceId] || []),
-          { id: newChartId, series: [], historyLimit: 200 },
+          {
+            id: newChartId,
+            series: [],
+            historyLimit: config.DEFAULT_CHART_HISTORY_LIMIT,
+          },
         ],
       },
     }));

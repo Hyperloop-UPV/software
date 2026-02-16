@@ -3,19 +3,18 @@ import type { Store } from "../../../store/store";
 
 export interface RightSidebarSlice {
   // Section visibility
-  isTabsVisible: boolean;
   isMessagesVisible: boolean;
-  toggleTabs: () => void;
+  isTelemetryVisible: boolean;
+  isCommandsVisible: boolean;
+  toggleTelemetry: () => void;
+  toggleCommands: () => void;
   toggleMessages: () => void;
 
   // Layout settings
   isHorizontal: boolean;
-  isSplit: boolean;
   toggleLayout: () => void;
-  toggleSplit: () => void;
 
   // Computed values
-  getBothVisible: () => boolean;
   getNoneVisible: () => boolean;
 }
 
@@ -26,18 +25,17 @@ export const createRightSidebarSlice: StateCreator<
   RightSidebarSlice
 > = (set, get) => ({
   // Section visibility
-  isTabsVisible: true,
+  isTelemetryVisible: true,
+  isCommandsVisible: true,
   isMessagesVisible: true,
-  toggleTabs: () => set({ isTabsVisible: !get().isTabsVisible }),
+  toggleTelemetry: () => set({ isTelemetryVisible: !get().isTelemetryVisible }),
+  toggleCommands: () => set({ isCommandsVisible: !get().isCommandsVisible }),
   toggleMessages: () => set({ isMessagesVisible: !get().isMessagesVisible }),
 
   // Layout settings
-  isHorizontal: true,
-  isSplit: false,
+  isHorizontal: false,
   toggleLayout: () => set({ isHorizontal: !get().isHorizontal }),
-  toggleSplit: () => set({ isSplit: !get().isSplit }),
 
   // Computed values
-  getBothVisible: () => get().isTabsVisible && get().isMessagesVisible,
-  getNoneVisible: () => !get().isTabsVisible && !get().isMessagesVisible,
+  getNoneVisible: () => !get().isTelemetryVisible && !get().isMessagesVisible,
 });

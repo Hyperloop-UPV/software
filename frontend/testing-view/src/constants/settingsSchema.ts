@@ -1,5 +1,7 @@
 import type { SettingsSection } from "../types/common/settings";
+import { BOARD_NAMES } from "./boards";
 
+/** Settings form is generated from this schema. */
 export const SETTINGS_SCHEMA: SettingsSection[] = [
   {
     title: "Vehicle Configuration",
@@ -8,16 +10,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         label: "Boards",
         path: "vehicle.boards",
         type: "multi-checkbox",
-        options: [
-          "BCU",
-          "BMSL",
-          "HVSCU",
-          "HVSCU-Cabinet",
-          "LCU",
-          "PCU",
-          "VCU",
-          "BLCU",
-        ],
+        options: BOARD_NAMES as string[],
       },
     ],
   },

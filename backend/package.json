@@ -8,6 +8,7 @@
     "dev": "go run ./cmd --config ./cmd/dev-config.toml",
     "dev:main": "go run ./cmd --config ./cmd/config.toml",
     "build": "go build -o bin/backend ./cmd",
+    "build:ci": "go build",
     "test": "go test ./..."
   }
 }

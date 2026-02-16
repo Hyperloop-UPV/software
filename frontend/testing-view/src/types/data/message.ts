@@ -6,7 +6,7 @@ import type { BoardName } from "./board";
  * Because seconds basically don't tell us anything in the context of high-frequency systems
  * and counter only means uniqueness considering the same packet type
  */
-export interface MessageTimestamp {
+export type MessageTimestamp = {
   /** Counter which is incremented by 1 every time packet of one type is generated,\
    * but it can be the same between different packet types
    */
@@ -17,7 +17,7 @@ export interface MessageTimestamp {
   day: number;
   month: number;
   year: number;
-}
+};
 
 /**
  * Possible payloads for a `ok`, `warning` and `fault` messages.
@@ -39,7 +39,7 @@ export type DetailedPayload =
 /**
  * Definition of a MessagePacket as it arrives from the backend.
  */
-export interface MessagePacket {
+export type MessagePacket = {
   /** Message type */
   kind: "info" | "warning" | "fault" | "ok";
   /** For `info` messages, the payload is a string.
@@ -49,12 +49,12 @@ export interface MessagePacket {
   board: BoardName;
   name: string;
   timestamp: MessageTimestamp;
-}
+};
 
 /**
  * Message definition on frontend.
  */
-export interface Message extends MessagePacket {
+export type Message = MessagePacket & {
   /** Unique message id generated on frontend for React keys */
   id: string;
-}
+};

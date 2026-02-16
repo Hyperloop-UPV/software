@@ -1,5 +1,6 @@
 import { get, set } from "lodash";
 import { SETTINGS_SCHEMA } from "../../constants/settingsSchema";
+import type { ConfigData } from "../../types/common/config";
 import type { SettingField } from "../../types/common/settings";
 import { BooleanField } from "./BooleanField";
 import { MultiCheckboxField } from "./MultiCheckboxField";
@@ -7,13 +8,9 @@ import { PathField } from "./PathField";
 import { SelectField } from "./SelectField";
 import { TextField } from "./TextField";
 
-interface SettingsConfig {
-  [key: string]: SettingField;
-}
-
 interface SettingsFormProps {
-  config: SettingsConfig;
-  onChange: (newConfig: SettingsConfig) => void;
+  config: ConfigData;
+  onChange: (newConfig: ConfigData) => void;
 }
 
 export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
