@@ -275,10 +275,6 @@ func (transport *Transport) SendMessage(message abstraction.TransportMessage) er
 	switch msg := message.(type) {
 	case PacketMessage:
 		err = transport.handlePacketEvent(msg)
-	case FileWriteMessage:
-		err = transport.handleFileWrite(msg)
-	case FileReadMessage:
-		err = transport.handleFileRead(msg)
 	default:
 		err = ErrUnrecognizedEvent{message.Event()}
 	}
