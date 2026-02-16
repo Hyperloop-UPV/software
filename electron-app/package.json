@@ -26,7 +26,6 @@
     "build:win": "node build.mjs --win",
     "build:linux": "node build.mjs --linux",
     "build:mac": "node build.mjs --mac",
-    "build:all": "node build.mjs",
     "build:backend": "node build.mjs --backend",
     "build:backend:win": "node build.mjs --backend --win",
     "build:backend:linux": "node build.mjs --backend --linux",

@@ -1,3 +1,4 @@
+import type { TelemetryPacket } from "@workspace/core";
 import { Button } from "@workspace/ui";
 import { ChevronLeft, ChevronRight, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
@@ -168,11 +169,16 @@ export const ChartSurface = memo(
 
     // Update Chart Data (Runs only when 'data' actually changes)
     useEffect(() => {
-      const primaryPacket = packets[0];
-      if (!primaryPacket || !uplotRef.current) return;
+      const activePackets = packets.filter(
+        (p): p is TelemetryPacket => p !== undefined,
+      );
+
+      if (activePackets.length === 0 || !uplotRef.current) return;
+
+      const latestCount = Math.max(...activePackets.map((p) => p.count));
 
       const snapshot = {
-        count: primaryPacket.count,
+        count: latestCount,
         values: series.map((p, i) => {
           const pkt = packets[i];
           const m = pkt?.measurementUpdates?.[p.variable];
@@ -206,7 +212,6 @@ export const ChartSurface = memo(
           const range = currentXMax - currentXMin;
           const shift = range * 0.2;
 
-          // If the view was already at the "Present" before this update...
           if (currentXMax >= prevLatestCount) {
             const currentXMin = u.scales.x.min!;
             const range = currentXMax - currentXMin;

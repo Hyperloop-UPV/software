@@ -38,6 +38,8 @@ function createWindow() {
       contextIsolation: true,
       // Disable node integration for security
       nodeIntegration: false,
+      // Disable background throttling to prevent data loss when window is minimized
+      backgroundThrottling: false,
     },
     title: "Hyperloop Control Station",
     backgroundColor: "#1a1a1a",
