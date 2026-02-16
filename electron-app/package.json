@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/HyperloopUPV-H8/software.git"
+    "url": "https://github.com/Hyperloop-UPV/software.git"
   },
   "scripts": {
     "start": "electron .",
@@ -21,6 +21,7 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "test": "vitest run",
+    "build-icons": "electron-icon-builder --input=./icon.png --output=./ --flatten",
     "build": "node build.mjs",
     "build:win": "node build.mjs --win",
     "build:linux": "node build.mjs --linux",
@@ -37,7 +38,9 @@
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
-    "electron-store": "^11.0.2"
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.7.3",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",
@@ -48,7 +51,11 @@
   },
   "build": {
     "appId": "com.hyperloop.controlstation",
-    "publish": null,
+    "publish": {
+      "provider": "github",
+      "owner": "Hyperloop-UPV",
+      "repo": "software"
+    },
     "productName": "Hyperloop-Control-Station",
     "directories": {
       "output": "dist"
@@ -79,14 +86,20 @@
         "nsis",
         "portable"
       ],
-      "icon": "icon.ico"
+      "icon": "icons/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "mac": {
       "target": [
         "dmg",
         "zip"
       ],
-      "icon": "icon.icns",
+      "icon": "icons/icon.icns",
       "category": "public.app-category.utilities",
       "artifactName": "${productName}-${version}-macos-${arch}.${ext}"
     },
@@ -95,7 +108,7 @@
         "AppImage",
         "deb"
       ],
-      "icon": "icon.png",
+      "icon": "icons/512x512.png",
       "category": "Utility",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     }

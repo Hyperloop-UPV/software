@@ -67,17 +67,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "pnpm"
 
       # Update package.json with release version
       - name: Update version in package.json
         working-directory: electron-app
         shell: bash
         run: |
-          npm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
+          pnpm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
           echo "Updated version to:"
           cat package.json | grep version
 
@@ -148,11 +153,11 @@ jobs:
 
       - name: Install Electron dependencies
         working-directory: electron-app
-        run: npm ci
+        run: pnpm install
 
       - name: Build Electron distribution
         working-directory: electron-app
-        run: npm run dist
+        run: pnpm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -179,6 +184,8 @@ jobs:
             electron-app/dist/*.deb
             electron-app/dist/*.dmg
             electron-app/dist/*.zip
+            electron-app/dist/*.yml
+            electron-app/dist/*.blockmap
             !electron-app/dist/*-unpacked
             !electron-app/dist/mac
             !electron-app/dist/win-unpacked

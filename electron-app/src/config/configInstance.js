@@ -4,8 +4,8 @@
  * Provides async wrappers for ConfigManager operations with lazy initialization.
  */
 
-import { getUserConfigPath, getTemplatePath } from "../utils/paths.js";
 import { logger } from "../utils/logger.js";
+import { getTemplatePath, getUserConfigPath } from "../utils/paths.js";
 
 // Store the singleton ConfigManager instance
 let configManager = null;
@@ -30,8 +30,8 @@ async function getConfigManager() {
     // Create new ConfigManager instance
     configManager = new ConfigManager(userConfigPath, templatePath);
     logger.config.info("ConfigManager initialized");
-    logger.config.info("User config:", userConfigPath);
-    logger.config.info("Template:", templatePath);
+    logger.config.path("User config", userConfigPath);
+    logger.config.path("Template path", templatePath);
   }
 
   // Return the singleton instance
@@ -132,4 +132,4 @@ async function importConfig() {
   }
 }
 
-export { getConfigManager, readConfig, writeConfig, importConfig };
+export { getConfigManager, importConfig, readConfig, writeConfig };

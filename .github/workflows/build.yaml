@@ -57,6 +57,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          ref: "production"
           filters: |
             backend:
               - 'backend/**/*'
@@ -161,7 +162,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        view: [testing-view, competition-view]
+        view: [testing-view, 
+        # competition-view] # TODO: Uncomment when competition view is ready
+        ]
     steps:
       # OPTIMIZATION: Try to download existing artifact first
       # Only runs if NO changes were detected and NO rebuild was forced
@@ -184,7 +187,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         if: steps.download.outcome != 'success'
         with:
-          version: 10
+          version: 10.26.0
 
       - uses: actions/setup-node@v4
         if: steps.download.outcome != 'success'

@@ -4,13 +4,16 @@
  * Handles application lifecycle, initialization, and cleanup of processes and windows.
  */
 
-import { app, dialog, BrowserWindow } from "electron";
-import { createWindow } from "./src/windows/mainWindow.js";
-import { startBackend, stopBackend } from "./src/processes/backend.js";
-import { setupIpcHandlers } from "./src/ipc/handlers.js";
+import { app, BrowserWindow, dialog } from "electron";
+import pkg from "electron-updater";
 import { getConfigManager } from "./src/config/configInstance.js";
+import { setupIpcHandlers } from "./src/ipc/handlers.js";
+import { startBackend, stopBackend } from "./src/processes/backend.js";
 import { stopPacketSender } from "./src/processes/packetSender.js";
 import { logger } from "./src/utils/logger.js";
+import { createWindow } from "./src/windows/mainWindow.js";
+
+const { autoUpdater } = pkg;
 
 // Setup IPC handlers for renderer process communication
 setupIpcHandlers();
@@ -18,16 +21,54 @@ setupIpcHandlers();
 // App lifecycle: wait for Electron to be ready
 app.whenReady().then(async () => {
   // Initialize ConfigManager and ensure config exists BEFORE starting backend
-  logger.electron.info("Initializing configuration...");
+  logger.electron.header("Initializing configuration...");
   // Get ConfigManager instance (creates config from template if needed)
   await getConfigManager();
-  logger.electron.info("Configuration ready");
+  logger.electron.header("Configuration ready");
 
   // Start backend process
-  startBackend();
+  try {
+    await startBackend();
+    logger.electron.header("Backend process spawned");
+  } catch (error) {
+    // Start backend already shows these errors
+    return;
+  }
 
   // Create main application window
   createWindow();
+  logger.electron.header("Main application window created");
+
+  // Updater setup
+  if (!app.isPackaged) {
+    autoUpdater.forceDevUpdateConfig = true;
+  }
+
+  autoUpdater.logger = {
+    info: (message) => logger.electron.info(message),
+    error: (message) => logger.electron.error(message),
+    warn: (message) => logger.electron.warning(message),
+    debug: (message) => logger.electron.debug(message),
+  };
+
+  // Check for updates
+  autoUpdater.checkForUpdates();
+
+  // Handle update downloaded event
+  autoUpdater.on("update-downloaded", (info) => {
+    dialog
+      .showMessageBox({
+        type: "info",
+        title: "Update Ready",
+        message: `Version ${info.version} has been downloaded. Restart now to install?`,
+        buttons: ["Restart", "Later"],
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+  });
 
   // Handle macOS app activation (reopen window when dock icon clicked)
   app.on("activate", () => {

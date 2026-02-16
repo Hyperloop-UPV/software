@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "../../../../frontend-kit/ui/src/icons/notifications";
+import { config } from "../../../config";
 import { DEFAULT_CONFIG } from "../../constants/defaultConfig";
 import { useStore } from "../../store/store";
 import type { ConfigData } from "../../types/common/config";
@@ -65,12 +66,12 @@ export const SettingsDialog = () => {
       socketService.connect();
       setSettingsOpen(false);
       setRestarting(false);
-    }, 500);
+    }, config.SETTINGS_RESPONSE_TIMEOUT);
   };
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="flex max-h-[85vh] min-w-[800px] max-w-2xl flex-col">
+      <DialogContent className="flex max-h-[85vh] max-w-2xl min-w-[800px] flex-col">
         <DialogHeader className="pr-5">
           <div className="flex items-center justify-between">
             <DialogTitle>System Configuration</DialogTitle>

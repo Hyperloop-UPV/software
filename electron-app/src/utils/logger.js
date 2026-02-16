@@ -5,7 +5,7 @@
  * All logging methods write directly to the console with ANSI color formatting.
  */
 
-import { colors } from "./colors.js";
+import pc from "picocolors";
 
 /**
  * @typedef {Object} LoggerMethods
@@ -21,118 +21,51 @@ import { colors } from "./colors.js";
 
 /**
  * Creates a set of logger methods with an optional prefix and color.
- * @param {string} [prefix=""] - Optional prefix text to display before log messages.
- * @param {keyof typeof colors} [prefixColor=""] - Optional color name from the colors object for the prefix.
- * @returns {LoggerMethods} Logger methods object.
- * @example
- * const myLogger = createLoggerMethods("MyApp", "cyan");
- * myLogger.info("Application started");
- * myLogger.error("Something went wrong");
+ * @param {string} [prefix=""] - Optional prefix text.
+ * @param {string} [prefixColor=""] - Color name from picocolors (e.g., "cyan", "magenta").
  */
 function createLoggerMethods(prefix = "", prefixColor = "") {
-  const prefixText = prefix
-    ? `${colors[prefixColor] || ""}[${prefix}]${colors.reset} `
-    : "";
+  // Get the color function from picocolors, or fallback to a plain string
+  const colorFn = pc[prefixColor] || ((s) => s);
+  const prefixText = prefix ? `${colorFn(`[${prefix}]`)} ` : "";
 
   return {
-    /**
-     * Logs an info-level message to the console.
-     * @param {string} msg - The message to log.
-     * @param {...any} args - Additional arguments for console.log.
-     */
     info: (msg, ...args) => {
-      console.log(
-        `${prefixText}${colors.blue}[INFO]${colors.reset} ${msg}`,
-        ...args
-      );
+      console.log(`${prefixText}${pc.blue("[INFO]")} ${msg}`, ...args);
     },
 
-    /**
-     * Logs a success-level message to the console.
-     * @param {string} msg - The message to log.
-     * @param {...any} args - Additional arguments for console.log.
-     */
     success: (msg, ...args) => {
-      console.log(
-        `${prefixText}${colors.brightGreen}[OK]${colors.reset} ${msg}`,
-        ...args
-      );
+      console.log(`${prefixText}${pc.green("[OK]")} ${msg}`, ...args);
     },
 
-    /**
-     * Logs a warning-level message to the console.
-     * @param {string} msg - The message to log.
-     * @param {...any} args - Additional arguments for console.log.
-     */
     warning: (msg, ...args) => {
-      console.log(
-        `${prefixText}${colors.yellow}[WARN]${colors.reset} ${msg}`,
-        ...args
-      );
+      console.log(`${prefixText}${pc.yellow("[WARN]")} ${msg}`, ...args);
     },
 
-    /**
-     * Logs an error-level message to the console.
-     * @param {string} msg - The message to log.
-     * @param {...any} args - Additional arguments for console.error.
-     */
     error: (msg, ...args) => {
-      console.error(
-        `${prefixText}${colors.brightRed}[ERROR]${colors.reset} ${msg}`,
-        ...args
-      );
+      console.error(`${prefixText}${pc.red("[ERROR]")} ${msg}`, ...args);
     },
 
-    /**
-     * Logs a debug-level message to the console.
-     * @param {string} msg - The message to log.
-     * @param {...any} args - Additional arguments for console.log.
-     */
     debug: (msg, ...args) => {
-      console.log(
-        `${prefixText}${colors.gray}[DEBUG]${colors.reset} ${msg}`,
-        ...args
-      );
+      console.log(`${prefixText}${pc.gray("[DEBUG]")} ${msg}`, ...args);
     },
 
-    /**
-     * Prints a header message with bright cyan formatting.
-     * @param {string} msg - The header message.
-     */
     header: (msg) => {
-      console.log(
-        `\n${prefixText}${colors.bright}${colors.cyan}${msg}${colors.reset}\n`
-      );
+      console.log(`\n${prefixText}${pc.bold(pc.cyan(msg))}\n`);
     },
 
-    /**
-     * Prints a step message with dim formatting.
-     * @param {string} msg - The step message.
-     * @param {...any} args - Additional arguments for console.log.
-     */
     step: (msg, ...args) => {
-      console.log(
-        `${prefixText}${colors.dim}  > ${msg}${colors.reset}`,
-        ...args
-      );
+      console.log(`${prefixText}${pc.dim(`  > ${msg}`)}`, ...args);
     },
 
-    /**
-     * Prints a labeled path with dim label and cyan path.
-     * @param {string} label - Label for the path (e.g., "Config").
-     * @param {string} path - The path value.
-     */
     path: (label, path) => {
-      console.log(
-        `${prefixText}  ${colors.dim}${label}:${colors.reset} ${colors.cyan}${path}${colors.reset}`
-      );
+      console.log(`${prefixText}  ${pc.dim(`${label}:`)} ${pc.cyan(path)}`);
     },
   };
 }
 
 /**
  * @typedef {LoggerMethods & {
- *   colors: typeof colors,
  *   electron: LoggerMethods,
  *   backend: LoggerMethods,
  *   config: LoggerMethods,
@@ -154,8 +87,6 @@ function createLoggerMethods(prefix = "", prefixColor = "") {
  * logger.log("green", "Success message");
  */
 export const logger = {
-  colors,
-
   // Default logger methods (no prefix)
   ...createLoggerMethods(),
 
@@ -171,16 +102,16 @@ export const logger = {
    * @param {string} msg - Message to log.
    */
   process: (name, msg) => {
-    console.log(`${colors.magenta}[${name}]${colors.reset} ${msg}`);
+    console.log(`${pc.magenta}[${name}]${pc.reset} ${msg}`);
   },
 
   /**
    * Logs a message in a specified color.
-   * @param {keyof typeof colors} color - Color key from the colors object.
+   * @param {keyof typeof pc} color - Color key from the pc object.
    * @param {string} msg - Message to log.
    * @param {...any} args - Additional arguments for console.log.
    */
   log: (color, msg, ...args) => {
-    console.log(`${colors[color] || ""}${msg}${colors.reset}`, ...args);
+    console.log(`${pc[color] || ""}${msg}${pc.reset}`, ...args);
   },
 };

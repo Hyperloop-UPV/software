@@ -1,0 +1,4 @@
+provider: github
+owner: Hyperloop-UPV
+repo: software
+updaterCacheDirName: hyperloop-control-station/updater
