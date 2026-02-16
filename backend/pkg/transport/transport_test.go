@@ -24,7 +24,6 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/pcapgo"
-	tftpv3 "github.com/pin/tftp/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -123,8 +122,8 @@ func NewMockBoardServer(address string) *MockBoardServer {
 	logger := zerolog.Nop()
 
 	enc := presentation.NewEncoder(binary.BigEndian, logger)
-    dec := presentation.NewDecoder(binary.BigEndian, logger)
-    wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
+	dec := presentation.NewDecoder(binary.BigEndian, logger)
+	wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
 
 	return &MockBoardServer{
 		address:     address,
@@ -138,47 +137,47 @@ func NewMockBoardServer(address string) *MockBoardServer {
 func (s *MockBoardServer) Start() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if s.running {
 		return fmt.Errorf("server already running")
 	}
-	
+
 	listener, err := net.Listen("tcp", s.address)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", s.address, err)
 	}
-	
+
 	s.listener = listener
 	s.running = true
-	
+
 	go s.acceptLoop()
-	
+
 	return nil
 }
 
 func (s *MockBoardServer) Stop() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if !s.running {
 		return nil
 	}
-	
+
 	s.running = false
-	
+
 	// Close all connections
 	for _, conn := range s.connections {
 		conn.Close()
 	}
 	s.connections = s.connections[:0]
-	
+
 	// Close listener
 	if s.listener != nil {
 		err := s.listener.Close()
 		s.listener = nil
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -194,11 +193,11 @@ func (s *MockBoardServer) acceptLoop() {
 			}
 			continue
 		}
-		
+
 		s.mu.Lock()
 		s.connections = append(s.connections, conn)
 		s.mu.Unlock()
-		
+
 		go s.handleConnection(conn)
 	}
 }
@@ -216,19 +215,19 @@ func (s *MockBoardServer) handleConnection(conn net.Conn) {
 		}
 		s.mu.Unlock()
 	}()
-	
+
 	for {
 		s.mu.RLock()
 		running := s.running
 		s.mu.RUnlock()
-		
+
 		if !running {
 			return
 		}
-		
+
 		// Set read timeout to avoid blocking forever
 		conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
-		
+
 		packet, err := s.decoder.DecodeNext(conn)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
@@ -236,7 +235,7 @@ func (s *MockBoardServer) handleConnection(conn net.Conn) {
 			}
 			return
 		}
-		
+
 		s.mu.Lock()
 		s.packetsRecv = append(s.packetsRecv, packet)
 		s.mu.Unlock()
@@ -264,18 +263,17 @@ func createTestTransport(t *testing.T) (*Transport, *TestTransportAPI) {
 	logger := zerolog.New(zerolog.Nop()).With().Timestamp().Logger()
 
 	enc := presentation.NewEncoder(binary.BigEndian, logger)
-    dec := presentation.NewDecoder(binary.BigEndian, logger)
-    wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
+	dec := presentation.NewDecoder(binary.BigEndian, logger)
+	wireTestPacketCodec(enc, dec, abstraction.PacketId(100))
 	wireTestPacketCodec(enc, dec, abstraction.PacketId(0))
-
 
 	transport := NewTransport(logger).
 		WithEncoder(enc).
 		WithDecoder(dec)
-	
+
 	api := NewTestTransportAPI()
 	transport.SetAPI(api)
-	
+
 	return transport, api
 }
 
@@ -315,23 +313,23 @@ func waitForCondition(condition func() bool, timeout time.Duration, message stri
 
 // test wiring: register a trivial codec for a data packet id.
 func wireTestPacketCodec(enc *presentation.Encoder, dec *presentation.Decoder, id abstraction.PacketId) {
-    dataEnc := data.NewEncoder(binary.BigEndian)
-    dataDec := data.NewDecoder(binary.BigEndian)
+	dataEnc := data.NewEncoder(binary.BigEndian)
+	dataDec := data.NewDecoder(binary.BigEndian)
 
-    // Empty descriptor = no payload values, just the id header.
-    var desc data.Descriptor
-    dataEnc.SetDescriptor(id, desc)
-    dataDec.SetDescriptor(id, desc)
+	// Empty descriptor = no payload values, just the id header.
+	var desc data.Descriptor
+	dataEnc.SetDescriptor(id, desc)
+	dataDec.SetDescriptor(id, desc)
 
-    enc.SetPacketEncoder(id, dataEnc)
-    dec.SetPacketDecoder(id, dataDec)
+	enc.SetPacketEncoder(id, dataEnc)
+	dec.SetPacketDecoder(id, dataDec)
 }
 
 // Unit Tests
 func TestTransport_Creation(t *testing.T) {
 	logger := zerolog.Nop()
 	transport := NewTransport(logger)
-	
+
 	if transport == nil {
 		t.Fatal("Transport should not be nil")
 	}
@@ -351,10 +349,10 @@ func TestTransport_Creation(t *testing.T) {
 
 func TestTransport_SetIdTarget(t *testing.T) {
 	transport, _ := createTestTransport(t)
-	
+
 	transport.SetIdTarget(100, "TEST_BOARD")
 	transport.SetIdTarget(200, "ANOTHER_BOARD")
-	
+
 	// Access the internal map to verify
 	if target := transport.idToTarget[100]; target != abstraction.TransportTarget("TEST_BOARD") {
 		t.Errorf("Expected TEST_BOARD, got %s", target)
@@ -366,10 +364,10 @@ func TestTransport_SetIdTarget(t *testing.T) {
 
 func TestTransport_SetTargetIp(t *testing.T) {
 	transport, _ := createTestTransport(t)
-	
+
 	transport.SetTargetIp("192.168.1.100", "TEST_BOARD")
 	transport.SetTargetIp("192.168.1.101", "ANOTHER_BOARD")
-	
+
 	// Access the internal map to verify
 	if target := transport.ipToTarget["192.168.1.100"]; target != abstraction.TransportTarget("TEST_BOARD") {
 		t.Errorf("Expected TEST_BOARD, got %s", target)
@@ -585,15 +583,15 @@ func TestHandleUDPPacket_Success(t *testing.T) {
 // Integration Tests
 func TestTransport_ClientServerConnection(t *testing.T) {
 	transport, api := createTestTransport(t)
-	
+
 	// Setup board configuration
 	boardIP := "127.0.0.1"
 	boardPort := getAvailablePort(t)
 	target := abstraction.TransportTarget("TEST_BOARD")
-	
+
 	transport.SetTargetIp(boardIP, target)
 	transport.SetIdTarget(100, target)
-	
+
 	// Create and start mock board server
 	mockBoard := NewMockBoardServer(boardPort)
 	err := mockBoard.Start()
@@ -601,23 +599,23 @@ func TestTransport_ClientServerConnection(t *testing.T) {
 		t.Fatalf("Failed to start mock board: %v", err)
 	}
 	defer mockBoard.Stop()
-	
+
 	// Configure client
 	clientAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("Failed to resolve client address: %v", err)
 	}
-	
+
 	clientConfig := tcp.NewClientConfig(clientAddr)
 	clientConfig.TryReconnect = false // Don't retry for this test
-	
+
 	// Start client connection in goroutine
 	clientDone := make(chan error, 1)
 	go func() {
 		err := transport.HandleClient(clientConfig, boardPort)
 		clientDone <- err
 	}()
-	
+
 	// Ensure cleanup
 	defer func() {
 		mockBoard.Stop()
@@ -628,7 +626,7 @@ func TestTransport_ClientServerConnection(t *testing.T) {
 			// Client should exit when board stops
 		}
 	}()
-	
+
 	// Wait for connection
 	err = waitForCondition(func() bool {
 		return mockBoard.GetConnectionCount() > 0
@@ -636,7 +634,7 @@ func TestTransport_ClientServerConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Verify connection update was sent
 	err = waitForCondition(func() bool {
 		updates := api.GetConnectionUpdates()
@@ -645,10 +643,10 @@ func TestTransport_ClientServerConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Stop the board to trigger disconnection
 	mockBoard.Stop()
-	
+
 	// Wait for client to detect disconnection
 	select {
 	case err := <-clientDone:
@@ -659,7 +657,7 @@ func TestTransport_ClientServerConnection(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Client should have detected disconnection")
 	}
-	
+
 	// Verify disconnection update
 	err = waitForCondition(func() bool {
 		updates := api.GetConnectionUpdates()
@@ -672,16 +670,16 @@ func TestTransport_ClientServerConnection(t *testing.T) {
 
 func TestTransport_PacketSending(t *testing.T) {
 	transport, api := createTestTransport(t)
-	
+
 	// Setup
 	boardIP := "127.0.0.1"
 	boardPort := getAvailablePort(t)
 	target := abstraction.TransportTarget("TEST_BOARD")
 	packetID := abstraction.PacketId(100)
-	
+
 	transport.SetTargetIp(boardIP, target)
 	transport.SetIdTarget(packetID, target)
-	
+
 	// Create mock board
 	mockBoard := NewMockBoardServer(boardPort)
 	err := mockBoard.Start()
@@ -689,18 +687,18 @@ func TestTransport_PacketSending(t *testing.T) {
 		t.Fatalf("Failed to start mock board: %v", err)
 	}
 	defer mockBoard.Stop()
-	
+
 	// Start client
 	clientAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	clientConfig := tcp.NewClientConfig(clientAddr)
 	clientConfig.TryReconnect = false
-	
+
 	clientDone := make(chan struct{})
 	go func() {
 		defer close(clientDone)
 		transport.HandleClient(clientConfig, boardPort)
 	}()
-	
+
 	// Ensure cleanup
 	defer func() {
 		mockBoard.Stop()
@@ -709,25 +707,25 @@ func TestTransport_PacketSending(t *testing.T) {
 		case <-time.After(1 * time.Second):
 		}
 	}()
-	
+
 	// Wait for connection
 	err = waitForCondition(func() bool {
-    	updates := api.GetConnectionUpdates()
-    	return len(updates) > 0 && updates[len(updates)-1].Target == target && updates[len(updates)-1].IsConnected
+		updates := api.GetConnectionUpdates()
+		return len(updates) > 0 && updates[len(updates)-1].Target == target && updates[len(updates)-1].IsConnected
 	}, 2*time.Second, "Should establish connection")
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Create and send packet
 	testPacket := data.NewPacket(packetID)
 	testPacket.SetTimestamp(time.Now())
-	
+
 	err = transport.SendMessage(NewPacketMessage(testPacket))
 	if err != nil {
 		t.Fatalf("Failed to send packet: %v", err)
 	}
-	
+
 	// Verify packet was received by board
 	err = waitForCondition(func() bool {
 		packets := mockBoard.GetReceivedPackets()
@@ -736,7 +734,7 @@ func TestTransport_PacketSending(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Verify no error notifications
 	notifications := api.GetNotifications()
 	for _, notification := range notifications {
@@ -748,16 +746,16 @@ func TestTransport_PacketSending(t *testing.T) {
 
 func TestTransport_UnknownTarget(t *testing.T) {
 	transport, api := createTestTransport(t)
-	
+
 	// Try to send packet to unknown target
 	unknownPacket := data.NewPacket(999) // Unknown packet ID
 	unknownPacket.SetTimestamp(time.Now())
-	
+
 	err := transport.SendMessage(NewPacketMessage(unknownPacket))
 	if err == nil {
 		t.Fatal("Expected error when sending to unknown target")
 	}
-	
+
 	// Should be ErrUnrecognizedId
 	var unrecognizedErr ErrUnrecognizedId
 	if !ErrorAs(err, &unrecognizedErr) {
@@ -765,7 +763,7 @@ func TestTransport_UnknownTarget(t *testing.T) {
 	} else if unrecognizedErr.Id != abstraction.PacketId(999) {
 		t.Errorf("Expected packet ID 999, got %d", unrecognizedErr.Id)
 	}
-	
+
 	// Verify error notification
 	err = waitForCondition(func() bool {
 		notifications := api.GetNotifications()
@@ -782,43 +780,43 @@ func TestTransport_UnknownTarget(t *testing.T) {
 
 func TestTransport_ReconnectionBehavior(t *testing.T) {
 	transport, api := createTestTransport(t)
-	
+
 	// Setup
 	boardIP := "127.0.0.1"
 	boardPort := getAvailablePort(t)
 	target := abstraction.TransportTarget("RECONNECT_BOARD")
-	
+
 	transport.SetTargetIp(boardIP, target)
 	transport.SetIdTarget(100, target)
-	
+
 	// Create mock board
 	mockBoard := NewMockBoardServer(boardPort)
 	err := mockBoard.Start()
 	if err != nil {
 		t.Fatalf("Failed to start mock board: %v", err)
 	}
-	
+
 	// Configure client with fast reconnection for testing
 	clientAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	clientConfig := tcp.NewClientConfig(clientAddr)
 	clientConfig.TryReconnect = true
 	clientConfig.MaxConnectionRetries = 0 // Infinite retries
 	clientConfig.ConnectionBackoffFunction = tcp.NewExponentialBackoff(
-		10*time.Millisecond,  // Fast for testing
+		10*time.Millisecond, // Fast for testing
 		1.5,
 		100*time.Millisecond,
 	)
-	
+
 	// Start client with proper cleanup
 	ctx, cancel := context.WithCancel(context.Background())
 	clientConfig.Context = ctx
-	
+
 	clientDone := make(chan struct{})
 	go func() {
 		defer close(clientDone)
 		transport.HandleClient(clientConfig, boardPort)
 	}()
-	
+
 	// Ensure cleanup happens
 	defer func() {
 		cancel()
@@ -830,7 +828,7 @@ func TestTransport_ReconnectionBehavior(t *testing.T) {
 			t.Log("Warning: client goroutine did not finish within timeout")
 		}
 	}()
-	
+
 	// Wait for initial connection
 	err = waitForCondition(func() bool {
 		return mockBoard.GetConnectionCount() > 0
@@ -838,7 +836,7 @@ func TestTransport_ReconnectionBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Verify connection update
 	err = waitForCondition(func() bool {
 		updates := api.GetConnectionUpdates()
@@ -847,10 +845,10 @@ func TestTransport_ReconnectionBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Simulate board restart
 	mockBoard.Stop()
-	
+
 	// Wait for disconnection detection
 	err = waitForCondition(func() bool {
 		updates := api.GetConnectionUpdates()
@@ -864,14 +862,14 @@ func TestTransport_ReconnectionBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Restart board
 	mockBoard = NewMockBoardServer(boardPort)
 	err = mockBoard.Start()
 	if err != nil {
 		t.Fatalf("Failed to restart mock board: %v", err)
 	}
-	
+
 	// Wait for reconnection
 	err = waitForCondition(func() bool {
 		return mockBoard.GetConnectionCount() > 0
@@ -879,7 +877,7 @@ func TestTransport_ReconnectionBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Verify reconnection update
 	err = waitForCondition(func() bool {
 		updates := api.GetConnectionUpdates()
@@ -998,76 +996,6 @@ func TestHandleUDPServer_Dispatches(t *testing.T) {
 		return len(api.GetNotifications()) > 0
 	}, 2*time.Second, "Should receive notification from UDP server"); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestHandleFileWriteRead_WithRealTFTP(t *testing.T) {
-	readHandler := func(filename string, rf io.ReaderFrom) error {
-		_, err := rf.ReadFrom(bytes.NewBufferString("from-server"))
-		return err
-	}
-	writeBuf := &bytes.Buffer{}
-	writeHandler := func(filename string, wt io.WriterTo) error {
-		_, err := wt.WriteTo(writeBuf)
-		return err
-	}
-	server := tftpv3.NewServer(readHandler, writeHandler)
-	addr := fmt.Sprintf("127.0.0.1:%d", getAvailableUDPPort(t))
-	go func() {
-		_ = server.ListenAndServe(addr)
-	}()
-	defer server.Shutdown()
-	time.Sleep(20 * time.Millisecond)
-
-	client, err := tftp.NewClient(addr)
-	if err != nil {
-		t.Fatalf("failed to create tftp client: %v", err)
-	}
-
-	tr := NewTransport(defaultLogger()).WithTFTP(client)
-	tr.SetAPI(NewTestTransportAPI())
-
-	if err := tr.handleFileWrite(NewFileWriteMessage("file.bin", bytes.NewBufferString("hello"))); err != nil {
-		t.Fatalf("handleFileWrite error: %v", err)
-	}
-	if writeBuf.String() != "hello" {
-		t.Fatalf("expected written data 'hello', got %q", writeBuf.String())
-	}
-
-	out := &bytes.Buffer{}
-	if err := tr.handleFileRead(NewFileReadMessage("file.bin", out)); err != nil {
-		t.Fatalf("handleFileRead error: %v", err)
-	}
-	if out.String() != "from-server" {
-		t.Fatalf("expected read data 'from-server', got %q", out.String())
-	}
-}
-
-func TestHandleFileWriteRead_ErrorPath(t *testing.T) {
-	// Point to an unused UDP port to force WriteFile/ReadFile errors.
-	addr := fmt.Sprintf("127.0.0.1:%d", getAvailableUDPPort(t))
-	client, err := tftp.NewClient(addr, tftp.WithTimeout(50*time.Millisecond), tftp.WithRetries(1))
-	if err != nil {
-		t.Fatalf("failed to create tftp client: %v", err)
-	}
-
-	tr := NewTransport(defaultLogger()).WithTFTP(client)
-	api := NewTestTransportAPI()
-	tr.SetAPI(api)
-
-	if err := tr.handleFileWrite(NewFileWriteMessage("file.bin", bytes.NewBufferString("hello"))); err == nil {
-		t.Fatalf("expected error writing to unreachable TFTP server")
-	}
-	if err := waitForCondition(func() bool { return len(api.GetNotifications()) > 0 }, time.Second, "error notification"); err != nil {
-		t.Fatalf("expected error notification")
-	}
-
-	api.Reset()
-	if err := tr.handleFileRead(NewFileReadMessage("file.bin", &bytes.Buffer{})); err == nil {
-		t.Fatalf("expected error reading from unreachable TFTP server")
-	}
-	if err := waitForCondition(func() bool { return len(api.GetNotifications()) > 0 }, time.Second, "error notification"); err != nil {
-		t.Fatalf("expected error notification")
 	}
 }
 

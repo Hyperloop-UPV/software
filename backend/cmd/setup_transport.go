@@ -13,11 +13,9 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
-	blcu_packet "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/blcu"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
@@ -45,11 +43,6 @@ func configureTransport(
 		transp.SetTargetIp(adj.Info.Addresses[board.Name], abstraction.TransportTarget(board.Name))
 	}
 
-	// If BLCU is configured set BLCU packet ID mappings
-	if common.Contains(config.Vehicle.Boards, "BLCU") {
-		configureBLCUTransport(adj, transp, config)
-	}
-
 	// Start handling TCP CLIENT connections
 	configureTCPClientTransport(adj, podData, transp, config)
 
@@ -59,36 +52,6 @@ func configureTransport(
 	// Start handling network packets using UDP server
 	configureUDPServerTransport(adj, transp)
 
-}
-
-// configureBLCUTransport sets the packet IDs and target IP for the BLCU board.
-// It prefers values from config, falls back to ADJ and finally to a loopback default.
-func configureBLCUTransport(adj adj_module.ADJ,
-	transp *transport.Transport,
-	config config.Config) {
-	// Use configurable packet IDs or defaults
-	downloadOrderID := config.Blcu.DownloadOrderId
-	uploadOrderID := config.Blcu.UploadOrderId
-	if downloadOrderID == 0 {
-		downloadOrderID = boards.DefaultBlcuDownloadOrderId
-	}
-	if uploadOrderID == 0 {
-		uploadOrderID = boards.DefaultBlcuUploadOrderId
-	}
-
-	transp.SetIdTarget(abstraction.PacketId(downloadOrderID), abstraction.TransportTarget("BLCU"))
-	transp.SetIdTarget(abstraction.PacketId(uploadOrderID), abstraction.TransportTarget("BLCU"))
-
-	// Use BLCU address from config, ADJ, or default
-	blcuIP := config.Blcu.IP
-	if blcuIP == "" {
-		if adjBlcuIP, exists := adj.Info.Addresses[BLCU]; exists {
-			blcuIP = adjBlcuIP
-		} else {
-			blcuIP = "127.0.0.1"
-		}
-	}
-	transp.SetTargetIp(blcuIP, abstraction.TransportTarget("BLCU"))
 }
 
 func configureTCPClientTransport(
@@ -246,9 +209,6 @@ func getTransportDecEnc(info adj_module.Info, podData pod_data.PodData) (*presen
 		decoder.SetPacketDecoder(id, dataDecoder)
 		encoder.SetPacketEncoder(id, dataEncoder)
 	}
-
-	// Register BLCU ack decoder
-	decoder.SetPacketDecoder(abstraction.PacketId(info.MessageIds[BlcuAck]), blcu_packet.NewDecoder())
 
 	// TODO Solve this foking mess, I have tried...
 	stateOrdersDecoder := order.NewDecoder(binary.LittleEndian)

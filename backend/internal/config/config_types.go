@@ -26,12 +26,6 @@ type TFTP struct {
 	EnableProgress bool `toml:"enable_progress"`
 }
 
-type Blcu struct {
-	IP              string `toml:"ip"`
-	DownloadOrderId uint16 `toml:"download_order_id"`
-	UploadOrderId   uint16 `toml:"upload_order_id"`
-}
-
 type TCP struct {
 	BackoffMinMs      int     `toml:"backoff_min_ms"`
 	BackoffMaxMs      int     `toml:"backoff_max_ms"`
@@ -54,6 +48,5 @@ type Config struct {
 	Transport Transport
 	TFTP      TFTP
 	TCP       TCP
-	Blcu      Blcu
 	Logging   Logging
 }

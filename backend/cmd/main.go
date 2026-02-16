@@ -23,7 +23,6 @@ const (
 	TcpServer        = "TCP_SERVER"
 	UDP              = "UDP"
 	SNTP             = "SNTP"
-	BlcuAck          = "blcu_ack"
 	AddStateOrder    = "add_state_order"
 	RemoveStateOrder = "remove_state_order"
 )
@@ -62,7 +61,7 @@ func main() {
 	}
 
 	// <--- vehicle orders --->
-	vehicleOrders, err := vehicle_models.NewVehicleOrders(podData.Boards, adj.Info.Addresses[BLCU])
+	vehicleOrders, err := vehicle_models.NewVehicleOrders(podData.Boards)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("creating vehicleOrders")
 	}
