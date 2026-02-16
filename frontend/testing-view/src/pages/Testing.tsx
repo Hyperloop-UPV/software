@@ -21,6 +21,13 @@ export const Testing = () => {
   const setIsSidebarVisible = useStore((s) => s.setTestingSidebarVisible);
   const charts = useStore((s) => s.getActiveWorkspaceCharts());
 
+  const isCommandsVisible = useStore((s) => s.isCommandsVisible);
+  const isMessagesVisible = useStore((s) => s.isMessagesVisible);
+  const isHorizontal = useStore((s) => s.isHorizontal);
+  const isTelemetryVisible = useStore((s) => s.isTelemetryVisible);
+
+  const showCommandsMessages = isCommandsVisible || isMessagesVisible;
+
   useGlobalKeyBindings();
 
   const {
@@ -64,7 +71,15 @@ export const Testing = () => {
           >
             <ResizablePanel
               id="main"
-              defaultSize={isSidebarVisible ? "60%" : "100%"}
+              defaultSize={
+                isSidebarVisible
+                  ? isHorizontal && showCommandsMessages && isTelemetryVisible
+                    ? "40%"
+                    : showCommandsMessages
+                      ? "55%"
+                      : "70%"
+                  : "100%"
+              }
               minSize="30%"
             >
               <MainPanel
@@ -81,7 +96,13 @@ export const Testing = () => {
                 <ResizableHandle withHandle />
                 <ResizablePanel
                   id="sidebar"
-                  defaultSize="40%"
+                  defaultSize={
+                    isHorizontal && showCommandsMessages && isTelemetryVisible
+                      ? "60%"
+                      : showCommandsMessages
+                        ? "45%"
+                        : "30%"
+                  }
                   minSize="20%"
                   maxSize="70%"
                 >
