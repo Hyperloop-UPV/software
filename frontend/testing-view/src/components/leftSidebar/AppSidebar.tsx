@@ -8,6 +8,7 @@ import {
 import { PAGES_ARRAY } from "../../constants/pages";
 import ColorSchemeToggle from "./ColorSchemeToggle";
 import ConnectionStatusGroup from "./ConnectionStatusGroup";
+import DevToolsItem from "./DevToolsItem";
 import Logo from "./Logo";
 import NavigationGroup from "./NavigationGroup";
 import SettingsItem from "./SettingsItem";
@@ -27,8 +28,14 @@ const AppSidebar = ({ backendConnected, ...props }: AppSidebarProps) => {
         <NavigationGroup items={PAGES_ARRAY} />
       </SidebarContent>
       <SidebarFooter>
+        {/* Only visible in dev mode */}
+        <DevToolsItem />
+
+        <div className="my-2" />
+
         <ConnectionStatusGroup backendConnected={backendConnected} />
         <div className="my-2" />
+
         <ColorSchemeToggle />
         <ThemeToggleItem />
         <SettingsItem />

@@ -1,1 +1,1 @@
-export { SunMoon } from "lucide-react";
+export { Eye, EyeOff, SunMoon } from "lucide-react";

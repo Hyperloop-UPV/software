@@ -14,12 +14,17 @@ export const ModeSwitcher = () => {
   const modeOverride = useStore((s) => s.modeOverride);
   const setModeOverride = useStore((s) => s.setModeOverride);
   const currentMode = useStore((s) => s.appMode);
+  const isDevToolsVisible = useStore((s) => s.isDevToolsVisible);
 
   // Only show in development
-  if (!import.meta.env.DEV && !import.meta.env.VITE_FORCE_DEV) return null;
+  if (
+    (!import.meta.env.DEV && !import.meta.env.VITE_FORCE_DEV) ||
+    !isDevToolsVisible
+  )
+    return null;
 
   return (
-    <div className="bg-background text-foreground fixed bottom-10 right-1/2 z-50 flex translate-x-1/2 flex-col gap-2 rounded-lg border p-3 shadow-lg">
+    <div className="bg-background text-foreground fixed right-1/2 bottom-10 z-50 flex translate-x-1/2 flex-col gap-2 rounded-lg border p-3 shadow-lg">
       <div className="text-muted-foreground text-xs font-semibold">
         Dev Mode Switcher
       </div>
