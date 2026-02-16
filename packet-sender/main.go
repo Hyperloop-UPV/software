@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	boardpkg "packet_sender/pkg/board"
+	"packet_sender/pkg/listener"
+	"packet_sender/pkg/sender"
 	"path"
 	"path/filepath"
 	"strings"
@@ -11,56 +14,30 @@ import (
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 )
 
-type boardConn struct {
-	conn    *net.UDPConn
-	packets []adj_module.Packet
-	board   adj_module.Board
-}
-
 func main() {
 	adj := getADJ()
-
 	conns := getConns(adj)
 
-	defer func() {
-		for _, c := range conns {
-			c.conn.Close()
-		}
-	}()
+	input := getBinaryInput("Select mode:\n1) Send packets\n2) Listen packets")
 
-	// Get the list of packets for each board
-	for i := range conns {
-		getBoardPackets(&conns[i])
-	}
-
-	fmt.Print("Do you want to send random packets (1) or manual packets (2)? ")
-	var input string
-	_, err := fmt.Scan(&input)
-	if err != nil {
-		log.Fatalf("failed to read input: %v", err)
-	}
-
-	input = strings.TrimSpace(input)
-	if input != "1" && input != "2" {
-		log.Fatal("invalid input: use 1 or 2")
-	}
-
-	if input == "1" {
-		PacketSender(conns)
-	} else if input == "2" {
-		PacketSelector(conns)
+	switch input {
+	case "1":
+		input := getBinaryInput("Do you want to send random or custom packets?\n1) Random\n2) Custom")
+		sender.Start(conns, input)
+	case "2":
+		listener.Start(conns, adj)
 	}
 }
 
-func getConns(adj adj_module.ADJ) []boardConn {
-	conns := make([]boardConn, 0)
+func getConns(adj adj_module.ADJ) []boardpkg.BoardConn {
+	conns := make([]boardpkg.BoardConn, 0)
 
 	for _, board := range adj.Boards {
 		conn := getConn(board.IP, 0, adj.Info.Addresses["backend"], adj.Info.Ports["UDP"])
-		conns = append(conns, boardConn{
-			conn:    conn,
-			packets: []adj_module.Packet{},
-			board:   board,
+		conns = append(conns, boardpkg.BoardConn{
+			UDPConn: conn,
+			Packets: []adj_module.Packet{},
+			Board:   board,
 		})
 	}
 
@@ -101,22 +78,22 @@ func getADJ() adj_module.ADJ {
 	return adj
 }
 
-func getBoardPackets(boardconn *boardConn) {
-	packets := make([]adj_module.Packet, 0)
+func getBinaryInput(msg string) string {
 
-	for _, packet := range boardconn.board.Packets {
-		if packet.Type != "data" {
-			continue
-		}
-
-		packets = append(packets, adj_module.Packet{
-			Id:           packet.Id,
-			Name:         packet.Name,
-			Type:         packet.Type,
-			Variables:    packet.Variables,
-			VariablesIds: packet.VariablesIds,
-		})
+	fmt.Println(msg)
+	var input string
+	_, err := fmt.Scan(&input)
+	if err != nil {
+		log.Fatalf("failed to read input: %v", err)
 	}
 
-	boardconn.packets = packets
+	for {
+		input = strings.TrimSpace(input)
+		if input != "1" && input != "2" {
+			log.Fatal("invalid input: use 1 or 2")
+		} else {
+			break
+		}
+	}
+	return input
 }
