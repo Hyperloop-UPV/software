@@ -31,7 +31,6 @@ When running in development mode (unpackaged), the application creates temporary
 **Note**: These files and directories are created in the `electron-app/` directory root during development. In production (packaged) mode:
 
 - **Configuration and Logs**: Stored in `{UserConfigDir}/hyperloop-control-station/` (using Go's `os.UserConfigDir()`)
-
   - Config files and backups: `{UserConfigDir}/hyperloop-control-station/configs/`
   - Trace/log files: `{UserConfigDir}/hyperloop-control-station/trace-*.json`
 

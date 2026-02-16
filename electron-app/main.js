@@ -18,6 +18,8 @@ const { autoUpdater } = pkg;
 // Setup IPC handlers for renderer process communication
 setupIpcHandlers();
 
+app.setName("hyperloop-control-station");
+
 // App lifecycle: wait for Electron to be ready
 app.whenReady().then(async () => {
   // Initialize ConfigManager and ensure config exists BEFORE starting backend
