@@ -45,6 +45,10 @@ export interface AppSlice {
   setConfig: (config: ConfigData | null) => void;
   isLoadingConfig: boolean;
   setIsLoadingConfig: (loading: boolean) => void;
+
+  // Dev mode
+  isDevToolsVisible: boolean;
+  toggleDevToolsVisible: () => void;
 }
 
 export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
@@ -96,4 +100,9 @@ export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
   setConfig: (config: ConfigData | null) => set({ config }),
   isLoadingConfig: false,
   setIsLoadingConfig: (loading: boolean) => set({ isLoadingConfig: loading }),
+
+  // Dev mode
+  isDevToolsVisible: false,
+  toggleDevToolsVisible: () =>
+    set((state) => ({ isDevToolsVisible: !state.isDevToolsVisible })),
 });
