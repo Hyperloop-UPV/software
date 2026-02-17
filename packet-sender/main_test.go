@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/binary"
+	boardpkg "packet_sender/pkg/board"
+	sender "packet_sender/pkg/sender"
 	"testing"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
@@ -19,48 +21,48 @@ func TestGetBoardPackets_FiltersOnlyDataPackets(t *testing.T) {
 		},
 	}
 
-	bc := boardConn{board: board}
-	getBoardPackets(&bc)
+	bc := boardpkg.BoardConn{Board: board}
+	boardpkg.LoadDataPackets(&bc)
 
-	if len(bc.packets) != 2 {
-		t.Fatalf("expected 2 data packets, got %d", len(bc.packets))
+	if len(bc.Packets) != 2 {
+		t.Fatalf("expected 2 data packets, got %d", len(bc.Packets))
 	}
 
-	if bc.packets[0].Type != "data" || bc.packets[1].Type != "data" {
-		t.Fatalf("expected all packets to be type=data, got %q and %q", bc.packets[0].Type, bc.packets[1].Type)
+	if bc.Packets[0].Type != "data" || bc.Packets[1].Type != "data" {
+		t.Fatalf("expected all packets to be type=data, got %q and %q", bc.Packets[0].Type, bc.Packets[1].Type)
 	}
 
-	if bc.packets[0].Id != 100 || bc.packets[1].Id != 400 {
-		t.Fatalf("unexpected packet IDs: got %d and %d", bc.packets[0].Id, bc.packets[1].Id)
+	if bc.Packets[0].Id != 100 || bc.Packets[1].Id != 400 {
+		t.Fatalf("unexpected packet IDs: got %d and %d", bc.Packets[0].Id, bc.Packets[1].Id)
 	}
 }
 
 func TestGetBoardPackets_EmptyInputProducesEmptyOutput(t *testing.T) {
-	bc := boardConn{
-		board: adj_module.Board{
+	bc := boardpkg.BoardConn{
+		Board: adj_module.Board{
 			Name:    "EmptyBoard",
 			Packets: nil,
 		},
 	}
 
-	getBoardPackets(&bc)
+	boardpkg.LoadDataPackets(&bc)
 
-	if len(bc.packets) != 0 {
-		t.Fatalf("expected 0 packets, got %d", len(bc.packets))
+	if len(bc.Packets) != 0 {
+		t.Fatalf("expected 0 packets, got %d", len(bc.Packets))
 	}
 }
 
 func TestCreateRandomPacket_NoPackets_ReturnsNil(t *testing.T) {
-	bc := boardConn{packets: nil}
-	got := bc.CreateRandomPacket()
+	bc := boardpkg.BoardConn{Packets: nil}
+	got := sender.CreateRandomPacket(&bc)
 	if got != nil {
 		t.Fatalf("expected nil, got %v", got)
 	}
 }
 
 func TestCreateRandomPacket_NoVariables_ReturnsNil(t *testing.T) {
-	bc := boardConn{
-		packets: []adj_module.Packet{
+	bc := boardpkg.BoardConn{
+		Packets: []adj_module.Packet{
 			{
 				Id:           abstraction.PacketId(42),
 				Type:         "data",
@@ -70,15 +72,15 @@ func TestCreateRandomPacket_NoVariables_ReturnsNil(t *testing.T) {
 		},
 	}
 
-	got := bc.CreateRandomPacket()
+	got := sender.CreateRandomPacket(&bc)
 	if got != nil {
 		t.Fatalf("expected nil when packet has no variables, got %v", got)
 	}
 }
 
 func TestCreateRandomPacket_StringMeasurement_ReturnsNil(t *testing.T) {
-	bc := boardConn{
-		packets: []adj_module.Packet{
+	bc := boardpkg.BoardConn{
+		Packets: []adj_module.Packet{
 			{
 				Id: abstraction.PacketId(7),
 				Type: "data",
@@ -90,15 +92,15 @@ func TestCreateRandomPacket_StringMeasurement_ReturnsNil(t *testing.T) {
 		},
 	}
 
-	got := bc.CreateRandomPacket()
+	got := sender.CreateRandomPacket(&bc)
 	if got != nil {
 		t.Fatalf("expected nil for string measurement, got %v", got)
 	}
 }
 
 func TestCreateRandomPacket_BoolPacket_HasIDAndPayload(t *testing.T) {
-	bc := boardConn{
-		packets: []adj_module.Packet{
+	bc := boardpkg.BoardConn{
+		Packets: []adj_module.Packet{
 			{
 				Id: abstraction.PacketId(513), // 0x0201
 				Type: "data",
@@ -110,7 +112,7 @@ func TestCreateRandomPacket_BoolPacket_HasIDAndPayload(t *testing.T) {
 		},
 	}
 
-	got := bc.CreateRandomPacket()
+	got := sender.CreateRandomPacket(&bc)
 	if got == nil {
 		t.Fatal("expected non-nil packet")
 	}
@@ -131,8 +133,8 @@ func TestCreateRandomPacket_BoolPacket_HasIDAndPayload(t *testing.T) {
 }
 
 func TestCreateRandomPacket_EnumPacket_HasIDAndEnumByte(t *testing.T) {
-	bc := boardConn{
-		packets: []adj_module.Packet{
+	bc := boardpkg.BoardConn{
+		Packets: []adj_module.Packet{
 			{
 				Id: abstraction.PacketId(10),
 				Type: "data",
@@ -144,7 +146,7 @@ func TestCreateRandomPacket_EnumPacket_HasIDAndEnumByte(t *testing.T) {
 		},
 	}
 
-	got := bc.CreateRandomPacket()
+	got := sender.CreateRandomPacket(&bc)
 	if got == nil {
 		t.Fatal("expected non-nil packet")
 	}
@@ -166,8 +168,8 @@ func TestCreateRandomPacket_EnumPacket_HasIDAndEnumByte(t *testing.T) {
 }
 
 func TestCreateRandomPacket_NumericPacket_HasIDAndNumericPayload(t *testing.T) {
-	bc := boardConn{
-		packets: []adj_module.Packet{
+	bc := boardpkg.BoardConn{
+		Packets: []adj_module.Packet{
 			{
 				Id: abstraction.PacketId(20),
 				Type: "data",
@@ -184,7 +186,7 @@ func TestCreateRandomPacket_NumericPacket_HasIDAndNumericPayload(t *testing.T) {
 		},
 	}
 
-	got := bc.CreateRandomPacket()
+	got := sender.CreateRandomPacket(&bc)
 	if got == nil {
 		t.Fatal("expected non-nil packet")
 	}

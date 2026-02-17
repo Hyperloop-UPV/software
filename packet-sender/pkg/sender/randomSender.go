@@ -26,7 +26,7 @@ func RandomSender(conns []boardpkg.BoardConn) {
 			randomIndex := rand.Int63n(int64(len(conns)))
 			randomBoard := conns[randomIndex]
 
-			packet := createRandomPacket(&randomBoard)
+			packet := CreateRandomPacket(&randomBoard)
 			fmt.Println(time.Since(prev))
 			prev = time.Now()
 
@@ -60,7 +60,7 @@ func RandomSender(conns []boardpkg.BoardConn) {
 	}
 }
 
-func createRandomPacket(board *boardpkg.BoardConn) []byte {
+func CreateRandomPacket(board *boardpkg.BoardConn) []byte {
 	if len(board.Packets) == 0 {
 		return nil
 	}
