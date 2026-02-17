@@ -18,6 +18,7 @@ func main() {
 	adj := getADJ()
 	conns := getConns(adj)
 
+	fmt.Println("[Warning] This program must start before the backend. If the backend is terminated, this program must be restarted.")
 	input := getBinaryInput("Select mode:\n1) Send packets\n2) Listen packets")
 
 	switch input {
