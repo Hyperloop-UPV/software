@@ -18,7 +18,8 @@ func main() {
 	adj := getADJ()
 	conns := getConns(adj)
 
-	fmt.Println("[Warning] This program must start before the backend. If the backend is terminated, this program must be restarted.")
+	fmt.Print("[Warning] This program must start before the backend. If the backend is terminated, this program must be restarted. \n \n")
+	fmt.Println("[Tip] You may send and listen to packets at the same time, on different terminals.")
 	input := getBinaryInput("Select mode:\n1) Send packets\n2) Listen packets")
 
 	switch input {
