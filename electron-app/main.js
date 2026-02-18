@@ -15,6 +15,22 @@ import { createWindow } from "./src/windows/mainWindow.js";
 
 const { autoUpdater } = pkg;
 
+// Disable sandbox for Linux
+if (process.platform === "linux") {
+  try {
+    const userns = fs
+      .readFileSync("/proc/sys/kernel/unprivileged_userns_clone", "utf8")
+      .trim();
+    if (userns === "0") {
+      app.commandLine.appendSwitch("no-sandbox");
+    }
+  } catch (e) {}
+
+  if (process.getuid && process.getuid() === 0) {
+    app.commandLine.appendSwitch("no-sandbox");
+  }
+}
+
 // Setup IPC handlers for renderer process communication
 setupIpcHandlers();
 
