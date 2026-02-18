@@ -1,55 +1,64 @@
-# Software - Control Station
+# Hyperloop Control Station H11
+ ![Testing View](https://raw.githubusercontent.com/Hyperloop-UPV/webpage/5c1c827d82d380689856ee61af43da30da22e0fc/src/assets/backgrounds/testing-view.png)
 
-[![CI](https://github.com/HyperloopUPV-H8/software/actions/workflows/build-backend.yaml/badge.svg)](https://github.com/HyperloopUPV-H8/software/actions/workflows/build-backend.yaml)
-[![CI](https://github.com/HyperloopUPV-H8/software/actions/workflows/build-ethernet-view.yaml/badge.svg)](https://github.com/HyperloopUPV-H8/software/actions/workflows/build-ethernet-view.yaml)
-[![CI](https://github.com/HyperloopUPV-H8/software/actions/workflows/build-control-station.yaml/badge.svg)](https://github.com/HyperloopUPV-H8/software/actions/workflows/build-control-station.yaml)
+## Monorepo usage
 
-Hyperloop UPV's Control Station is a unified software solution for real-time monitoring and commanding of the pod. It combines a back-end (Go) that ingests and interprets sensor data–defined via the JSON-based "ADJ" specifications–and a front-end (Typescript/React) that displays metrics, logs, and diagnostics to operators. With features like packet parsing, logging, and live dashboards, it acts as the central hub to safely interface the pod, making it easier for team members to oversee performance, detect faults, and send precise orders to the vehicle.
+This project implements `pnpm` workspaces and `turbo` pack to manage the development lifecycle across multiple languages and frameworks.
 
-<img width="1728" height="997" alt="control_station_mock" src="https://github.com/user-attachments/assets/a77b3411-c466-4100-8277-48d957290a46" />
+### Prerequisites
 
-## Quick Start
+Before starting, ensure you have the following installed:
 
-### For Users
+- **PNPM** (v10.26.0+)
+- **Node.js** (v20+)
+- **Go** (for the backend)
+- **Rust/Cargo** (for the packet-sender)
 
-Download the latest release, unzip it and run the executable compatible with your OS.
+---
 
-### For Developers
+### Workspaces Overview
 
-See our comprehensive [Documentation](./docs/README.md) or jump to [Getting Started](./docs/guides/getting-started.md). Quick start:
+Our `pnpm-workspace.yaml` defines the following workspaces:
 
-```bash
-# Clone and setup
-git clone https://github.com/HyperloopUPV-H8/software.git
-cd software
-./scripts/dev.sh setup
+| Workspace                      | Language | Description                                    |
+| :----------------------------- | :------- | :--------------------------------------------- |
+| `testing-view`                 | TS/React | Web interface for telemetry testing            |
+| `competition-view`             | TS/React | UI for the competition                         |
+| `backend`                      | Go       | Data ingestion and pod communication server    |
+| `packet-sender`                | Rust     | Utility for simulating vehicle packets         |
+| `electron-app`                 | JS       | The main Control Station desktop application   |
+| `@workspace/ui`                | TS/React | Shared UI component library (frontend-kit)     |
+| `@workspace/core`              | TS       | Shared business logic and types (frontend-kit) |
+| `@workspace/eslint-config`     | ESLint   | Common ESLint configuration (frontend-kit)     |
+| `@workspace/typescript-config` | TS       | Common TypeScript configuration (frontend-kit) |
 
-# Run services
-./scripts/dev.sh backend      # Backend server
-./scripts/dev.sh ethernet     # Ethernet view
-./scripts/dev.sh control      # Control station
-```
+---
 
-## Configuration
+### Terminal Commands
 
-When using the Control Station make sure that you have configured your IP as the one specified in the ADJ—usually `192.168.0.9`. Then make sure to configure the boards you'll be making use of in the `config.toml` (at the top of the file you'll be able to see the `vehicle/boards` option, just add or remove the boards as needed following the format specified in the ADJ.
+These commands should be executed from the root directory (`/software`).
 
-To change the ADJ branch from `main`, change the option `adj/branch` at the end of the `config.toml` with the name of the branch you want to use or leave it blank if you'll be making use of a custom ADJ.
+> **Note:** If you prefer to run scripts from a specific `package.json`, you can `cd` into the folder and execute them with `pnpm` without filtering.
 
-## Documentation
+#### Global Development Scripts
 
-📚 **[Complete Documentation](./docs/README.md)** - All guides and references
+- `pnpm dev` – Runs both frontends, the backend (with `dev-config.toml`), and the packet-sender in a single terminal window.
+- `pnpm dev:main` – Runs frontends and the backend using the standard `config.toml`.
 
-### Quick Links
-- 🚀 **[Getting Started](./docs/guides/getting-started.md)** - New user guide
-- 🛠️ **[Development Setup](./docs/development/DEVELOPMENT.md)** - Developer environment setup  
-- 🏗️ **[Architecture](./docs/architecture/README.md)** - System design overview
-- 🔧 **[Troubleshooting](./docs/troubleshooting/BLCU_FIX_SUMMARY.md)** - Common issues and fixes
+#### Turbo Filtering
 
-## Contributing
+All Turbo scripts support filtering to target specific workspaces:
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for ways to contribute to the Control Station.
+- `pnpm dev --filter testing-view` – Runs the `dev` script specifically for the Testing View.
 
-### About
+> **! Important:** You must refer to a workspace by the `name` field defined in its local `package.json`.
 
-HyperloopUPV is a student team based at Universitat Politècnica de València (Spain), which works every year to develop the transport of the future, the hyperloop. Check out [our website](https://hyperloopupv.com/#/)
+#### Lifecycle Scripts
+
+- `pnpm build` – Compiles every package in the monorepo (Go binaries, Rust crates, and Vite apps).
+- `pnpm test` – Runs all test suites across the repo (Vitest, Go tests, and Cargo tests).
+- `pnpm lint` – Runs ESLint across all TypeScript packages.
+- `pnpm preview` – Previews the production Vite builds for the frontend applications.
+- `pnpm ui:add <component-name>` - To add shadcn/ui components
+
+  > Note: don't forget to also include it in frontend-kit/ui/src/components/shadcn/index.ts to be able to access it from @workspace/ui

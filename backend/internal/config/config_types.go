@@ -14,10 +14,6 @@ type Adj struct {
 	Branch string `toml:"branch"`
 }
 
-type Network struct {
-	Manual bool `toml:"manual"`
-}
-
 type Transport struct {
 	PropagateFault bool `toml:"propagate_fault"`
 }
@@ -28,12 +24,6 @@ type TFTP struct {
 	TimeoutMs      int  `toml:"timeout_ms"`
 	BackoffFactor  int  `toml:"backoff_factor"`
 	EnableProgress bool `toml:"enable_progress"`
-}
-
-type Blcu struct {
-	IP              string `toml:"ip"`
-	DownloadOrderId uint16 `toml:"download_order_id"`
-	UploadOrderId   uint16 `toml:"upload_order_id"`
 }
 
 type TCP struct {
@@ -55,10 +45,8 @@ type Config struct {
 	Vehicle   vehicle.Config
 	Server    server.Config
 	Adj       Adj
-	Network   Network
 	Transport Transport
 	TFTP      TFTP
 	TCP       TCP
-	Blcu      Blcu
 	Logging   Logging
 }

@@ -4,13 +4,14 @@
  * Defines menu structure with File, View, Tools, and Help sections with keyboard shortcuts and actions.
  */
 
-import { Menu, dialog, app } from "electron";
-import { getBinaryPath } from "../utils/paths.js";
-import {
-  startPacketSender,
-  getPacketSenderProcess,
-} from "../processes/packetSender.js";
+import { Menu, app, dialog } from "electron";
 import fs from "fs";
+import {
+  getPacketSenderProcess,
+  startPacketSender,
+  stopPacketSender,
+} from "../processes/packetSender.js";
+import { getBinaryPath } from "../utils/paths.js";
 import { loadView } from "../windows/mainWindow.js";
 
 /**
@@ -43,19 +44,17 @@ function createMenu(mainWindow) {
       label: "View",
       submenu: [
         {
-          label: "Control Station",
+          label: "Competition View",
           accelerator: "CmdOrCtrl+1",
           click: () => {
-            loadView("control-station");
-            loadView("control-station");
+            loadView("competition-view");
           },
         },
         {
-          label: "Ethernet View",
+          label: "Testing View",
           accelerator: "CmdOrCtrl+2",
           click: () => {
-            loadView("ethernet-view");
-            loadView("ethernet-view");
+            loadView("testing-view");
           },
         },
         { type: "separator" },
@@ -84,7 +83,7 @@ function createMenu(mainWindow) {
             }
             const packetSenderProcess = getPacketSenderProcess();
             if (!packetSenderProcess || packetSenderProcess.killed) {
-              startPacketSender(["--help"]);
+              startPacketSender(["random"]);
             }
           },
         },
@@ -110,8 +109,7 @@ function createMenu(mainWindow) {
               type: "info",
               title: "About",
               message: "Hyperloop UPV Control Station",
-              detail:
-                "Version 1.0.0\n\nControl and monitoring software for Hyperloop pod.",
+              detail: `Version ${app.getVersion()}\n\nControl and monitoring software for Hyperloop pod.`,
             });
           },
         },

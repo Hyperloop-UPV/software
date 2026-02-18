@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/blcu"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
@@ -20,7 +19,6 @@ type PacketDecoder interface {
 
 // Type assertions to check packet decoders follows the Decoder interface
 var _ PacketDecoder = &data.Decoder{}
-var _ PacketDecoder = &blcu.Decoder{}
 var _ PacketDecoder = &order.Decoder{}
 var _ PacketDecoder = &protection.Decoder{}
 var _ PacketDecoder = &state.Decoder{}

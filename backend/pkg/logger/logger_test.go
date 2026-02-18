@@ -114,7 +114,7 @@ func TestLoggerGroup_Errors(t *testing.T) {
 	_ = chdirTemp(t) // Change to a temporary directory
 
 	// Logger with empty map → PushRecord should return error (no sublogger)
-	lEmpty := logger.NewLogger(map[abstraction.LoggerName]abstraction.Logger{}, zerolog.New(os.Stdout))
+	lEmpty := logger.NewLogger(abstraction.SubloggersMap{}, zerolog.New(os.Stdout))
 	err := lEmpty.PushRecord(&mockRecord{n: abstraction.LoggerName("missing")})
 	if err == nil {
 		t.Fatalf("expected error when PushRecord to non-existent sublogger, got nil")
@@ -122,7 +122,7 @@ func TestLoggerGroup_Errors(t *testing.T) {
 
 	// Logger whose sublogger returns error on Start → Start should propagate the error
 	wantErr := os.ErrPermission
-	badMap := map[abstraction.LoggerName]abstraction.Logger{
+	badMap := abstraction.SubloggersMap{
 		abstraction.LoggerName("bad"): &mockSublogger{startErr: wantErr},
 	}
 	lBad := logger.NewLogger(badMap, zerolog.New(os.Stdout))

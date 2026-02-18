@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "develop"
+    # Ignore all patch updates (e.g. 1.0.1 -> 1.0.2)
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    # Ignore all patch updates (e.g. 1.0.1 -> 1.0.2)
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]

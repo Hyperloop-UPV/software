@@ -1,0 +1,12 @@
+{
+  "name": "packet-sender",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Hyperloop UPV Team",
+  "license": "MIT",
+  "scripts": {
+    "build": "cargo build --release",
+    "dev": "cargo run",
+    "test": "cargo test"
+  }
+}

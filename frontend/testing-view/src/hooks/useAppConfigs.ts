@@ -1,0 +1,33 @@
+import { useFetchConfig } from "@workspace/ui/hooks";
+import { useEffect } from "react";
+import type { OrdersData, PacketsData } from "../types/data/board";
+
+const useAppConfigs = (isConnected: boolean) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  const {
+    data: packets,
+    loading: packetsLoading,
+    refetch: refetchPackets,
+  } = useFetchConfig<PacketsData>(backendUrl, "podDataStructure");
+  const {
+    data: commands,
+    loading: commandsLoading,
+    refetch: refetchCommands,
+  } = useFetchConfig<OrdersData>(backendUrl, "orderStructures");
+
+  useEffect(() => {
+    if (isConnected) {
+      refetchPackets();
+      refetchCommands();
+    }
+  }, [isConnected, refetchPackets, refetchCommands]);
+
+  return {
+    packets,
+    commands,
+    isLoading: packetsLoading || commandsLoading,
+  };
+};
+
+export default useAppConfigs;

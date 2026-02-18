@@ -20,9 +20,6 @@ boards = ["HVSCU", "HVSCU-Cabinet", "PCU", "LCU", "BCU", "BMSL"]
 [adj]
 branch = "software" # Leave blank when using ADJ as a submodule (like this: "")
 
-# Network Configuration
-[network]
-manual = false  # Manual network device selection
 
 # Transport Configuration
 [transport]
@@ -69,19 +66,9 @@ timeout_ms = 5000      # Timeout for TFTP operations in milliseconds
 backoff_factor = 2     # Backoff factor for retries
 enable_progress = true # Enable progress updates during transfers
 
-# BLCU Configuration
-[blcu]
-ip = "10.10.10.5"     # BLCU IP address
-download_order_id = 0 # Order ID for download operations (0 = use default)
-upload_order_id = 0   # Order ID for upload operations (0 = use default)
+
 
 # Logging Configuration
 [logging]
-level = "debug"      # Logging level (trace, debug, info, warn, error, fatal)
-console = true       # Enable console output
-file = "backend.log" # Log file path (empty to disable file logging)
-max_size_mb = 100    # Maximum log file size in MB
-max_backups = 3      # Number of backup files to keep
-max_age_days = 7     # Maximum age of log files in days
 time_unit = "us"      # Time unit for log timestamps (ns, us, ms, s)    
 logging_path = "."

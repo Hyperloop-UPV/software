@@ -10,238 +10,77 @@ on:
   workflow_dispatch:
     inputs:
       rebuild-backend:
-        description: Build backend binaries
+        description: Force rebuild backend
         type: boolean
-        default: true
-      rebuild-control-station:
-        description: Build control station frontend
+        default: false
+      rebuild-testing-view:
+        description: Force rebuild testing-view
         type: boolean
-        default: true
-      rebuild-ethernet-view:
-        description: Build ethernet view frontend
+        default: false
+      rebuild-competition-view:
+        description: Force rebuild competition-view
         type: boolean
-        default: true
-  workflow_call:
-    inputs:
-      build-backend:
-        description: Build backend binaries
-        type: boolean
-        default: true
-        required: false
-      build-control-station:
-        description: Build control station frontend
-        type: boolean
-        default: true
-        required: false
-      build-ethernet-view:
-        description: Build ethernet view frontend
-        type: boolean
-        default: true
-        required: false
+        default: false
+  # workflow_call:
+  #   inputs:
+  #     build-backend:
+  #       description: Build backend binaries
+  #       type: boolean
+  #       default: false
+  #       required: false
+  #     build-testing-view:
+  #       description: Build testing-view
+  #       type: boolean
+  #       default: false
+  #       required: false
+  #     build-competition-view:
+  #       description: Build competition-view
+  #       type: boolean
+  #       default: false
+  #       required: false
 
 jobs:
-  # Detect what changed
+  # ------------------------------------------------------------------
+  # 1. DETECT CHANGES
+  # Checks which parts of the codebase changed to avoid unnecessary builds
+  # ------------------------------------------------------------------
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
-    # We can't use this condition here because it would skip the whole job without setting the outputs
-    # if: github.event_name == 'push' || github.event_name == 'pull_request'
-    # Insted, we skip steps inside the job
     outputs:
-      backend_needs_rebuild: ${{ steps.changes.outputs.backend_any_changed == 'true' || github.event.inputs.rebuild-backend == 'true' }}
-      control-station_needs_rebuild: ${{ steps.changes.outputs.control-station_any_changed == 'true' || github.event.inputs.rebuild-control-station == 'true' }}
-      ethernet-view_needs_rebuild: ${{ steps.changes.outputs.ethernet-view_any_changed == 'true' || github.event.inputs.rebuild-ethernet-view == 'true' }}
-      common-front_needs_rebuild: ${{ steps.changes.outputs.common-front_any_changed == 'true' || github.event.inputs.rebuild-common-front == 'true' }}
+      backend: ${{ steps.filter.outputs.backend == 'true' || github.event.inputs.rebuild-backend == 'true' || inputs.build-backend == true }}
+      testing-view: ${{ steps.filter.outputs.testing-view == 'true' || github.event.inputs.rebuild-testing-view == 'true' || inputs.build-testing-view == true }}
+      competition-view: ${{ steps.filter.outputs.competition-view == 'true' || github.event.inputs.rebuild-competition-view == 'true' || inputs.build-competition-view == true }}
     steps:
-      # Only run on push or pull request events
-      # Skip on workflow_call or workflow_dispatch
-      - name: Checkout repository
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      # Only run on push or pull request events
-      # Skip on workflow_call or workflow_dispatch
-      - name: Detect changed files
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
-        id: changes
-        uses: tj-actions/changed-files@v41
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          files_yaml: |
+          ref: "production"
+          filters: |
             backend:
               - 'backend/**/*'
-            control-station:
-              - 'control-station/**/*'
-            ethernet-view:
-              - 'ethernet-view/**/*'
-            common-front:
-              - 'common-front/**/*'
+              - 'go.work'
+              - 'go.work.sum'
+            testing-view:
+              - 'frontend/testing-view/**/*'
+              - 'frontend/frontend-kit/**/*' # Shared lib dependency
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            competition-view:
+              - 'frontend/competition-view/**/*'
+              - 'frontend/frontend-kit/**/*' # Shared lib dependency
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
 
-      # We want to set outputs even if the job should be skipped
-      - name: Set outputs
-        id: set-outputs
-        run: |
-          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "backend_needs_rebuild=${{ steps.changes.outputs.backend_any_changed == 'true' && 'true' || 'false' }}" >> $GITHUB_OUTPUT
-            echo "control-station_needs_rebuild=${{ steps.changes.outputs.control-station_any_changed == 'true' || steps.changes.outputs.common-front_any_changed == 'true' && 'true' || 'false' }}" >> $GITHUB_OUTPUT
-            echo "ethernet-view_needs_rebuild=${{ steps.changes.outputs.ethernet-view_any_changed == 'true' || steps.changes.outputs.common-front_any_changed == 'true' && 'true' || 'false' }}" >> $GITHUB_OUTPUT
-            echo "common-front_needs_rebuild=${{ steps.changes.outputs.common-front_any_changed == 'true' && 'true' || 'false' }}" >> $GITHUB_OUTPUT
-          else
-            # On workflow_call/dispatch, default to false (no changes detected)
-            echo "backend_needs_rebuild=false" >> $GITHUB_OUTPUT
-            echo "control-station_needs_rebuild=false" >> $GITHUB_OUTPUT
-            echo "ethernet-view_needs_rebuild=false" >> $GITHUB_OUTPUT
-            echo "common-front_needs_rebuild=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Debug changed files
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
-        run: |
-          echo "Changed backend: ${{ steps.changes.outputs.backend_any_changed }}"
-          echo "Changed control-station: ${{ steps.changes.outputs.control-station_any_changed }}"
-          echo "Changed ethernet-view: ${{ steps.changes.outputs.ethernet-view_any_changed }}"
-          echo "Changed common-front: ${{ steps.changes.outputs.common-front_any_changed }}"
-
-  # Download backend from previous build if no changes
-  download-backend:
-    name: Download Backend - ${{ matrix.platform }}
-    needs: detect-changes
-    # It is important to use != 'true' and not == 'false' because if they are no inputs (executed on push or pull request events),
-    # values for inputs will be undefined which gives false for any condition
-    # The same thing applies for detect changes outputs, because we skip this job on dispatch and call events
-    # Thus, it's outputs are undefined
-    if: |
-      needs.detect-changes.outputs.backend_needs_rebuild != 'true' &&
-      inputs.build-backend != 'true'
-    runs-on: ubuntu-latest
-    # Continue on error is necessary because download-backend job can fail if backend artifact is not found
-    # and in this case it is not necessarily has to fail the build
-    continue-on-error: true
-    outputs:
-      downloaded: ${{ steps.download.outcome == 'success' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [linux, windows, macos-intel, macos-arm64]
-
-    steps:
-      - name: Download backend from latest build
-        id: download
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: build.yaml
-          branch: production
-          workflow_conclusion: "completed"
-          name: backend-${{ matrix.platform }}
-          path: backend-artifacts
-          if_no_artifact_found: fail
-
-      - name: Re-upload backend artifact
-        if: steps.download.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-${{ matrix.platform }}
-          path: backend-artifacts/*
-          retention-days: 30
-
-      - name: Write matrix output
-        if: always()
-        uses: cloudposse/github-action-matrix-outputs-write@v1
-        with:
-          matrix-step-name: download-backend
-          matrix-key: ${{ matrix.platform }}
-          outputs: |
-            downloaded: ${{ steps.download.outcome == 'success' }}
-
-  # Aggregate download results
-  aggregate-downloads:
-    name: Aggregate Download Results
-    # Always run to ensure outputs are always available
-    if: always()
-    needs: [detect-changes, download-backend]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set defaults if backend changed
-        id: set-defaults
-        run: |
-          # If backend changed or build-backend is explicitly requested, set defaults and skip aggregation
-          if [ "${{ needs.detect-changes.outputs.backend_needs_rebuild }}" = "true" ] || [ "${{ inputs.build-backend }}" = "true" ]; then
-            echo "any_needs_rebuild=false" >> $GITHUB_OUTPUT
-            echo 'result={"downloaded":{"linux":false,"windows":false,"macos-intel":false,"macos-arm64":false}}' >> $GITHUB_OUTPUT
-            echo "Backend changed or build requested, using defaults"
-          fi
-        shell: bash
-
-      - uses: cloudposse/github-action-matrix-outputs-read@v1
-        id: read
-        if: needs.detect-changes.outputs.backend_needs_rebuild != 'true' && inputs.build-backend != 'true'
-        with:
-          matrix-step-name: download-backend
-
-      - name: Check if any platform needs rebuild
-        if: needs.detect-changes.outputs.backend_needs_rebuild != 'true' && inputs.build-backend != 'true'
-        id: check-rebuild
-        run: |
-          # Parse the result JSON to check if any download failed
-          RESULT='${{ steps.read.outputs.result }}'
-          echo "Parsing result: $RESULT"
-
-          # Check if any platform has downloaded=false
-          # The result format is: {downloaded:{linux:true,windows:false,...}}
-          if echo "$RESULT" | grep -q '"downloaded".*"linux":false' || \
-             echo "$RESULT" | grep -q '"downloaded".*"windows":false' || \
-             echo "$RESULT" | grep -q '"downloaded".*"macos-intel":false' || \
-             echo "$RESULT" | grep -q '"downloaded".*"macos-arm64":false'; then
-            echo "any_needs_rebuild=true" >> $GITHUB_OUTPUT
-            echo "At least one platform download failed, rebuild needed"
-          else
-            echo "any_needs_rebuild=false" >> $GITHUB_OUTPUT
-            echo "All platform downloads succeeded, no rebuild needed"
-          fi
-        shell: bash
-
-      - name: Debug aggregate-downloads outputs
-        if: always()
-        run: |
-          echo "=== aggregate-downloads Debug ==="
-          echo "inputs.build-backend: ${{ inputs.build-backend }}"
-          echo ""
-          echo "=== detect-changes outputs ==="
-          echo "needs.detect-changes.outputs.backend_needs_rebuild: ${{ needs.detect-changes.outputs.backend_needs_rebuild }}"
-          echo "needs.detect-changes.outcome: ${{ needs.detect-changes.outcome }}"
-          echo ""
-          echo "=== aggregate-downloads Debug ==="
-          echo "steps.read.outputs.result: ${{ steps.read.outputs.result }}"
-          echo "steps.read.outcome: ${{ steps.read.outcome }}"
-          echo ""
-          echo "=== All read outputs ==="
-          echo "${{ toJSON(steps.read.outputs) }}"
-          echo ""
-          echo "=== download-backend outcomes ==="
-          echo "needs.download-backend.outcome: ${{ needs.download-backend.outcome }}"
-    outputs:
-      outcome: ${{ steps.read.outcome != '' && steps.read.outcome || 'skipped' }}
-      any_needs_rebuild: ${{ steps.check-rebuild.outputs.any_needs_rebuild != '' && steps.check-rebuild.outputs.any_needs_rebuild || steps.set-defaults.outputs.any_needs_rebuild || 'false' }}
-      result: ${{ steps.read.outputs.result != '' && steps.read.outputs.result || steps.set-defaults.outputs.result || '{"downloaded":{"linux":false,"windows":false,"macos-intel":false,"macos-arm64":false}}' }}
-
-  # Build Go backends on native platforms
-  # only if backend changed or download-backend failed
+  # ------------------------------------------------------------------
+  # 2. BUILD BACKEND (MATRIX)
+  # Builds Go binaries for Linux, Windows, and macOS (Intel & Arm)
+  # ------------------------------------------------------------------
   build-backend:
-    name: Build Backend - ${{ matrix.platform }}
-    needs: [detect-changes, download-backend, aggregate-downloads]
-    # Always is needed to execute this job even if backend download failed
-    # By default it would be skipped because dependent job failed
-    # Build if explicitly requested for this platform
-    # Also build if backend changed or download-backend failed
-    if: |
-      always() &&
-        (
-          inputs.build-backend == true ||
-          needs.detect-changes.outputs.backend_needs_rebuild == 'true' ||
-          needs.aggregate-downloads.outputs.outcome == 'success' &&
-          needs.aggregate-downloads.outputs.any_needs_rebuild == 'true'
-        )
+    name: Backend - ${{ matrix.platform }}
+    needs: detect-changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -249,253 +88,124 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-            binary_name: backend-linux-amd64
-
+            binary: backend-linux-amd64
+            goarch: amd64
           - os: windows-latest
             platform: windows
-            binary_name: backend-windows-amd64.exe
-
+            binary: backend-windows-amd64.exe
+            goarch: amd64
           - os: macos-latest
             platform: macos-intel
-            binary_name: backend-darwin-amd64
+            binary: backend-darwin-amd64
             goarch: amd64
-
           - os: macos-latest
             platform: macos-arm64
-            binary_name: backend-darwin-arm64
+            binary: backend-darwin-arm64
             goarch: arm64
-
     steps:
-      - name: Debug
-        run: |
-          echo "=== aggregate-downloads Debug ==="
-          echo "needs.aggregate-downloads.outputs.result: ${{ needs.aggregate-downloads.outputs.result }}"
-          echo "needs.aggregate-downloads.outputs.result.downloaded: ${{ fromJSON(needs.aggregate-downloads.outputs.result).downloaded }}"
-          echo "needs.aggregate-downloads.outputs.result.downloaded.platform: ${{ fromJSON(needs.aggregate-downloads.outputs.result).downloaded[matrix.platform] }}"
-
-      - name: Check if artifact exists for this platform
-        id: check-artifact
-        shell: bash
-        run: |
-          ARTIFACT_EXISTS="${{ fromJSON(needs.aggregate-downloads.outputs.result).downloaded[matrix.platform] }}"
-          BUILD_EXPLICITLY="${{ inputs.build-backend == true }}"
-          CHANGES_DETECTED="${{ needs.detect-changes.outputs.backend_needs_rebuild == 'true' }}"
-
-          if [ "$ARTIFACT_EXISTS" != "true" ] || [ "$BUILD_EXPLICITLY" = "true" ] || [ "$CHANGES_DETECTED" = "true" ]; then
-            echo "needs_build=true" >> $GITHUB_OUTPUT
-            echo "Building for ${{ matrix.platform }}"
-          else
-            echo "needs_build=false" >> $GITHUB_OUTPUT
-            echo "Artifact exists for ${{ matrix.platform }}, skipping build"
-          fi
-
-      - name: Exit if no build needed
-        if: steps.check-artifact.outputs.needs_build != 'true'
-        shell: bash
-        run: |
-          echo "Skipping build - artifact already exists"
-
-      - name: Checkout repository
-        if: steps.check-artifact.outputs.needs_build == 'true'
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        if: steps.check-artifact.outputs.needs_build == 'true'
-        uses: actions/setup-go@v4
+      # OPTIMIZATION: Try to download existing artifact first
+      # Only runs if NO changes were detected and NO rebuild was forced
+      - name: Try Download Cache
+        if: needs.detect-changes.outputs.backend != 'true'
+        id: download
+        uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
         with:
-          go-version: "1.21"
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: backend-${{ matrix.platform }}
+          path: backend/cmd
 
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux' && steps.check-artifact.outputs.needs_build == 'true'
+      # BUILD: Only runs if download failed OR changes detected
+      - uses: actions/checkout@v4
+        if: steps.download.outcome != 'success'
+
+      - uses: actions/setup-go@v5
+        if: steps.download.outcome != 'success'
+        with:
+          go-version: "1.23"
+
+      - name: Install Linux Deps
+        if: runner.os == 'Linux' && steps.download.outcome != 'success'
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev gcc
 
-      - name: Install macOS dependencies
-        if: runner.os == 'macOS' && steps.check-artifact.outputs.needs_build == 'true'
+      - name: Install macOS Deps
+        if: runner.os == 'macOS' && steps.download.outcome != 'success'
         run: brew install libpcap
 
-      - name: Build backend (Linux)
-        if: runner.os == 'Linux' && steps.check-artifact.outputs.needs_build == 'true'
+      - name: Build Binary
+        if: steps.download.outcome != 'success'
         working-directory: backend/cmd
+        shell: bash
         run: |
-          CGO_ENABLED=1 go build -o ${{ matrix.binary_name }} .
+          go build -o ${{ matrix.binary }} .
+        env:
+          CGO_ENABLED: 1
+          GOARCH: ${{ matrix.goarch }}
 
-      - name: Build backend (Windows)
-        if: runner.os == 'Windows' && steps.check-artifact.outputs.needs_build == 'true'
-        working-directory: backend/cmd
-        run: |
-          $env:CGO_ENABLED="1"
-          go build -o ${{ matrix.binary_name }} .
-        shell: pwsh
-
-      - name: Build backend (macOS)
-        if: runner.os == 'macOS' && steps.check-artifact.outputs.needs_build == 'true'
-        working-directory: backend/cmd
-        run: |
-          CGO_ENABLED=1 GOARCH=${{ matrix.goarch }} go build -o ${{ matrix.binary_name }} .
-
-      - name: Upload backend binary
-        if: steps.check-artifact.outputs.needs_build == 'true'
-        uses: actions/upload-artifact@v4
+      # UPLOAD: Always runs to ensure artifact availability for release
+      - uses: actions/upload-artifact@v4
         with:
           name: backend-${{ matrix.platform }}
-          path: backend/cmd/${{ matrix.binary_name }}
+          path: backend/cmd/${{ matrix.binary }}
           retention-days: 30
 
-  # Download control-station from previous build if no changes
-  download-control-station:
-    name: Download Control Station
+  # ------------------------------------------------------------------
+  # 3. BUILD FRONTEND (MATRIX)
+  # Builds Testing View and Competition View using pnpm & turbo
+  # ------------------------------------------------------------------
+  build-frontend:
+    name: Build ${{ matrix.view }}
     needs: detect-changes
-    # The condition checks if control station changed or common front changed
-    # It is important to use != 'true' and not == 'false' because if they are no inputs (executed on push or pull request events),
-    # values for inputs will be undefined which gives false for any condition
-    # The same thing applies for detect changes outputs, because we skip this job on dispatch and call events
-    # Thus, it's outputs are undefined
-    if: |
-      needs.detect-changes.outputs.control-station_needs_rebuild != 'true' &&
-      needs.detect-changes.outputs.common-front_needs_rebuild != 'true' &&
-      inputs.build-control-station != 'true'
     runs-on: ubuntu-latest
-    # Continue on error is necessary because download-control-station job can fail if control station artifact is not found
-    # and it is not necessary to fail the build in this case
-    continue-on-error: true
-    outputs:
-      downloaded: ${{ steps.download.outcome == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        view: [testing-view, 
+        # competition-view] # TODO: Uncomment when competition view is ready
+        ]
     steps:
-      - name: Download control-station from latest build
+      # OPTIMIZATION: Try to download existing artifact first
+      # Only runs if NO changes were detected and NO rebuild was forced
+      - name: Try Download Cache
+        if: needs.detect-changes.outputs[matrix.view] != 'true'
         id: download
         uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: "completed"
-          name: control-station
-          path: control-station-artifacts
-          if_no_artifact_found: fail
+          workflow_conclusion: success
+          name: ${{ matrix.view }}
+          path: frontend/${{ matrix.view }}/dist
 
-      - name: Re-upload control-station artifact
-        if: steps.download.outcome == 'success'
-        uses: actions/upload-artifact@v4
+      # BUILD: Only runs if download failed OR changes detected
+      - uses: actions/checkout@v4
+        if: steps.download.outcome != 'success'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.download.outcome != 'success'
         with:
-          name: control-station
-          path: control-station-artifacts/**
-          retention-days: 30
+          version: 10.26.0
 
-  # Build control-station (if control-station or common-front changed)
-  build-control-station:
-    name: Build Control Station
-    needs: [detect-changes, download-control-station]
-    # Always is needed to execute this job even if control station download failed
-    # By default it would be skipped because dependent job failed
-    # The condition checks if control station changed or common front changed or download control station failed
-    if: always() &&
-      (needs.detect-changes.outputs.control-station_needs_rebuild == 'true' ||
-      needs.detect-changes.outputs.common-front_needs_rebuild == 'true' ||
-      needs.download-control-station.outputs.downloaded != 'true' ||
-      inputs.build-control-station == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
+        if: steps.download.outcome != 'success'
         with:
-          node-version: "20"
+          node-version: 20
+          cache: "pnpm"
 
-      - name: Build common-front
-        working-directory: common-front
-        run: |
-          npm ci
-          npm run build
+      - name: Install Dependencies
+        if: steps.download.outcome != 'success'
+        run: pnpm install --frozen-lockfile
 
-      - name: Build control-station
-        working-directory: control-station
-        run: |
-          npm ci
-          npm run build
+      - name: Build with Turbo
+        if: steps.download.outcome != 'success'
+        run: pnpm turbo build --filter=${{ matrix.view }}
 
-      - name: Upload control-station artifact
-        uses: actions/upload-artifact@v4
+      # UPLOAD: Always runs to ensure artifact availability for release
+      - uses: actions/upload-artifact@v4
         with:
-          name: control-station
-          path: control-station/static/**
-          retention-days: 30
-
-  # Download ethernet-view from previous build if no changes
-  download-ethernet-view:
-    name: Download Ethernet View
-    needs: detect-changes
-    # It is important to use != 'true' and not == 'false' because if they are no inputs (executed on push or pull request events),
-    # values for inputs will be undefined which gives false for any condition
-    # The same thing applies for detect changes outputs, because we skip this job on dispatch and call events
-    # Thus, it's outputs are undefined
-    if: |
-      needs.detect-changes.outputs.ethernet-view_needs_rebuild != 'true' &&
-      needs.detect-changes.outputs.common-front_needs_rebuild != 'true' &&
-      inputs.build-ethernet-view != 'true'
-    runs-on: ubuntu-latest
-    # Continue on error is necessary because download-ethernet-view job can fail if ethernet view artifact is not found
-    # and it is not necessary to fail the build in this case
-    continue-on-error: true
-    outputs:
-      downloaded: ${{ steps.download.outcome == 'success' }}
-    steps:
-      - name: Download ethernet-view from latest build
-        id: download
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: build.yaml
-          branch: production
-          workflow_conclusion: "completed"
-          name: ethernet-view
-          path: ethernet-view-artifacts
-          if_no_artifact_found: fail
-
-      - name: Re-upload ethernet-view artifact
-        if: steps.download.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ethernet-view
-          path: ethernet-view-artifacts/**
-          retention-days: 30
-
-  # Build ethernet-view (if ethernet-view or common-front changed)
-  build-ethernet-view:
-    name: Build Ethernet View
-    needs: [detect-changes, download-ethernet-view]
-    # Always is needed to execute this job even if ethernet view download failed
-    # By default it would be skipped because dependent job failed
-    # The condition checks if ethernet view changed or common front changed or download ethernet view failed
-    if: always() &&
-      (needs.detect-changes.outputs.ethernet-view_needs_rebuild == 'true' ||
-      needs.detect-changes.outputs.common-front_needs_rebuild == 'true' ||
-      needs.download-ethernet-view.outputs.downloaded != 'true' ||
-      inputs.build-ethernet-view == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Build common-front
-        working-directory: common-front
-        run: |
-          npm ci
-          npm run build
-
-      - name: Build ethernet-view
-        working-directory: ethernet-view
-        run: |
-          npm ci
-          npm run build
-
-      - name: Upload ethernet-view artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ethernet-view
-          path: ethernet-view/static/**
+          name: ${{ matrix.view }}
+          path: frontend/${{ matrix.view }}/dist/**
           retention-days: 30

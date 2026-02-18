@@ -1,0 +1,21 @@
+export { type LucideIcon } from "lucide-react";
+
+export * from "./accessibility";
+export * from "./account";
+export * from "./arrows";
+export * from "./cursors";
+export * from "./design";
+export * from "./development";
+export * from "./devices";
+export * from "./files";
+export * from "./gaming";
+export * from "./layout";
+export * from "./mail";
+export * from "./math";
+export * from "./medical";
+export * from "./notifications";
+export * from "./photography";
+export * from "./science";
+export * from "./shapes";
+export * from "./social";
+export * from "./text";

@@ -1,0 +1,28 @@
+{
+  "name": "hyperloop-software-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:main": "turbo dev:main",
+    "build": "turbo build",
+    "build:win": "pnpm --filter electron-app build:win",
+    "build:linux": "pnpm --filter electron-app build:linux",
+    "build:mac": "pnpm --filter electron-app build:mac",
+    "lint": "turbo lint",
+    "preview": "turbo preview",
+    "test": "turbo test",
+    "ui:add": "pnpm dlx shadcn@latest add -c frontend/frontend-kit/ui"
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "turbo": "^2.8.3",
+    "typescript": "5.9.3"
+  },
+  "packageManager": "pnpm@10.26.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

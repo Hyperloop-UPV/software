@@ -2,7 +2,6 @@ package logger
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	"github.com/google/uuid"
 	ws "github.com/gorilla/websocket"
+	"github.com/rs/zerolog"
 )
 
 const EnableName abstraction.BrokerTopic = "logger/enable"
@@ -24,13 +24,15 @@ type Enable struct {
 	subscribers  map[websocket.ClientId]struct{}
 	api          abstraction.BrokerAPI
 	data_logger  *data_logger.Logger
+	baseLogger   zerolog.Logger
 }
 
-func NewEnableTopic() *Enable {
+func NewEnableTopic(baseLogger zerolog.Logger) *Enable {
 	enable := &Enable{
 		isRunning:    &atomic.Bool{},
 		connectionMx: new(sync.Mutex),
 		subscribers:  make(map[websocket.ClientId]struct{}),
+		baseLogger:   baseLogger,
 	}
 	enable.isRunning.Store(false)
 	return enable
@@ -53,19 +55,37 @@ func (enable *Enable) ClientMessage(id websocket.ClientId, message *websocket.Me
 	case EnableName:
 		err := enable.handleToggle(id, message)
 		if err != nil {
-			fmt.Printf("error handling logger: %v\n", err)
+			enable.baseLogger.Error().Err(err).Msg("error handling logger/enable")
 		}
 	case ResponseName:
 		enable.connectionMx.Lock()
 		defer enable.connectionMx.Unlock()
 
-		fmt.Printf("logger/response subscribed %s\n", uuid.UUID(id).String())
+		enable.baseLogger.Debug().Msgf("logger/response subscribed %s", uuid.UUID(id).String())
 		enable.subscribers[id] = struct{}{}
+
+		// Get current logger state
+		payload, err := json.Marshal(enable.isRunning.Load())
+		if err != nil {
+			enable.baseLogger.Error().Err(err).Msg("error marshaling logger state")
+		}
+
+		// Prepare message
+		message := websocket.Message{
+			Topic:   ResponseName,
+			Payload: payload,
+		}
+
+		// Send current logger state to client that just subscribed
+		err = enable.pool.Write(id, message)
+		if err != nil {
+			enable.baseLogger.Error().Err(err).Msg("error sending logger state to client")
+		}
 
 	case VariablesName:
 		err := enable.handleVariables(id, message)
 		if err != nil {
-			fmt.Printf("error handling logger/variables: %v\n", err)
+			enable.baseLogger.Error().Err(err).Msg("error handling logger/variables")
 		}
 	default:
 		enable.connectionMx.Lock()
@@ -73,7 +93,7 @@ func (enable *Enable) ClientMessage(id websocket.ClientId, message *websocket.Me
 
 		enable.pool.Disconnect(id, ws.CloseUnsupportedData, "unsupported topic")
 		delete(enable.subscribers, id)
-		fmt.Printf("logger/response unsubscribed %s\n", uuid.UUID(id).String())
+		enable.baseLogger.Debug().Msgf("logger/response unsubscribed %s", uuid.UUID(id).String())
 	}
 }
 
@@ -84,11 +104,25 @@ func (enable *Enable) handleToggle(_ websocket.ClientId, message *websocket.Mess
 		return err
 	}
 
+	// If we are already in the state the user wants,
+	// just confirm it immediately and don't bother the rest of the system.
+	if enable.isRunning.Load() == request {
+		return enable.broadcastState()
+	}
+
 	status := newStatus(request)
 	go enable.api.UserPush(status)
 
 	go func() {
-		enable.isRunning.Store(<-status.response)
+		response := <-status.response
+
+		enable.isRunning.Store(response)
+
+		if request && response {
+			// Successfully started logging: do nothing because NotifyStarted already broadcasts the state
+			return
+		}
+
 		enable.broadcastState()
 	}()
 	return nil
@@ -106,6 +140,11 @@ func (enable *Enable) handleVariables(_ websocket.ClientId, message *websocket.M
 
 func (enable *Enable) NotifyStarted() error {
 	enable.isRunning.Store(true)
+	return enable.broadcastState()
+}
+
+func (enable *Enable) NotifyStopped() error {
+	enable.isRunning.Store(false)
 	return enable.broadcastState()
 }
 
@@ -133,7 +172,8 @@ func (enable *Enable) broadcastState() error {
 	for _, id := range flaged {
 		enable.pool.Disconnect(id, ws.CloseInternalServerErr, "client disconnected")
 		delete(enable.subscribers, id)
-		fmt.Printf("logger/response unsubscribed %s\n", uuid.UUID(id).String())
+
+		enable.baseLogger.Debug().Msgf("logger/response unsubscribed %s", uuid.UUID(id).String())
 	}
 
 	return nil

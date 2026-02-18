@@ -5,9 +5,9 @@
  */
 
 import { spawn } from "child_process";
-import { getBinaryPath } from "../utils/paths.js";
 import fs from "fs";
 import { logger } from "../utils/logger.js";
+import { getBinaryPath } from "../utils/paths.js";
 
 // Store the packet sender process instance
 let packetSenderProcess = null;
@@ -90,7 +90,7 @@ function restartPacketSender() {
     // Wait before starting new process to ensure cleanup
     setTimeout(() => {
       // Start with help arguments
-      startPacketSender(["--help"]);
+      startPacketSender(["random"]);
     }, 500);
   }
 }
@@ -110,8 +110,8 @@ function getPacketSenderProcess() {
 }
 
 export {
+  getPacketSenderProcess,
+  restartPacketSender,
   startPacketSender,
   stopPacketSender,
-  restartPacketSender,
-  getPacketSenderProcess,
 };

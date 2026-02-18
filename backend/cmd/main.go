@@ -1,17 +1,16 @@
 package main
 
 import (
-	"flag"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
+	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	trace "github.com/rs/zerolog/log"
@@ -24,30 +23,17 @@ const (
 	TcpServer        = "TCP_SERVER"
 	UDP              = "UDP"
 	SNTP             = "SNTP"
-	BlcuAck          = "blcu_ack"
 	AddStateOrder    = "add_state_order"
 	RemoveStateOrder = "remove_state_order"
 )
 
-var configFile = flag.String("config", "config.toml", "path to configuration file")
-var traceLevel = flag.String("trace", "info", "set the trace level (\"fatal\", \"error\", \"warn\", \"info\", \"debug\", \"trace\")")
-var traceFile = flag.String("log", "", "set the trace log file")
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-var enableSNTP = flag.Bool("sntp", false, "enables a simple SNTP server on port 123")
-var networkDevice = flag.Int("dev", -1, "index of the network device to use, overrides device prompt")
-var blockprofile = flag.Int("blockprofile", 0, "number of block profiles to include")
-var playbackFile = flag.String("playback", "", "")
-var versionFlag = flag.Bool("version", false, "Show the backend version")
-
-type SubloggersMap map[abstraction.LoggerName]abstraction.Logger
-
 func main() {
 	// Parse command line flags
-	flag.Parse()
+	flags.Init()
 	handleVersionFlag()
 
 	// Configure trace
-	traceFile := initTrace(*traceLevel, *traceFile)
+	traceFile := initTrace(flags.TraceLevel, flags.TraceFile)
 	if traceFile != nil {
 		defer traceFile.Close()
 	}
@@ -57,7 +43,7 @@ func main() {
 	defer cleanup()
 
 	// <--- config --->
-	config, err := config.GetConfig(*configFile)
+	config, err := config.GetConfig(flags.ConfigFile)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("error unmarshaling toml file")
 	}
@@ -75,7 +61,7 @@ func main() {
 	}
 
 	// <--- vehicle orders --->
-	vehicleOrders, err := vehicle_models.NewVehicleOrders(podData.Boards, adj.Info.Addresses[BLCU])
+	vehicleOrders, err := vehicle_models.NewVehicleOrders(podData.Boards)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("creating vehicleOrders")
 	}
@@ -125,7 +111,7 @@ func main() {
 	)
 
 	// <--- http server --->
-	configureHttpServer(
+	configureHTTPServer(
 		adj,
 		podData,
 		vehicleOrders,
@@ -137,6 +123,14 @@ func main() {
 	terminate := configureSNTP(adj)
 	if terminate {
 		os.Exit(1)
+	}
+
+	// Start logger
+	if flags.EnableLooger {
+		err = loggerHandler.Start()
+		if err != nil {
+			trace.Fatal().Err(err).Msg("starting logger")
+		}
 	}
 
 	// Open browser tabs
