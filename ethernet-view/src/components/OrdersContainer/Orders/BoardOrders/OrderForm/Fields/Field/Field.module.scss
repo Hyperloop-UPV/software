@@ -1,0 +1,19 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.fieldWrapper {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(10rem, 1fr) 1fr auto; //TODO: show tooltip in names (to account for overflow)
+    gap: 1rem;
+    align-items: center;
+}
+
+.name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.disabled {
+    color: colors.getThemeColor("text-disabled");
+}

@@ -36,7 +36,7 @@ type StateOrderDescription struct {
 	Enabled bool `json:"enabled"`
 }
 
-func NewVehicleOrders(boards []pod_data.Board) (VehicleOrders, error) {
+func NewVehicleOrders(boards []pod_data.Board, blcuName string) (VehicleOrders, error) {
 	vehicleOrders := VehicleOrders{
 		Boards: make([]BoardOrders, 0),
 	}

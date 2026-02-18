@@ -1,0 +1,49 @@
+@use "src/styles/colors" as colors;
+
+.chartLegend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0.8rem;
+}
+
+:global([data-theme="dark"]) .chartLegend {
+    background-color: colors.getThemeColor("surface-variant");
+    border-radius: 0.5rem;
+}
+
+.chartLegendItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+        opacity: 0.8;
+    }
+}
+
+:global([data-theme="dark"]) .chartLegendItem {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: colors.getThemeColor("surface");
+    color: colors.getThemeColor("text-primary");
+    
+    &:hover {
+        background-color: colors.getThemeColor("surface-hover");
+        transform: translateY(-1px);
+        box-shadow: colors.getThemeColor("shadow-sm");
+    }
+}
+
+.chartLegendItemColor {
+    width: 1rem;
+    height: 1rem;
+}
+
+:global([data-theme="dark"]) .chartLegendItemColor {
+    border-radius: 0.125rem;
+}

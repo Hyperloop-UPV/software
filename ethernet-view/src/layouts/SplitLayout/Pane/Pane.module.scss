@@ -1,0 +1,23 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.wrapper {
+    min-width: 0;
+    min-height: 0;
+}
+
+.collapsed {
+    padding: .6rem;
+    background-color: colors.getThemeColor("primary");
+    border-radius: .8rem;
+}
+
+.icon {
+    width: 2rem;
+
+    img {
+        filter: invert(1);
+        width: 100%;
+        color: colors.getThemeColor("primary-text");
+    }
+}

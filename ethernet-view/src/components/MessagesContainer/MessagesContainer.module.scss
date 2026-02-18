@@ -1,0 +1,7 @@
+@use "src/styles/colors" as colors;
+
+.emptyAlert {
+    margin-top: 2rem;
+    text-align: center;
+    color: colors.getThemeColor("text-tertiary");
+}

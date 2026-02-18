@@ -13,12 +13,12 @@ type ClientId uuid.UUID
 type messageCallback = func(ClientId, *Message)
 
 type Pool struct {
-	clientMx     *sync.Mutex
-	clients      map[ClientId]*Client
-	connections  <-chan *Client
-	onMessage    messageCallback
-	onDisconnect func(count int)
-	logger       zerolog.Logger
+	clientMx    *sync.Mutex
+	clients     map[ClientId]*Client
+	connections <-chan *Client
+	onMessage   messageCallback
+
+	logger zerolog.Logger
 }
 
 func NewPool(connections <-chan *Client, baseLogger zerolog.Logger) *Pool {
@@ -31,12 +31,12 @@ func NewPool(connections <-chan *Client, baseLogger zerolog.Logger) *Pool {
 	})
 
 	handler := &Pool{
-		clientMx:     &sync.Mutex{},
-		clients:      make(map[ClientId]*Client),
-		connections:  connections,
-		onMessage:    func(ClientId, *Message) {},
-		onDisconnect: func(count int) {},
-		logger:       logger,
+		clientMx:    &sync.Mutex{},
+		clients:     make(map[ClientId]*Client),
+		connections: connections,
+		onMessage:   func(ClientId, *Message) {},
+
+		logger: logger,
 	}
 
 	go handler.listen()
@@ -111,11 +111,6 @@ func (pool *Pool) Broadcast(message Message) {
 	}
 }
 
-func (pool *Pool) SetOnDisconnect(onDisconnect func(count int)) {
-	pool.logger.Trace().Msg("set on disconnect")
-	pool.onDisconnect = onDisconnect
-}
-
 func (pool *Pool) Disconnect(id ClientId, code int, reason string) error {
 	clientLogger := pool.logger.With().Str("id", uuid.UUID(id).String()).Logger()
 
@@ -134,16 +129,10 @@ func (pool *Pool) Disconnect(id ClientId, code int, reason string) error {
 func (pool *Pool) onClose(id ClientId) func() {
 	return func() {
 		pool.clientMx.Lock()
+		defer pool.clientMx.Unlock()
 
 		pool.logger.Debug().Str("id", uuid.UUID(id).String()).Msg("close")
 		delete(pool.clients, id)
-
-		count := len(pool.clients)
-		pool.clientMx.Unlock()
-
-		if pool.onDisconnect != nil {
-			pool.onDisconnect(count)
-		}
 	}
 }
 

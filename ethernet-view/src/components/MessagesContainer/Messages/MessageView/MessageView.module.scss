@@ -1,0 +1,60 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+//TODO: increase contrast info
+.message.info {
+    --main-color: #{colors.getThemeColor("success")};
+    --light-color: #{colors.getColor("success", 75)};
+    --background-color: #{colors.getColor("success", 95)};
+}
+
+.message.fault {
+    --main-color: #{colors.getThemeColor("error")};
+    --light-color: #{colors.getColor("error", 75)};
+    --background-color: #{colors.getColor("error", 95)};
+}
+
+.message.warning {
+    --main-color: #{colors.getThemeColor("warning")};
+    --light-color: #{colors.getColor("warning", 75)};
+    --background-color: #{colors.getColor("warning", 95)};
+}
+
+.message {
+    display: grid;
+    grid-template:
+        "icon content counter" auto
+        "icon content counter" auto
+        "icon timestamp timestamp" auto / auto 1fr auto;
+
+    gap: 0.4rem 0.8rem;
+
+    padding: 0.6rem;
+    background-color: var(--background-color);
+    border-radius: 1rem;
+    @include styles.shadow;
+    color: colors.getThemeColor("text-primary");
+}
+
+.icon {
+    grid-area: icon;
+    color: var(--main-color);
+}
+
+.counter {
+    grid-area: counter;
+}
+
+.content {
+    grid-area: content;
+}
+
+.idAndCounter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.timestamp {
+    grid-area: timestamp;
+}

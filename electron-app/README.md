@@ -22,15 +22,16 @@ When running in development mode (unpackaged), the application creates temporary
 
 - `config.toml.backup-{timestamp}` - Automatic backup files created when importing a configuration. These timestamped backups help recover previous configurations if needed.
 
-- `binaries/` - Directory containing compiled backend executables for your platform. These are generated during the build process, when running `pnpm run build`.
+- `binaries/` - Directory containing compiled backend executables for your platform. These are generated during the build process, when running `npm run build`.
 
-- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `pnpm run build`.
+- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `npm run build`.
 
-- `dist/` - Build output directory containing compiled and packaged application files. Generated during build and distribution processes, when running `pnpm run dist`.
+- `dist/` - Build output directory containing compiled and packaged application files. Generated during build and distribution processes, when running `npm run dist`.
 
 **Note**: These files and directories are created in the `electron-app/` directory root during development. In production (packaged) mode:
 
 - **Configuration and Logs**: Stored in `{UserConfigDir}/hyperloop-control-station/` (using Go's `os.UserConfigDir()`)
+
   - Config files and backups: `{UserConfigDir}/hyperloop-control-station/configs/`
   - Trace/log files: `{UserConfigDir}/hyperloop-control-station/trace-*.json`
 
@@ -54,24 +55,24 @@ Typical locations:
 
 ```
 # Install dependencies
-pnpm install
+npm install
 
 # Build backend and frontends
-pnpm run build
+npm run build
 
-# Run in development mode (you MUST run `pnpm run build` BEFORE!)
-pnpm start
+# Run in development mode (you MUST run `npm run build` BEFORE!)
+npm start
 ```
 
 ## Build for production
 
 This script creates distributables and executables.  
-**Note**: You must run `pnpm run build` for this script to work correctly.
+**Note**: You must run `npm run build` for this script to work correctly.
 
 ```
-pnpm run dist:win    # Windows
-pnpm run dist:mac    # macOS
-pnpm run dist:linux  # Linux
+npm run dist:win    # Windows
+npm run dist:mac    # macOS
+npm run dist:linux  # Linux
 ```
 
 ### macOS Requirements
@@ -85,14 +86,14 @@ sudo ipconfig set en0 INFORM 127.0.0.9
 ## Available Scripts
 
 ```
-- `pnpm run build` - Build all frontend views and backend
-- `pnpm start` - Run application in development mode
-- `pnpm run dist` - Build production executable
-- `pnpm test` - Run tests
+- `npm run build` - Build all frontend views and backend
+- `npm start` - Run application in development mode
+- `npm run dist` - Build production executable
+- `npm test` - Run tests
 ...and many custom variations (see package.json)
 
-# Only works and makes sense after running `pnpm run dist`
-- `pnpm run asar:{platform}` - Shows .asar application package content for [win, linux, mac] platforms
+# Only works and makes sense after running `npm run dist`
+- `npm run asar:{platform}` - Shows .asar application package content for [win, linux, mac] platforms
 ```
 
 ## Architecture

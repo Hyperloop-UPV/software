@@ -1,0 +1,14 @@
+.origin {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: bold;
+}
+
+.text {
+    color: var(--main-color);
+}
+
+.arrow {
+    color: var(--light-color);
+}

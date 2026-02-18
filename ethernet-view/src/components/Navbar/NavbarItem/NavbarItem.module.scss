@@ -1,0 +1,18 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.iconWrapper {
+    cursor: pointer;
+    > * {
+        width: 2rem;
+        transition: filter 0.2s ease;
+    }
+    
+    &:hover > * {
+        filter: brightness(1.2);
+    }
+}
+
+.active {
+    filter: brightness(0) saturate(100%) invert(69%) sepia(35%) saturate(2228%) hue-rotate(336deg) brightness(97%) contrast(96%);
+}

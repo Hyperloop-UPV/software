@@ -1,0 +1,23 @@
+@use "src/styles/styles";
+
+.header {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: stretch;
+    padding: 0 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--main-color);
+    background-color: var(--bg-color);
+    color: var(--main-color);
+    @include styles.shadow;
+}
+
+.cell {
+    padding: 0.5rem 0;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: bold;
+}

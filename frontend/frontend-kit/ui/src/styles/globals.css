@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@100;200;300;400;500;600;700;800;900&display=swap");
-
 @import "tailwindcss";
 @source "../../../../testing-view/**/*.{ts,tsx}";
 @source "../../../../competition-view/**/*.{ts,tsx}";
@@ -18,7 +16,6 @@ body,
 }
 
 @custom-variant dark (&:is(.dark *));
-@custom-variant pink (&:is(.pink *));
 
 :root {
   --background: #f9fafb;
@@ -28,7 +25,7 @@ body,
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: #ff7f24;
-  --primary-foreground: #f9fafb;
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -45,6 +42,7 @@ body,
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -53,20 +51,6 @@ body,
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-
-  /* Status colors */
-  --success: #16a34a;
-  --error: #dc2626;
-}
-
-:root {
-  --radius: 0.625rem;
-  --spacing-xs: 0.25rem; /* 4px - equivalent to m-1 / p-1 */
-  --spacing-sm: 0.5rem; /* 8px - equivalent to m-2 / p-2 */
-  --spacing-md: 1rem; /* 16px - equivalent to m-4 / p-4 */
-  --spacing-lg: 1.5rem; /* 24px - equivalent to m-6 / p-6 */
-  --spacing-xl: 2rem; /* 32px - equivalent to m-8 / p-8 */
-  --spacing-2xl: 4rem; /* 64px - equivalent to m-16 / p-16 */
 }
 
 .dark {
@@ -76,8 +60,8 @@ body,
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: #ff7f24;
-  --primary-foreground: #f9fafb;
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -102,84 +86,9 @@ body,
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
-
-  /* Status colors */
-  --success: #4ade80;
-  --error: #f87171;
-}
-
-/* Pink theme (light) */
-.pink {
-  --background: #fff5f7; /* Very light pink, almost white */
-  --foreground: #9f1239; /* Stronger dark pink for better contrast */
-  --card: #ffffff; /* Pure white cards */
-  --card-foreground: #9f1239;
-  --popover: #ffffff;
-  --popover-foreground: #9f1239;
-  --primary: #db2777; /* Stronger, more vibrant pink */
-  --primary-foreground: #ffffff;
-  --secondary: #fce7f3; /* Light pink */
-  --secondary-foreground: #9f1239;
-  --muted: #fce7f3;
-  --muted-foreground: #be185d; /* Medium pink */
-  --accent: #fce7f3;
-  --accent-foreground: #9f1239;
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: #f9a8d4; /* Light pink border */
-  --input: #ffffff; /* White inputs */
-  --ring: #db2777; /* Strong pink ring */
-  --sidebar: #ffffff; /* White sidebar */
-  --sidebar-foreground: #9f1239;
-  --sidebar-primary: #db2777;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #fce7f3;
-  --sidebar-accent-foreground: #9f1239;
-  --sidebar-border: #f9a8d4;
-  --sidebar-ring: #db2777;
-
-  /* Status colors */
-  --success: #10b981; /* Keep green for success */
-  --error: #ef4444; /* Keep red for error */
-}
-
-/* Pink theme (dark) */
-.pink.dark {
-  --background: #1f0a14; /* Very dark pink-tinted background */
-  --foreground: #fce7f3; /* Light pink text */
-  --card: oklch(0.15 0.05 340); /* Dark pink-tinted card */
-  --card-foreground: #fce7f3;
-  --popover: oklch(0.15 0.05 340);
-  --popover-foreground: #fce7f3;
-  --primary: #f472b6; /* Strong vibrant pink */
-  --primary-foreground: #1f0a14;
-  --secondary: oklch(0.2 0.08 340);
-  --secondary-foreground: #fce7f3;
-  --muted: oklch(0.2 0.08 340);
-  --muted-foreground: #f9a8d4;
-  --accent: oklch(0.2 0.08 340);
-  --accent-foreground: #fce7f3;
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.25 0.1 340);
-  --input: oklch(0.15 0.05 340);
-  --ring: #f472b6;
-  --sidebar: oklch(0.18 0.06 340);
-  --sidebar-foreground: #fce7f3;
-  --sidebar-primary: #f472b6;
-  --sidebar-primary-foreground: #1f0a14;
-  --sidebar-accent: oklch(0.2 0.08 340);
-  --sidebar-accent-foreground: #fce7f3;
-  --sidebar-border: oklch(0.25 0.1 340);
-  --sidebar-ring: #f472b6;
-
-  /* Status colors */
-  --success: #34d399;
-  --error: #f87171;
 }
 
 @theme inline {
-  /* Main colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -204,8 +113,10 @@ body,
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-
-  /* Colors for sidebar */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -214,25 +125,6 @@ body,
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  /* Radius */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-
-  /* Spacing */
-  --spacing-xs: var(--spacing-xs); /* 4px */
-  --spacing-sm: var(--spacing-sm); /* 8px */
-  --spacing-md: var(--spacing-md); /* 16px */
-  --spacing-lg: var(--spacing-lg); /* 24px */
-  --spacing-xl: var(--spacing-xl); /* 32px */
-  --spacing-2xl: var(--spacing-2xl); /* 64px */
-
-  /* Fonts */
-  --font-archivo:
-    "Archivo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 @layer base {
@@ -240,24 +132,6 @@ body,
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-archivo;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full border-2 border-transparent bg-clip-content;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/40;
+    @apply bg-background text-foreground;
   }
 }

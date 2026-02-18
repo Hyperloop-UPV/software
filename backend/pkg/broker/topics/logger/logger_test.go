@@ -2,15 +2,12 @@ package logger_test
 
 import (
 	"encoding/json"
-	"log"
-	"testing"
-	"time"
-
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	data "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/logger"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
-
-	trace "github.com/rs/zerolog/log"
+	"log"
+	"testing"
+	"time"
 )
 
 var errorFlag bool
@@ -41,7 +38,7 @@ func TestLoggerTopic_ClientMessage(t *testing.T) {
 	errorFlag = true
 
 	api := MockAPI{}
-	loggerTopic := data.NewEnableTopic(trace.Logger)
+	loggerTopic := data.NewEnableTopic()
 	loggerTopic.SetAPI(api)
 
 	payload, _ := json.Marshal(true)

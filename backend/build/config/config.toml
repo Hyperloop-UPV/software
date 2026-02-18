@@ -1,0 +1,96 @@
+
+[server.local]
+address = "127.0.0.1:4000"
+static = "./static"
+
+[server.local.endpoints]
+pod_data = "/podDataStructure"
+order_data = "/orderStructures"
+programable_boards = "/uploadableBoards"
+connections = "/backend"
+file_server = "/"
+
+[vehicle]
+boards = ["VCU"]
+
+[vehicle.network]
+tcp_client_tag = "TCP_CLIENT"
+tcp_server_tag = "TCP_SERVER"
+udp_tag = "UDP"
+mtu = 1500
+interface = "lo"
+keepalive = "1s"
+timeout = "1s"
+
+[vehicle.messages]
+info_id_key = "info"
+fault_id_key = "fault"
+warning_id_key = "warning"
+error_id_key = "error"
+blcu_ack_id_key = "blcu_ack"
+add_state_orders_id_key = "add_state_orders"
+remove_state_orders_id_key = "remove_state_orders"
+
+[excel.download]
+id = "1BEwASubu0el9oQA6PSwVKaNU-Q6gbJ40JR6kgqguKYE"
+name = "ade.xlsx"
+path = "."
+
+[excel.parse]
+global_sheet_prefix = "GLOBAL "
+board_sheet_prefix = "BOARD "
+table_prefix = "[TABLE] "
+[excel.parse.global]
+address_table = "addresses"
+backend_key = "Backend"
+blcu_address_key = "BLCU"
+units_table = "units"
+ports_table = "ports"
+board_ids_table = "board_ids"
+message_ids_table = "message_ids"
+
+[logger_handler]
+topics = { enable = "logger/enable" }
+base_path = "log"
+flush_interval = "5s"
+
+[packet_logger]
+file_name = "packets"
+flush_interval = "5s"
+
+[value_logger]
+folder_name = "values"
+flush_interval = "5s"
+
+[order_logger]
+file_name = "orders"
+flush_interval = "5s"
+
+[protection_logger]
+file_name = "protections"
+flush_interval = "5s"
+
+[orders]
+send_topic = "order/send"
+
+[messages]
+update_topic = "message/update"
+
+[data_transfer]
+fps = 20
+topics = { update = "podData/update" }
+
+[connections]
+update_topic = "connection/update"
+
+[blcu]
+download_path = "downloads"
+
+[blcu.packets]
+upload = { id = 700, field = "board" }
+download = { id = 701, field = "board" }
+ack = { name = "tftp_ack" }
+
+[blcu.topics]
+upload = "blcu/upload"
+download = "blcu/download"

@@ -1,0 +1,48 @@
+name: Build control station
+
+on:
+    workflow_dispatch:
+    pull_request:
+        paths:
+            - control-station/**
+            - common-front/**
+
+jobs:
+    build-control-station:
+        name: 'Build control station'
+        runs-on: ubuntu-latest
+
+        env:
+            FRONTEND_DIR: ./control-station
+            COMMON_DIR: ./common-front
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  sparse-checkout: |
+                      control-station
+                      common-front
+
+            - name: 'Install common front dependencies'
+              working-directory: '${{env.COMMON_DIR}}'
+              run: npm install
+
+            - name: 'Build common front'
+              working-directory: '${{env.COMMON_DIR}}'
+              run: npm run build
+
+            - name: 'Install control station dependencies'
+              working-directory: '${{env.FRONTEND_DIR}}'
+              run: npm install
+
+            - name: 'Build control station'
+              working-directory: '${{env.FRONTEND_DIR}}'
+              run: npm run build
+
+            - name: 'Upload build'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: control-station
+                  path: '${{env.FRONTEND_DIR}}/static/*'
+                  retention-days: 3
+                  compression-level: 9

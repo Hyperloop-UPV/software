@@ -1,0 +1,32 @@
+.protectionMessage {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 0.5rem;
+    color: black;
+}
+
+.kindAndOrigin {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    overflow: hidden;
+
+    column-gap: 0.8rem;
+    row-gap: 0.5rem;
+}
+
+.protectionKind {
+    width: fit-content;
+    height: fit-content;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.5rem;
+    background-color: var(--main-color);
+    color: white;
+    font-weight: bold;
+}
+
+.origin {
+    overflow: hidden;
+}

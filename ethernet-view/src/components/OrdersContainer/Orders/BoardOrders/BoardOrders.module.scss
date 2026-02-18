@@ -1,0 +1,41 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.boardOrders {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.name {
+    display: flex;
+    gap: 0.6rem;
+    font-family: Inter;
+    font-weight: 600;
+    color: hsl(29, 88%, 70%);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+
+    &:hover {
+        background-color: rgba(235, 137, 33, 0.15);
+    }
+}
+
+:global([data-theme="dark"]) .name {
+    &:hover {
+        background-color: rgba(235, 137, 33, 0.08);
+    }
+}
+
+.orders,
+.stateOrders {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+
+    .title {
+        color: rgb(145, 145, 145);
+        font-weight: 600;
+    }
+}

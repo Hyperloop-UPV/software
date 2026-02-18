@@ -1,80 +1,42 @@
-import { useTopic, useWebSocket } from "@workspace/ui/hooks";
-import { Route, Routes } from "react-router";
-import { AppModeRouter } from "./components/AppModeRouter";
-import { ModeSwitcher } from "./components/devTools/ModeSwitcher";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { useChartsConfiguration } from "./features/charts/hooks/useChartsConfiguration";
-import useAppConfigs from "./hooks/useAppConfigs";
-import { useAppMode } from "./hooks/useAppMode";
-import { useErrorHandler } from "./hooks/useErrorHandler";
-import { useTransformedBoards } from "./hooks/useTransformedBoards";
-import { AppLayout } from "./layout/AppLayout";
-import { Logs } from "./pages/Logs";
-import { Testing } from "./pages/Testing";
-import { useStore } from "./store/store";
-import type { Connection } from "./types/common/connection";
-import type { MessagePacket } from "./types/data/message";
-import type { TelemetryData } from "./types/telemetry/telemetry";
+import { Badge, Button, CustomComponent, Spinner } from "@workspace/ui";
+import { connect } from "@workspace/core";
+import { useDarkMode } from "@workspace/ui/hooks";
+import { cn } from "@workspace/ui/lib";
+import { useCallback, useEffect } from "react";
 
 function App() {
-  const { isConnected } = useWebSocket();
-  const { reportError } = useErrorHandler();
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
 
-  // Fetch app configs
-  const { packets, commands, isLoading } = useAppConfigs(isConnected);
+  const connectToWebSocket = useCallback(() => {
+    console.time("[TEST] connect to websocket");
+    connect();
+    console.timeEnd("[TEST] connect to websocket");
+  }, []);
 
-  // Determine app mode
-  useAppMode(packets, commands, isLoading);
-
-  // Transform boards and store in the global store
-  useTransformedBoards(packets, commands);
-
-  // Restore charts configuration
-  useChartsConfiguration();
-
-  // Callback executed when telemetry data is received
-  const addTelemetry = useStore((s) => s.addTelemetry);
-
-  // Subscribe to telemetry updates
-  useTopic<TelemetryData>(
-    "podData/update",
-    (data) => {
-      addTelemetry(data);
-    },
-    { downsample: "none", throttle: 100 },
-  );
-
-  // Callback executed when connection updates are received
-  const updateConnections = useStore((s) => s.updateConnections);
-
-  // Subscribe to connection updates
-  useTopic<Record<string, Connection>>("connection/update", (data) => {
-    updateConnections(data);
-  });
-
-  // Callback executed when messages are received
-  const addMessage = useStore((s) => s.addMessage);
-
-  useTopic<MessagePacket>("message/update", (data) => {
-    console.log("Message received:", data);
-    addMessage({
-      ...data,
-      id: crypto.randomUUID(),
-    });
-  });
+  useEffect(() => {
+    connectToWebSocket();
+  }, [connectToWebSocket]);
 
   return (
-    <ErrorBoundary onError={reportError}>
-      <AppLayout backendConnected={isConnected}>
-        <AppModeRouter>
-          <Routes>
-            <Route path="/" element={<Testing />} />
-            <Route path="/logs" element={<Logs />} />
-          </Routes>
-        </AppModeRouter>
-        <ModeSwitcher />
-      </AppLayout>
-    </ErrorBoundary>
+    <div
+      className={cn(
+        "bg-background flex h-full w-full flex-col items-center justify-center",
+        isDarkMode ? "dark" : "",
+      )}
+    >
+      <h1 className="text-foreground mb-4 text-4xl font-bold">
+        It finally works!
+      </h1>
+      <Button className="my-4" size="lg" onClick={toggleDarkMode}>
+        {isDarkMode ? "Enable Light Mode" : "Enable Dark Mode"}
+      </Button>
+      <CustomComponent className="my-3 mb-5" />
+      <Badge variant="destructive" className="px-3 py-1 text-sm">
+        <Spinner className="mr-1" />
+        <span>I can&apos;t believe it&apos;s finally working</span>
+        <Spinner className="ml-1" />
+      </Badge>
+    </div>
   );
 }
 

@@ -5,15 +5,16 @@
  */
 
 import { spawn } from "child_process";
-import { app, dialog } from "electron";
-import fs from "fs";
-import path from "path";
-import { logger } from "../utils/logger.js";
+import { dialog } from "electron";
 import {
   getAppPath,
   getBinaryPath,
   getUserConfigPath,
 } from "../utils/paths.js";
+import fs from "fs";
+import { app } from "electron";
+import path from "path";
+import { logger } from "../utils/logger.js";
 
 // Get the application root path
 const appPath = getAppPath();
@@ -31,82 +32,69 @@ let lastBackendError = null;
  * startBackend();
  */
 function startBackend() {
-  return new Promise((resolve, reject) => {
-    // Get paths for binary and config
-    const backendBin = getBinaryPath("backend");
-    const configPath = getUserConfigPath();
+  // Get paths for binary and config
+  const backendBin = getBinaryPath("backend");
+  const configPath = getUserConfigPath();
 
-    // Check if binary exists before attempting to start
-    if (!fs.existsSync(backendBin)) {
-      logger.backend.error(`Backend binary not found: ${backendBin}`);
-      dialog.showErrorBox(
-        "Error",
-        `Backend binary not found at: ${backendBin}`
-      );
-      return reject(new Error(`Backend binary not found: ${backendBin}`));
-    }
+  // Check if binary exists before attempting to start
+  if (!fs.existsSync(backendBin)) {
+    logger.backend.error(`Backend binary not found: ${backendBin}`);
+    dialog.showErrorBox("Error", `Backend binary not found at: ${backendBin}`);
+    return;
+  }
 
-    logger.backend.info(
-      `Starting backend: ${backendBin}, config: ${configPath}`
+  logger.backend.info(`Starting backend: ${backendBin}, config: ${configPath}`);
+
+  // Set working directory to backend/cmd in development, or resources in production
+  const workingDir = !app.isPackaged
+    ? path.join(appPath, "..", "backend", "cmd")
+    : path.dirname(configPath);
+
+  // Spawn the backend process with config argument
+  backendProcess = spawn(backendBin, ["--config", configPath], {
+    cwd: workingDir,
+  });
+
+  // Log stdout output from backend
+  backendProcess.stdout.on("data", (data) => {
+    logger.backend.info(`${data.toString().trim()}`);
+  });
+
+  // Capture stderr output (where Go errors/panics are written)
+  backendProcess.stderr.on("data", (data) => {
+    const errorMsg = data.toString().trim();
+    logger.backend.error(errorMsg);
+    // Store the last error message
+    lastBackendError = errorMsg;
+  });
+
+  // Handle spawn errors
+  backendProcess.on("error", (error) => {
+    logger.backend.error(`Failed to start backend: ${error.message}`);
+    dialog.showErrorBox(
+      "Backend Error",
+      `Failed to start backend: ${error.message}`
     );
+  });
 
-    // Set working directory to backend/cmd in development, or resources in production
-    const workingDir = !app.isPackaged
-      ? path.join(appPath, "..", "backend", "cmd")
-      : path.dirname(configPath);
+  // Handle process exit
+  backendProcess.on("close", (code) => {
+    logger.backend.info(`Backend process exited with code ${code}`);
+    // Show error dialog if process crashed (non-zero exit code)
+    if (code !== 0 && code !== null) {
+      // Build error message with actual error details
+      let errorMessage = `Backend exited with code ${code}`;
 
-    // Spawn the backend process with config argument
-    backendProcess = spawn(backendBin, ["--config", configPath], {
-      cwd: workingDir,
-    });
-
-    // Log stdout output from backend
-    backendProcess.stdout.on("data", (data) => {
-      logger.backend.info(`${data.toString().trim()}`);
-    });
-
-    // Capture stderr output (where Go errors/panics are written)
-    backendProcess.stderr.on("data", (data) => {
-      const errorMsg = data.toString().trim();
-      logger.backend.error(errorMsg);
-      // Store the last error message
-      lastBackendError = errorMsg;
-    });
-
-    // Handle spawn errors
-    backendProcess.on("error", (error) => {
-      logger.backend.error(`Failed to start backend: ${error.message}`);
-      dialog.showErrorBox(
-        "Backend Error",
-        `Failed to start backend: ${error.message}`
-      );
-      return reject(new Error(`Failed to start backend: ${error.message}`));
-    });
-
-    // If the backend didn't fail in this period of time, resolve the promise
-    setTimeout(() => {
-      resolve(backendProcess);
-    }, 1000);
-
-    // Handle process exit
-    backendProcess.on("close", (code) => {
-      logger.backend.info(`Backend process exited with code ${code}`);
-      // Show error dialog if process crashed (non-zero exit code)
-      if (code !== 0 && code !== null) {
-        // Build error message with actual error details
-        let errorMessage = `Backend exited with code ${code}`;
-
-        if (lastBackendError) {
-          errorMessage += `\n\n${lastBackendError}`;
-        } else {
-          errorMessage += "\n\n(No error output captured)";
-        }
-
-        dialog.showErrorBox("Backend Crashed", errorMessage);
-        // Clear error message after showing
-        lastBackendError = null;
+      if (lastBackendError) {
+        errorMessage += `\n\n${lastBackendError}`;
+      } else {
+        errorMessage += "\n\n(No error output captured)";
       }
-    });
+
+      dialog.showErrorBox("Backend Crashed", errorMessage);
+      // Clear error message after showing
+      lastBackendError = null;
+    }
   });
 }
 
@@ -140,4 +128,4 @@ function restartBackend() {
   startBackend();
 }
 
-export { restartBackend, startBackend, stopBackend };
+export { startBackend, stopBackend, restartBackend };

@@ -1,0 +1,13 @@
+.LoggerPage {
+    display: flex;
+    width: 100%;
+    gap: 1rem;
+}
+
+.LogsColumn {
+    flex: 1;
+}
+
+.ChartsColumn {
+    flex: 3;
+}

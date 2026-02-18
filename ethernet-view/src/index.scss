@@ -1,0 +1,22 @@
+@use "src/styles/styles";
+
+body {
+    margin: 0;
+    padding: 0;
+    /*TODO: cambiar width y height para que si haces la ventana mas pequeña, los componentes se hacen */
+    height: 100vh;
+    background-color: styles.$background-color;
+}
+* {
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+}
+
+#root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

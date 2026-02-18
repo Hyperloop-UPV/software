@@ -1,0 +1,34 @@
+@use "../../styles/colors.scss" as colors;
+
+.themeToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid colors.getThemeColor("border");
+    border-radius: 8px;
+    background-color: colors.getThemeColor("surface");
+    color: colors.getThemeColor("text-primary");
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+        background-color: colors.getThemeColor("surface-hover");
+        border-color: colors.getThemeColor("border-hover");
+        transform: translateY(-1px);
+        box-shadow: colors.getThemeColor("shadow-sm");
+    }
+    
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+.icon {
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

@@ -1,0 +1,17 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.sidebar {
+    width: auto;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+
+    background-color: colors.getThemeColor("primary-surface");
+}
+
+:global([data-theme="dark"]) .sidebar {
+    background-color: colors.getColor("neutral", 20);
+}

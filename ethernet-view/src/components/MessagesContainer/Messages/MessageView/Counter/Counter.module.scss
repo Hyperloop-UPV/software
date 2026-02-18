@@ -1,0 +1,13 @@
+.counter {
+    width: fit-content;
+    height: fit-content;
+    border-radius: 4rem;
+    padding: 0.25rem 0.35rem;
+
+    font-family: Consolas;
+    font-size: small;
+    line-height: 90%;
+
+    color: var(--main-color); // Use main color for better contrast
+    background-color: var(--light-color);
+}

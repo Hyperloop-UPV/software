@@ -19,6 +19,10 @@ boards = ["BCU", "BMSL", "HVSCU", "HVSCU-Cabinet", "LCU", "PCU", "VCU", "BLCU"]
 [adj]
 branch = "main" # Leave blank when using ADJ as a submodule (like this: "")
 
+# Network Configuration
+[network]
+manual = false # Manual network device selection
+
 # Transport Configuration
 [transport]
 propagate_fault = false
@@ -32,6 +36,12 @@ backoff_multiplier = 1.5     # Exponential backoff multiplier (e.g., 1.5 means e
 max_retries = 0              # Maximum retries before cycling (0 = infinite retries, recommended for persistent reconnection)
 connection_timeout_ms = 1000 # Connection timeout in milliseconds
 keep_alive_ms = 1000         # Keep-alive interval in milliseconds
+
+# BLCU (Boot Loader Control Unit) Configuration
+[blcu]
+ip = "127.0.0.1"      # TFTP server IP address
+download_order_id = 0 # Packet ID for download orders (0 = use default)
+upload_order_id = 0   # Packet ID for upload orders (0 = use default)
 
 # TFTP Configuration
 [tftp]

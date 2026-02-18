@@ -1,0 +1,46 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.packetView {
+    display: flex;
+    flex-direction: column;
+    color: colors.getThemeColor("text-primary");
+    --border-color: #{colors.getThemeColor("border")};
+    --border-width: 1px;
+}
+
+.data {
+    display: flex;
+    align-items: stretch;
+    border-top: var(--border-width) solid var(--border-color);
+    border-bottom: var(--border-width) solid var(--border-color);
+    background-color: colors.getThemeColor("surface");
+    @include styles.shadow;
+}
+
+.data > * {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.data > *:not(:first-child) {
+    border-left: var(--border-width) solid var(--border-color);
+}
+
+.measurements {
+    padding: 0.5rem 1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) min-content min-content min-content;
+    align-items: center;
+    gap: 1rem;
+}
+
+.count,
+.cycleTime {
+    font-size: 1.15rem;
+    font-family: Consolas;
+}

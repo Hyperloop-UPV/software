@@ -7,19 +7,19 @@
  * - Folder selection dialogs
  */
 
-import { dialog, ipcMain } from "electron";
+import { ipcMain, dialog } from "electron";
 import {
-  importConfig,
   readConfig,
   writeConfig,
+  importConfig,
 } from "../config/configInstance.js";
-import { restartBackend } from "../processes/backend.js";
-import { logger } from "../utils/logger.js";
 import {
+  loadView,
   getCurrentView,
   getMainWindow,
-  loadView,
 } from "../windows/mainWindow.js";
+import { restartBackend } from "../processes/backend.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Initializes all IPC handlers for communication between main and renderer processes.

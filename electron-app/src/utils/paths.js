@@ -41,13 +41,6 @@ function getBinaryPath(name) {
   const arch = process.arch;
   const ext = platform === "win32" ? ".exe" : "";
 
-  if (name === "packet-sender") {
-    if (!app.isPackaged) {
-      return path.join(getAppPath(), "binaries", `${name}${ext}`);
-    }
-    return path.join(process.resourcesPath, "binaries", `${name}${ext}`);
-  }
-
   const goosMap = {
     win32: "windows",
     darwin: "darwin",
@@ -115,4 +108,4 @@ function getTemplatePath() {
   return path.join(process.resourcesPath, "config.toml");
 }
 
-export { getAppPath, getBinaryPath, getTemplatePath, getUserConfigPath };
+export { getAppPath, getBinaryPath, getUserConfigPath, getTemplatePath };

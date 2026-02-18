@@ -1,0 +1,90 @@
+# Hyperloop H10 Starship Prompt Configuration
+
+format = """
+[┌─](bold white) \
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$golang\
+$nodejs\
+$python\
+$env_var\
+$custom\
+$cmd_duration\
+$line_break\
+[└─](bold white) $character"""
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+style = "bold cyan"
+read_only = " 🔒"
+
+[character]
+success_symbol = "[🚄❯](bold green)"
+error_symbol = "[🚄❯](bold red)"
+vicmd_symbol = "[🚄❮](bold green)"
+
+[git_branch]
+symbol = " "
+style = "bold purple"
+format = "on [$symbol$branch]($style) "
+
+[git_status]
+style = "bold red"
+format = '([\[$all_status$ahead_behind\]]($style) )'
+conflicted = "⚔️ "
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+untracked = "?${count}"
+stashed = "📦${count}"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+[golang]
+symbol = " "
+style = "bold blue"
+format = "via [$symbol($version )]($style)"
+
+[nodejs]
+symbol = " "
+style = "bold green"
+format = "via [$symbol($version )]($style)"
+
+[python]
+symbol = " "
+style = "bold yellow"
+format = "via [$symbol($version )]($style)"
+
+[cmd_duration]
+min_time = 3_000
+format = "took [$duration]($style) "
+style = "bold yellow"
+
+[env_var.NIX_SHELL]
+symbol = "❄️ "
+style = "bold blue"
+format = "[$symbol]($style)"
+
+[custom.hyperloop]
+command = "echo 🚄"
+when = """ test "$REPO_ROOT" != "" """
+format = "[$output]($style) "
+style = "bold"
+
+[hostname]
+ssh_only = false
+format = "on [$hostname](bold red) "
+disabled = false
+
+[username]
+style_user = "white bold"
+style_root = "red bold"
+format = "[$user]($style) "
+disabled = false
+show_always = false

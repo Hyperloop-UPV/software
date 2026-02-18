@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
 	h "github.com/HyperloopUPV-H8/h9-backend/pkg/http"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
@@ -18,7 +17,9 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/broker"
+	blcu_topics "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/blcu"
 	connection_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/connection"
 	data_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/data"
 	logger_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/logger"
@@ -32,7 +33,7 @@ import (
 	trace "github.com/rs/zerolog/log"
 )
 
-func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string, connections chan *websocket.Client) (*broker.Broker, func()) {
+func configureBroker(subloggers SubloggersMap, loggerHandler *logger.Logger, idToBoard map[abstraction.PacketId]string, connections chan *websocket.Client) (*broker.Broker, func()) {
 
 	broker := broker.New(trace.Logger)
 
@@ -40,7 +41,7 @@ func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger
 	cleanup := func() { dataTopic.Stop() }
 	connectionTopic := connection_topic.NewUpdateTopic()
 	orderTopic := order_topic.NewSendTopic()
-	loggerTopic := logger_topic.NewEnableTopic(trace.Logger)
+	loggerTopic := logger_topic.NewEnableTopic()
 	loggerTopic.SetDataLogger(subloggers[data_logger.Name].(*data_logger.Logger))
 	loggerHandler.SetOnStart(func() {
 		if err := loggerTopic.NotifyStarted(); err != nil {
@@ -62,17 +63,8 @@ func configureBroker(subloggers abstraction.SubloggersMap, loggerHandler *logger
 	broker.AddTopic(message_topic.UpdateName, messageTopic)
 
 	pool := websocket.NewPool(connections, trace.Logger)
-	pool.SetOnDisconnect(func(count int) {
-		if count == 0 {
-			trace.Info().Msg("no clients connected, stopping logger")
-			loggerHandler.Stop()
-			if err := loggerTopic.NotifyStopped(); err != nil {
-				trace.Error().Err(err).Msg("failed to notify logger stopped")
-			}
-		}
-	})
-
 	broker.SetPool(pool)
+	blcu_topics.RegisterTopics(broker, pool)
 
 	return broker, cleanup
 }
@@ -98,13 +90,52 @@ func configureVehicle(
 	vehicle.SetIdToBoardName(idToBoard)
 	vehicle.SetTransport(transp)
 
+	// Register BLCU board for handling bootloader operations
+	if blcuIP, exists := adj.Info.Addresses[BLCU]; exists {
+		blcuId, idExists := adj.Info.BoardIds["BLCU"]
+		if !idExists {
+			return fmt.Errorf("BLCU IP found in ADJ but board ID missing")
+		} else {
+			// Get configurable order IDs or use defaults
+			downloadOrderId := config.Blcu.DownloadOrderId
+			uploadOrderId := config.Blcu.UploadOrderId
+			if downloadOrderId == 0 {
+				downloadOrderId = boards.DefaultBlcuDownloadOrderId
+			}
+			if uploadOrderId == 0 {
+				uploadOrderId = boards.DefaultBlcuUploadOrderId
+			}
+
+			tftpConfig := boards.TFTPConfig{
+				BlockSize:      config.TFTP.BlockSize,
+				Retries:        config.TFTP.Retries,
+				TimeoutMs:      config.TFTP.TimeoutMs,
+				BackoffFactor:  config.TFTP.BackoffFactor,
+				EnableProgress: config.TFTP.EnableProgress,
+			}
+			blcuBoard := boards.NewWithConfig(blcuIP, tftpConfig, abstraction.BoardId(blcuId), downloadOrderId, uploadOrderId)
+			vehicle.AddBoard(blcuBoard)
+			vehicle.SetBlcuId(abstraction.BoardId(blcuId))
+
+			trace.
+				Info().
+				Str("ip", blcuIP).
+				Int("id", int(blcuId)).
+				Uint16("download_order_id", downloadOrderId).
+				Uint16("upload_order_id", uploadOrderId).
+				Msg("BLCU board registered")
+		}
+	} else {
+		trace.Warn().Msg("BLCU not found in ADJ configuration - bootloader operations unavailable")
+	}
+
 	return nil
 
 }
 
 func configureSNTP(adj adj_module.ADJ) bool {
 
-	if flags.EnableSNTP {
+	if *enableSNTP {
 		sntpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", adj.Info.Addresses[BACKEND], adj.Info.Ports[SNTP]))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error resolving sntp address: %v\n", err)
@@ -129,7 +160,7 @@ func configureSNTP(adj adj_module.ADJ) bool {
 	return false
 }
 
-func configureHTTPServer(
+func configureHttpServer(
 	adj adj_module.ADJ,
 	podData pod_data.PodData,
 	vehicleOrders vehicle_models.VehicleOrders,

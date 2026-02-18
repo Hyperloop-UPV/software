@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
 
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
+	blcu_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/blcu"
 	connection_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/connection"
 	logger_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/logger"
 	message_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/message"
@@ -91,6 +93,47 @@ func (vehicle *Vehicle) UserPush(push abstraction.BrokerPush) error {
 			status.Fulfill(!status.Enable())
 		} else {
 			status.Fulfill(status.Enable())
+		}
+
+	case "blcu/downloadRequest":
+		download := push.(*blcu_topic.DownloadRequest)
+
+		if board, exists := vehicle.boards[vehicle.BlcuId]; exists {
+			board.Notify(abstraction.BoardNotification(
+				&boards.DownloadEvent{
+					BoardEvent: boards.DownloadEventId,
+					BoardID:    vehicle.BlcuId,
+					Board:      download.Board,
+				},
+			))
+		} else {
+			fmt.Fprintf(os.Stderr, "BLCU board not registered\n")
+		}
+
+	case "blcu/uploadRequest":
+		// Handle both UploadRequest and UploadRequestInternal
+		var uploadEvent *boards.UploadEvent
+		switch u := push.(type) {
+		case *blcu_topic.UploadRequestInternal:
+			uploadEvent = &boards.UploadEvent{
+				BoardEvent: boards.UploadEventId,
+				Board:      u.Board,
+				Data:       u.Data,
+				Length:     len(u.Data),
+			}
+		case *blcu_topic.UploadRequest:
+			// This shouldn't happen as the handler should convert to Internal
+			fmt.Fprintf(os.Stderr, "received raw UploadRequest, expected UploadRequestInternal\n")
+			return nil
+		default:
+			fmt.Fprintf(os.Stderr, "unknown upload type: %T\n", push)
+			return nil
+		}
+
+		if board, exists := vehicle.boards[vehicle.BlcuId]; exists {
+			board.Notify(abstraction.BoardNotification(uploadEvent))
+		} else {
+			fmt.Fprintf(os.Stderr, "BLCU board not registered\n")
 		}
 
 	default:

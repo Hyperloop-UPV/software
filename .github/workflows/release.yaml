@@ -67,22 +67,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.26.0
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "pnpm"
 
       # Update package.json with release version
       - name: Update version in package.json
         working-directory: electron-app
         shell: bash
         run: |
-          pnpm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
+          npm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
           echo "Updated version to:"
           cat package.json | grep version
 
@@ -128,24 +123,23 @@ jobs:
           path: electron-app/binaries
 
       # Download frontend builds from latest build
-      # TODO: Uncomment when competition view is ready
-      # - name: Download competition-view
-      #   uses: dawidd6/action-download-artifact@v3
-      #   with:
-      #     workflow: build.yaml
-      #     branch: production
-      #     workflow_conclusion: success
-      #     name: competition-view
-      #     path: electron-app/renderer/competition-view
-
-      - name: Download testing-view
+      - name: Download control-station
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: build.yaml
           branch: production
           workflow_conclusion: success
-          name: testing-view
-          path: electron-app/renderer/testing-view
+          name: control-station
+          path: electron-app/renderer/control-station
+
+      - name: Download ethernet-view
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: build.yaml
+          branch: production
+          workflow_conclusion: success
+          name: ethernet-view
+          path: electron-app/renderer/ethernet-view
 
       - name: Set executable permissions (Unix)
         if: runner.os != 'Windows'
@@ -153,11 +147,11 @@ jobs:
 
       - name: Install Electron dependencies
         working-directory: electron-app
-        run: pnpm install
+        run: npm ci
 
       - name: Build Electron distribution
         working-directory: electron-app
-        run: pnpm run dist
+        run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -184,8 +178,6 @@ jobs:
             electron-app/dist/*.deb
             electron-app/dist/*.dmg
             electron-app/dist/*.zip
-            electron-app/dist/*.yml
-            electron-app/dist/*.blockmap
             !electron-app/dist/*-unpacked
             !electron-app/dist/mac
             !electron-app/dist/win-unpacked

@@ -134,7 +134,7 @@ func (push *pushStruct) Data(boardName string) wrapper {
 			Kind:      "info",
 			Payload:   "Order Sent",
 			Board:     boardName,
-			Name:      fmt.Sprintf("%d", data.Id()),
+			Name:      string(data.Id()),
 			Timestamp: protection.NowTimestamp(),
 		}
 	}

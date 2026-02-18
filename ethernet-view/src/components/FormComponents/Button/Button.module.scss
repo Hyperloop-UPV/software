@@ -1,0 +1,41 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.buttonWrapper {
+    flex: 1 1 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 0.5rem;
+    text-align: center;
+    border-radius: styles.$normal-border-radius;
+    background-color: colors.getThemeColor("secondary");
+    color: colors.getThemeColor("surface");
+    user-select: none;
+
+    @include styles.shadow;
+
+    &.enabled {
+        cursor: pointer;
+        
+        &:hover {
+            background-color: colors.getThemeColor("secondary-hover");
+        }
+    }
+
+    &.disabled {
+        cursor: auto;
+        background-color: colors.getThemeColor("border");
+        color: colors.getThemeColor("text-disabled");
+    }
+}
+
+.label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.icon {
+    width: 75%;
+}

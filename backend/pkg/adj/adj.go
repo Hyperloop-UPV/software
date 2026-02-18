@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	RepoURL = "https://github.com/Hyperloop-UPV/adj.git" // URL of the ADJ repository
+	RepoUrl = "https://github.com/HyperloopUPV-H8/adj.git" // URL of the ADJ repository
+
 )
 
 var RepoPath = getRepoPath()

@@ -1,0 +1,131 @@
+name: Build updater
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - updater/**
+
+jobs:
+  build-updater-linux:
+    name: Build updater for Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mark workspace as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+          cache-dependency-path: updater/go.sum
+
+      - name: Ensure dependencies
+        working-directory: updater
+        run: go mod tidy
+
+      - name: Make output dir
+        run: mkdir -p updater/output
+
+      - name: Build (linux/amd64)
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -o updater/output/updater-linux-64 ./updater
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-linux
+          path: updater/output/*
+
+  build-updater-windows:
+    name: Build updater for Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mark workspace as safe
+        shell: pwsh
+        run: git config --global --add safe.directory $Env:GITHUB_WORKSPACE
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+          cache-dependency-path: updater\go.sum
+
+      - name: Ensure dependencies
+        working-directory: updater
+        shell: pwsh
+        run: go mod tidy
+
+      - name: Make output dir
+        shell: pwsh
+        run: New-Item -ItemType Directory -Path updater\output -Force
+
+      - name: Build (windows/amd64)
+        shell: pwsh
+        run: |
+          $Env:CGO_ENABLED='0'
+          go build -o updater\output\updater-windows-64.exe ./updater
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-windows
+          path: updater\output\*
+
+  build-updater-mac:
+    name: Build updater for macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mark workspace as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+          cache-dependency-path: updater/go.sum
+
+      - name: Ensure dependencies
+        working-directory: updater
+        run: go mod tidy
+
+      - name: Make output dir
+        run: mkdir -p updater/output
+
+      - name: Build (macOS Intel)
+        run: |
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 \
+            go build -o updater/output/updater-macos-64 ./updater
+
+      - name: Build (macOS ARM64)
+        run: |
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
+            go build -o updater/output/updater-macos-m1-64 ./updater
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-macos
+          path: updater/output/*

@@ -1,0 +1,29 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.select {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: rgba(235, 137, 33, 0.1);
+    color: colors.getThemeColor("text-primary");
+    border: 1px solid colors.getThemeColor("border");
+    border-radius: styles.$normal-border-radius;
+    
+    &:focus {
+        outline: none;
+        border-color: colors.getThemeColor("primary");
+    }
+}
+
+:global([data-theme="dark"]) .select {
+    background-color: rgba(235, 137, 33, 0.05);
+}
+
+option {
+    background-color: rgba(235, 137, 33, 0.1);
+    color: colors.getThemeColor("text-primary");
+}
+
+:global([data-theme="dark"]) option {
+    background-color: rgba(235, 137, 33, 0.05);
+}

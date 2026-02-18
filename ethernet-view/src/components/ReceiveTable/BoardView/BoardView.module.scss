@@ -1,0 +1,19 @@
+@use "src/styles/styles";
+@use "src/styles/colors" as colors;
+
+.boardView {
+    display: flex;
+    flex-direction: column;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    overflow-x: auto;
+    flex: 0 0 auto;
+    border: 1px solid var(--main-color);
+    color: var(--light-main-color);
+    background-color: colors.getThemeColor("surface-variant");
+    @include styles.shadow;
+}
+
+:global([data-theme="dark"]) .boardView {
+    background-color: colors.getThemeColor("surface");
+}

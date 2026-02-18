@@ -1,8 +1,5 @@
 {
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit"
-  },
 
   // JSON files
   "[json]": {
@@ -42,13 +39,5 @@
   "go.lintFlags": ["-checks=all"], // Which checks to run
 
   // Prettier settings
-  "prettier.useEditorConfig": false,
-
-  // Rust settings
-  "[rust]": {
-    "editor.defaultFormatter": "rust-lang.rust-analyzer",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.rust-analyzer": "explicit"
-    }
-  }
+  "prettier.useEditorConfig": false
 }

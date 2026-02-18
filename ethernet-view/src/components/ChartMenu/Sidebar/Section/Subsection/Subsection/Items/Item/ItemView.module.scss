@@ -1,0 +1,10 @@
+@use "src/styles/styles";
+
+.item {
+    display: grid;
+    align-items: center;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.3rem;
+    font-weight: 500;
+    cursor: pointer;
+}

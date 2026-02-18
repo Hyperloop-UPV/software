@@ -1,7 +1,6 @@
 package data
 
 import (
-	"sync"
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
@@ -27,16 +26,6 @@ func NewPacket(id abstraction.PacketId) *Packet {
 		timestamp: time.Now(),
 	}
 }
-
-var packetPool = sync.Pool{
-	New: func() any {
-		return &Packet{
-			values:  make(map[ValueName]Value),
-			enabled: make(map[ValueName]bool),
-		}
-	},
-}
-
 
 // NewPacketWithValues creates a new data packet with the given values
 func NewPacketWithValues(id abstraction.PacketId, values map[ValueName]Value, enabled map[ValueName]bool) *Packet {
@@ -72,36 +61,4 @@ func (packet *Packet) GetValues() map[ValueName]Value {
 func (packet *Packet) SetTimestamp(timestamp time.Time) *Packet {
 	packet.timestamp = timestamp
 	return packet
-}
-
-func (packet *Packet) Reset() {
-	clear(packet.values)
-	clear(packet.enabled)
-	packet.id = 0
-	packet.timestamp = time.Time{}
-}
-
-func GetPacket(id abstraction.PacketId) *Packet {
-	p := packetPool.Get().(*Packet)
-	if p.values == nil {
-		p.values = make(map[ValueName]Value)
-	} else {
-		clear(p.values)
-	}
-	if p.enabled == nil {
-		p.enabled = make(map[ValueName]bool)
-	} else {
-		clear(p.enabled)
-	}
-	p.id = id
-	p.timestamp = time.Now()
-	return p
-}
-
-func ReleasePacket(p *Packet) {
-	if p == nil {
-		return
-	}
-	p.Reset()
-	packetPool.Put(p)
 }

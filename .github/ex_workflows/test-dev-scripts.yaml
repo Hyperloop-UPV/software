@@ -1,0 +1,82 @@
+name: Test Development Scripts
+
+on:
+  pull_request:
+    paths:
+      - scripts/**
+  workflow_dispatch:
+
+jobs:
+  test-dev-scripts:
+    name: Test Development Scripts
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+            shell: bash
+            script: ./scripts/dev.sh
+            
+          - os: windows-latest
+            name: windows-powershell
+            shell: pwsh
+            script: .\scripts\dev.ps1
+            
+          - os: windows-latest
+            name: windows-cmd
+            shell: cmd
+            script: scripts\dev.cmd
+            
+          - os: macos-latest
+            name: macos
+            shell: bash
+            script: ./scripts/dev.sh
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install tmux (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            sudo apt-get update && sudo apt-get install -y tmux
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            brew install tmux
+          fi
+        shell: bash
+      
+      - name: Make script executable (Unix)
+        if: matrix.os != 'windows-latest'
+        run: chmod +x scripts/dev.sh
+        shell: bash
+      
+      - name: Test script help/usage
+        run: ${{ matrix.script }}
+        shell: ${{ matrix.shell }}
+        continue-on-error: true
+        
+      - name: Test dependency check
+        run: ${{ matrix.script }} setup
+        shell: ${{ matrix.shell }}
+        
+      - name: Test build command
+        run: ${{ matrix.script }} build
+        shell: ${{ matrix.shell }}
+        continue-on-error: true
+        
+      - name: Test backend build (quick test)
+        run: ${{ matrix.script }} test
+        shell: ${{ matrix.shell }}
+        continue-on-error: true

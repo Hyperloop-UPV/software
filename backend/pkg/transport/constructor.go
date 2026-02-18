@@ -12,7 +12,7 @@ import (
 
 func NewTransport(baseLogger zerolog.Logger) *Transport {
 	transport := &Transport{
-		connectionsMx: &sync.RWMutex{},
+		connectionsMx: &sync.Mutex{},
 		connections:   make(map[abstraction.TransportTarget]net.Conn),
 		idToTarget:    make(map[abstraction.PacketId]abstraction.TransportTarget),
 		ipToTarget:    make(map[string]abstraction.TransportTarget),

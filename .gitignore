@@ -1,12 +1,22 @@
-# Monorepo / IDE
-node_modules/
-.turbo/
-.vscode/
+build
+profiles
+backend/cmd/cmd
+packet-sender/packet_sender
+.ropeproject
+
+# MacOS Files
 .DS_Store
-*.code-workspace
 
-# Environment
-.env
+# Code Editor
+.idea/
+.vscode/*
+!.vscode/settings.json
 
-# Global binaries
+# Claude
+CLAUDE*
+.claude
+
 *.exe
+
+# VS Code Workspace
+*.code-workspace

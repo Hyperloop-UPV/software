@@ -1,0 +1,23 @@
+.camerasPage {
+    display: flex;
+    gap: 1rem;
+}
+
+.camerasRow {
+    display: flex;
+    flex: 1;
+    gap: 1rem;
+}
+
+.cameraColumn {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cameraInput {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}

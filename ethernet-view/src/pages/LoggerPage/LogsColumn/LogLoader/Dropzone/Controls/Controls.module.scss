@@ -1,0 +1,13 @@
+.controlsWrapper {
+    width: 100%;
+    display: flex;
+    padding: 1rem;
+    gap: 2rem;
+}
+
+.button {
+    flex: 1;
+    padding: 0.2rem;
+    font-size: large;
+    border-style: none;
+}

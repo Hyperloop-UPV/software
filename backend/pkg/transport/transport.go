@@ -31,7 +31,7 @@ type Transport struct {
 	decoder *presentation.Decoder
 	encoder *presentation.Encoder
 
-	connectionsMx *sync.RWMutex
+	connectionsMx *sync.Mutex
 	connections   map[abstraction.TransportTarget]net.Conn
 
 	ipToTarget map[string]abstraction.TransportTarget
@@ -45,27 +45,22 @@ type Transport struct {
 
 	logger zerolog.Logger
 
-	byteReaderPool sync.Pool
-
 	errChan chan error
 }
-
-// For tests
-var zeroTime time.Time
 
 // HandleClient connects to the specified client and handles its messages. This method blocks.
 // This method will continuously try to reconnect to the client if it disconnects,
 // applying exponential backoff between attempts.
 func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string) error {
 	client := tcp.NewClient(remote, config, transport.logger)
-	clientLogger := transport.logger.With().Str("remoteAddress", remote).Logger()
-	defer clientLogger.Warn().Msg("abort connection")
+	defer transport.logger.Warn().Str("remoteAddress", remote).Msg("abort connection")
 	var hasConnected = false
 
 	for {
 		conn, err := client.Dial()
 		if err != nil {
-			clientLogger.Debug().Stack().Err(err).Msg("dial failed")
+			transport.logger.Debug().Stack().Err(err).Str("remoteAddress", remote).Msg("dial failed")
+
 			// Only return if reconnection is disabled
 			if !config.TryReconnect {
 				if hasConnected {
@@ -78,7 +73,7 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 			// For ErrTooManyRetries, we still want to continue retrying
 			// The client will reset its retry counter on the next Dial() call
 			if _, ok := err.(tcp.ErrTooManyRetries); ok {
-				clientLogger.Warn().Msg("reached max retries, will continue attempting to reconnect")
+				transport.logger.Warn().Str("remoteAddress", remote).Msg("reached max retries, will continue attempting to reconnect")
 				// Add a longer delay before restarting the retry cycle
 				time.Sleep(config.ConnectionBackoffFunction(config.MaxConnectionRetries))
 			}
@@ -90,12 +85,12 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 
 		err = transport.handleTCPConn(conn)
 		if errors.Is(err, error(ErrTargetAlreadyConnected{})) {
-			clientLogger.Warn().Stack().Err(err).Msg("multiple connections for same target")
+			transport.logger.Warn().Stack().Err(err).Str("remoteAddress", remote).Msg("multiple connections for same target")
 			transport.errChan <- err
 			return err
 		}
 		if err != nil {
-			clientLogger.Debug().Stack().Err(err).Msg("connection lost")
+			transport.logger.Debug().Stack().Err(err).Str("remoteAddress", remote).Msg("connection lost")
 			if !config.TryReconnect {
 				transport.SendFault()
 				transport.errChan <- err
@@ -205,7 +200,7 @@ func (transport *Transport) targetFromTCPConn(conn net.Conn) (abstraction.Transp
 }
 
 // rejectIfConnectedTCPConn closes and rejects conn if target already has an active connection.
-func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger) error {
+func (transport *Transport) rejectIfConnectedTCPConn(target abstraction.TransportTarget, conn net.Conn, logger zerolog.Logger,) error {
 	transport.connectionsMx.Lock()
 	defer transport.connectionsMx.Unlock()
 
@@ -238,7 +233,7 @@ func (transport *Transport) registerTCPConn(target abstraction.TransportTarget, 
 func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger) {
 	from := conn.RemoteAddr().String()
 	to := conn.LocalAddr().String()
-
+	
 	go func() {
 		for {
 			packet, err := transport.decoder.DecodeNext(conn)
@@ -259,13 +254,10 @@ func (transport *Transport) readLoopTCPConn(conn net.Conn, logger zerolog.Logger
 
 			logger.Trace().Type("type", packet).Msg("packet")
 			transport.api.Notification(NewPacketNotification(packet, from, to, time.Now()))
-
-			if dataPacket, ok := packet.(*data.Packet); ok {
-				data.ReleasePacket(dataPacket)
-			}
 		}
 	}()
 }
+
 
 // SendMessage triggers an event to send something to the vehicle. Some messages
 // might additional means to pass information around (e.g. file read and write)
@@ -275,6 +267,10 @@ func (transport *Transport) SendMessage(message abstraction.TransportMessage) er
 	switch msg := message.(type) {
 	case PacketMessage:
 		err = transport.handlePacketEvent(msg)
+	case FileWriteMessage:
+		err = transport.handleFileWrite(msg)
+	case FileReadMessage:
+		err = transport.handleFileRead(msg)
 	default:
 		err = ErrUnrecognizedEvent{message.Event()}
 	}
@@ -293,31 +289,30 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 
 	if message.Id() == 0 {
 		eventLogger.Info().Msg("broadcasting packet id 0")
-		buf, err := transport.encoder.Encode(message.Packet)
+		data, err := transport.encoder.Encode(message.Packet)
 		if err != nil {
 			eventLogger.Error().Stack().Err(err).Msg("encode")
 			transport.errChan <- err
 			return err
 		}
-		defer transport.encoder.ReleaseBuffer(buf)
-		data := buf.Bytes()
 
-		transport.connectionsMx.RLock()
-		defer transport.connectionsMx.RUnlock()
+		transport.connectionsMx.Lock()
+		defer transport.connectionsMx.Unlock()
 		for target, conn := range transport.connections {
-			targetName := string(target)
+			eventLogger := eventLogger.With().Str("target", string(target)).Logger()
+
 			totalWritten := 0
 			for totalWritten < len(data) {
 				n, err := conn.Write(data[totalWritten:])
-				eventLogger.Trace().Str("target", targetName).Int("amount", n).Msg("written chunk")
+				eventLogger.Trace().Int("amount", n).Msg("written chunk")
 				totalWritten += n
 				if err != nil {
-					eventLogger.Error().Str("target", targetName).Stack().Err(err).Msg("write")
+					eventLogger.Error().Stack().Err(err).Msg("write")
 					transport.errChan <- err
 					return err
 				}
 			}
-			eventLogger.Info().Str("target", targetName).Msg("sent")
+			eventLogger.Info().Msg("sent")
 		}
 		return nil
 	}
@@ -333,8 +328,8 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 	eventLogger.Info().Msg("sending")
 
 	conn, err := func() (net.Conn, error) {
-		transport.connectionsMx.RLock()
-		defer transport.connectionsMx.RUnlock()
+		transport.connectionsMx.Lock()
+		defer transport.connectionsMx.Unlock()
 		conn, ok := transport.connections[target]
 		if !ok {
 			eventLogger.Warn().Msg("target not connected")
@@ -349,14 +344,12 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 		return err
 	}
 
-	buf, err := transport.encoder.Encode(message.Packet)
+	data, err := transport.encoder.Encode(message.Packet)
 	if err != nil {
 		eventLogger.Error().Stack().Err(err).Msg("encode")
 		transport.errChan <- err
 		return err
 	}
-	defer transport.encoder.ReleaseBuffer(buf)
-	data := buf.Bytes()
 
 	totalWritten := 0
 	for totalWritten < len(data) {
@@ -372,6 +365,24 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 
 	eventLogger.Info().Msg("sent")
 	return nil
+}
+
+// handleFileWrite writes a file through tftp to the blcu
+func (transport *Transport) handleFileWrite(message FileWriteMessage) error {
+	_, err := transport.tftp.WriteFile(message.Filename(), tftp.BinaryMode, message)
+	if err != nil {
+		transport.errChan <- err
+	}
+	return err
+}
+
+// handleFileRead reads a file through tftp from the blcu
+func (transport *Transport) handleFileRead(message FileReadMessage) error {
+	_, err := transport.tftp.ReadFile(message.Filename(), tftp.BinaryMode, message)
+	if err != nil {
+		transport.errChan <- err
+	}
+	return err
 }
 
 // HandleSniffer starts listening for packets on the provided sniffer and handles them.
@@ -391,7 +402,7 @@ func (transport *Transport) HandleSniffer(sniffer *sniffer.Sniffer) {
 func (transport *Transport) HandleUDPServer(server *udp.Server) {
 	packetsCh := server.GetPackets()
 	errorsCh := server.GetErrors()
-
+	
 	for {
 		select {
 		case packet := <-packetsCh:
@@ -402,30 +413,14 @@ func (transport *Transport) HandleUDPServer(server *udp.Server) {
 	}
 }
 
-func (transport *Transport) replicateFault(packet abstraction.Packet, logger zerolog.Logger) {
-	logger.Info().Msg("replicating packet with id 0 to all boards")
-	err := transport.handlePacketEvent(NewPacketMessage(packet))
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to replicate packet")
-	}
-}
-
 // handleUDPPacket handles a single UDP packet received by the UDP server
 func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 	srcAddr := fmt.Sprintf("%s:%d", udpPacket.SourceIP, udpPacket.SourcePort)
 	dstAddr := fmt.Sprintf("%s:%d", udpPacket.DestIP, udpPacket.DestPort)
-
+	
 	// Create a reader from the payload
-	readerAny := transport.byteReaderPool.Get()
-	var reader *bytes.Reader
-	if readerAny != nil {
-		reader = readerAny.(*bytes.Reader)
-		reader.Reset(udpPacket.Payload)
-	} else {
-		reader = bytes.NewReader(udpPacket.Payload)
-	}
-	defer transport.byteReaderPool.Put(reader)
-
+	reader := bytes.NewReader(udpPacket.Payload)
+	
 	// Decode the packet
 	packet, err := transport.decoder.DecodeNext(reader)
 	if err != nil {
@@ -437,18 +432,18 @@ func (transport *Transport) handleUDPPacket(udpPacket udp.Packet) {
 		transport.errChan <- err
 		return
 	}
-
+	
 	// Intercept packets with id == 0 and replicate
 	if transport.propagateFault && packet.Id() == 0 {
-		transport.replicateFault(packet, transport.logger)
+		transport.logger.Info().Msg("replicating packet with id 0 to all boards")
+		err := transport.handlePacketEvent(NewPacketMessage(packet))
+		if err != nil {
+			transport.logger.Error().Err(err).Msg("failed to replicate packet")
+		}
 	}
-
+	
 	// Send notification
 	transport.api.Notification(NewPacketNotification(packet, srcAddr, dstAddr, udpPacket.Timestamp))
-
-	if dataPacket, ok := packet.(*data.Packet); ok {
-		data.ReleasePacket(dataPacket)
-	}
 }
 
 // handleConversation is called when the sniffer detects a new conversation and handles its specific packets
@@ -468,15 +463,14 @@ func (transport *Transport) handleConversation(socket network.Socket, reader io.
 
 			// Intercept packets with id == 0 and replicate
 			if transport.propagateFault && packet.Id() == 0 {
-				transport.replicateFault(packet, transport.logger)
+				conversationLogger.Info().Msg("replicating packet with id 0 to all boards")
+				err := transport.handlePacketEvent(NewPacketMessage(packet))
+				if err != nil {
+					conversationLogger.Error().Err(err).Msg("failed to replicate packet")
+				}
 			}
 
-			// Send notification
 			transport.api.Notification(NewPacketNotification(packet, srcAddr, dstAddr, time.Now()))
-
-			if dataPacket, ok := packet.(*data.Packet); ok {
-				data.ReleasePacket(dataPacket)
-			}
 		}
 	}()
 }

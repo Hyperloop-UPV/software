@@ -9,7 +9,6 @@ import (
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
-	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
@@ -22,7 +21,7 @@ import (
 // Handle version flag
 func handleVersionFlag() {
 
-	if flags.Version {
+	if *versionFlag {
 		versionFile := "VERSION.txt"
 		versionData, err := os.ReadFile(versionFile)
 		if err == nil {
@@ -44,8 +43,8 @@ func setupRuntimeCPU() func() {
 	cleanup := func() {}
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	if flags.CPUProfile != "" {
-		f, err := os.Create(flags.CPUProfile)
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
 		if err != nil {
 			f.Close()
 			trace.Fatal().Stack().Err(err).Msg("could not set up CPU profiling")
@@ -58,7 +57,7 @@ func setupRuntimeCPU() func() {
 			f.Close()
 		}
 	}
-	runtime.SetBlockProfileRate(flags.BlockProfile)
+	runtime.SetBlockProfileRate(*blockprofile)
 
 	return cleanup
 }
@@ -135,9 +134,9 @@ func createLookupTables(
 		createBoardToPackets(podData)
 }
 
-func setUpLogger(config config.Config) (*logger.Logger, abstraction.SubloggersMap) {
+func setUpLogger(config config.Config) (*logger.Logger, SubloggersMap) {
 
-	var subloggers = abstraction.SubloggersMap{
+	var subloggers = SubloggersMap{
 		data_logger.Name:  data_logger.NewLogger(),
 		order_logger.Name: order_logger.NewLogger(),
 	}

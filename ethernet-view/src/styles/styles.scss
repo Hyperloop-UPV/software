@@ -1,0 +1,123 @@
+@use "sass:color";
+@use "./colors.scss" as colors;
+
+// COLORS (now using theme system)
+$background-color: colors.getThemeColor("background");
+$title-color: colors.getThemeColor("text-primary");
+$normal-text-color: colors.getThemeColor("text-primary");
+$alternate-text-color: colors.getThemeColor("text-secondary");
+$orange: colors.getColor("secondary", 50);
+$blue: colors.getColor("primary", 50);
+$base-color: colors.getColor("primary", 50);
+
+$dark-normal-text-color: colors.getThemeColor("text-secondary");
+
+@function getColor($name, $lightness) {
+    @return colors.getColor($name, $lightness);
+}
+
+// FONTS
+$sans-font: Inter;
+$code-font: Consolas, Cascadia Code, Cascadia Mono, Monospace;
+$alternate-code-font: Consolas, Monospace;
+
+// FONT-SIZE
+$title-font-size: 1.9rem;
+$normal-font-size: 1rem;
+$small-font-size: x-small;
+
+// FONT-WEIGHT
+$bold-font-weight: 700;
+$normal-font-weight: 400;
+
+// PADDING
+$large-padding: 2rem;
+$normal-padding: 1.2rem;
+
+// BORDER-RADIUS
+$large-border-radius: 1rem;
+$normal-border-radius: 0.2rem;
+
+// BORDER-WIDTH
+$normal-border-width: 1px;
+
+// TRANSITIONS
+$normal-transition-time: 0.08s;
+$opacity-transition: opacity $normal-transition-time linear;
+$background-color-transition: background-color $normal-transition-time linear;
+
+// MIXINS
+@mixin code-text {
+    font-family: $code-font;
+    font-size: $normal-font-size;
+    color: $normal-text-color;
+}
+
+@mixin alternate-code-text {
+    font-family: $alternate-code-font;
+    font-size: $normal-font-size;
+    color: $alternate-text-color;
+}
+
+@mixin title-text {
+    font-family: $sans-font;
+    font-size: $title-font-size;
+    color: $title-color;
+    font-weight: $bold-font-weight;
+}
+
+@mixin normal-text {
+    font-family: $sans-font;
+    font-size: $normal-font-size;
+    color: $alternate-text-color;
+    font-weight: $normal-font-weight;
+}
+
+@mixin subtitle-text {
+    font-family: $code-font;
+    font-size: $normal-font-size;
+    font-style: italic;
+    color: colors.getThemeColor("text-tertiary");
+}
+
+@mixin tab-text {
+    font-family: $sans-font;
+    font-size: $normal-font-size;
+    font-weight: 500;
+    color: $title-color;
+}
+
+@mixin inherit-text {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    font-weight: inherit;
+}
+
+@mixin undraggable {
+    user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+@mixin shadow {
+    box-shadow: colors.getThemeColor("shadow-md");
+}
+
+// CLASSES
+
+// FUNCTIONS
+@function transparency($color, $transparency) {
+    @return color.adjust($color, $alpha: $transparency);
+}
+
+@function lightness($color, $lightness) {
+    @return color.adjust($color, $lightness: $lightness);
+}
+
+@function saturation($color, $saturation) {
+    @return color.adjust($color, $saturation: $saturation);
+}

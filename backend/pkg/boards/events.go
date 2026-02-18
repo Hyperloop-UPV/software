@@ -18,6 +18,10 @@ type DownloadEvent struct {
 	Board      string
 }
 
+func (download DownloadEvent) Topic() abstraction.BrokerTopic {
+	return "blcu/download"
+}
+
 func (download DownloadEvent) Event() abstraction.BoardEvent {
 	return download.BoardEvent
 }
@@ -29,6 +33,10 @@ type UploadEvent struct {
 	Length     int
 }
 
+func (upload UploadEvent) Topic() abstraction.BrokerTopic {
+	return "blcu/upload"
+}
+
 func (upload UploadEvent) Event() abstraction.BoardEvent {
 	return upload.BoardEvent
 }
@@ -37,18 +45,38 @@ type BoardPush struct {
 	Data int64
 }
 
+func (boardPush BoardPush) Topic() abstraction.BrokerTopic {
+	return "blcu/boardPush"
+}
+
 type DownloadSuccess struct {
 	Data []byte
 }
 
+func (downloadSuccess DownloadSuccess) Topic() abstraction.BrokerTopic {
+	return "blcu/download/success"
+}
+
 type UploadSuccess struct{}
+
+func (uploadSuccess UploadSuccess) Topic() abstraction.BrokerTopic {
+	return "blcu/upload/success"
+}
 
 type DownloadFailure struct {
 	Error error
 }
 
+func (downloadFailure DownloadFailure) Topic() abstraction.BrokerTopic {
+	return "blcu/download/failure"
+}
+
 type UploadFailure struct {
 	Error error
+}
+
+func (uploadFailure UploadFailure) Topic() abstraction.BrokerTopic {
+	return "blcu/upload/failure"
 }
 
 type BoardMessage struct {

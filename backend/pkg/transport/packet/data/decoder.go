@@ -35,7 +35,7 @@ func (decoder *Decoder) Decode(id abstraction.PacketId, reader io.Reader) (abstr
 		return nil, ErrUnexpectedId{Id: id}
 	}
 
-	packet := GetPacket(id)
+	packet := NewPacket(id)
 	for _, value := range descriptor {
 		val, err := value.Decode(decoder.endianness, reader)
 		if err != nil {

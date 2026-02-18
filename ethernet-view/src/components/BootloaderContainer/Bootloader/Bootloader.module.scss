@@ -1,0 +1,15 @@
+@use "src/styles/styles";
+
+.bootloader {
+    height: 10rem;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    @include styles.alternate-code-text;
+    gap: 1rem;
+    font-size: 1.1rem;
+    padding: 1px;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+}

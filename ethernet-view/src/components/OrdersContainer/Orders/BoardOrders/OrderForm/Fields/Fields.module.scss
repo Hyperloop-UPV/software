@@ -1,0 +1,17 @@
+@use "src/styles/styles";
+
+.fieldsWrapper {
+    width: 100%;
+    padding: 1rem;
+    border-top: 1px solid styles.$orange;
+
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    overflow-x: auto;
+}
+
+:global([data-theme="dark"]) .fieldsWrapper {
+    border-top-color: rgba(235, 137, 33, 0.8);
+}
