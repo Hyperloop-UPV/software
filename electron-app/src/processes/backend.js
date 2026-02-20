@@ -86,7 +86,7 @@ function startBackend() {
     // If the backend didn't fail in this period of time, resolve the promise
     setTimeout(() => {
       resolve(backendProcess);
-    }, 1000);
+    }, 2000);
 
     // Handle process exit
     backendProcess.on("close", (code) => {
