@@ -112,7 +112,7 @@ jobs:
         with:
           workflow: build.yaml
           branch: production
-          workflow_conclusion: success
+          workflow_conclusion: completed
           name: backend-${{ matrix.platform }}
           path: backend/cmd
 
