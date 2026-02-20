@@ -68,6 +68,7 @@ export const createWorkspacesSlice: StateCreator<
           logs: createFullFilter(telemetry, get().boards),
         },
       };
+      // test
 
       // Initialize expanded items for the new workspace
       const newExpandedItems = {
