@@ -53,6 +53,8 @@ jobs:
       competition-view: ${{ steps.filter.outputs.competition-view == 'true' || github.event.inputs.rebuild-competition-view == 'true' || inputs.build-competition-view == true }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: dorny/paths-filter@v3
         id: filter
