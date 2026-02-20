@@ -1,5 +1,4 @@
 import { ACRONYMS } from "../constants/acronyms";
-import { BOARD_NAMES } from "../constants/boards";
 import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
 import type {
   FilterScope,
@@ -29,8 +28,8 @@ export const generateInitialFilters = (
   );
 };
 
-export const createEmptyFilter = (): TabFilter => {
-  return BOARD_NAMES.reduce((acc, category) => {
+export const createEmptyFilter = (boards: BoardName[]): TabFilter => {
+  return boards.reduce((acc, category) => {
     acc[category] = [];
     return acc;
   }, {} as TabFilter);
@@ -38,8 +37,9 @@ export const createEmptyFilter = (): TabFilter => {
 
 export const createFullFilter = (
   dataSource: Record<BoardName, CatalogItem[]>,
+  boards: BoardName[],
 ): TabFilter => {
-  return BOARD_NAMES.reduce((acc, category) => {
+  return boards.reduce((acc, category) => {
     acc[category] = dataSource[category]?.map((item) => item.id) || [];
     return acc;
   }, {} as TabFilter);

@@ -1,8 +1,8 @@
 import type { SettingsSection } from "../types/common/settings";
-import { BOARD_NAMES } from "./boards";
+import type { BoardName } from "../types/data/board";
 
 /** Settings form is generated from this schema. */
-export const SETTINGS_SCHEMA: SettingsSection[] = [
+export const getSettingsSchema = (boards: BoardName[]): SettingsSection[] => [
   {
     title: "Vehicle Configuration",
     fields: [
@@ -10,7 +10,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         label: "Boards",
         path: "vehicle.boards",
         type: "multi-checkbox",
-        options: BOARD_NAMES as string[],
+        options: boards,
       },
     ],
   },

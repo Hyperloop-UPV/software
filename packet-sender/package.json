@@ -7,7 +7,6 @@
   "scripts": {
     "build": "go build -o packet-sender main.go",
     "build:ci": "go build",
-    "dev": "go run main.go",
     "test": "go test ./..."
   }
 }

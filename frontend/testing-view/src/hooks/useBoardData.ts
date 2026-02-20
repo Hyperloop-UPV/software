@@ -90,6 +90,8 @@ export function useBoardData(
 
     logger.testingView.log("[useBoardData] Commands data processed");
 
+    console.log("availableBoards", availableBoards);
+
     return {
       telemetryCatalog: telemetryCatalogResult,
       commandsCatalog: commandsCatalogResult,

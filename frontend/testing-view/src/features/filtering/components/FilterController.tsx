@@ -1,4 +1,3 @@
-import { BOARD_NAMES } from "../../../constants/boards";
 import { useStore } from "../../../store/store";
 import { FilterCategoryItem } from "./FilterCategoryItem";
 import { FilterDialog } from "./FilterDialog";
@@ -6,6 +5,8 @@ import { FilterDialog } from "./FilterDialog";
 export const FilterController = () => {
   const { isOpen, scope } = useStore((s) => s.filterDialog);
   const close = useStore((s) => s.closeFilterDialog);
+
+  const boards = useStore((s) => s.boards);
 
   const clearFilters = useStore((s) => s.clearFilters);
   const selectAllFilters = useStore((s) => s.selectAllFilters);
@@ -20,7 +21,7 @@ export const FilterController = () => {
       onClose={close}
       onClearAll={() => clearFilters(scope)}
       onSelectAll={() => selectAllFilters(scope)}
-      categories={BOARD_NAMES}
+      categories={boards}
       FilterCategoryComponent={FilterCategoryItem}
     />
   );
