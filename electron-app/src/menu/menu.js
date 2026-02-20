@@ -83,7 +83,7 @@ function createMenu(mainWindow) {
             }
             const packetSenderProcess = getPacketSenderProcess();
             if (!packetSenderProcess || packetSenderProcess.killed) {
-              startPacketSender(["random"]);
+              startPacketSender();
             }
           },
         },

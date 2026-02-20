@@ -7,8 +7,6 @@ import (
 	boardpkg "packet_sender/pkg/board"
 	"packet_sender/pkg/listener"
 	"packet_sender/pkg/sender"
-	"path"
-	"path/filepath"
 	"strings"
 
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
@@ -66,11 +64,13 @@ func getConn(lip string, lport uint16, rip string, rport uint16) *net.UDPConn {
 
 // getADJ loads the same ADJ used by backend directly from backend/cmd/adj.
 func getADJ() adj_module.ADJ {
-	adjPath, err := filepath.Abs(path.Join("..", "backend", "cmd", "adj"))
-	if err != nil {
-		log.Fatalf("Failed to resolve ADJ path: %v", err)
-	}
-	adj_module.RepoPath = adjPath + string(filepath.Separator)
+	// adjPath, err := filepath.Abs(path.Join("..", "backend", "cmd", "adj"))
+	// if err != nil {
+	// 	log.Fatalf("Failed to resolve ADJ path: %v", err)
+	// }
+	// adj_module.RepoPath = adjPath + string(filepath.Separator)
+
+	// Uses the same ADJ RepoPath as the backend by default
 
 	adj, err := adj_module.NewADJ("")
 	if err != nil {
