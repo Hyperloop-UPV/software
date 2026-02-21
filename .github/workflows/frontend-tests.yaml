@@ -41,5 +41,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter=testing-view --filter=ui --filter=core
 
+      - name: Build frontend
+        run: pnpm build --filter="./frontend/**"
+
       - name: Run tests
         run: pnpm test --filter="./frontend/**"
