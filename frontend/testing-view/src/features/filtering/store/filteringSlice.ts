@@ -38,7 +38,7 @@ export interface FilteringSlice {
   workspaceFilters: Record<string, WorkspaceFilters>;
   initializeWorkspaceFilters: () => void;
   updateFilters: (scope: FilterScope, filters: TabFilter) => void;
-  getActiveFilters: (scope: FilterScope) => TabFilter | undefined;
+  getActiveFilters: (scope: FilterScope | null) => TabFilter | undefined;
 
   /** Filter Actions */
   selectAllFilters: (scope: FilterScope) => void;
@@ -229,6 +229,7 @@ export const createFilteringSlice: StateCreator<
   // Helper getters
   getActiveFilters: (scope) => {
     const id = get().getActiveWorkspaceId();
+    if (!scope) return {};
     return id ? get().workspaceFilters[id]?.[scope] : undefined;
   },
 

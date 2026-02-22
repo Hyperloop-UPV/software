@@ -119,3 +119,11 @@ export const formatTimestamp = (ts: MessageTimestamp) => {
   if (!ts) return "00:00:00";
   return `${ts.hour.toString().padStart(2, "0")}:${ts.minute.toString().padStart(2, "0")}:${ts.second.toString().padStart(2, "0")}`;
 };
+
+export const detectExtraBoards = (
+  activeFilters: TabFilter | undefined,
+  boards: BoardName[],
+) =>
+  Object.keys(activeFilters || {}).filter(
+    (key) => !boards.includes(key),
+  ) as BoardName[];
