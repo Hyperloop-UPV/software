@@ -27,7 +27,7 @@
         // Use innerHTML to render the colors, but be careful of XSS if logs are untrusted
         entry.innerHTML = data;
         container.appendChild(entry);
-        container.scrollTop = container.scrollHeight;
+        window.scrollTo(0, document.body.scrollHeight);
       });
     </script>
   </body>
