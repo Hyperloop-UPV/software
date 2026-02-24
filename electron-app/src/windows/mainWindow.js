@@ -24,13 +24,15 @@ let currentView = "testing-view";
  * @example
  * createWindow();
  */
-function createWindow() {
+function createWindow(screenWidth, screenHeight) {
   // Create new browser window with configuration
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    minWidth: 1280,
-    minHeight: 720,
+    x: 0,
+    y: 0,
+    width: screenWidth,
+    height: screenHeight,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       // Path to preload script for secure IPC
       preload: path.join(appPath, "preload.js"),
@@ -60,6 +62,8 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  return mainWindow;
 }
 
 /**

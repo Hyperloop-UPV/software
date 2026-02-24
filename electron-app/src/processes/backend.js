@@ -4,6 +4,7 @@
  * Handles starting, stopping, and restarting the backend process with proper error handling and logging.
  */
 
+import AnsiToHtml from "ansi-to-html";
 import { spawn } from "child_process";
 import { app, dialog } from "electron";
 import fs from "fs";
@@ -14,6 +15,9 @@ import {
   getBinaryPath,
   getUserConfigPath,
 } from "../utils/paths.js";
+
+// Create ANSI to HTML converter
+const convert = new AnsiToHtml();
 
 // Get the application root path
 const appPath = getAppPath();
@@ -30,7 +34,7 @@ let lastBackendError = null;
  * @example
  * startBackend();
  */
-function startBackend() {
+function startBackend(logWindow = null) {
   return new Promise((resolve, reject) => {
     // Get paths for binary and config
     const backendBin = getBinaryPath("backend");
@@ -63,6 +67,12 @@ function startBackend() {
     // Log stdout output from backend
     backendProcess.stdout.on("data", (data) => {
       logger.backend.info(`${data.toString().trim()}`);
+
+      // Send log message to log window
+      if (logWindow) {
+        const htmlData = convert.toHtml(data.toString().trim());
+        logWindow.webContents.send("log", htmlData);
+      }
     });
 
     // Capture stderr output (where Go errors/panics are written)
@@ -71,6 +81,12 @@ function startBackend() {
       logger.backend.error(errorMsg);
       // Store the last error message
       lastBackendError = errorMsg;
+
+      // Send error message to log window
+      if (logWindow) {
+        const htmlError = convert.toHtml(errorMsg);
+        logWindow.webContents.send("log", htmlError);
+      }
     });
 
     // Handle spawn errors
@@ -120,8 +136,20 @@ function stopBackend() {
   // Only stop if process exists and is still running
   if (backendProcess && !backendProcess.killed) {
     logger.backend.info("Stopping backend...");
-    // Send termination signal
-    backendProcess.kill("SIGTERM");
+
+    backendProcess.stdin.end();
+
+    const fallbackTimer = setTimeout(() => {
+      if (backendProcess && !backendProcess.killed) {
+        logger.backend.warning(
+          "Backend did not exit gracefully, force killing..."
+        );
+        backendProcess.kill("SIGKILL");
+      }
+    }, 2000);
+
+    fallbackTimer.unref();
+
     // Clear the process reference
     backendProcess = null;
   }
