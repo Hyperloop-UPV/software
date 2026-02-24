@@ -30,7 +30,11 @@ function createMenu(mainWindow) {
         {
           label: "Reload",
           accelerator: "CmdOrCtrl+R",
-          click: () => mainWindow.reload(),
+          click: (_, browserWindow) => {
+            if (browserWindow) {
+              browserWindow.reload();
+            }
+          },
         },
         { type: "separator" },
         {
@@ -61,7 +65,11 @@ function createMenu(mainWindow) {
         {
           label: "Toggle DevTools",
           accelerator: "F12",
-          click: () => mainWindow.webContents.toggleDevTools(),
+          click: (_, browserWindow) => {
+            if (browserWindow) {
+              browserWindow.webContents.toggleDevTools();
+            }
+          },
         },
       ],
     },
@@ -118,7 +126,7 @@ function createMenu(mainWindow) {
   ];
 
   const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+  return menu;
 }
 
 export { createMenu };
