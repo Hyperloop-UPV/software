@@ -20,7 +20,8 @@ export const createLogWindow = (screenWidth, screenHeight) => {
     },
   });
 
-  logWindow.loadFile(path.join(appPath, "src/logs/logs.html"));
+  const logFilePath = path.join(appPath, "src", "logs", "logs.html");
+  logWindow.loadFile(logFilePath);
 
   return logWindow;
 };
