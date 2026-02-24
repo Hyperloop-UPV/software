@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Backend Logs</title>
+    <style>
+      body {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        font-family: monospace;
+      }
+      #log-container {
+        white-space: pre-wrap;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="log-container"></div>
+
+    <script>
+      const container = document.getElementById("log-container");
+
+      // Use the API exposed in preload.js
+      window.electronAPI.onLog((data) => {
+        const entry = document.createElement("div");
+
+        // Use innerHTML to render the colors, but be careful of XSS if logs are untrusted
+        entry.innerHTML = data;
+        container.appendChild(entry);
+        container.scrollTop = container.scrollHeight;
+      });
+    </script>
+  </body>
+</html>

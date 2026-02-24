@@ -20,7 +20,7 @@ export const createLogWindow = (screenWidth, screenHeight) => {
     },
   });
 
-  const logFilePath = path.join(appPath, "src", "logs", "logs.html");
+  const logFilePath = path.join(appPath, "src", "log-viewer", "index.html");
   logWindow.loadFile(logFilePath);
 
   return logWindow;

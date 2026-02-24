@@ -52,7 +52,7 @@ function createWindow(screenWidth, screenHeight) {
 
   // Create application menu
   const menu = createMenu(mainWindow);
-  mainWindow.setApplicationMenu(menu);
+  mainWindow.setMenu(menu);
 
   // Open DevTools in development mode
   if (!app.isPackaged) {
