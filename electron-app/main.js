@@ -6,6 +6,7 @@
 
 import { app, BrowserWindow, dialog, screen } from "electron";
 import pkg from "electron-updater";
+import fs from "fs";
 import { getConfigManager } from "./src/config/configInstance.js";
 import { setupIpcHandlers } from "./src/ipc/handlers.js";
 import { startBackend, stopBackend } from "./src/processes/backend.js";
