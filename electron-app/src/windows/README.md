@@ -30,6 +30,10 @@ Manages the primary and logs Electron `BrowserWindow` instances and provides fun
 
 Creates and initializes the main application window. Loads default view, sets up menu, and opens DevTools in development mode.
 
+### `reloadWindow()`
+
+Reloads main window.
+
 ### `loadView(view)`
 
 Switches the main window to display a different view. Updates window title and validates view file exists.
