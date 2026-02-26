@@ -99,6 +99,18 @@ function loadView(view) {
 }
 
 /**
+ * Reloads the main window.
+ * @returns {void}
+ * @example
+ * reloadWindow();
+ */
+function reloadWindow() {
+  if (mainWindow) {
+    mainWindow.reload();
+  }
+}
+
+/**
  * Returns the name of the currently loaded view.
  * @returns {string} The current view name (e.g., "ethernet-view", "control-station").
  * @example
@@ -124,4 +136,4 @@ function getMainWindow() {
   return mainWindow;
 }
 
-export { createWindow, getCurrentView, getMainWindow, loadView };
+export { createWindow, getCurrentView, getMainWindow, loadView, reloadWindow };

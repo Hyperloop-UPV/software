@@ -25,6 +25,9 @@ const appPath = getAppPath();
 // Store the backend process instance
 let backendProcess = null;
 
+// Common log window instance for all backend processes
+let storedLogWindow = null;
+
 // Store error messages (keep last 10 lines to avoid memory issues)
 let lastBackendError = null;
 
@@ -34,7 +37,13 @@ let lastBackendError = null;
  * @example
  * startBackend();
  */
-function startBackend(logWindow = null) {
+async function startBackend(logWindow = null) {
+  if (logWindow) {
+    storedLogWindow = logWindow;
+  }
+
+  const currentLogWindow = logWindow || storedLogWindow;
+
   return new Promise((resolve, reject) => {
     // Get paths for binary and config
     const backendBin = getBinaryPath("backend");
@@ -69,9 +78,9 @@ function startBackend(logWindow = null) {
       logger.backend.info(`${data.toString().trim()}`);
 
       // Send log message to log window
-      if (logWindow) {
+      if (currentLogWindow && !currentLogWindow.isDestroyed()) {
         const htmlData = convert.toHtml(data.toString().trim());
-        logWindow.webContents.send("log", htmlData);
+        currentLogWindow.webContents.send("log", htmlData);
       }
     });
 
@@ -83,9 +92,9 @@ function startBackend(logWindow = null) {
       lastBackendError = errorMsg;
 
       // Send error message to log window
-      if (logWindow) {
+      if (currentLogWindow && !currentLogWindow.isDestroyed()) {
         const htmlError = convert.toHtml(errorMsg);
-        logWindow.webContents.send("log", htmlError);
+        currentLogWindow.webContents.send("log", htmlError);
       }
     });
 
@@ -102,7 +111,7 @@ function startBackend(logWindow = null) {
     // If the backend didn't fail in this period of time, resolve the promise
     setTimeout(() => {
       resolve(backendProcess);
-    }, 4000);
+    }, 2000);
 
     // Handle process exit
     backendProcess.on("close", (code) => {
@@ -127,32 +136,46 @@ function startBackend(logWindow = null) {
 }
 
 /**
- * Stops the backend process by sending a SIGTERM signal.
+ * Stops the backend process by sending a SIGTERM and std.in.end() signal.
+ * If the process does not exit gracefully after defined time, it will be force killed.
  * @returns {void}
  * @example
  * stopBackend();
  */
-function stopBackend() {
-  // Only stop if process exists and is still running
-  if (backendProcess && !backendProcess.killed) {
-    logger.backend.info("Stopping backend...");
+async function stopBackend() {
+  return new Promise((resolve, reject) => {
+    const localBackendProcess = backendProcess;
 
-    backendProcess.stdin.end();
+    // Only stop if process exists and is still running
+    if (localBackendProcess && !localBackendProcess.killed) {
+      logger.backend.info("Stopping backend...");
 
-    const fallbackTimer = setTimeout(() => {
-      if (backendProcess && !backendProcess.killed) {
-        logger.backend.warning(
-          "Backend did not exit gracefully, force killing..."
-        );
-        backendProcess.kill("SIGKILL");
-      }
-    }, 2000);
+      localBackendProcess.once("close", () => {
+        // Clear the process reference
+        if (localBackendProcess === backendProcess) {
+          backendProcess = null;
+        }
+        resolve();
+      });
 
-    fallbackTimer.unref();
+      localBackendProcess.kill("SIGTERM");
+      localBackendProcess.stdin.end();
 
-    // Clear the process reference
-    backendProcess = null;
-  }
+      const fallbackTimer = setTimeout(() => {
+        if (localBackendProcess && !localBackendProcess.killed) {
+          logger.backend.warning(
+            "Backend did not exit gracefully, force killing..."
+          );
+          localBackendProcess.kill("SIGKILL");
+        }
+      }, 2000);
+
+      fallbackTimer.unref();
+    } else {
+      logger.backend.warning("Backend process not found, skipping stop...");
+      resolve();
+    }
+  });
 }
 
 /**
@@ -161,11 +184,18 @@ function stopBackend() {
  * @example
  * restartBackend();
  */
-function restartBackend() {
+async function restartBackend() {
   // Stop current process first
-  stopBackend();
+  await stopBackend();
+
   // Start a new process
-  startBackend();
+  try {
+    await startBackend();
+    logger.electron.info("Backend restarted successfully");
+  } catch (error) {
+    logger.electron.error("Failed to restart backend:", error);
+    throw error; // Let the IPC handler know it failed
+  }
 }
 
 export { restartBackend, startBackend, stopBackend };
