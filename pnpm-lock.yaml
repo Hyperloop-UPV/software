@@ -195,6 +195,9 @@ importers:
         specifier: ^5.0.11
         version: 5.0.11(@types/react@19.2.11)(immer@11.1.0)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
+      '@maximka76667/icons-master':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.1.18
@@ -755,6 +758,10 @@ packages:
   '@malept/flatpak-bundler@0.4.0':
     resolution: {integrity: sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q==}
     engines: {node: '>= 10.0.0'}
+
+  '@maximka76667/icons-master@1.0.1':
+    resolution: {integrity: sha512-2mQG0k3p3c2b8KctuH/1KGgy0nlBMTyzC0hguEDNNA3bYzwiehwGJ63bspbQvAbNHxENJ8YhdJFvWX4tDK+W/g==}
+    hasBin: true
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -4244,6 +4251,7 @@ packages:
   tar@7.5.7:
     resolution: {integrity: sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   temp-file@3.4.0:
     resolution: {integrity: sha512-C5tjlC/HCtVUOi3KWVokd4vHVViOmGjtLwIh4MuzPo/nMYTV/p1urt3RnMz2IWXDdKEGJH3k5+KPxtqRsUYGtg==}
@@ -5188,6 +5196,8 @@ snapshots:
       tmp-promise: 3.0.3
     transitivePeerDependencies:
       - supports-color
+
+  '@maximka76667/icons-master@1.0.1': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
