@@ -19,6 +19,7 @@ import {
   getCurrentView,
   getMainWindow,
   loadView,
+  reloadWindow,
 } from "../windows/mainWindow.js";
 
 /**
@@ -61,7 +62,10 @@ function setupIpcHandlers() {
   ipcMain.handle("save-config", async (event, config) => {
     try {
       await writeConfig(config);
-      restartBackend();
+      await restartBackend();
+
+      reloadWindow();
+
       return true;
     } catch (error) {
       logger.electron.error("Error saving config:", error);
@@ -96,7 +100,10 @@ function setupIpcHandlers() {
   ipcMain.handle("import-config", async () => {
     try {
       await importConfig();
-      restartBackend();
+      await restartBackend();
+
+      reloadWindow();
+
       return true;
     } catch (error) {
       logger.electron.error("Error importing config:", error);

@@ -79,7 +79,7 @@ pnpm run dist:linux  # Linux
 On macOS, the backend requires the loopback address `127.0.0.9` to be configured. If you encounter a "can't assign requested address" error when starting the backend, run:
 
 ```
-sudo ipconfig set en0 INFORM 127.0.0.9
+sudo ifconfig lo0 alias 127.0.0.9 up
 ```
 
 ## Available Scripts
@@ -89,6 +89,7 @@ sudo ipconfig set en0 INFORM 127.0.0.9
 - `pnpm start` - Run application in development mode
 - `pnpm run dist` - Build production executable
 - `pnpm test` - Run tests
+- `pnpm build-icons` - build icon from the icon.png file in the `/electron-app` folder
 ...and many custom variations (see package.json)
 
 # Only works and makes sense after running `pnpm run dist`

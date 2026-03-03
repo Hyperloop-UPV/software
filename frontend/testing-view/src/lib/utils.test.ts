@@ -105,7 +105,17 @@ describe("getTypeBadgeClass", () => {
 
 describe("emptyFilter", () => {
   it("should return the correct empty filter", () => {
-    expect(createEmptyFilter()).toStrictEqual({
+    const boards = [
+      "BCU",
+      "PCU",
+      "LCU",
+      "HVSCU",
+      "HVSCU-Cabinet",
+      "BMSL",
+      "VCU",
+    ];
+
+    expect(createEmptyFilter(boards)).toStrictEqual({
       BCU: [],
       PCU: [],
       LCU: [],
@@ -133,7 +143,17 @@ describe("fullFilter", () => {
       VCU: [],
     };
 
-    expect(createFullFilter(testDataSource)).toStrictEqual({
+    const boards = [
+      "BCU",
+      "PCU",
+      "LCU",
+      "HVSCU",
+      "HVSCU-Cabinet",
+      "BMSL",
+      "VCU",
+    ];
+
+    expect(createFullFilter(testDataSource, boards)).toStrictEqual({
       BCU: [1],
       PCU: [2],
       LCU: [3],

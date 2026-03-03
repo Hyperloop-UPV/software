@@ -22,7 +22,7 @@ export const FilterCategoryItem = ({ category }: FilterCategoryItemProps) => {
   const toggleCategoryFilter = useStore((s) => s.toggleCategoryFilter);
   const toggleItemFilter = useStore((s) => s.toggleItemFilter);
 
-  const items = useStore((s) => s.getCatalog(scope)[category]);
+  const items = useStore((s) => s.getCatalog(scope)[category]) || [];
   const totalItems = items.length;
 
   const selectedIds = useStore(
@@ -61,7 +61,7 @@ export const FilterCategoryItem = ({ category }: FilterCategoryItemProps) => {
           </div>
           <CollapsibleContent>
             <div className="space-y-1 p-2">
-              {items.map((item) => (
+              {items?.map((item) => (
                 <FilterItem
                   key={item.id}
                   item={item}

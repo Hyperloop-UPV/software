@@ -4,30 +4,35 @@ Window management module for the Electron application. Handles creation, configu
 
 ## Overview
 
-Manages the primary Electron `BrowserWindow` instance and provides functionality for switching between different application views (Competition View and Testing View).
+Manages the primary and logs Electron `BrowserWindow` instances and provides functionality for switching between different application views (Competition View and Testing View).
 
 ## Files
 
+- `logWindow.js` - Backend logs and messages
 - `mainWindow.js` - Main window creation and management
 
 ## Window Configuration
 
 - **Default Size**: 1920x1080 pixels
-- **Minimum Size**: 1280x720 pixels
+- **Minimum Size**: 800x600 pixels
 - **Title**: "Hyperloop Control Station"
 - **Background Color**: `#1a1a1a` (dark theme)
 - **Security**: Context isolation enabled, node integration disabled
 
 ## Available Views
 
-- **Ethernet View** (default) - Testing interface, loads from `renderer/ethernet-view/index.html`
-- **Control Station** - Competition interface, loads from `renderer/control-station/index.html`
+- **Testing View** (default) - Testing interface, loads from `renderer/testing-view/index.html`
+- **Competition View** - Competition interface, loads from `renderer/competition-view/index.html`
 
 ## Functions
 
 ### `createWindow()`
 
 Creates and initializes the main application window. Loads default view, sets up menu, and opens DevTools in development mode.
+
+### `reloadWindow()`
+
+Reloads main window.
 
 ### `loadView(view)`
 

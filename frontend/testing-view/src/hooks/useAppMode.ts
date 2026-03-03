@@ -31,7 +31,6 @@ export function useAppMode(
     // logger.testingView.log("[DEBUG] isDev", isDev);
     // logger.testingView.log("[DEBUG] isLoading", isLoading);
     // logger.testingView.log("[DEBUG] hasData", hasData);
-    // logger.testingView.log("[DEBUG] backendConnected", backendConnected);
     // logger.testingView.log("[DEBUG] hasError", hasError);
 
     if (isLoading || isRestarting) return "loading";

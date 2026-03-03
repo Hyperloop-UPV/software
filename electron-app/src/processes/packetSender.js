@@ -12,16 +12,18 @@ import { getBinaryPath } from "../utils/paths.js";
 // Store the packet sender process instance
 let packetSenderProcess = null;
 
+// Default arguments for packet sender
+const DEFAULT_ARGS = ["1", "1"]; // Send mode, Random type
+
 /**
  * Starts the packet sender process by spawning the packet-sender binary with optional arguments.
  * Sets up event handlers for stdout and stderr with appropriate logging.
  * @param {string[]} [args=[]] - Optional array of command-line arguments to pass to the packet-sender binary.
  * @returns {import("child_process").ChildProcessWithoutNullStreams | null} The spawned ChildProcess object, or null if the binary is not found.
  * @example
- * const process = startPacketSender(["--port", "8080"]);
  * startPacketSender();
  */
-function startPacketSender(args = []) {
+function startPacketSender(args = DEFAULT_ARGS) {
   // Get the path to the packet-sender binary
   const packetSenderBin = getBinaryPath("packet-sender");
 
@@ -44,6 +46,14 @@ function startPacketSender(args = []) {
   // Log stdout output from packet sender
   process.stdout.on("data", (data) => {
     logger.packetSender.info(`${data.toString().trim()}`);
+
+    if (data.toString().includes("1) Send packets")) {
+      process.stdin.write("1\n");
+    }
+
+    if (data.toString().includes("1) Random")) {
+      process.stdin.write("1\n");
+    }
   });
 
   // Log stderr output as errors
@@ -90,7 +100,7 @@ function restartPacketSender() {
     // Wait before starting new process to ensure cleanup
     setTimeout(() => {
       // Start with help arguments
-      startPacketSender(["random"]);
+      startPacketSender();
     }, 500);
   }
 }
