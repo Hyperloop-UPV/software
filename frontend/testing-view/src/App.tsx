@@ -4,6 +4,7 @@ import { AppModeRouter } from "./components/AppModeRouter";
 import { ModeSwitcher } from "./components/devTools/ModeSwitcher";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useChartsConfiguration } from "./features/charts/hooks/useChartsConfiguration";
+import { FilterController } from "./features/filtering/components/FilterController";
 import useAppConfigs from "./hooks/useAppConfigs";
 import { useAppMode } from "./hooks/useAppMode";
 import { useErrorHandler } from "./hooks/useErrorHandler";
@@ -66,6 +67,8 @@ function App() {
   return (
     <ErrorBoundary onError={reportError}>
       <AppLayout backendConnected={isConnected}>
+        <FilterController />
+
         <AppModeRouter>
           <Routes>
             <Route path="/" element={<Testing />} />

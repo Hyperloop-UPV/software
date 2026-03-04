@@ -32,19 +32,21 @@ export function useAppMode(
     // logger.testingView.log("[DEBUG] isLoading", isLoading);
     // logger.testingView.log("[DEBUG] hasData", hasData);
     // logger.testingView.log("[DEBUG] hasError", hasError);
+    logger.testingView.log("[DEBUG] isDev", isDev);
 
     if (isLoading || isRestarting) return "loading";
 
     if (!packets || !commands) {
-      // If we have an explicit error, show it.
-      if (hasError) return "error";
+      // If we have an explicit error
+      if (hasError) {
+        return isDev ? "mock" : "error";
+      }
 
       // Otherwise, we are just waiting for data.
       return "loading";
     }
 
     if (!hasError) return "active";
-    if (isDev) return "mock";
     return "error";
   }, [isLoading, packets, commands, isRestarting, modeOverride]);
 

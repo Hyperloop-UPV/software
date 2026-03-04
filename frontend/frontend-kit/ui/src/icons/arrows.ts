@@ -4,6 +4,7 @@ export {
   ChevronRight,
   ChevronUp,
   ChevronsUpDown,
+  Download,
   Play,
   RefreshCw,
   TrendingDown,

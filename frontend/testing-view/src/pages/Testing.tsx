@@ -58,7 +58,6 @@ export const Testing = () => {
 
   return (
     <>
-      <FilterController />
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
