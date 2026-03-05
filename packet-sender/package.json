@@ -5,8 +5,8 @@
   "author": "Hyperloop UPV Team",
   "license": "MIT",
   "scripts": {
-    "build": "cargo build --release",
-    "dev": "cargo run",
-    "test": "cargo test"
+    "build": "go build -o packet-sender main.go",
+    "build:ci": "go build",
+    "test": "go test ./..."
   }
 }

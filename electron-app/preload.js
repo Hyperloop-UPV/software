@@ -36,4 +36,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   importConfig: () => ipcRenderer.invoke("import-config"),
   // Open folder selection dialog
   selectFolder: () => ipcRenderer.invoke("select-folder"),
+  // Receive log message from backend
+  onLog: (callback) =>
+    ipcRenderer.on("log", (_event, value) => callback(value)),
 });

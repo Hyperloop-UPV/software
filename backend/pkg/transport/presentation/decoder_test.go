@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/blcu"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
@@ -29,22 +28,7 @@ func TestDecoder(t *testing.T) {
 	endianness := binary.LittleEndian
 
 	testcases := []testcase{
-		{
-			name:  "blcu ack",
-			input: bytes.NewReader([]byte{0x01, 0x00}),
-			output: []abstraction.Packet{
-				blcu.NewAck(1),
-			},
-		},
-		{
-			name:  "multiple blcu ack",
-			input: bytes.NewReader([]byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00}),
-			output: []abstraction.Packet{
-				blcu.NewAck(1),
-				blcu.NewAck(1),
-				blcu.NewAck(1),
-			},
-		},
+
 		{
 			name:  "state orders add",
 			input: bytes.NewReader([]byte{0x03, 0x00, 0x01, 0x00, 0xFF, 0xFF}),
@@ -648,7 +632,6 @@ func TestDecoder(t *testing.T) {
 }
 
 // getDecoder generates a mock Decoder with the following packet IDs:
-// 1 - blcuAck
 // 3 - add state order
 // 4 - remove state order
 // 5 - protection warning
@@ -658,8 +641,6 @@ func TestDecoder(t *testing.T) {
 func getDecoder(endianness binary.ByteOrder) *presentation.Decoder {
 	nullLogger := zerolog.New(io.Discard)
 	decoder := presentation.NewDecoder(endianness, nullLogger)
-
-	decoder.SetPacketDecoder(1, blcu.NewDecoder())
 
 	ordersDecoder := order.NewDecoder(endianness)
 	ordersDecoder.SetActionId(3, ordersDecoder.DecodeAdd)

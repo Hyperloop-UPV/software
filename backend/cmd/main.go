@@ -5,12 +5,12 @@ import (
 	"os"
 	"os/signal"
 
-	adj_module "github.com/HyperloopUPV-H8/h9-backend/internal/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
+	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 	trace "github.com/rs/zerolog/log"
@@ -23,7 +23,6 @@ const (
 	TcpServer        = "TCP_SERVER"
 	UDP              = "UDP"
 	SNTP             = "SNTP"
-	BlcuAck          = "blcu_ack"
 	AddStateOrder    = "add_state_order"
 	RemoveStateOrder = "remove_state_order"
 )
@@ -62,7 +61,7 @@ func main() {
 	}
 
 	// <--- vehicle orders --->
-	vehicleOrders, err := vehicle_models.NewVehicleOrders(podData.Boards, adj.Info.Addresses[BLCU])
+	vehicleOrders, err := vehicle_models.NewVehicleOrders(podData.Boards)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("creating vehicleOrders")
 	}

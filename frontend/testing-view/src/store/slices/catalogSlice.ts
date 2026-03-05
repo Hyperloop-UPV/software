@@ -15,6 +15,10 @@ export interface CatalogSlice {
   setTelemetryCatalog: (
     telemetryCatalog: Record<BoardName, CatalogItem[]>,
   ) => void;
+
+  // Boards
+  boards: BoardName[];
+  setBoards: (boards: BoardName[]) => void;
 }
 
 export const createCatalogSlice: StateCreator<Store, [], [], CatalogSlice> = (
@@ -24,4 +28,6 @@ export const createCatalogSlice: StateCreator<Store, [], [], CatalogSlice> = (
   telemetryCatalog: {} as Record<BoardName, CatalogItem[]>,
   setCommandsCatalog: (commandsCatalog) => set({ commandsCatalog }),
   setTelemetryCatalog: (telemetryCatalog) => set({ telemetryCatalog }),
+  boards: [] as BoardName[],
+  setBoards: (boards) => set({ boards }),
 });

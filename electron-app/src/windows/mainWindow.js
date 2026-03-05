@@ -24,13 +24,15 @@ let currentView = "testing-view";
  * @example
  * createWindow();
  */
-function createWindow() {
+function createWindow(screenWidth, screenHeight) {
   // Create new browser window with configuration
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    minWidth: 1280,
-    minHeight: 720,
+    x: 0,
+    y: 0,
+    width: screenWidth,
+    height: screenHeight,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       // Path to preload script for secure IPC
       preload: path.join(appPath, "preload.js"),
@@ -49,7 +51,8 @@ function createWindow() {
   loadView(currentView);
 
   // Create application menu
-  createMenu(mainWindow);
+  const menu = createMenu(mainWindow);
+  mainWindow.setMenu(menu);
 
   // Open DevTools in development mode
   if (!app.isPackaged) {
@@ -60,6 +63,8 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  return mainWindow;
 }
 
 /**
@@ -94,6 +99,18 @@ function loadView(view) {
 }
 
 /**
+ * Reloads the main window.
+ * @returns {void}
+ * @example
+ * reloadWindow();
+ */
+function reloadWindow() {
+  if (mainWindow) {
+    mainWindow.reload();
+  }
+}
+
+/**
  * Returns the name of the currently loaded view.
  * @returns {string} The current view name (e.g., "ethernet-view", "control-station").
  * @example
@@ -119,4 +136,4 @@ function getMainWindow() {
   return mainWindow;
 }
 
-export { createWindow, getCurrentView, getMainWindow, loadView };
+export { createWindow, getCurrentView, getMainWindow, loadView, reloadWindow };

@@ -38,7 +38,7 @@ export interface FilteringSlice {
   workspaceFilters: Record<string, WorkspaceFilters>;
   initializeWorkspaceFilters: () => void;
   updateFilters: (scope: FilterScope, filters: TabFilter) => void;
-  getActiveFilters: (scope: FilterScope) => TabFilter | undefined;
+  getActiveFilters: (scope: FilterScope | null) => TabFilter | undefined;
 
   /** Filter Actions */
   selectAllFilters: (scope: FilterScope) => void;
@@ -135,7 +135,7 @@ export const createFilteringSlice: StateCreator<
 
     const currentWorkspaceFilters = get().workspaceFilters[workspaceId] || {};
     const currentTabFilter =
-      currentWorkspaceFilters[scope] || createEmptyFilter();
+      currentWorkspaceFilters[scope] || createEmptyFilter(get().boards);
 
     const currentCategoryIds = currentTabFilter[category] || [];
 
@@ -157,13 +157,13 @@ export const createFilteringSlice: StateCreator<
 
     const items = get().getCatalog(scope);
 
-    const fullFilter = createFullFilter(items);
+    const fullFilter = createFullFilter(items, get().boards);
     get().updateFilters(scope, fullFilter);
   },
   clearFilters: (scope) => {
     const workspaceId = get().getActiveWorkspaceId();
     if (!workspaceId) return;
-    const emptyFilter = createEmptyFilter();
+    const emptyFilter = createEmptyFilter(get().boards);
     get().updateFilters(scope, emptyFilter);
   },
   toggleCategoryFilter: (scope, category, checked) => {
@@ -173,7 +173,8 @@ export const createFilteringSlice: StateCreator<
     const catalog = get().getCatalog(scope);
 
     const currentFilters =
-      get().workspaceFilters[workspaceId]?.[scope] || createEmptyFilter();
+      get().workspaceFilters[workspaceId]?.[scope] ||
+      createEmptyFilter(get().boards);
 
     const newItems = checked
       ? catalog?.[category]?.map((item) => item.id) || []
@@ -196,9 +197,9 @@ export const createFilteringSlice: StateCreator<
     if (Object.keys(currentFilters).length === 0) {
       set({
         workspaceFilters: generateInitialFilters({
-          commands: createFullFilter(commands),
-          telemetry: createFullFilter(telemetry),
-          logs: createFullFilter(telemetry),
+          commands: createFullFilter(commands, get().boards),
+          telemetry: createFullFilter(telemetry, get().boards),
+          logs: createFullFilter(telemetry, get().boards),
         }),
       });
     }
@@ -228,6 +229,7 @@ export const createFilteringSlice: StateCreator<
   // Helper getters
   getActiveFilters: (scope) => {
     const id = get().getActiveWorkspaceId();
+    if (!scope) return {};
     return id ? get().workspaceFilters[id]?.[scope] : undefined;
   },
 

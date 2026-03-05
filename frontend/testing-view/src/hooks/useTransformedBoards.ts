@@ -12,6 +12,7 @@ export function useTransformedBoards(
 
   const setTelemetryCatalog = useStore((s) => s.setTelemetryCatalog);
   const setCommandsCatalog = useStore((s) => s.setCommandsCatalog);
+  const setBoards = useStore((s) => s.setBoards);
   const initializeWorkspaceFilters = useStore(
     (s) => s.initializeWorkspaceFilters,
   );
@@ -25,7 +26,14 @@ export function useTransformedBoards(
 
     setTelemetryCatalog(transformedBoards.telemetryCatalog);
     setCommandsCatalog(transformedBoards.commandsCatalog);
-    initializeWorkspaceFilters();
+    setBoards(Array.from(transformedBoards.boards));
+
+    const hasTelemetryData =
+      Object.keys(transformedBoards.telemetryCatalog).length > 0;
+    const hasCommandsData =
+      Object.keys(transformedBoards.commandsCatalog).length > 0;
+
+    if (hasTelemetryData && hasCommandsData) initializeWorkspaceFilters();
   }, [
     transformedBoards,
     setTelemetryCatalog,

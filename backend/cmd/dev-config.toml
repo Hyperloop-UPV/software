@@ -66,11 +66,7 @@ timeout_ms = 5000      # Timeout for TFTP operations in milliseconds
 backoff_factor = 2     # Backoff factor for retries
 enable_progress = true # Enable progress updates during transfers
 
-# BLCU Configuration
-[blcu]
-ip = "10.10.10.5"     # BLCU IP address
-download_order_id = 0 # Order ID for download operations (0 = use default)
-upload_order_id = 0   # Order ID for upload operations (0 = use default)
+
 
 # Logging Configuration
 [logging]

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/boards"
 	data_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/data"
 	message_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/message"
 	order_topic "github.com/HyperloopUPV-H8/h9-backend/pkg/broker/topics/order"
@@ -15,7 +14,7 @@ import (
 	protection_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/protection"
 	state_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/state"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
-	blcu_packet "github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/blcu"
+
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/order"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/protection"
@@ -130,12 +129,7 @@ func (vehicle *Vehicle) handlePacketNotification(notification transport.PacketNo
 			vehicle.trace.Error().Stack().Err(err).Msg("remove state orders")
 			return errors.Join(fmt.Errorf("remove state orders (state orders from %s to %s)", notification.From, notification.To), err)
 		}
-	case *blcu_packet.Ack:
-		vehicle.boards[vehicle.BlcuId].Notify(abstraction.BoardNotification(
-			&boards.AckNotification{
-				ID: boards.AckId,
-			},
-		))
+
 	}
 	return nil
 }

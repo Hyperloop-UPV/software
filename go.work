@@ -2,4 +2,5 @@ go 1.23.1
 
 use (
 	./backend
+	./packet-sender
 )

@@ -22,11 +22,11 @@ When running in development mode (unpackaged), the application creates temporary
 
 - `config.toml.backup-{timestamp}` - Automatic backup files created when importing a configuration. These timestamped backups help recover previous configurations if needed.
 
-- `binaries/` - Directory containing compiled backend executables for your platform. These are generated during the build process, when running `npm run build`.
+- `binaries/` - Directory containing compiled backend executables for your platform. These are generated during the build process, when running `pnpm run build`.
 
-- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `npm run build`.
+- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `pnpm run build`.
 
-- `dist/` - Build output directory containing compiled and packaged application files. Generated during build and distribution processes, when running `npm run dist`.
+- `dist/` - Build output directory containing compiled and packaged application files. Generated during build and distribution processes, when running `pnpm run dist`.
 
 **Note**: These files and directories are created in the `electron-app/` directory root during development. In production (packaged) mode:
 
@@ -54,24 +54,24 @@ Typical locations:
 
 ```
 # Install dependencies
-npm install
+pnpm install
 
 # Build backend and frontends
-npm run build
+pnpm run build
 
-# Run in development mode (you MUST run `npm run build` BEFORE!)
-npm start
+# Run in development mode (you MUST run `pnpm run build` BEFORE!)
+pnpm start
 ```
 
 ## Build for production
 
 This script creates distributables and executables.  
-**Note**: You must run `npm run build` for this script to work correctly.
+**Note**: You must run `pnpm run build` for this script to work correctly.
 
 ```
-npm run dist:win    # Windows
-npm run dist:mac    # macOS
-npm run dist:linux  # Linux
+pnpm run dist:win    # Windows
+pnpm run dist:mac    # macOS
+pnpm run dist:linux  # Linux
 ```
 
 ### macOS Requirements
@@ -79,20 +79,21 @@ npm run dist:linux  # Linux
 On macOS, the backend requires the loopback address `127.0.0.9` to be configured. If you encounter a "can't assign requested address" error when starting the backend, run:
 
 ```
-sudo ipconfig set en0 INFORM 127.0.0.9
+sudo ifconfig lo0 alias 127.0.0.9 up
 ```
 
 ## Available Scripts
 
 ```
-- `npm run build` - Build all frontend views and backend
-- `npm start` - Run application in development mode
-- `npm run dist` - Build production executable
-- `npm test` - Run tests
+- `pnpm run build` - Build all frontend views and backend
+- `pnpm start` - Run application in development mode
+- `pnpm run dist` - Build production executable
+- `pnpm test` - Run tests
+- `pnpm build-icons` - build icon from the icon.png file in the `/electron-app` folder
 ...and many custom variations (see package.json)
 
-# Only works and makes sense after running `npm run dist`
-- `npm run asar:{platform}` - Shows .asar application package content for [win, linux, mac] platforms
+# Only works and makes sense after running `pnpm run dist`
+- `pnpm run asar:{platform}` - Shows .asar application package content for [win, linux, mac] platforms
 ```
 
 ## Architecture

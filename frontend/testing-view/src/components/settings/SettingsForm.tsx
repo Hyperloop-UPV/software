@@ -1,5 +1,7 @@
 import { get, set } from "lodash";
-import { SETTINGS_SCHEMA } from "../../constants/settingsSchema";
+import { useMemo } from "react";
+import { getSettingsSchema } from "../../constants/settingsSchema";
+import { useStore } from "../../store/store";
 import type { ConfigData } from "../../types/common/config";
 import type { SettingField } from "../../types/common/settings";
 import { BooleanField } from "./BooleanField";
@@ -22,6 +24,9 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
     set(nextConfig, path, value);
     onChange(nextConfig);
   };
+
+  const boards = useStore((s) => s.boards);
+  const schema = useMemo(() => getSettingsSchema(boards), [boards]);
 
   const renderField = (field: SettingField) => {
     const currentValue = get(config, field.path);
@@ -94,9 +99,9 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
 
   return (
     <div className="space-y-8">
-      {SETTINGS_SCHEMA.map((section) => (
+      {schema.map((section) => (
         <section key={section.title} className="space-y-4">
-          <h3 className="text-muted-foreground border-b pb-1 text-sm font-bold uppercase tracking-wider">
+          <h3 className="text-muted-foreground border-b pb-1 text-sm font-bold tracking-wider uppercase">
             {section.title}
           </h3>
           <div className="grid gap-4">

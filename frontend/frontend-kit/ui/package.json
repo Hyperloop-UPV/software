@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "icon:add": "icons-master add",
+    "icon:remove": "icons-master remove"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -34,6 +36,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@maximka76667/icons-master": "^1.0.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@turbo/gen": "^2.8.3",
     "@types/node": "^25.2.0",
