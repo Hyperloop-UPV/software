@@ -301,11 +301,8 @@ jobs:
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux' && steps.check-artifact.outputs.needs_build == 'true'
-        run: sudo apt-get update && sudo apt-get install -y libpcap-dev gcc
+        run: sudo apt-get update && sudo apt-get install -y gcc
 
-      - name: Install macOS dependencies
-        if: runner.os == 'macOS' && steps.check-artifact.outputs.needs_build == 'true'
-        run: brew install libpcap
 
       - name: Build backend (Linux)
         if: runner.os == 'Linux' && steps.check-artifact.outputs.needs_build == 'true'
