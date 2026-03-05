@@ -173,8 +173,9 @@ async function stopBackend() {
       fallbackTimer.unref();
     } else {
       logger.backend.warning("Backend process not found, skipping stop...");
-      resolve();
     }
+
+    resolve();
   });
 }
 
