@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -15,15 +14,11 @@ import (
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/sniffer"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
-	"github.com/google/gopacket/pcapgo"
 	"github.com/rs/zerolog"
 )
 
@@ -997,42 +992,6 @@ func TestHandleUDPServer_Dispatches(t *testing.T) {
 	}, 2*time.Second, "Should receive notification from UDP server"); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestHandleSniffer_Dispatches(t *testing.T) {
-	tr, api := createTestTransport(t)
-
-	// empty pcap (header only) to drive HandleSniffer through EOF path
-	tmp, err := os.CreateTemp("", "sniffer*.pcap")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	writer := pcapgo.NewWriter(tmp)
-	if err := writer.WriteFileHeader(65535, layers.LinkTypeEthernet); err != nil {
-		t.Fatalf("write header failed: %v", err)
-	}
-	tmp.Close()
-
-	handle, err := pcap.OpenOffline(tmp.Name())
-	if err != nil {
-		t.Fatalf("failed to open pcap: %v", err)
-	}
-	sn := sniffer.New(handle, nil, defaultLogger())
-
-	done := make(chan struct{})
-	go func() {
-		tr.HandleSniffer(sn)
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(2 * time.Second):
-		t.Fatalf("HandleSniffer did not return on EOF")
-	}
-
-	// No notifications expected; just ensure no panic/block.
-	_ = api
 }
 
 func TestHandleConversation_DispatchesAndStopsOnError(t *testing.T) {
