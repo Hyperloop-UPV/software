@@ -107,9 +107,7 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb",
-        "rpm",
-        "pacman"
+        "deb"
       ],
       "icon": "icons/512x512.png",
       "category": "Utility",
