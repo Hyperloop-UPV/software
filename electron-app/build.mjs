@@ -254,7 +254,10 @@ logger.header("Hyperloop Control Station Build");
 
   if (frontendBuilt && !process.env.CI) {
     logger.info("Finalizing Electron...");
-    run("pnpm --filter electron-app install --frozen-lockfile", __dirname);
+    run(
+      "pnpm --filter hyperloop-control-station install --frozen-lockfile",
+      __dirname
+    );
   }
 
   if (allSuccess) {

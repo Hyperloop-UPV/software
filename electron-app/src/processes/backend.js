@@ -108,11 +108,6 @@ async function startBackend(logWindow = null) {
       return reject(new Error(`Failed to start backend: ${error.message}`));
     });
 
-    // If the backend didn't fail in this period of time, resolve the promise
-    setTimeout(() => {
-      resolve(backendProcess);
-    }, 2000);
-
     // Handle process exit
     backendProcess.on("close", (code) => {
       logger.backend.info(`Backend process exited with code ${code}`);
@@ -131,7 +126,14 @@ async function startBackend(logWindow = null) {
         // Clear error message after showing
         lastBackendError = null;
       }
+
+      backendProcess = null;
     });
+
+    // If the backend didn't fail in this period of time, resolve the promise
+    setTimeout(() => {
+      resolve(backendProcess);
+    }, 2000);
   });
 }
 

@@ -7,7 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/shadcn/dialog";
-import { useEffect, useState } from "react";
+import { Loader2 } from "@workspace/ui/icons";
+import { useEffect, useState, useTransition } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -24,6 +25,7 @@ export const SettingsDialog = () => {
   const setRestarting = useStore((s) => s.setRestarting);
   const [localConfig, setLocalConfig] = useState<ConfigData | null>(null);
   const [isSynced, setIsSynced] = useState(false);
+  const [isSaving, startSaving] = useTransition();
 
   const loadConfig = async () => {
     if (window.electronAPI) {
@@ -54,24 +56,26 @@ export const SettingsDialog = () => {
   }, [isSettingsOpen]);
 
   const handleSave = async () => {
-    if (window.electronAPI) {
-      await window.electronAPI.saveConfig(localConfig);
-    } else {
-      console.log("Electron API not available. Using default config.");
-    }
+    startSaving(async () => {
+      if (window.electronAPI) {
+        await window.electronAPI.saveConfig(localConfig);
+      } else {
+        console.log("Electron API not available. Using default config.");
+      }
 
-    setRestarting(true);
+      setRestarting(true);
 
-    setTimeout(() => {
-      socketService.connect();
-      setSettingsOpen(false);
-      setRestarting(false);
-    }, config.SETTINGS_RESPONSE_TIMEOUT);
+      setTimeout(() => {
+        socketService.connect();
+        setSettingsOpen(false);
+        setRestarting(false);
+      }, config.SETTINGS_RESPONSE_TIMEOUT);
+    });
   };
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="flex max-h-[85vh] max-w-2xl min-w-[800px] flex-col">
+      <DialogContent className="flex max-h-[85vh] min-w-[800px] max-w-2xl flex-col">
         <DialogHeader className="pr-5">
           <div className="flex items-center justify-between">
             <DialogTitle>System Configuration</DialogTitle>
@@ -101,7 +105,15 @@ export const SettingsDialog = () => {
           <Button variant="ghost" onClick={() => setSettingsOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save Changes</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

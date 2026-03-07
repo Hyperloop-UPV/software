@@ -1,5 +1,5 @@
 {
-  "name": "electron-app",
+  "name": "hyperloop-control-station",
   "version": "1.0.0",
   "description": "Hyperloop UPV Control Station",
   "main": "main.js",
