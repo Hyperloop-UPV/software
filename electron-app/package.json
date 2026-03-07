@@ -57,7 +57,7 @@
       "owner": "Hyperloop-UPV",
       "repo": "software"
     },
-    "productName": "Hyperloop-Control-Station",
+    "productName": "Hyperloop-Ctrl",
     "directories": {
       "output": "dist"
     },
