@@ -21,17 +21,29 @@ import { logger } from "../utils/logger.js";
  * const updated = updateTomlValue(content, "database", "host", "192.168.1.1");
  */
 function updateTomlValue(tomlContent, section, key, newValue) {
+  const lineEnding = tomlContent.includes("\r\n") ? "\r\n" : "\n";
   // Split content into lines for processing
   const lines = tomlContent.split(/\r?\n/);
   // Track current section while iterating
   let currentSection = null;
   // Flag to track if update was successful
   let updated = false;
+  // Track if we're inside a multiline string
+  let inMultilineString = false;
 
   // Process each line
   const result = lines.map((line) => {
     // Get trimmed version for parsing
     const trimmed = line.trim();
+
+    // Track multiline string boundaries (""" or ''')
+    const tripleDoubleQuotes = (line.match(/"""/g) || []).length;
+    const tripleSingleQuotes = (line.match(/'''/g) || []).length;
+    if (tripleDoubleQuotes % 2 !== 0 || tripleSingleQuotes % 2 !== 0) {
+      inMultilineString = !inMultilineString;
+      return line;
+    }
+    if (inMultilineString) return line;
 
     // Track current section
     const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
@@ -104,7 +116,7 @@ function updateTomlValue(tomlContent, section, key, newValue) {
   }
 
   // Join lines back into string
-  return result.join("\n");
+  return result.join(lineEnding);
 }
 
 /**

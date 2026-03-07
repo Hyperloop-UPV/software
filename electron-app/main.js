@@ -116,11 +116,11 @@ app.on("window-all-closed", () => {
 });
 
 // Cleanup before app quits
-app.on("before-quit", () => {
-  // Stop backend process gracefully
-  stopBackend();
-  // Stop packet sender process gracefully
-  stopPacketSender();
+app.on("before-quit", (e) => {
+  e.preventDefault();
+  Promise.all([stopBackend(), stopPacketSender()])
+    .catch((error) => logger.electron.error("Error during shutdown:", error))
+    .finally(() => app.exit());
 });
 
 // Handle uncaught exceptions globally

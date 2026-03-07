@@ -88,8 +88,7 @@ async function startBackend(logWindow = null) {
     backendProcess.stderr.on("data", (data) => {
       const errorMsg = data.toString().trim();
       logger.backend.error(errorMsg);
-      // Store the last error message
-      lastBackendError = errorMsg;
+      if (errorMsg) lastBackendError = errorMsg;
 
       // Send error message to log window
       if (currentLogWindow && !currentLogWindow.isDestroyed()) {
@@ -111,9 +110,9 @@ async function startBackend(logWindow = null) {
     // Handle process exit
     backendProcess.on("close", (code) => {
       logger.backend.info(`Backend process exited with code ${code}`);
-      // Show error dialog if process crashed (non-zero exit code)
+      clearTimeout(startupTimer);
+
       if (code !== 0 && code !== null) {
-        // Build error message with actual error details
         let errorMessage = `Backend exited with code ${code}`;
 
         if (lastBackendError) {
@@ -123,15 +122,16 @@ async function startBackend(logWindow = null) {
         }
 
         dialog.showErrorBox("Backend Crashed", errorMessage);
-        // Clear error message after showing
         lastBackendError = null;
+        backendProcess = null;
+        return reject(new Error(errorMessage));
       }
 
       backendProcess = null;
     });
 
     // If the backend didn't fail in this period of time, resolve the promise
-    setTimeout(() => {
+    const startupTimer = setTimeout(() => {
       resolve(backendProcess);
     }, 2000);
   });
