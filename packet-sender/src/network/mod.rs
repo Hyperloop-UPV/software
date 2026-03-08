@@ -19,7 +19,6 @@ pub struct NetworkManager {
     backend_addr: SocketAddr,
     adj: ADJ,
     sockets: Arc<Mutex<Vec<BoardSocket>>>,
-    dev_mode: bool,
 }
 
 struct BoardSocket {
@@ -29,12 +28,7 @@ struct BoardSocket {
 }
 
 impl NetworkManager {
-    pub async fn new(
-        backend_host: &str,
-        backend_port: u16,
-        adj: ADJ,
-        dev_mode: bool,
-    ) -> Result<Self> {
+    pub async fn new(backend_host: &str, backend_port: u16, adj: ADJ) -> Result<Self> {
         let backend_addr = format!("{}:{}", backend_host, backend_port)
             .parse()
             .context("Invalid backend address")?;
@@ -45,7 +39,6 @@ impl NetworkManager {
             backend_addr,
             adj,
             sockets,
-            dev_mode,
         })
     }
 
@@ -59,7 +52,7 @@ impl NetworkManager {
             );
 
             // Create socket with board's IP
-            let socket = create_board_socket(&board.ip, &self.backend_addr, self.dev_mode).await?;
+            let socket = create_board_socket(&board.ip, &self.backend_addr).await?;
 
             let board_socket = BoardSocket {
                 board: board.clone(),
@@ -70,11 +63,7 @@ impl NetworkManager {
             sockets.push(board_socket);
         }
 
-        info!(
-            "Initialized {} board sockets (dev_mode: {})",
-            sockets.len(),
-            self.dev_mode
-        );
+        info!("Initialized {} board sockets", sockets.len(),);
         Ok(())
     }
 
@@ -151,26 +140,12 @@ impl NetworkManager {
     }
 }
 
-async fn create_board_socket(
-    board_ip: &str,
-    backend_addr: &SocketAddr,
-    dev_mode: bool,
-) -> Result<UdpSocket> {
+async fn create_board_socket(board_ip: &str, backend_addr: &SocketAddr) -> Result<UdpSocket> {
     // In dev mode, we can bind to any available port on the board IP
     // In production mode (sniffer), we must bind to the exact board IP
-    let bind_addr = if dev_mode || macos::is_localhost(board_ip) {
-        // For localhost addresses in dev mode, use the board IP
-        format!("{}:0", board_ip)
-    } else {
-        // For non-localhost addresses, we need to ensure the packets come from the right IP
-        // Note: This requires the host to have these IPs configured on network interfaces
-        format!("{}:0", board_ip)
-    };
+    let bind_addr = format!("{}:0", board_ip);
 
-    debug!(
-        "Creating socket: {} -> {} (dev_mode: {})",
-        bind_addr, backend_addr, dev_mode
-    );
+    debug!("Creating socket: {} -> {}", bind_addr, backend_addr);
 
     let socket = UdpSocket::bind(&bind_addr)
         .await
@@ -186,10 +161,7 @@ async fn create_board_socket(
         .context("Failed to connect to backend")?;
 
     let local_addr = socket.local_addr()?;
-    info!(
-        "Socket created: {} -> {} (dev_mode: {})",
-        local_addr, backend_addr, dev_mode
-    );
+    info!("Socket created: {} -> {}", local_addr, backend_addr);
 
     Ok(socket)
 }

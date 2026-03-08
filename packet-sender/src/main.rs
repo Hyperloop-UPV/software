@@ -1,25 +1,20 @@
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use clap::{Parser, Subcommand};
-use dirs;
 use std::path::PathBuf;
 use tracing::info;
 
 mod adj;
 mod cli;
+mod config;
 mod generator;
 mod logger;
 mod network;
 mod test_listener;
 
+use crate::adj::get_default_adj_path;
 use crate::cli::InteractiveMode;
+use crate::config::Config;
 use crate::network::PacketSender;
-
-fn get_default_adj_path() -> PathBuf {
-    dirs::cache_dir()
-        .expect("Failed to get cache directory")
-        .join("hyperloop-control-station")
-        .join("adj")
-}
 
 #[derive(Parser)]
 #[command(name = "packet-sender")]
@@ -92,7 +87,12 @@ async fn main() -> Result<()> {
 
     logger::init(&cli.log_level);
 
-    let adj_path = cli.adj_path.unwrap_or_else(get_default_adj_path);
+    let config = Config::new().expect("Cannot find file specified");
+    let config_default_adj_path = config.construct_default_adj_path();
+
+    let default_adj_path = get_default_adj_path(config_default_adj_path)?;
+
+    let adj_path = cli.adj_path.unwrap_or(default_adj_path);
 
     info!("Starting Hyperloop packet sender");
     info!("Loading ADJ from: {:?}", adj_path);
@@ -107,7 +107,7 @@ async fn main() -> Result<()> {
             .addresses
             .get("backend")
             .cloned()
-            .unwrap_or_else(|| "127.0.0.9".to_string())
+            .unwrap_or("127.0.0.9".to_string())
     });
 
     let backend_port = cli
@@ -115,11 +115,9 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|| adj.info.ports.get("UDP").copied().unwrap_or(8000));
 
     info!("Backend address: {}:{}", backend_address, backend_port);
-    info!("Dev mode: {}", cli.dev);
 
     // Create packet sender
-    let mut sender =
-        PacketSender::new(&backend_address, backend_port, adj.clone(), cli.dev).await?;
+    let mut sender = PacketSender::new(&backend_address, backend_port, adj.clone()).await?;
 
     match cli.command {
         None | Some(Commands::Interactive) => {

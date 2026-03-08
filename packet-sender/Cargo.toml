@@ -13,6 +13,7 @@ tokio = { version = "1.35", features = ["full"] }
 dirs = "5.0"
 
 # Serialization
+toml = "1.0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bincode = "1.3"
