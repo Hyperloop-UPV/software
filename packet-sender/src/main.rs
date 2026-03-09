@@ -1,6 +1,8 @@
 use anyhow::{Ok, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 use tracing::info;
 
 mod adj;
@@ -14,7 +16,7 @@ mod test_listener;
 use crate::adj::get_default_adj_path;
 use crate::cli::InteractiveMode;
 use crate::config::Config;
-use crate::network::PacketSender;
+use crate::network::{NetworkManager, SimulationMode};
 
 #[derive(Parser)]
 #[command(name = "packet-sender")]
@@ -35,10 +37,6 @@ struct Cli {
     /// Backend UDP port (overrides ADJ if specified)
     #[arg(short = 'p', long)]
     backend_port: Option<u16>,
-
-    /// Use dev mode (UDP server) instead of packet sniffer
-    #[arg(short = 'd', long, default_value_t = false)]
-    dev: bool,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -67,7 +65,7 @@ enum Commands {
 
         /// Packet sending mode
         #[arg(short, long, default_value = "random")]
-        mode: String,
+        mode: SimulationMode,
     },
 
     /// List available boards and packets
@@ -98,11 +96,11 @@ async fn main() -> Result<()> {
     info!("Loading ADJ from: {:?}", adj_path);
 
     // Load ADJ
-    let adj = adj::load_adj(&adj_path).await?;
+    let adj = Arc::new(adj::load_adj(&adj_path).await?);
     info!("Loaded {} boards from ADJ", adj.boards.len());
 
     // Get backend address and port from ADJ or CLI args
-    let backend_address = cli.backend_address.unwrap_or_else(|| {
+    let backend_host = cli.backend_address.unwrap_or_else(|| {
         adj.info
             .addresses
             .get("backend")
@@ -114,15 +112,19 @@ async fn main() -> Result<()> {
         .backend_port
         .unwrap_or_else(|| adj.info.ports.get("UDP").copied().unwrap_or(8000));
 
-    info!("Backend address: {}:{}", backend_address, backend_port);
+    info!("Backend address: {}:{}", backend_host, backend_port);
 
     // Create packet sender
-    let mut sender = PacketSender::new(&backend_address, backend_port, adj.clone()).await?;
+    // let mut sender = PacketSender::new(&backend_address, backend_port, adj.clone()).await?;
+    let adj_instance = Arc::clone(&adj);
+    let network_manager = NetworkManager::new(&backend_host, backend_port, adj_instance).await?;
+    let manager = Arc::new(network_manager);
+    manager.initialize_boards().await?;
 
     match cli.command {
         None | Some(Commands::Interactive) => {
             info!("Starting interactive mode");
-            let interactive = InteractiveMode::new(sender);
+            let interactive = InteractiveMode::new(manager);
             interactive.run().await?;
         }
 
@@ -131,20 +133,28 @@ async fn main() -> Result<()> {
                 "Starting random packet generation at {} packets/second",
                 rate
             );
+
+            let period = convert_rate(rate);
+
             if let Some(board_name) = board {
-                sender.start_random_single(&board_name, rate).await?;
+                manager
+                    .send_random_packets_with_rate(&board_name, period)
+                    .await?;
             } else {
-                sender.start_random_all(rate).await?;
+                manager.simulate_boards(period).await?;
             }
         }
 
         Some(Commands::Board { name, mode }) => {
-            info!("Simulating board {} in {} mode", name, mode);
-            sender.simulate_board(&name, &mode).await?;
+            info!("Simulating board {} in {:?} mode", name, mode);
+            manager.simulate_board(&name, &mode).await?;
+            // manager.(&name, &mode).await?;
+            todo!()
         }
 
         Some(Commands::List) => {
             println!("Available boards:");
+            let adj = Arc::clone(&adj);
             for board in &adj.boards {
                 println!(
                     "  - {} (IP: {}, {} packets)",
@@ -172,5 +182,10 @@ async fn main() -> Result<()> {
             std::process::exit(0);
         }
     }
+
     Ok(())
+}
+
+pub fn convert_rate(rate: u32) -> Duration {
+    Duration::from_millis(1000 / rate as u64)
 }
