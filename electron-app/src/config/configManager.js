@@ -4,9 +4,9 @@
  * Handles reading, writing, and updating configuration files while maintaining formatting and comments.
  */
 
+import TOML from "@iarna/toml";
 import fs from "fs";
 import path from "path";
-import TOML from "@iarna/toml";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -69,7 +69,7 @@ function updateTomlValue(tomlContent, section, key, newValue) {
 
     // Parse the line: key = value # comment
     const match = line.match(
-      /^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*)(\s*=\s*)([^#]+?)((?:\s*#.*)?)$/
+      /^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*)(\s*=\s*)([^#]+?)((?:\s*#.*)?)$/,
     );
 
     // Check if this line matches the key we're looking for
@@ -89,7 +89,7 @@ function updateTomlValue(tomlContent, section, key, newValue) {
       } else if (Array.isArray(newValue)) {
         // Simple array formatting
         const items = newValue.map((v) =>
-          typeof v === "string" ? `"${v}"` : v
+          typeof v === "string" ? `"${v}"` : v,
         );
         formattedValue = `[${items.join(", ")}]`;
       } else if (newValue === null || newValue === undefined) {
@@ -111,7 +111,7 @@ function updateTomlValue(tomlContent, section, key, newValue) {
   // Warn if key was not found
   if (!updated) {
     console.warn(
-      `Warning: Key "${key}" in section "${section || "root"}" not found`
+      `Warning: Key "${key}" in section "${section || "root"}" not found`,
     );
   }
 
@@ -165,13 +165,17 @@ class ConfigManager {
    * Creates a new ConfigManager instance.
    * @param {string} userConfigPath - Path to the user configuration file.
    * @param {string} templatePath - Path to the template configuration file.
+   * @param {string} versionFilePath - Path to the version.toml (app version)
+   * @param {string} appVersion - Current electron bundle version from package.json
    * @example
-   * const manager = new ConfigManager("/path/to/config.toml", "/path/to/template.toml");
+   * const manager = new ConfigManager("/path/to/config.toml", "/path/to/template.toml", "/path/to/version.toml" app.getVersion());
    */
-  constructor(userConfigPath, templatePath) {
+  constructor(userConfigPath, templatePath, versionFilePath, appVersion) {
     // Store paths
     this.userConfigPath = userConfigPath;
     this.templatePath = templatePath;
+    this.versionFilePath = versionFilePath;
+    this.appVersion = appVersion;
 
     // Ensure user config exists (copy from template on first run)
     this.ensureConfigExists();
@@ -192,16 +196,44 @@ class ConfigManager {
 
     // Copy template if user config doesn't exist
     if (!fs.existsSync(this.userConfigPath)) {
-      if (fs.existsSync(this.templatePath)) {
-        // Copy template to user config location
-        fs.copyFileSync(this.templatePath, this.userConfigPath);
-        logger.config.info(
-          `Created config from template: ${this.userConfigPath}`
-        );
-      } else {
-        // Throw error if template is missing
+      if (!fs.existsSync(this.templatePath)) {
         throw new Error(`Template not found: ${this.templatePath}`);
       }
+
+      // Copy template to user config location
+      fs.copyFileSync(this.templatePath, this.userConfigPath);
+      logger.config.info(
+        `Created config from template: ${this.userConfigPath}`,
+      );
+
+      fs.writeFileSync(
+        this.versionFilePath,
+        `version = "${this.appVersion}"`,
+        "utf-8",
+      );
+      logger.config.info(`Created app version file: ${this.versionFilePath}`);
+      return;
+    }
+
+    // If config does exist, get app's version
+    // In case version.toml doesn't exists it returns null
+    const storedVersion = fs.existsSync(this.versionFilePath)
+      ? (fs
+          .readFileSync(this.versionFilePath, "utf-8")
+          .trim()
+          .match(/^version\s*=\s*"(.+)"$/)?.[1] ?? null)
+      : null;
+
+    if (storedVersion !== this.appVersion) {
+      fs.copyFileSync(this.templatePath, this.userConfigPath);
+      fs.writeFileSync(
+        this.versionFilePath,
+        `version = "${this.appVersion}"`,
+        "utf-8",
+      );
+      logger.config.info(
+        `Config updated from template (from version ${storedVersion ?? "unknown"} to ${this.appVersion})`,
+      );
     }
   }
 
@@ -360,4 +392,4 @@ class ConfigManager {
   }
 }
 
-export { ConfigManager, updateTomlValue, updateTomlFromObject };
+export { ConfigManager, updateTomlFromObject, updateTomlValue };
