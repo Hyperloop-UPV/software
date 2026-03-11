@@ -14,14 +14,14 @@ import { createTooltipPlugin } from "./tooltipPlugin";
 interface ChartSurfaceProps {
   chartId: string;
   series: WorkspaceChartSeries[];
-  disabledIndices: Set<number>;
+  disabledVariables: Set<string>;
 }
 
 // IMPORTANT: This component was almost completely vibe-coded
 // It could provoke bugs, thus it could be improved
 
 export const ChartSurface = memo(
-  ({ chartId, series, disabledIndices }: ChartSurfaceProps) => {
+  ({ chartId, series, disabledVariables }: ChartSurfaceProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const uplotRef = useRef<uPlot | null>(null);
     const historyRef = useRef<any[]>([]);
@@ -72,13 +72,13 @@ export const ChartSurface = memo(
     useEffect(() => {
       if (uplotRef.current) {
         // Index in series starts at 1 because 0 is the X-axis
-        series.forEach((_, i) => {
+        series.forEach((s, i) => {
           const seriesIdx = i + 1;
-          const isVisible = !disabledIndices.has(i);
+          const isVisible = !disabledVariables.has(s.variable);
           uplotRef.current?.setSeries(seriesIdx, { show: isVisible });
         });
       }
-    }, [disabledIndices, series]);
+    }, [disabledVariables, series]);
 
     const handleDoubleClick = () => {
       setIsZooming(false);

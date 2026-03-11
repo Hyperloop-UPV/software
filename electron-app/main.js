@@ -36,8 +36,6 @@ if (process.platform === "linux") {
 // Setup IPC handlers for renderer process communication
 setupIpcHandlers();
 
-app.setName("hyperloop-control-station");
-
 // App lifecycle: wait for Electron to be ready
 app.whenReady().then(async () => {
   // Get the screen width and height
@@ -118,11 +116,11 @@ app.on("window-all-closed", () => {
 });
 
 // Cleanup before app quits
-app.on("before-quit", () => {
-  // Stop backend process gracefully
-  stopBackend();
-  // Stop packet sender process gracefully
-  stopPacketSender();
+app.on("before-quit", (e) => {
+  e.preventDefault();
+  Promise.all([stopBackend(), stopPacketSender()])
+    .catch((error) => logger.electron.error("Error during shutdown:", error))
+    .finally(() => app.exit());
 });
 
 // Handle uncaught exceptions globally

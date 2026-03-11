@@ -5,6 +5,15 @@ export const config = {
   /** Fallback history limit for a chart. Used when the history limit is not set. */
   FALLBACK_CHART_HISTORY_LIMIT: 100,
 
+  /** Minimum history limit for the chart buffer size slider. */
+  CHART_HISTORY_MIN: 50,
+
+  /** Maximum history limit for the chart buffer size slider. */
+  CHART_HISTORY_MAX: 5000,
+
+  /** Step size for the chart buffer size slider. */
+  CHART_HISTORY_STEP: 50,
+
   /** Default height of chart. */
   DEFAULT_CHART_HEIGHT: 250,
 

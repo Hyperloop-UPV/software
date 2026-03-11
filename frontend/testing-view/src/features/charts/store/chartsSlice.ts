@@ -33,6 +33,8 @@ export interface ChartsSlice {
     variable: string,
   ) => void;
 
+  clearCharts: () => void;
+
   /** Sets new buffer size or history limit for a chart. */
   setChartHistoryLimit: (
     workspaceId: string,

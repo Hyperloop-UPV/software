@@ -1,5 +1,5 @@
 {
-  "name": "electron-app",
+  "name": "hyperloop-control-station",
   "version": "1.0.0",
   "description": "Hyperloop UPV Control Station",
   "main": "main.js",
@@ -57,7 +57,7 @@
       "owner": "Hyperloop-UPV",
       "repo": "software"
     },
-    "productName": "Hyperloop-Control-Station",
+    "productName": "Hyperloop-Ctrl",
     "directories": {
       "output": "dist"
     },
@@ -107,9 +107,7 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb",
-        "rpm",
-        "pacman"
+        "deb"
       ],
       "icon": "icons/512x512.png",
       "category": "Utility",

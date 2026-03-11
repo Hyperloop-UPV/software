@@ -101,7 +101,7 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
     <div className="space-y-8">
       {schema.map((section) => (
         <section key={section.title} className="space-y-4">
-          <h3 className="text-muted-foreground border-b pb-1 text-sm font-bold tracking-wider uppercase">
+          <h3 className="text-muted-foreground border-b pb-1 text-sm font-bold uppercase tracking-wider">
             {section.title}
           </h3>
           <div className="grid gap-4">

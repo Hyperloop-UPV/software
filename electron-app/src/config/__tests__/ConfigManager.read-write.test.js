@@ -9,6 +9,9 @@ import fs from "fs";
 describe("ConfigManager - Read/Write Operations", () => {
   const templatePath = "/path/to/template.toml";
   const userConfigPath = "/path/to/user.toml";
+  const versionFilePath = "/path/to/version.toml";
+  const appVersion = "1.0.0";
+  const appVersionReturnValue = `version = "${appVersion}"`;
   const mockTomlContent = `# User Config
 name = "test"
 enabled = true
@@ -23,9 +26,15 @@ host = "localhost"`;
   describe("read", () => {
     it("should read and parse TOML config", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockReturnValue(mockTomlContent);
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
       const config = manager.read();
 
       expect(config).toHaveProperty("name", "test");
@@ -35,20 +44,32 @@ host = "localhost"`;
 
     it("should throw error on invalid TOML", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockReturnValue("invalid toml [[[");
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
 
       expect(() => manager.read()).toThrow("Failed to read config");
     });
 
     it("should throw error on file read failure", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockImplementation(() => {
         throw new Error("Permission denied");
       });
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
 
       expect(() => manager.read()).toThrow("Failed to read config");
     });
@@ -57,9 +78,15 @@ host = "localhost"`;
   describe("readRaw", () => {
     it("should return raw TOML content", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockReturnValue(mockTomlContent);
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
       const raw = manager.readRaw();
 
       expect(raw).toBe(mockTomlContent);
@@ -70,11 +97,17 @@ host = "localhost"`;
   describe("update", () => {
     it("should update config from object", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockReturnValue(mockTomlContent);
       fs.writeFileSync.mockImplementation(() => {});
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
       const result = manager.update({
         name: "updated",
         enabled: false,
@@ -91,12 +124,18 @@ host = "localhost"`;
 
     it("should throw error on update failure", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockReturnValue(mockTomlContent);
       fs.writeFileSync.mockImplementation(() => {
         throw new Error("Write failed");
       });
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
 
       expect(() => manager.update({ name: "test" })).toThrow(
         "Failed to update config"
@@ -107,11 +146,17 @@ host = "localhost"`;
   describe("updateValue", () => {
     it("should update a single value", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockReturnValue(mockTomlContent);
       fs.writeFileSync.mockImplementation(() => {});
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
       const result = manager.updateValue("database", "host", "192.168.1.1");
 
       expect(result).toBe(true);
@@ -125,11 +170,17 @@ host = "localhost"`;
 
     it("should throw error on value update failure", () => {
       fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValueOnce(appVersionReturnValue);
       fs.readFileSync.mockImplementation(() => {
         throw new Error("Read failed");
       });
 
-      const manager = new ConfigManager(userConfigPath, templatePath);
+      const manager = new ConfigManager(
+        userConfigPath,
+        templatePath,
+        versionFilePath,
+        appVersion,
+      );
 
       expect(() => manager.updateValue("section", "key", "value")).toThrow(
         "Failed to update value"
