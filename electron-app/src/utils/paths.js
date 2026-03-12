@@ -100,11 +100,11 @@ function getUserConfigPath() {
  */
 function getVersionFilePath() {
   if (!app.isPackaged) {
-    // Development: use local config.toml in project root
+    // Development: use local version.toml in project root
     return path.join(getAppPath(), "version.toml");
   }
 
-  // Production: user config in userData directory
+  // Production: user version in userData directory
   const userConfigDir = app.getPath("userData");
   return path.join(userConfigDir, "version.toml");
 }
