@@ -1,19 +1,18 @@
 # Hyperloop Control Station Build System
 
-The project uses a unified, modular build script (`electron-app/build.mjs`) to handle building the backend (Go), packet sender (Rust), and frontends (React/Vite) for the Electron application.
+The project uses a unified, modular build script (`electron-app/build.mjs`) to handle building the backend (Go), and frontends (React/Vite) for the Electron application.
 
 ## Prerequisites
 
 - **Node.js** & **pnpm**
 - **Go** (1.21+)
-- **Rust/Cargo** (for Packet Sender)
 
 ## Basic Usage
 
 Run the build script from the `electron-app` directory (or via npm scripts).
 
 ```sh
-# Build EVERYTHING (Backend, Packet Sender, Frontends)
+# Build EVERYTHING (Backend, Frontends)
 pnpm build
 
 # OR
