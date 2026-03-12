@@ -196,8 +196,8 @@ importers:
         version: 5.0.11(@types/react@19.2.11)(immer@11.1.0)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
       '@maximka76667/icons-master':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.2
+        version: 1.0.2
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.1.18
@@ -759,8 +759,8 @@ packages:
     resolution: {integrity: sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q==}
     engines: {node: '>= 10.0.0'}
 
-  '@maximka76667/icons-master@1.0.1':
-    resolution: {integrity: sha512-2mQG0k3p3c2b8KctuH/1KGgy0nlBMTyzC0hguEDNNA3bYzwiehwGJ63bspbQvAbNHxENJ8YhdJFvWX4tDK+W/g==}
+  '@maximka76667/icons-master@1.0.2':
+    resolution: {integrity: sha512-Dc81jga69pHqXx3iS0uYmYSaoZGQtisGkfoTH7pyP+GZ8FvZ1jHzUU4B55sTW1Z0XvsUegLppXDW8e3ES7TNVg==}
     hasBin: true
 
   '@nodelib/fs.scandir@2.1.5':
@@ -5197,7 +5197,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@maximka76667/icons-master@1.0.1': {}
+  '@maximka76667/icons-master@1.0.2': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
