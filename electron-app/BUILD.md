@@ -34,9 +34,6 @@ node build.mjs --backend
 
 # Build only the Testing View
 node build.mjs --testing-view
-
-# Build only the Packet Sender
-node build.mjs --packet-sender
 ```
 
 ## Platform Targeting
