@@ -44,9 +44,7 @@ export const SettingsDialog = () => {
           "https://api.github.com/repos/hyperloop-upv/adj/branches?per_page=100",
         );
         const data = await res.json();
-        setTimeout(() => {
-          setBranches(data.map((b: { name: string }) => b.name));
-        }, 3000);
+        setBranches(data.map((b: { name: string }) => b.name));
       } catch (error) {
         console.error("Error loading branches:", error);
       }

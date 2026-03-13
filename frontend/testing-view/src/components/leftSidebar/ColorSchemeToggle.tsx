@@ -7,12 +7,12 @@ const ColorSchemeToggle = () => {
   const toggleColorScheme = useStore((s) => s.toggleColorScheme);
 
   const isPink = colorScheme === "pink";
-  const tooltip = isPink ? "Switch to Default" : "Switch to Firmware";
+  const tooltip = isPink ? "Switch to Default" : "Switch to Claudia";
 
   return (
     <SidebarMenuButton tooltip={tooltip} onClick={toggleColorScheme}>
       <Palette className="size-4" />
-      <span>{isPink ? "Firmware" : "Default"}</span>
+      <span>{isPink ? "Claudia" : "Default"}</span>
       <div className="bg-primary ml-auto h-3 w-3 rounded-full" />
     </SidebarMenuButton>
   );
