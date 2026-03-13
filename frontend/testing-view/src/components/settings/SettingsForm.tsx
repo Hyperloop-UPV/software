@@ -5,6 +5,7 @@ import { useStore } from "../../store/store";
 import type { ConfigData } from "../../types/common/config";
 import type { SettingField } from "../../types/common/settings";
 import { BooleanField } from "./BooleanField";
+import ComboboxField from "./ComboboxField";
 import { MultiCheckboxField } from "./MultiCheckboxField";
 import { PathField } from "./PathField";
 import { SelectField } from "./SelectField";
@@ -13,9 +14,11 @@ import { TextField } from "./TextField";
 interface SettingsFormProps {
   config: ConfigData;
   onChange: (newConfig: ConfigData) => void;
+  branches: string[];
+  branchesLoading: boolean;
 }
 
-export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
+export const SettingsForm = ({ config, onChange, branches, branchesLoading }: SettingsFormProps) => {
   const handleFieldChange = (
     path: string,
     value: string | number | boolean | string[],
@@ -26,7 +29,8 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
   };
 
   const boards = useStore((s) => s.boards);
-  const schema = useMemo(() => getSettingsSchema(boards), [boards]);
+  const sortedBoard = boards.sort();
+  const schema = useMemo(() => getSettingsSchema(sortedBoard, branches), [sortedBoard, branches]);
 
   const renderField = (field: SettingField) => {
     const currentValue = get(config, field.path);
@@ -89,6 +93,17 @@ export const SettingsForm = ({ config, onChange }: SettingsFormProps) => {
             field={field}
             value={currentValue as unknown as string}
             onChange={(value) => handleFieldChange(field.path, value)}
+          />
+        );
+
+      case "combobox":
+        return (
+          <ComboboxField
+            key={field.path}
+            field={field}
+            value={currentValue as unknown as string}
+            onChange={(value) => handleFieldChange(field.path, value)}
+            loading={branchesLoading}
           />
         );
 

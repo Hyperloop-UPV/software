@@ -2,7 +2,7 @@ import type { SettingsSection } from "../types/common/settings";
 import type { BoardName } from "../types/data/board";
 
 /** Settings form is generated from this schema. */
-export const getSettingsSchema = (boards: BoardName[]): SettingsSection[] => [
+export const getSettingsSchema = (boards: BoardName[], branches: string[] = []): SettingsSection[] => [
   {
     title: "Vehicle Configuration",
     fields: [
@@ -20,8 +20,8 @@ export const getSettingsSchema = (boards: BoardName[]): SettingsSection[] => [
       {
         label: "Branch",
         path: "adj.branch",
-        type: "text",
-        placeholder: "main",
+        type: "combobox",
+        options: branches,
       },
     ],
   },
