@@ -41,6 +41,4 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
 
-require (
-	golang.org/x/net v0.38.0 // indirect
-)
+require golang.org/x/net v0.38.0 // indirect
