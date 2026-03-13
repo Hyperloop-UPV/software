@@ -9,6 +9,7 @@ import (
 
 	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
+	cloud_logs "github.com/HyperloopUPV-H8/h9-backend/pkg/cloud-logs"
 	h "github.com/HyperloopUPV-H8/h9-backend/pkg/http"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
 
@@ -158,8 +159,10 @@ func configureHTTPServer(
 			h.Endpoint("/backend"+server.Endpoints.ProgramableBoards, programableBoardsHandle),
 			h.Endpoint(server.Endpoints.Connections, upgrader),
 			h.Endpoint(server.Endpoints.Files, h.HandleStatic(server.StaticPath)),
+			h.Endpoint("/logs/download", &cloud_logs.Downloader{}),
+			h.Endpoint("/logs/upload", &cloud_logs.Uploader{}),
+			h.Endpoint("/logs/list", &cloud_logs.Lister{}),
 		)
-
 		httpServer := h.NewServer(server.Addr, mux)
 		go httpServer.ListenAndServe()
 	}
