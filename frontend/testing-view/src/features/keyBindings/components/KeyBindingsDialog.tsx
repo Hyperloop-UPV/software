@@ -57,7 +57,14 @@ export const KeyBindingsDialog = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full min-w-[700px]">
+        <DialogContent
+          className="w-full min-w-[700px]"
+          // onOpenAutoFocus moves focus from the first item's remove button to the dialog itself
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement).focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Key Bindings - {activeWorkspace?.name}</DialogTitle>
             <DialogDescription>
