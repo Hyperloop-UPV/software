@@ -23,10 +23,10 @@ func Validate() {
 	// Construct the full path to the ADJ validator script
 	validatorPath := path.Join(RepoPath, ADJValidatorScript)
 
-	trace.Debug().Msgf("Running ADJ Validator using command: %s %s", pyCmd, validatorPath)
+	trace.Debug().Msgf("Running ADJ Validator using command: %s %s --no-color", pyCmd, validatorPath)
 
 	// Execute the ADJ validator script and capture its output
-	cmd := exec.Command(pyCmd, validatorPath)
+	cmd := exec.Command(pyCmd, validatorPath, "--no-color")
 	output, err := cmd.CombinedOutput()
 
 	// Log the output of the validator for debugging purposes

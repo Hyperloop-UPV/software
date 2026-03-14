@@ -19,7 +19,7 @@ boards = ["HVSCU", "HVSCU-Cabinet", "PCU", "LCU", "BCU", "BMSL"]
 # ADJ (Architecture Description JSON) Configuration
 [adj]
 branch = "software" # Leave blank when using ADJ as a submodule (like this: "")
-validate = false # Execute ADJ validator before starting backend
+validate = true # Execute ADJ validator before starting backend
 
 
 # Transport Configuration
