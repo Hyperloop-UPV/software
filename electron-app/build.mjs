@@ -222,12 +222,20 @@ scriptArgs.forEach((arg) => {
 });
 
 const specificTargets = Object.keys(CONFIG).filter((key) =>
-  scriptArgs.includes(`--${key}`)
+  scriptArgs.includes(`--${key}`),
 );
 const targetsToBuild =
   specificTargets.length > 0 ? specificTargets : Object.keys(CONFIG);
 
 // --- Main Execution ---
+
+console.log(`
+______  __                           ______                         _____  ____________    __
+___  / / /____  ________________________  /___________________      __  / / /__  __ \\_ |  / /
+__  /_/ /__  / / /__  __ \\  _ \\_  ___/_  /_  __ \\  __ \\__  __ \\     _  / / /__  /_/ /_ | / / 
+_  __  / _  /_/ /__  /_/ /  __/  /   _  / / /_/ / /_/ /_  /_/ /     / /_/ / _  ____/__ |/ /  
+/_/ /_/  _\\__, / _  .___/\\___//_/    /_/  \\____/\\____/_  .___/      \\____/  /_/     _____/   
+         /____/  /_/                                  /_/                                    `);
 
 logger.header("Hyperloop Control Station Build");
 
@@ -256,7 +264,7 @@ logger.header("Hyperloop Control Station Build");
     logger.info("Finalizing Electron...");
     run(
       "pnpm --filter hyperloop-control-station install --frozen-lockfile",
-      __dirname
+      __dirname,
     );
   }
 
