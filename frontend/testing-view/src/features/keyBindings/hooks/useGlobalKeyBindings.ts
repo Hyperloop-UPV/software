@@ -18,6 +18,9 @@ export const useGlobalKeyBindings = () => {
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Skip if a dialog is open
+      if (document.querySelector('[role="dialog"]')) return;
+
       // Skip if user is typing in an input/textarea/contenteditable
       if (
         e.target instanceof HTMLInputElement ||
@@ -46,25 +49,16 @@ export const useGlobalKeyBindings = () => {
       bindings.forEach((binding) => {
         // Handle special built-in commands
         if (binding.commandId === START_LOGGER_COMMAND_ID) {
-          logger.testingView.log(
-            `Executing Start Logger via key binding [${key}]`,
-          );
           startLogging();
           return;
         }
 
         if (binding.commandId === STOP_LOGGER_COMMAND_ID) {
-          logger.testingView.log(
-            `Executing Stop Logger via key binding [${key}]`,
-          );
           stopLogging();
           return;
         }
 
         if (binding.commandId === TOGGLE_LOGGER_COMMAND_ID) {
-          logger.testingView.log(
-            `Executing Toggle Logger via key binding [${key}]`,
-          );
           toggleLogging();
           return;
         }

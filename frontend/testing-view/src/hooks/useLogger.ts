@@ -1,10 +1,10 @@
-import { socketService } from "@workspace/core";
+import { logger, socketService } from "@workspace/core";
 import { useTopic } from "@workspace/ui/hooks";
 import { useEffect, useState } from "react";
 import { config } from "../../config";
 import { useStore } from "../store/store";
-import type { BoardName } from "../types/data/board";
 import type { LoggerStatus } from "../types/common/logger";
+import type { BoardName } from "../types/data/board";
 import type { TelemetryCatalogItem } from "../types/data/telemetryCatalogItem";
 
 // Shared singleton state across all useLogger instances
@@ -24,7 +24,9 @@ export function useLogger() {
 
   useEffect(() => {
     listeners.add(setStatus);
-    return () => { listeners.delete(setStatus); };
+    return () => {
+      listeners.delete(setStatus);
+    };
   }, []);
 
   const log = (enable: boolean) => {
@@ -68,12 +70,14 @@ export function useLogger() {
   const startLogging = () => {
     if (sharedStatus === "recording" || sharedStatus === "loading") return;
     const vars = getVariables();
+    logger.testingView.log("Starting logger...");
     socketService.post("logger/variables", vars);
     log(true);
   };
 
   const stopLogging = () => {
     if (sharedStatus !== "recording") return;
+    logger.testingView.log("Stopping logger...");
     log(false);
   };
 
