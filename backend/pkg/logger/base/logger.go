@@ -55,20 +55,24 @@ func (sublogger *BaseLogger) Start() error {
 // Function to create the base file path
 
 func (sublogger *BaseLogger) CreateFile(filename string) (*os.File, error) {
+	return CreateFile(loggerHandler.BasePath, sublogger.Name, filename)
+}
 
-	// Includes the direcory specified by the user
-	baseFilename := path.Join(loggerHandler.BasePath, filename)
+// Create File given a path name of loggerand file name
+func CreateFile(basePath string, name abstraction.LoggerName, filename string) (*os.File, error) {
+
+	baseFilename := path.Join(basePath, filename)
 
 	err := os.MkdirAll(path.Dir(baseFilename), os.ModePerm)
 	if err != nil {
 		return nil, loggerHandler.ErrCreatingAllDir{
-			Name:      sublogger.Name,
+			Name:      name,
 			Timestamp: time.Now(),
 			Path:      baseFilename,
 		}
 	}
 
-	return os.Create(path.Join(baseFilename))
+	return os.Create(baseFilename)
 }
 
 // Create a base Logger with default values

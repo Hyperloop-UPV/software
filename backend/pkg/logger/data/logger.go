@@ -151,7 +151,6 @@ func (sublogger *Logger) getFile(valueName data.ValueName, board string) (*file.
 // and filename structure
 func (sublogger *Logger) createFile(valueName data.ValueName, board string) (*os.File, error) {
 	filename := path.Join(
-		"logger",
 		loggerHandler.Timestamp.Format(loggerHandler.TimestampFormat),
 		"data",
 		strings.ToUpper(board),

@@ -32,7 +32,6 @@ func Init() {
 	flag.StringVar(&ConfigFile, "config", "config.toml", "path to configuration file")
 	flag.BoolVar(&ConfigAllowUnknown, "config-allow-unknown", false, "allow unknown fields in configuration file")
 	flag.StringVar(&TraceLevel, "trace", "info", "set the trace level (\"fatal\", \"error\", \"warn\", \"info\", \"debug\", \"trace\")")
-	flag.StringVar(&TraceFile, "log", "", "set the trace log file")
 	flag.StringVar(&CPUProfile, "cpuprofile", "", "write cpu profile to file")
 	flag.BoolVar(&EnableSNTP, "sntp", false, "enables a simple SNTP server on port 123")
 	flag.IntVar(&BlockProfile, "blockprofile", 0, "number of block profiles to include")
