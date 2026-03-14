@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"time"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	loggerHandler "github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
@@ -49,7 +48,7 @@ func InitTrace(traceLevel string) *os.File {
 	traceDir := loggerHandler.BasePath
 
 	// Use current time in filename to avoid collisions
-	timestamp := time.Now().Format(loggerHandler.TimestampFormat)
+	timestamp := loggerHandler.StartAppTimestamp.Format(loggerHandler.TimestampFormat)
 
 	traceFile := path.Join(
 		"others",
