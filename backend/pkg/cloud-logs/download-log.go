@@ -26,8 +26,8 @@ func (d *Downloader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	res, err := download(d, path)
 	fmt.Print(res)
 	if err != nil {
-		fmt.Printf("%v", err)
-		w.Write([]byte("400"))
+		fmt.Errorf(err.Error())
+		w.WriteHeader(400)
 	}
 
 	w.Header().Set("Content-Disposition", res.Header.Get("Content-Disposition"))
@@ -37,6 +37,7 @@ func (d *Downloader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	defer res.Body.Close()
 	if err != nil {
 		fmt.Errorf(err.Error())
+		w.WriteHeader(400)
 	}
 }
 
@@ -44,12 +45,12 @@ func download(d *Downloader, path string) (*http.Response, error) {
 	fmt.Print(path)
 	req, err := http.NewRequest("GET", path, nil)
 	if err != nil {
-		return nil, errors.New("error creating http request")
+		return nil, err
 	}
 
 	res, err := d.Client.Do(req)
 	if err != nil {
-		return nil, errors.New("error making download request")
+		return nil, err
 	}
 
 	return res, nil

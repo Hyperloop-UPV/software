@@ -3,6 +3,7 @@ package cloud_logs
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -32,7 +33,11 @@ func (u *Uploader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	decoder.Decode(&path)
 
-	file, _ := os.Open(path.Path)
+	file, err := os.Open(path.Path)
+	if err != nil {
+		fmt.Errorf(err.Error())
+		w.WriteHeader(400)
+	}
 
 	defer file.Close()
 
@@ -42,13 +47,19 @@ func (u *Uploader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	part, err := writer.CreateFormFile("file", filepath.Base(path.Path))
 	if err != nil {
+		fmt.Errorf(err.Error())
+		w.WriteHeader(400)
 	}
 
 	io.Copy(part, file)
 
-	writer.Close()
+	defer writer.Close()
 
-	req, _ = http.NewRequest("POST", u.Endpoint, body)
+	req, err = http.NewRequest("POST", u.Endpoint, body)
+	if err != nil {
+		fmt.Errorf(err.Error())
+		w.WriteHeader(400)
+	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 

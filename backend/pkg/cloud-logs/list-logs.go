@@ -33,7 +33,7 @@ func (l *Lister) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	l.setDefault()
 	list, err := get_logs_list(l)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Errorf(err.Error())
 		w.WriteHeader(400)
 	}
 
@@ -46,19 +46,17 @@ func get_logs_list(l *Lister) (Logs, error) {
 	log_list := Logs{}
 	req, err := http.NewRequest("GET", l.Endpoint, nil)
 	if err != nil {
-		fmt.Printf("error req")
-		return log_list, errors.New("Error making request ")
+		return log_list, err
 	}
 
 	res, err := l.Client.Do(req)
 	if err != nil {
-		return log_list, errors.New("Error getting list of logs")
+		return log_list, err
 	}
 
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(&log_list)
 	if err != nil {
-		fmt.Printf("error decoding")
 		return log_list, err
 	}
 	defer res.Body.Close()
