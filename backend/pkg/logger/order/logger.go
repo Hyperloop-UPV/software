@@ -7,6 +7,7 @@ import (
 	"time"
 
 	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
+	trace "github.com/rs/zerolog/log"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
@@ -40,7 +41,8 @@ func NewLogger() *Logger {
 func (sublogger *Logger) Start() error {
 
 	if !sublogger.Running.CompareAndSwap(false, true) {
-		fmt.Println("Logger already running")
+
+		trace.Warn().Msg("Logger already running")
 		return nil
 	}
 	// Create the file for logging, if the logger was already running
@@ -52,7 +54,7 @@ func (sublogger *Logger) Start() error {
 	sublogger.StartTime = logger.FormatTimestamp(time.Now()) // Update the start time
 
 	sublogger.writer = file.NewCSV(fileRaw)
-	fmt.Println("Logger started " + string(sublogger.Name) + ".")
+	trace.Info().Msg("Logger " + string(sublogger.Name) + " started.")
 	return nil
 }
 
