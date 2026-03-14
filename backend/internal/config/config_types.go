@@ -11,7 +11,8 @@ type App struct {
 }
 
 type Adj struct {
-	Branch string `toml:"branch"`
+	Branch   string `toml:"branch"`
+	Validate bool   `toml:"validate"`
 }
 
 type Transport struct {
