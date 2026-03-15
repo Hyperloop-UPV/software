@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import fs from "fs";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigManager } from "../configManager.js";
 
 // Mock fs module
@@ -8,6 +8,9 @@ vi.mock("fs");
 describe("ConfigManager - Initialization", () => {
   const templatePath = "/path/to/template.toml";
   const userConfigPath = "/path/to/user.toml";
+  const versionFilePath = "/path/to/version.toml";
+  const appVersion = "1.0.0";
+  const appVersionReturnValue = `version = "${appVersion}"`;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -15,8 +18,14 @@ describe("ConfigManager - Initialization", () => {
 
   it("should create config manager instance", () => {
     fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(appVersionReturnValue);
 
-    const manager = new ConfigManager(userConfigPath, templatePath);
+    const manager = new ConfigManager(
+      userConfigPath,
+      templatePath,
+      versionFilePath,
+      appVersion,
+    );
 
     expect(manager.userConfigPath).toBe(userConfigPath);
     expect(manager.templatePath).toBe(templatePath);
@@ -28,8 +37,9 @@ describe("ConfigManager - Initialization", () => {
       return true;
     });
     fs.mkdirSync.mockImplementation(() => {});
+    fs.readFileSync.mockReturnValue(appVersionReturnValue);
 
-    new ConfigManager(userConfigPath, templatePath);
+    new ConfigManager(userConfigPath, templatePath, versionFilePath, appVersion);
 
     expect(fs.mkdirSync).toHaveBeenCalledWith("/path/to", {
       recursive: true,
@@ -39,17 +49,17 @@ describe("ConfigManager - Initialization", () => {
   it("should copy template if user config does not exist", () => {
     fs.existsSync.mockImplementation((path) => {
       if (path === userConfigPath) return false;
-      if (path === templatePath) return true;
       return true;
     });
     fs.copyFileSync.mockImplementation(() => {});
+    fs.writeFileSync.mockImplementation(() => {});
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    new ConfigManager(userConfigPath, templatePath);
+    new ConfigManager(userConfigPath, templatePath, versionFilePath, appVersion);
 
     expect(fs.copyFileSync).toHaveBeenCalledWith(templatePath, userConfigPath);
     expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Created config from template")
+      expect.stringContaining("Created config from template"),
     );
 
     consoleSpy.mockRestore();
@@ -59,7 +69,7 @@ describe("ConfigManager - Initialization", () => {
     fs.existsSync.mockReturnValue(false);
 
     expect(() => {
-      new ConfigManager(userConfigPath, templatePath);
+      new ConfigManager(userConfigPath, templatePath, versionFilePath, appVersion);
     }).toThrow("Template not found");
   });
 });

@@ -4,8 +4,13 @@
  * Provides async wrappers for ConfigManager operations with lazy initialization.
  */
 
+import { app } from "electron";
 import { logger } from "../utils/logger.js";
-import { getTemplatePath, getUserConfigPath } from "../utils/paths.js";
+import {
+  getTemplatePath,
+  getUserConfigPath,
+  getVersionFilePath,
+} from "../utils/paths.js";
 
 // Store the singleton ConfigManager instance
 let configManager = null;
@@ -26,11 +31,19 @@ async function getConfigManager() {
     // Get paths for user config and template
     const userConfigPath = getUserConfigPath();
     const templatePath = getTemplatePath();
+    const versionFilePath = getVersionFilePath();
 
     // Create new ConfigManager instance
-    configManager = new ConfigManager(userConfigPath, templatePath);
+    configManager = new ConfigManager(
+      userConfigPath,
+      templatePath,
+      versionFilePath,
+      app.getVersion(),
+    );
+
     logger.config.info("ConfigManager initialized");
     logger.config.path("User config", userConfigPath);
+    logger.config.path("User version config", versionFilePath);
     logger.config.path("Template path", templatePath);
   }
 

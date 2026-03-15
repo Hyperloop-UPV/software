@@ -6,15 +6,15 @@ import { ChartSettings } from "./ChartSettings";
 interface ChartLegendProps {
   chartId: string;
   series: WorkspaceChartSeries[];
-  disabledIndices: Set<number>;
-  onToggle: (index: number) => void;
-  onRemove: (variable: string, index: number) => void;
+  disabledVariables: Set<string>;
+  onToggle: (seriesKey: string) => void;
+  onRemove: (variable: string) => void;
 }
 
 export const ChartLegend = ({
   chartId,
   series,
-  disabledIndices,
+  disabledVariables,
   onToggle,
   onRemove,
 }: ChartLegendProps) => (
@@ -25,9 +25,9 @@ export const ChartLegend = ({
         className="border-border flex items-center overflow-hidden rounded-md border shadow-sm transition-transform active:scale-95"
       >
         <button
-          onClick={() => onToggle(i)}
+          onClick={() => onToggle(p.variable)}
           className={`flex items-center gap-2 px-2.5 py-1 text-[10px] font-bold uppercase transition-colors ${
-            disabledIndices.has(i)
+            disabledVariables.has(p.variable)
               ? "bg-muted text-muted-foreground grayscale"
               : "bg-background text-foreground hover:bg-accent"
           }`}
@@ -39,7 +39,8 @@ export const ChartLegend = ({
           {p.variable}
         </button>
         <button
-          onClick={() => onRemove(p.variable, i)}
+          title={`Remove variable ${p.variable}`}
+          onClick={() => onRemove(p.variable)}
           className="border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive h-full border-l px-1.5 py-1 transition-colors"
         >
           <X className="h-3 w-3" />

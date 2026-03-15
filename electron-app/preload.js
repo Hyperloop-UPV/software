@@ -37,6 +37,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Open folder selection dialog
   selectFolder: () => ipcRenderer.invoke("select-folder"),
   // Receive log message from backend
-  onLog: (callback) =>
-    ipcRenderer.on("log", (_event, value) => callback(value)),
+  onLog: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.removeAllListeners("log");
+    ipcRenderer.on("log", listener);
+    return () => ipcRenderer.removeListener("log", listener);
+  },
 });

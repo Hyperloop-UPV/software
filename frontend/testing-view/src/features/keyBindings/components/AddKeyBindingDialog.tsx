@@ -21,6 +21,7 @@ import { getDefaultParameterValues } from "../../../lib/commandUtils";
 import { useStore } from "../../../store/store";
 import type { CommandCatalogItem } from "../../../types/data/commandCatalogItem";
 import { CommandParameters } from "../../workspace/components/rightSidebar/tabs/commands/CommandParameters";
+import { SPECIAL_COMMANDS } from "../constants/specialCommands";
 import { SPECIAL_KEY_BINDINGS } from "../constants/specialKeyBindings";
 
 interface AddKeyBindingDialogProps {
@@ -139,6 +140,19 @@ export const AddKeyBindingDialog = ({
                 <SelectValue placeholder="Select command..." />
               </SelectTrigger>
               <SelectContent className="px-2 py-2">
+                <SelectGroup key="Logger">
+                  <SelectLabel>Logger</SelectLabel>
+                  {Object.entries(SPECIAL_COMMANDS).map(([id, label]) => (
+                    <SelectItem key={id} value={id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{label}</span>
+                        <span className="text-muted-foreground text-xs">
+                          Logger
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
                 {Object.entries(commandsCatalog).map(
                   ([boardName, commands]) => (
                     <SelectGroup key={boardName}>

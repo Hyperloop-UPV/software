@@ -46,7 +46,7 @@ export const Testing = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold">No Active Workspace</h2>
-            <p className="text-muted-foreground mt-2 max-w-[500px]">
+            <p className="text-muted-foreground max-w-125 mt-2">
               Create your first workspace to start organizing your commands,
               telemetry, and charts.
             </p>

@@ -59,14 +59,14 @@ function getBinaryPath(name) {
     return path.join(
       getAppPath(),
       "binaries",
-      `${name}-${goos}-${goarch}${ext}`
+      `${name}-${goos}-${goarch}${ext}`,
     );
   }
 
   return path.join(
     process.resourcesPath,
     "binaries",
-    `${name}-${goos}-${goarch}${ext}`
+    `${name}-${goos}-${goarch}${ext}`,
   );
 }
 
@@ -91,6 +91,25 @@ function getUserConfigPath() {
 }
 
 /**
+ * Gets the path to the user app version file.
+ * @returns {string} The absolute path to the user's version.toml file.
+ * @example
+ * const configVersionPath = getVersionFilePath();
+ * // Development: returns "electron-app/version.toml"
+ * // Production: returns "userData/configs/version.toml"
+ */
+function getVersionFilePath() {
+  if (!app.isPackaged) {
+    // Development: use local version.toml in project root
+    return path.join(getAppPath(), "version.toml");
+  }
+
+  // Production: user version in userData directory
+  const userConfigDir = app.getPath("userData");
+  return path.join(userConfigDir, "version.toml");
+}
+
+/**
  * Gets the path to the configuration template file.
  * @returns {string} The absolute path to the configuration template file.
  * @example
@@ -108,4 +127,10 @@ function getTemplatePath() {
   return path.join(process.resourcesPath, "config.toml");
 }
 
-export { getAppPath, getBinaryPath, getTemplatePath, getUserConfigPath };
+export {
+  getAppPath,
+  getBinaryPath,
+  getTemplatePath,
+  getUserConfigPath,
+  getVersionFilePath,
+};
