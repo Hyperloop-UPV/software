@@ -50,7 +50,7 @@ func configureTransport(
 	configureTCPServerTransport(adj, transp)
 
 	// Start handling network packets using UDP server
-	configureUDPServerTransport(adj, transp)
+	configureUDPServerTransport(adj, transp, config)
 
 }
 
@@ -133,9 +133,11 @@ func configureTCPServerTransport(
 func configureUDPServerTransport(
 	adj adj_module.ADJ,
 	transp *transport.Transport,
+	config config.Config,
+
 ) {
 	trace.Info().Msg("Starting UDP server")
-	udpServer := udp.NewServer(adj.Info.Addresses[BACKEND], adj.Info.Ports[UDP], &trace.Logger)
+	udpServer := udp.NewServer(adj.Info.Addresses[BACKEND], adj.Info.Ports[UDP], &trace.Logger, config.UDP.RingBufferSize, config.UDP.PacketChanSize)
 	err := udpServer.Start()
 	if err != nil {
 		trace.Fatal().Err(err).Msg("failed to start UDP server: " + err.Error())

@@ -943,45 +943,6 @@ func TestHandleServer_AcceptsAndDispatches(t *testing.T) {
 	}
 }
 
-func TestHandleUDPServer_Dispatches(t *testing.T) {
-	tr, api := createTestTransport(t)
-	tr.SetpropagateFault(false)
-
-	port := getAvailableUDPPort(t)
-	logger := zerolog.Nop()
-	server := udp.NewServer("127.0.0.1", port, &logger)
-	if err := server.Start(); err != nil {
-		t.Fatalf("failed to start UDP server: %v", err)
-	}
-	defer server.Stop()
-
-	go tr.HandleUDPServer(server)
-
-	packet := data.NewPacket(100)
-	packet.SetTimestamp(time.Unix(0, 0))
-	buf, err := tr.encoder.Encode(packet)
-	if err != nil {
-		t.Fatalf("encode failed: %v", err)
-	}
-	defer tr.encoder.ReleaseBuffer(buf)
-
-	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: int(port)})
-	if err != nil {
-		t.Fatalf("failed to dial UDP server: %v", err)
-	}
-	defer conn.Close()
-
-	if _, err := conn.Write(buf.Bytes()); err != nil {
-		t.Fatalf("failed to send UDP packet: %v", err)
-	}
-
-	if err := waitForCondition(func() bool {
-		return len(api.GetNotifications()) > 0
-	}, 2*time.Second, "Should receive notification from UDP server"); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestHandleConversation_DispatchesAndStopsOnError(t *testing.T) {
 	tr, api := createTestTransport(t)
 

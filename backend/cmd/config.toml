@@ -34,6 +34,12 @@ max_retries = 0              # Maximum retries before cycling (0 = infinite retr
 connection_timeout_ms = 1000 # Connection timeout in milliseconds
 keep_alive_ms = 1000         # Keep-alive interval in milliseconds
 
+# UDP Configuration
+# These settings control the UDP server's buffer sizes and performance characteristics
+[udp]
+ring_buffer_size = 64      # Size of the ring buffer for incoming packets (number of packets, not bytes)
+packet_chan_size = 16      # Size of the channel buffer
+
 # TFTP Configuration
 [tftp]
 block_size = 131072    # TFTP block size in bytes (128kB)
