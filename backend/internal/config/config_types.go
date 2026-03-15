@@ -11,7 +11,8 @@ type App struct {
 }
 
 type Adj struct {
-	Branch string `toml:"branch"`
+	Branch   string `toml:"branch"`
+	Validate bool   `toml:"validate"`
 }
 
 type Transport struct {
@@ -35,6 +36,11 @@ type TCP struct {
 	KeepAlive         int     `toml:"keep_alive_ms"`
 }
 
+type UDP struct {
+	RingBufferSize int `toml:"ring_buffer_size"`
+	PacketChanSize int `toml:"packet_chan_size"`
+}
+
 type Logging struct {
 	TimeUnit    logger.TimeUnit `toml:"time_unit"`
 	LoggingPath string          `toml:"logging_path"`
@@ -48,5 +54,6 @@ type Config struct {
 	Transport Transport
 	TFTP      TFTP
 	TCP       TCP
+	UDP       UDP
 	Logging   Logging
 }

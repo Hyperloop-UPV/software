@@ -1,11 +1,12 @@
 package loggerbase
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"sync/atomic"
 	"time"
+
+	trace "github.com/rs/zerolog/log"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	loggerHandler "github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
@@ -42,33 +43,37 @@ type BaseLogger struct {
 // Function to start the base logger
 func (sublogger *BaseLogger) Start() error {
 	if !sublogger.Running.CompareAndSwap(false, true) {
-		fmt.Println("Logger already running")
+		trace.Warn().Msg("Logger already running")
 		return nil
 	}
 
 	sublogger.StartTime = loggerHandler.FormatTimestamp(time.Now()) // Update the start time
 
-	fmt.Println("Logger started " + string(sublogger.Name) + ".")
+	trace.Info().Msg("Logger " + string(sublogger.Name) + " started.")
 	return nil
 }
 
 // Function to create the base file path
 
 func (sublogger *BaseLogger) CreateFile(filename string) (*os.File, error) {
+	return CreateFile(loggerHandler.BasePath, sublogger.Name, filename)
+}
 
-	// Includes the direcory specified by the user
-	baseFilename := path.Join(loggerHandler.BasePath, filename)
+// Create File given a path name of loggerand file name
+func CreateFile(basePath string, name abstraction.LoggerName, filename string) (*os.File, error) {
+
+	baseFilename := path.Join(basePath, filename)
 
 	err := os.MkdirAll(path.Dir(baseFilename), os.ModePerm)
 	if err != nil {
 		return nil, loggerHandler.ErrCreatingAllDir{
-			Name:      sublogger.Name,
+			Name:      name,
 			Timestamp: time.Now(),
 			Path:      baseFilename,
 		}
 	}
 
-	return os.Create(path.Join(baseFilename))
+	return os.Create(baseFilename)
 }
 
 // Create a base Logger with default values
@@ -88,12 +93,12 @@ func (sublogger *BaseLogger) PullRecord(abstraction.LoggerRequest) (abstraction.
 // Param templateStop is a function that contains the specific stop actions of each logger
 func (sublogger *BaseLogger) Stop(templateStop func() error) error {
 	if !sublogger.Running.CompareAndSwap(true, false) {
-		fmt.Println("Logger already stopped" + string(sublogger.Name) + ".")
+		trace.Warn().Msg("Logger already stopped" + string(sublogger.Name) + ".")
 		return nil
 	}
 
 	output := templateStop()
 
-	fmt.Println("Logger stopped " + string(sublogger.Name) + ".")
+	trace.Info().Msg("Logger " + string(sublogger.Name) + " stopped.")
 	return output
 }

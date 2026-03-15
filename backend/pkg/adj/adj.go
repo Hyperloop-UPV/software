@@ -6,11 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/utils"
 )
 
 const (
-	RepoURL = "https://github.com/Hyperloop-UPV/adj.git" // URL of the ADJ repository
+	RepoURL            = "https://github.com/Hyperloop-UPV/adj.git"     // URL of the ADJ repository
+	ADJValidatorScript = ".github/workflows/scripts/adj-tester/main.py" // Path of ADJ valdiator
 )
 
 var RepoPath = getRepoPath()
@@ -32,8 +34,8 @@ func getRepoPath() string {
 	return absPath + string(filepath.Separator)
 }
 
-func NewADJ(AdjBranch string) (ADJ, error) {
-	infoRaw, boardsRaw, err := downloadADJ(AdjBranch)
+func NewADJ(AdjSettings config.Adj) (ADJ, error) {
+	infoRaw, boardsRaw, err := downloadADJ(AdjSettings)
 	if err != nil {
 		return ADJ{}, err
 	}
@@ -87,8 +89,16 @@ func NewADJ(AdjBranch string) (ADJ, error) {
 	return adj, nil
 }
 
-func downloadADJ(AdjBranch string) (json.RawMessage, json.RawMessage, error) {
-	updateRepo(AdjBranch)
+func downloadADJ(AdjSettings config.Adj) (json.RawMessage, json.RawMessage, error) {
+	updateRepo(AdjSettings.Branch)
+
+	// After downloading adj apply adj validator
+
+	if AdjSettings.Validate {
+
+		Validate()
+
+	}
 
 	info, err := os.ReadFile(RepoPath + "general_info.json")
 	if err != nil {

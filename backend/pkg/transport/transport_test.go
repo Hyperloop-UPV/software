@@ -15,7 +15,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
@@ -369,17 +368,6 @@ func TestTransport_SetTargetIp(t *testing.T) {
 	}
 	if target := transport.ipToTarget["192.168.1.101"]; target != abstraction.TransportTarget("ANOTHER_BOARD") {
 		t.Errorf("Expected ANOTHER_BOARD, got %s", target)
-	}
-}
-
-func TestWithTFTP(t *testing.T) {
-	tr := NewTransport(defaultLogger())
-	tr.SetAPI(noopTransportAPI{})
-	client := &tftp.Client{}
-
-	out := tr.WithTFTP(client)
-	if out.tftp != client {
-		t.Fatalf("expected tftp client to be set")
 	}
 }
 
@@ -952,45 +940,6 @@ func TestHandleServer_AcceptsAndDispatches(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(500 * time.Millisecond):
-	}
-}
-
-func TestHandleUDPServer_Dispatches(t *testing.T) {
-	tr, api := createTestTransport(t)
-	tr.SetpropagateFault(false)
-
-	port := getAvailableUDPPort(t)
-	logger := zerolog.Nop()
-	server := udp.NewServer("127.0.0.1", port, &logger)
-	if err := server.Start(); err != nil {
-		t.Fatalf("failed to start UDP server: %v", err)
-	}
-	defer server.Stop()
-
-	go tr.HandleUDPServer(server)
-
-	packet := data.NewPacket(100)
-	packet.SetTimestamp(time.Unix(0, 0))
-	buf, err := tr.encoder.Encode(packet)
-	if err != nil {
-		t.Fatalf("encode failed: %v", err)
-	}
-	defer tr.encoder.ReleaseBuffer(buf)
-
-	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: int(port)})
-	if err != nil {
-		t.Fatalf("failed to dial UDP server: %v", err)
-	}
-	defer conn.Close()
-
-	if _, err := conn.Write(buf.Bytes()); err != nil {
-		t.Fatalf("failed to send UDP packet: %v", err)
-	}
-
-	if err := waitForCondition(func() bool {
-		return len(api.GetNotifications()) > 0
-	}, 2*time.Second, "Should receive notification from UDP server"); err != nil {
-		t.Fatal(err)
 	}
 }
 

@@ -1,9 +1,10 @@
 package adj
 
 import (
-	"log"
 	"os"
 	"path/filepath"
+
+	trace "github.com/rs/zerolog/log"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -20,8 +21,10 @@ func updateRepo(AdjBranch string) error {
 
 	if AdjBranch == "" {
 		// Makes use of user's custom ADJ
+		trace.Info().Msg("No ADJ branch specified. Using local ADJ.")
 		return nil
 	} else {
+		trace.Info().Msgf("Updating local ADJ repository to match remote branch '%s'", AdjBranch)
 		cloneOptions := &git.CloneOptions{
 			URL:           RepoURL,
 			ReferenceName: plumbing.NewBranchReferenceName(AdjBranch),
@@ -41,7 +44,7 @@ func updateRepo(AdjBranch string) error {
 		_, err = git.PlainClone(tempPath, false, cloneOptions)
 		if err != nil {
 			// If the clone fails, work with the local ADJ
-			log.Printf("Warning: Could not clone ADJ branch '%s' from remote. Working with local ADJ. Error: %v", AdjBranch, err)
+			trace.Info().Msgf("Warning: Could not clone ADJ branch '%s' from remote. Working with local ADJ. Error: %v", AdjBranch, err)
 			return nil
 		}
 
