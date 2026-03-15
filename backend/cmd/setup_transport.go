@@ -138,7 +138,7 @@ func configureUDPServerTransport(
 	udpServer := udp.NewServer(adj.Info.Addresses[BACKEND], adj.Info.Ports[UDP], &trace.Logger)
 	err := udpServer.Start()
 	if err != nil {
-		panic("failed to start UDP server: " + err.Error())
+		trace.Fatal().Err(err).Msg("failed to start UDP server: " + err.Error())
 	}
 	go transp.HandleUDPServer(udpServer)
 }
