@@ -154,7 +154,7 @@ func (s *Server) push(p Packet) {
 	defer s.ringMutex.Unlock()
 
 	if s.count == len(s.ring) {
-		s.logger.Warn().Msg("Ring buffer full, overwriting oldest UDP packet")
+		s.logger.Debug().Msg("Ring buffer full, overwriting oldest UDP packet")
 		s.head = (s.head + 1) % len(s.ring)
 		s.count--
 	}
