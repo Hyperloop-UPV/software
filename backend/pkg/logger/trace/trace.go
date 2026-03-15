@@ -52,7 +52,7 @@ func InitTrace(traceLevel string) *os.File {
 
 	traceFile := path.Join(
 		"others",
-		fmt.Sprintf("trace-%s.json", timestamp),
+		fmt.Sprintf("trace-%s.jsonl", timestamp),
 	)
 
 	// Format the caller as "file:line" instead of the default format.
