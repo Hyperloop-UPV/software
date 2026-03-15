@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/jmaralo/sntp v0.0.0-20240116111937-45a0a3419272
+	github.com/joho/godotenv v1.5.1
 	github.com/pelletier/go-toml/v2 v2.0.7
 	github.com/pin/tftp/v3 v3.0.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c

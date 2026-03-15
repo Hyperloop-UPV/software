@@ -2,7 +2,6 @@ package cloud_logs
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 type Downloader struct {
 	Endpoint string
 	Client   *http.Client
+	Auth     *CloudState
 }
 
 func (d *Downloader) setDefault() {
@@ -24,9 +24,7 @@ func (d *Downloader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	decoder.Decode(&chosen_file)
 	path := fmt.Sprintf("%v/%v", d.Endpoint, chosen_file.Id)
 	res, err := download(d, path)
-	fmt.Print(res)
 	if err != nil {
-		fmt.Errorf(err.Error())
 		w.WriteHeader(400)
 	}
 
@@ -36,7 +34,6 @@ func (d *Downloader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	io.Copy(w, res.Body)
 	defer res.Body.Close()
 	if err != nil {
-		fmt.Errorf(err.Error())
 		w.WriteHeader(400)
 	}
 }
@@ -47,6 +44,8 @@ func download(d *Downloader, path string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("Authorization", "Bearer "+d.Auth.CloudToken)
 
 	res, err := d.Client.Do(req)
 	if err != nil {

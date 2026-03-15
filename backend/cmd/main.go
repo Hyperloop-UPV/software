@@ -13,6 +13,7 @@ import (
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/websocket"
+	"github.com/joho/godotenv"
 	trace "github.com/rs/zerolog/log"
 )
 
@@ -28,6 +29,9 @@ const (
 )
 
 func main() {
+	// Load environment
+	godotenv.Load("../.env")
+
 	// Parse command line flags
 	flags.Init()
 	handleVersionFlag()
@@ -143,6 +147,7 @@ func main() {
 
 	<-interrupt
 	trace.Info().Msg("shutting down backend")
+
 }
 
 // <-- Hall of Fame -->

@@ -3,7 +3,6 @@ package cloud_logs
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -11,13 +10,10 @@ import (
 	"path/filepath"
 )
 
-type Filepath struct {
-	Path string `json:"filepath"`
-}
-
 type Uploader struct {
 	Endpoint string
 	Client   *http.Client
+	Auth     *CloudState
 }
 
 func (u *Uploader) setDefault() {
@@ -35,7 +31,6 @@ func (u *Uploader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	file, err := os.Open(path.Path)
 	if err != nil {
-		fmt.Errorf(err.Error())
 		w.WriteHeader(400)
 	}
 
@@ -47,19 +42,19 @@ func (u *Uploader) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	part, err := writer.CreateFormFile("file", filepath.Base(path.Path))
 	if err != nil {
-		fmt.Errorf(err.Error())
 		w.WriteHeader(400)
 	}
 
 	io.Copy(part, file)
 
-	defer writer.Close()
+	writer.Close()
 
 	req, err = http.NewRequest("POST", u.Endpoint, body)
 	if err != nil {
-		fmt.Errorf(err.Error())
 		w.WriteHeader(400)
 	}
+
+	req.Header.Set("Authorization", "Bearer "+u.Auth.CloudToken)
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 

@@ -20,3 +20,5 @@ cmd/logger/
 cmd/cmd
 cmd/adj
 /logger/
+
+.env

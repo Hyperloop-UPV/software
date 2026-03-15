@@ -152,6 +152,10 @@ func configureHTTPServer(
 		fmt.Fprintf(os.Stderr, "error creating programableBoards handler: %v\n", err)
 	}
 
+	cloud_auth := cloud_logs.CloudState{}
+
+	cloud_auth.Login()
+
 	for _, server := range config.Server {
 		mux := h.NewMux(
 			h.Endpoint("/backend"+server.Endpoints.PodData, podDataHandle),
@@ -159,9 +163,9 @@ func configureHTTPServer(
 			h.Endpoint("/backend"+server.Endpoints.ProgramableBoards, programableBoardsHandle),
 			h.Endpoint(server.Endpoints.Connections, upgrader),
 			h.Endpoint(server.Endpoints.Files, h.HandleStatic(server.StaticPath)),
-			h.Endpoint("/logs/download", &cloud_logs.Downloader{}),
-			h.Endpoint("/logs/upload", &cloud_logs.Uploader{}),
-			h.Endpoint("/logs/list", &cloud_logs.Lister{}),
+			h.Endpoint("/logs/download", &cloud_logs.Downloader{Auth: &cloud_auth}),
+			h.Endpoint("POST /logs/upload", &cloud_logs.Uploader{Auth: &cloud_auth}),
+			h.Endpoint("/logs/list", &cloud_logs.Lister{Auth: &cloud_auth}),
 		)
 		httpServer := h.NewServer(server.Addr, mux)
 		go httpServer.ListenAndServe()
