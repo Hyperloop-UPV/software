@@ -82,3 +82,4 @@ coverage
 # Config and config backups
 config.toml
 config.toml.backup-*
+version.toml

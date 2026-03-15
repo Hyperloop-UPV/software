@@ -2,6 +2,7 @@
 package logger
 
 import (
+	"path"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -37,7 +38,10 @@ var _ abstraction.Logger = &Logger{}
 // Timestamp is used on subloggers to get the current timestamp for folder or file names
 var Timestamp = time.Now()
 
-var BasePath = "."
+// StartAppTimestamp is the time in which the app was started
+var StartAppTimestamp = time.Now()
+
+var BasePath = path.Join("logger", StartAppTimestamp.Format(TimestampFormat))
 
 func (Logger) HandlerName() string { return HandlerName }
 
@@ -175,5 +179,5 @@ func ConfigureLogger(unit TimeUnit, basePath string) {
 	SetFormatTimestamp(unit)
 
 	// Update base Path
-	BasePath = basePath
+	BasePath = path.Join(basePath, "logger", StartAppTimestamp.Format(TimestampFormat))
 }

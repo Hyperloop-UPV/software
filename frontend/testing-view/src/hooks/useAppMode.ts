@@ -25,28 +25,18 @@ export function useAppMode(
     const isDev = import.meta.env.DEV || isForceDev;
 
     const hasData = !!(packets?.boards && commands?.boards);
-    const hasError = !hasData || error;
-
-    // Debug logs
-    // logger.testingView.log("[DEBUG] isDev", isDev);
-    // logger.testingView.log("[DEBUG] isLoading", isLoading);
-    // logger.testingView.log("[DEBUG] hasData", hasData);
-    // logger.testingView.log("[DEBUG] hasError", hasError);
 
     if (isLoading || isRestarting) return "loading";
 
     if (!packets || !commands) {
-      // If we have an explicit error, show it.
-      if (hasError) return "error";
-
-      // Otherwise, we are just waiting for data.
+      if (error) return isDev ? "mock" : "error";
       return "loading";
     }
 
-    if (!hasError) return "active";
+    if (hasData && !error) return "active";
     if (isDev) return "mock";
     return "error";
-  }, [isLoading, packets, commands, isRestarting, modeOverride]);
+  }, [isLoading, packets, commands, isRestarting, modeOverride, error]);
 
   // Determine and set app mode
   useEffect(() => {

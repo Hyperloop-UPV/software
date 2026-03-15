@@ -81,6 +81,8 @@ function loadView(view) {
   // Construct path to view HTML file
   const viewPath = path.join(appPath, "renderer", view, "index.html");
 
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
   // Check if view file exists
   if (fs.existsSync(viewPath)) {
     // Load the view HTML file

@@ -51,9 +51,9 @@ export const ChartSettings = ({ chartId }: ChartSettingsProps) => {
 
             <input
               type="range"
-              min="100"
-              max="5000"
-              step="100"
+              min={config.CHART_HISTORY_MIN}
+              max={config.CHART_HISTORY_MAX}
+              step={config.CHART_HISTORY_STEP}
               value={historyLimit}
               onChange={(e) =>
                 activeWorkspace?.id &&
