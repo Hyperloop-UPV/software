@@ -164,4 +164,45 @@ key2 = "value2"`;
       0
     );
   });
+
+  it("should not corrupt a [section]-like line inside a multiline string", () => {
+    const toml = `[app]
+note = """
+[not-a-section]
+just text
+"""
+name = "old"`;
+
+    const result = updateTomlValue(toml, "app", "name", "new");
+
+    expect(result).toContain('name = "new"');
+    expect(result).toContain("[not-a-section]");
+  });
+
+  it("should not update a key inside a multiline string", () => {
+    const toml = `[app]
+note = """
+name = "inside multiline"
+"""
+name = "real"`;
+
+    const result = updateTomlValue(toml, "app", "name", "updated");
+
+    expect(result).toContain('name = "updated"');
+    expect(result).toContain('name = "inside multiline"');
+    expect(result.indexOf('name = "inside multiline"')).toBeLessThan(
+      result.indexOf('name = "updated"')
+    );
+  });
+
+  it("should handle a multiline string that opens and closes on the same line", () => {
+    const toml = `[app]
+note = """single line multiline"""
+name = "old"`;
+
+    const result = updateTomlValue(toml, "app", "name", "new");
+
+    expect(result).toContain('name = "new"');
+    expect(result).toContain('note = """single line multiline"""');
+  });
 });

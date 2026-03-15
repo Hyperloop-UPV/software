@@ -45,7 +45,7 @@ export const CommandParameters = ({
             id={field.id}
             type="number"
             placeholder={field.type}
-            value={values[field.id] || ""}
+            value={values[field.id] ?? ""}
             onChange={(e) => onChange(field.id, e.target.value)}
             className="h-8 text-xs"
           />
@@ -74,7 +74,7 @@ export const CommandParameters = ({
             {field.name}
           </Label>
           <Select
-            value={values[field.id] || ""}
+            value={values[field.id] ?? ""}
             onValueChange={(value) => onChange(field.id, value)}
           >
             <SelectTrigger className="text-xs">

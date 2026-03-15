@@ -1,5 +1,6 @@
 # Hyperloop Control Station H11
- ![Testing View](https://raw.githubusercontent.com/Hyperloop-UPV/webpage/5c1c827d82d380689856ee61af43da30da22e0fc/src/assets/backgrounds/testing-view.png)
+
+![Testing View](https://raw.githubusercontent.com/Hyperloop-UPV/webpage/5c1c827d82d380689856ee61af43da30da22e0fc/src/assets/backgrounds/testing-view.png)
 
 ## Monorepo usage
 
@@ -20,17 +21,17 @@ Before starting, ensure you have the following installed:
 
 Our `pnpm-workspace.yaml` defines the following workspaces:
 
-| Workspace                      | Language | Description                                    |
-| :----------------------------- | :------- | :--------------------------------------------- |
-| `testing-view`                 | TS/React | Web interface for telemetry testing            |
-| `competition-view`             | TS/React | UI for the competition                         |
-| `backend`                      | Go       | Data ingestion and pod communication server    |
-| `packet-sender`                | Rust     | Utility for simulating vehicle packets         |
-| `electron-app`                 | JS       | The main Control Station desktop application   |
-| `@workspace/ui`                | TS/React | Shared UI component library (frontend-kit)     |
-| `@workspace/core`              | TS       | Shared business logic and types (frontend-kit) |
-| `@workspace/eslint-config`     | ESLint   | Common ESLint configuration (frontend-kit)     |
-| `@workspace/typescript-config` | TS       | Common TypeScript configuration (frontend-kit) |
+| Workspace                      | Language | Description                                           |
+| :----------------------------- | :------- | :---------------------------------------------------- |
+| `testing-view`                 | TS/React | Web interface for telemetry testing                   |
+| `competition-view`             | TS/React | UI for the competition                                |
+| `backend`                      | Go       | Data ingestion and pod communication server           |
+| `packet-sender`                | Rust     | Utility for simulating vehicle packets                |
+| `hyperloop-control-station`    | JS       | The main Control Station electron desktop application |
+| `@workspace/ui`                | TS/React | Shared UI component library (frontend-kit)            |
+| `@workspace/core`              | TS       | Shared business logic and types (frontend-kit)        |
+| `@workspace/eslint-config`     | ESLint   | Common ESLint configuration (frontend-kit)            |
+| `@workspace/typescript-config` | TS       | Common TypeScript configuration (frontend-kit)        |
 
 ---
 

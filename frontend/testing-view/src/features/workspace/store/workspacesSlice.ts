@@ -63,9 +63,9 @@ export const createWorkspacesSlice: StateCreator<
       const newWorkspaceFilters = {
         ...state.workspaceFilters,
         [newWorkspaceId]: {
-          commands: createFullFilter(commands, get().boards),
-          telemetry: createFullFilter(telemetry, get().boards),
-          logs: createFullFilter(telemetry, get().boards),
+          commands: createFullFilter(commands, state.boards),
+          telemetry: createFullFilter(telemetry, state.boards),
+          logs: createFullFilter(telemetry, state.boards),
         },
       };
 

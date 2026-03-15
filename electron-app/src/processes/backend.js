@@ -54,13 +54,13 @@ async function startBackend(logWindow = null) {
       logger.backend.error(`Backend binary not found: ${backendBin}`);
       dialog.showErrorBox(
         "Error",
-        `Backend binary not found at: ${backendBin}`
+        `Backend binary not found at: ${backendBin}`,
       );
       return reject(new Error(`Backend binary not found: ${backendBin}`));
     }
 
     logger.backend.info(
-      `Starting backend: ${backendBin}, config: ${configPath}`
+      `Starting backend: ${backendBin}, config: ${configPath}`,
     );
 
     // Set working directory to backend/cmd in development, or resources in production
@@ -88,7 +88,6 @@ async function startBackend(logWindow = null) {
     backendProcess.stderr.on("data", (data) => {
       const errorMsg = data.toString().trim();
       logger.backend.error(errorMsg);
-      // Store the last error message
       lastBackendError = errorMsg;
 
       // Send error message to log window
@@ -103,22 +102,17 @@ async function startBackend(logWindow = null) {
       logger.backend.error(`Failed to start backend: ${error.message}`);
       dialog.showErrorBox(
         "Backend Error",
-        `Failed to start backend: ${error.message}`
+        `Failed to start backend: ${error.message}`,
       );
       return reject(new Error(`Failed to start backend: ${error.message}`));
     });
 
-    // If the backend didn't fail in this period of time, resolve the promise
-    setTimeout(() => {
-      resolve(backendProcess);
-    }, 2000);
-
     // Handle process exit
     backendProcess.on("close", (code) => {
       logger.backend.info(`Backend process exited with code ${code}`);
-      // Show error dialog if process crashed (non-zero exit code)
+      clearTimeout(startupTimer);
+
       if (code !== 0 && code !== null) {
-        // Build error message with actual error details
         let errorMessage = `Backend exited with code ${code}`;
 
         if (lastBackendError) {
@@ -128,10 +122,18 @@ async function startBackend(logWindow = null) {
         }
 
         dialog.showErrorBox("Backend Crashed", errorMessage);
-        // Clear error message after showing
         lastBackendError = null;
+        backendProcess = null;
+        return reject(new Error(errorMessage));
       }
+
+      backendProcess = null;
     });
+
+    // If the backend didn't fail in this period of time, resolve the promise
+    const startupTimer = setTimeout(() => {
+      resolve(backendProcess);
+    }, 2000);
   });
 }
 
@@ -164,7 +166,7 @@ async function stopBackend() {
       const fallbackTimer = setTimeout(() => {
         if (localBackendProcess && !localBackendProcess.killed) {
           logger.backend.warning(
-            "Backend did not exit gracefully, force killing..."
+            "Backend did not exit gracefully, force killing...",
           );
           localBackendProcess.kill("SIGKILL");
         }

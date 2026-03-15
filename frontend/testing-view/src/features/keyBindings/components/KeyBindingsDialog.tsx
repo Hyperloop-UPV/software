@@ -10,6 +10,7 @@ import { Plus } from "@workspace/ui/icons";
 import { useState } from "react";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../store/store";
+import { SPECIAL_COMMANDS } from "../constants/specialCommands";
 import type { KeyBinding } from "../types/keyBinding";
 import { AddKeyBindingDialog } from "./AddKeyBindingDialog";
 import { KeyBindingCard } from "./KeyBindingCard";
@@ -33,6 +34,17 @@ export const KeyBindingsDialog = ({
 
   // Get command details for display
   const getCommandDetails = (commandId: number) => {
+    if (commandId in SPECIAL_COMMANDS) {
+      return {
+        command: {
+          id: commandId,
+          name: String(commandId),
+          label: SPECIAL_COMMANDS[commandId],
+          fields: {},
+        },
+        boardName: "Logger",
+      };
+    }
     for (const [boardName, commands] of Object.entries(commandsCatalog)) {
       const command = commands.find((c) => c.id === commandId);
       if (command) {
@@ -45,7 +57,14 @@ export const KeyBindingsDialog = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full min-w-[700px]">
+        <DialogContent
+          className="w-full min-w-[700px]"
+          // onOpenAutoFocus moves focus from the first item's remove button to the dialog itself
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement).focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Key Bindings - {activeWorkspace?.name}</DialogTitle>
             <DialogDescription>
@@ -59,7 +78,7 @@ export const KeyBindingsDialog = ({
                 <p className="mb-2 text-sm">No key bindings yet</p>
               </div>
             ) : (
-              <div className="max-h-[400px] space-y-2 overflow-y-auto">
+              <div className="max-h-100 space-y-2 overflow-y-auto">
                 {keyBindings.map((binding) => {
                   const details = getCommandDetails(binding.commandId);
                   if (!details)

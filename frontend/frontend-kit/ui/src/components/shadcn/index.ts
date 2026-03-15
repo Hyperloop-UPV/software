@@ -1,4 +1,6 @@
 export * from "./badge";
+export * from "./combobox";
+export * from "./input-group";
 export * from "./button";
 export * from "./card";
 export * from "./checkbox";

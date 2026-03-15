@@ -41,25 +41,25 @@ export const TelemetryChart = ({
   const removeChart = useStore((s) => s.removeChart);
   const removeSeries = useStore((s) => s.removeSeriesFromChart);
 
-  const [disabledIndices, setDisabledIndices] = useState<Set<number>>(
+  const [disabledVariables, setDisabledVariables] = useState<Set<string>>(
     new Set(),
   );
 
-  const toggleSeries = (index: number) => {
-    setDisabledIndices((prev) => {
+  const toggleSeries = (variable: string) => {
+    setDisabledVariables((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
+      if (next.has(variable)) next.delete(variable);
+      else next.add(variable);
       return next;
     });
   };
 
-  const handleRemoveSeries = (variable: string, index: number) => {
+  const handleRemoveSeries = (variable: string) => {
     if (!activeWorkspaceId) return;
     removeSeries(activeWorkspaceId, id, variable);
-    setDisabledIndices((prev) => {
+    setDisabledVariables((prev) => {
       const next = new Set(prev);
-      next.delete(index);
+      next.delete(variable);
       return next;
     });
   };
@@ -91,6 +91,7 @@ export const TelemetryChart = ({
 
         {/* Delete Button */}
         <button
+          title="Remove chart"
           onClick={() =>
             activeWorkspaceId && removeChart(activeWorkspaceId, id)
           }
@@ -103,15 +104,15 @@ export const TelemetryChart = ({
       <ChartLegend
         chartId={id}
         series={series}
-        disabledIndices={disabledIndices}
+        disabledVariables={disabledVariables}
         onToggle={toggleSeries}
-        onRemove={(v, i) => handleRemoveSeries(v, i)}
+        onRemove={handleRemoveSeries}
       />
 
       <ChartSurface
         chartId={id}
         series={series}
-        disabledIndices={disabledIndices}
+        disabledVariables={disabledVariables}
       />
     </div>
   );

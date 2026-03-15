@@ -33,8 +33,15 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
   const hasParameters = Object.keys(commandCatalogItem.fields).length > 0;
   const paramCount = Object.keys(commandCatalogItem.fields).length;
 
+  const hasInvalidNumeric = Object.entries(commandCatalogItem.fields).some(
+    ([key, field]) =>
+      field.kind === "numeric" &&
+      !Number.isFinite(parseFloat(parameterValues[key])),
+  );
+
   const handleRun = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (hasInvalidNumeric) return;
 
     const payload = {
       id: commandCatalogItem.id,
@@ -80,8 +87,14 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
           <CollapsibleTrigger className="hover:bg-accent/50 group flex w-full items-center gap-2 px-3 py-2 transition-colors">
             <div
               role="button"
+              aria-disabled={hasInvalidNumeric}
               onClick={handleRun}
-              className="hover:bg-primary/90 hover:text-primary-foreground bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
+              className={cn(
+                "bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+                hasInvalidNumeric
+                  ? "cursor-not-allowed opacity-40"
+                  : "hover:bg-primary/90 hover:text-primary-foreground",
+              )}
             >
               <Play className="h-3.5 w-3.5 fill-current" />
             </div>
@@ -128,7 +141,8 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
               {/* Send button at bottom */}
               <button
                 onClick={handleRun}
-                className="hover:bg-primary bg-primary/90 text-primary-foreground flex w-fit justify-center gap-2 rounded-md px-3.5 py-2 text-xs font-medium transition-colors"
+                disabled={hasInvalidNumeric}
+                className="hover:bg-primary bg-primary/90 text-primary-foreground flex w-fit justify-center gap-2 rounded-md px-3.5 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Send className="h-3.5 w-3.5" />
                 Send Command
@@ -140,7 +154,8 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
         <div className="hover:bg-accent/50 group flex items-center gap-2 px-3 py-2 transition-colors">
           <button
             onClick={handleRun}
-            className="hover:bg-primary/90 hover:text-primary-foreground bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
+            disabled={hasInvalidNumeric}
+            className="hover:bg-primary/90 hover:text-primary-foreground bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
           </button>
