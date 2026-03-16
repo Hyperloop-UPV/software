@@ -14,6 +14,7 @@ interface TelemetryChartProps {
   series: WorkspaceChartSeries[];
   isDragging: boolean;
   isOver?: boolean;
+  isIncompatibleDrop?: boolean;
   dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
 }
@@ -34,6 +35,7 @@ export const TelemetryChart = ({
   series,
   isDragging,
   isOver,
+  isIncompatibleDrop,
   dragAttributes,
   dragListeners,
 }: TelemetryChartProps) => {
@@ -77,6 +79,7 @@ export const TelemetryChart = ({
       className={cn(
         "border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-colors duration-200",
         isOver ? "border-primary/20 bg-primary/5" : "",
+        isIncompatibleDrop ? "border-destructive/40 bg-destructive/5" : "",
       )}
     >
       <div className="z-5 absolute right-4 top-4 flex items-center gap-2 group-hover:opacity-100">
@@ -100,6 +103,14 @@ export const TelemetryChart = ({
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
+
+      {isIncompatibleDrop && (
+        <div className="border-destructive pointer-events-none absolute inset-0 z-10 flex items-start justify-center rounded-xl border-2 pt-20">
+          <span className="text-destructive text-xs font-semibold">
+            Cannot mix enum and numeric series
+          </span>
+        </div>
+      )}
 
       <ChartLegend
         chartId={id}

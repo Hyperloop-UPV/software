@@ -96,6 +96,8 @@ export const ChartSurface = memo(
           .getPropertyValue(varName)
           .trim();
 
+      const enumOptions = series[0]?.enumOptions;
+
       const opts: uPlot.Options = {
         width: containerRef.current.clientWidth - 32,
         height: config.DEFAULT_CHART_HEIGHT,
@@ -106,14 +108,16 @@ export const ChartSurface = memo(
         padding: [20, 10, 5, 15],
         scales: {
           x: { time: false },
-          y: {
-            range: (_, min, max) => {
-              if (min === max) return [min - 1, max + 1];
-              const span = max - min;
-              const buffer = span * 0.15;
-              return [min - buffer, max + buffer];
-            },
-          },
+          y: enumOptions?.length
+            ? { range: () => [-0.5, enumOptions.length - 0.5] }
+            : {
+                range: (_, min, max) => {
+                  if (min === max) return [min - 1, max + 1];
+                  const span = max - min;
+                  const buffer = span * 0.15;
+                  return [min - buffer, max + buffer];
+                },
+              },
         },
         series: [
           {},
@@ -141,7 +145,11 @@ export const ChartSurface = memo(
             stroke: getStyle("--muted-foreground"),
             grid: { stroke: getStyle("--border") },
             font: "10px Archivo",
-            size: 40,
+            size: enumOptions?.length ? 80 : 40,
+            ...(enumOptions?.length && {
+              values: (_u: uPlot, vals: number[]) =>
+                vals.map((v) => enumOptions[Math.round(v)] ?? ""),
+            }),
           },
         ],
         cursor: { drag: { setScale: true, x: true, y: true } },
@@ -184,6 +192,7 @@ export const ChartSurface = memo(
           const m = pkt?.measurementUpdates?.[p.variable];
           if (typeof m === "boolean") return m ? 1 : 0;
           if (typeof m === "object" && m !== null && "last" in m) return m.last;
+          if (typeof m === "string") return p.enumOptions?.indexOf(m) ?? 0;
           return m ?? 0;
         }),
       };

@@ -49,7 +49,13 @@ export const createTooltipPlugin = (series: WorkspaceChartSeries[]) => {
           if (u.series[i + 1].show) {
             row.classList.remove("hidden");
             row.classList.add("flex");
-            vals[i].textContent = u.data[i + 1][idx]?.toFixed(2) ?? "0.00";
+            const rawVal = u.data[i + 1][idx];
+          const enumOptions = series[i].enumOptions;
+          if (enumOptions?.length && rawVal != null) {
+            vals[i].textContent = enumOptions[Math.round(rawVal)] ?? String(rawVal);
+          } else {
+            vals[i].textContent = rawVal?.toFixed(2) ?? "0.00";
+          }
             anyVisible = true;
           } else {
             row.classList.add("hidden");
