@@ -2,15 +2,18 @@ import { useDraggable } from "@dnd-kit/core";
 import { Badge } from "@workspace/ui";
 import { cn } from "@workspace/ui/lib";
 import { useShallow } from "zustand/shallow";
-import { canAddSeriesToChart, getTypeBadgeClass } from "../../../../../../lib/utils";
+import {
+  canAddSeriesToChart,
+  getTypeBadgeClass,
+} from "../../../../../../lib/utils";
 import { useStore } from "../../../../../../store/store";
-import type { Variable } from "../../../../../../types/data/telemetryCatalogItem";
+import type { TelemetryVariable } from "../../../../../../types/data/telemetryCatalogItem";
 import ChartPicker from "./ChartPicker";
 import { TelemetryValue } from "./TelemetryValue";
 
 interface VariableItemProps {
   packetId: number;
-  variable: Variable;
+  variable: TelemetryVariable;
   liveValue?:
     | {
         average: number;
@@ -40,7 +43,8 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
         variableId: variable.id,
         variableName: variable.name,
         variableType: variable.type,
-        variableEnumOptions: "options" in variable ? variable.options : undefined,
+        variableEnumOptions:
+          "options" in variable ? variable.options : undefined,
       },
     });
 
@@ -53,11 +57,13 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
   const handleAddToChart = (chartId: string) => {
     if (!activeWorkspaceId) return;
     const chart = charts.find((c) => c.id === chartId);
-    if (!canAddSeriesToChart(chart?.series ?? [], "options" in variable)) return;
+    if (!canAddSeriesToChart(chart?.series ?? [], "options" in variable))
+      return;
     addSeries(activeWorkspaceId, chartId, {
       packetId,
       variable: variable.id,
-      enumOptions: "options" in variable ? variable.options : undefined,
+      enumOptions:
+        "options" in variable ? variable.options : undefined,
     });
   };
 

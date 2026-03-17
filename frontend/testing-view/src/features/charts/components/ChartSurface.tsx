@@ -109,7 +109,7 @@ export const ChartSurface = memo(
         scales: {
           x: { time: false },
           y: enumOptions?.length
-            ? { range: () => [-0.5, enumOptions.length - 0.5] }
+            ? { range: () => [0, enumOptions.length - 1] }
             : {
                 range: (_, min, max) => {
                   if (min === max) return [min - 1, max + 1];
@@ -147,8 +147,9 @@ export const ChartSurface = memo(
             font: "10px Archivo",
             size: enumOptions?.length ? 80 : 40,
             ...(enumOptions?.length && {
+              splits: () => enumOptions.map((_, i) => i),
               values: (_u: uPlot, vals: number[]) =>
-                vals.map((v) => enumOptions[Math.round(v)] ?? ""),
+                vals.map((v) => enumOptions[v] ?? ""),
             }),
           },
         ],
