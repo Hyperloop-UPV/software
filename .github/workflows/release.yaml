@@ -222,7 +222,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.determine-version.outputs.version }}
-          name: Hyperloop Control Station v${{ needs.determine-version.outputs.version }}
+          name: Control Station v${{ needs.determine-version.outputs.version }}
           draft: ${{ needs.determine-version.outputs.is_draft }}
           generate_release_notes: true
           files: dist/**/*
