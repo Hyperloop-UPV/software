@@ -59,6 +59,11 @@ function createWindow(screenWidth, screenHeight) {
     mainWindow.webContents.openDevTools();
   }
 
+  // Quit the app when main window is closed
+  mainWindow.on("close", () => {
+    app.quit();
+  });
+
   // Clear window reference when closed
   mainWindow.on("closed", () => {
     mainWindow = null;

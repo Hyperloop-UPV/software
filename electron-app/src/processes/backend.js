@@ -133,7 +133,7 @@ async function startBackend(logWindow = null) {
     // If the backend didn't fail in this period of time, resolve the promise
     const startupTimer = setTimeout(() => {
       resolve(backendProcess);
-    }, 2000);
+    }, 3000);
   });
 }
 
