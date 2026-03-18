@@ -37,24 +37,29 @@ export const SettingsDialog = () => {
     }
   };
 
-  const loadBranches = () => {
+  const loadBranches = (signal: AbortSignal) => {
     startBranchesTransition(async () => {
       try {
         const res = await fetch(
           "https://api.github.com/repos/hyperloop-upv/adj/branches?per_page=100",
+          { signal },
         );
         const data = await res.json();
         setBranches(data.map((b: { name: string }) => b.name));
       } catch (error) {
-        console.error("Error loading branches:", error);
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Error loading branches:", error);
+        }
       }
     });
   };
 
   useEffect(() => {
     if (isSettingsOpen) {
+      const controller = new AbortController();
       loadConfig();
-      loadBranches();
+      loadBranches(controller.signal);
+      return () => controller.abort();
     }
   }, [isSettingsOpen]);
 
