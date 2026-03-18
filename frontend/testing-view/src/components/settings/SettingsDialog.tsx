@@ -42,12 +42,16 @@ export const SettingsDialog = () => {
       try {
         const res = await fetch(
           "https://api.github.com/repos/hyperloop-upv/adj/branches?per_page=100",
-          { signal },
+          { signal: AbortSignal.any([signal, AbortSignal.timeout(2000)]) },
         );
         const data = await res.json();
         setBranches(data.map((b: { name: string }) => b.name));
       } catch (error) {
-        if (error instanceof Error && error.name !== "AbortError") {
+        if (
+          error instanceof Error &&
+          error.name !== "AbortError" &&
+          error.name !== "TimeoutError"
+        ) {
           console.error("Error loading branches:", error);
         }
       }
