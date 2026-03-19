@@ -22,7 +22,7 @@ validate = true # Execute ADJ validator before starting backend
 
 # Transport Configuration
 [transport]
-propagate_fault = false
+propagate_fault = true
 
 # TCP Configuration
 # These settings control how the backend reconnects to boards when connections are lost
