@@ -10,3 +10,10 @@ test("mode badge is visible with a valid mode", async ({ page }) => {
   expect(VALID_MODES).toContain(mode);
 });
 
+test("mode badge reaches active mode", async ({ page }) => {
+  await expect(page.getByTestId("mode-badge")).toHaveAttribute(
+    "data-mode",
+    "active",
+  );
+});
+

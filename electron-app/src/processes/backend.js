@@ -89,7 +89,7 @@ async function startBackend(logWindow = null) {
       if (text.includes("http server listening")) {
         logger.backend.info("Backend ready (HTTP server listening)");
         clearTimeout(startupTimer);
-        setTimeout(() => resolve(backendProcess), 1000);
+        resolve(backendProcess);
       }
     });
 

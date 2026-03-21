@@ -48,7 +48,8 @@ export const test = base.extend<ElectronFixtures>({
   page: async ({ app }, use) => {
     const page = app.windows()[1];
     await page.waitForLoadState("domcontentloaded");
-    await page.waitForSelector('[data-testid="mode-badge"][data-mode="active"]', { timeout: 15000 });
+    await page.waitForSelector('[data-testid="mode-badge"]:not([data-mode="loading"])', { timeout: 15000 });
+    console.log("[mode]", await page.getAttribute('[data-testid="mode-badge"]', "data-mode"));
     await use(page);
   },
 });
