@@ -116,7 +116,16 @@ export const AddKeyBindingDialog = ({
     setParameterValues((prev) => ({ ...prev, [fieldId]: value }));
   };
 
-  const canSubmit = selectedCommandId !== null && capturedKey !== "";
+  const hasInvalidNumericParams =
+    selectedCommand !== null &&
+    selectedCommand !== undefined &&
+    Object.entries(selectedCommand.fields).some(
+      ([key, field]) =>
+        field.kind === "numeric" && isNaN(parseFloat(parameterValues[key])),
+    );
+
+  const canSubmit =
+    selectedCommandId !== null && capturedKey !== "" && !hasInvalidNumericParams;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
