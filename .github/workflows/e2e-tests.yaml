@@ -53,6 +53,11 @@ jobs:
           ls -la "$(node -e "process.stdout.write(require('electron'))")"
         working-directory: e2e
 
+      - name: Debug - test backend binary
+        run: |
+          timeout 5 ./electron-app/binaries/backend-darwin-arm64 --config electron-app/config.toml 2>&1 || true
+        continue-on-error: true
+
       - name: Build testing-view (e2e mode)
         run: |
           pnpm --filter testing-view build:e2e
