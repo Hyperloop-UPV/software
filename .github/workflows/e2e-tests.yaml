@@ -35,6 +35,9 @@ jobs:
 
       - name: Debug - test backend binary
         run: |
+          sed -i '' 's/validate = true/validate = false/' backend/cmd/dev-config.toml
+          sed -i '' 's/^branch = .*/branch = "software"/' backend/cmd/dev-config.toml
+          cp backend/cmd/dev-config.toml electron-app/config.toml
           ./electron-app/binaries/backend-darwin-arm64 --config backend/cmd/dev-config.toml 2>&1 &
           PID=$!
           sleep 5
