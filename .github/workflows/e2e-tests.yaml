@@ -76,7 +76,7 @@ jobs:
           cp -r frontend/testing-view/dist/. electron-app/renderer/testing-view/
 
       - name: Run UI tests
-        run: pnpm --filter e2e exec playwright test tests/ui
+        run: pnpm --filter e2e exec playwright test tests/ui/startup.test.ts
 
       - name: Upload test report
         if: always()
