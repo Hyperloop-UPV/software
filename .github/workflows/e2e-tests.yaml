@@ -20,7 +20,7 @@ on:
 jobs:
   e2e:
     name: Playwright E2E Tests
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -28,14 +28,9 @@ jobs:
         with:
           go-version: "1.23"
 
-      - name: Install Linux build dependencies
-        run: sudo apt-get update && sudo apt-get install -y gcc
-
       - name: Build backend binary
         working-directory: backend/cmd
-        run: go build -o ../../electron-app/binaries/backend-linux-amd64 .
-        env:
-          CGO_ENABLED: 1
+        run: go build -o ../../electron-app/binaries/backend-darwin-arm64 .
 
       - uses: pnpm/action-setup@v4
 
@@ -51,17 +46,11 @@ jobs:
         run: node node_modules/electron/install.js
         working-directory: e2e
 
-      - name: Install Playwright dependencies
-        run: pnpm --filter e2e exec playwright install --with-deps chromium
-
-      - name: Install xvfb
-        run: sudo apt-get install -y xvfb
-
       - name: Build testing-view (e2e mode)
         run: pnpm --filter testing-view build:e2e
 
       - name: Run UI tests
-        run: xvfb-run --auto-servernum pnpm --filter e2e exec playwright test tests/ui
+        run: pnpm --filter e2e exec playwright test tests/ui
 
       - name: Upload test report
         if: always()
