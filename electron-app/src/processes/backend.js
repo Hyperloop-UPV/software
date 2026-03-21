@@ -75,12 +75,25 @@ async function startBackend(logWindow = null) {
 
     // Log stdout output from backend
     backendProcess.stdout.on("data", (data) => {
-      logger.backend.info(`${data.toString().trim()}`);
+      const text = data.toString().trim();
+      logger.backend.info(text);
 
       // Send log message to log window
       if (currentLogWindow && !currentLogWindow.isDestroyed()) {
-        const htmlData = convert.toHtml(data.toString().trim());
+        const htmlData = convert.toHtml(text);
         currentLogWindow.webContents.send("log", htmlData);
+      }
+
+      // Resolve as soon as the TCP server confirms it is listening.
+      // Matches: "..\pkg\transport\network\tcp\server.go:51 > listening"
+      if (
+        text.includes("tcp") &&
+        text.includes("server.go") &&
+        text.includes("listening")
+      ) {
+        logger.backend.info("Backend ready (TCP server listening)");
+        clearTimeout(startupTimer);
+        resolve(backendProcess);
       }
     });
 
@@ -130,10 +143,13 @@ async function startBackend(logWindow = null) {
       backendProcess = null;
     });
 
-    // If the backend didn't fail in this period of time, resolve the promise
+    // Fallback: if the ready message never appears, resolve anyway after timeout
     const startupTimer = setTimeout(() => {
+      logger.backend.warning(
+        "Backend ready signal not received - resolving after timeout",
+      );
       resolve(backendProcess);
-    }, 3000);
+    }, 5000);
   });
 }
 

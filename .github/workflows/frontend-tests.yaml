@@ -14,16 +14,6 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/frontend-tests.yaml"
 
-  push:
-    branches:
-      - "frontend/**"
-      - "testing-view/**"
-      - "competition-view/**"
-    paths:
-      - "frontend/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/frontend-tests.yaml"
-
 jobs:
   test:
     name: Run Frontend Tests
