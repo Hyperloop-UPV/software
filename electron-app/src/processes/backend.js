@@ -84,14 +84,10 @@ async function startBackend(logWindow = null) {
         currentLogWindow.webContents.send("log", htmlData);
       }
 
-      // Resolve as soon as the TCP server confirms it is listening.
-      // Matches: "..\pkg\transport\network\tcp\server.go:51 > listening"
-      if (
-        text.includes("tcp") &&
-        text.includes("server.go") &&
-        text.includes("listening")
-      ) {
-        logger.backend.info("Backend ready (TCP server listening)");
+      // Resolve as soon as the HTTP server confirms it is listening.
+      // Matches: "INF ... > http server listening localAddr=..."
+      if (text.includes("http server listening")) {
+        logger.backend.info("Backend ready (HTTP server listening)");
         clearTimeout(startupTimer);
         resolve(backendProcess);
       }
