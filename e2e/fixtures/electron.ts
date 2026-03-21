@@ -19,7 +19,7 @@ type ElectronFixtures = {
 export const test = base.extend<ElectronFixtures>({
   app: async ({}, use) => {
     const app = await electron.launch({
-      args: [path.join(ELECTRON_APP_PATH, "main.js")],
+      args: ["--no-sandbox", path.join(ELECTRON_APP_PATH, "main.js")],
       cwd: ELECTRON_APP_PATH,
       env: {
         ...process.env,
