@@ -7,6 +7,7 @@ interface ElectronAPI {
   getConfig: () => Promise<ConfigData>;
   importConfig: () => Promise<void>;
   selectFolder: () => Promise<string>;
+  openFolder: (path: string) => Promise<void>;
 }
 
 declare global {

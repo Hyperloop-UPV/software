@@ -212,4 +212,10 @@ async function restartBackend() {
   }
 }
 
-export { restartBackend, startBackend, stopBackend };
+function getBackendWorkingDir() {
+  return !app.isPackaged
+    ? path.join(appPath, "..", "backend", "cmd")
+    : path.dirname(getUserConfigPath());
+}
+
+export { getBackendWorkingDir, restartBackend, startBackend, stopBackend };

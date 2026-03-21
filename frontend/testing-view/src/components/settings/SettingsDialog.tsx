@@ -13,6 +13,7 @@ export const SettingsDialog = () => {
   const isSettingsOpen = useStore((s) => s.isSettingsOpen);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
   const setRestarting = useStore((s) => s.setRestarting);
+  const setConfig = useStore((s) => s.setConfig);
   const [localConfig, setLocalConfig] = useState<ConfigData | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [isSaving, startSaving] = useTransition();
@@ -24,6 +25,7 @@ export const SettingsDialog = () => {
       try {
         const config = await window.electronAPI.getConfig();
         setLocalConfig(config);
+        setConfig(config);
         setIsSynced(true);
       } catch (error) {
         console.error("Error loading config:", error);
