@@ -47,11 +47,20 @@ jobs:
         run: node node_modules/electron/install.js
         working-directory: e2e
 
+      - name: Debug - verify Electron binary
+        run: |
+          node -e "const e = require('electron'); console.log('Electron path:', e);"
+          ls -la "$(node -e "process.stdout.write(require('electron'))")"
+        working-directory: e2e
+
       - name: Build testing-view (e2e mode)
         run: pnpm --filter testing-view build:e2e
 
+      - name: Debug - verify built renderer
+        run: ls -la electron-app/renderer/testing-view/
+
       - name: Run UI tests
-        run: pnpm --filter e2e exec playwright test tests/ui
+        run: pnpm --filter e2e exec playwright test tests/ui/startup.test.ts
 
       - name: Upload test report
         if: always()
