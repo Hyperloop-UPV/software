@@ -38,13 +38,9 @@ test("charts are restored from localStorage after reload", async ({ page }) => {
   await page.getByTestId("add-chart-button").click();
   await expect(page.getByTestId("chart")).toHaveCount(initialCount + 2);
 
-  console.log("Before reload:", await page.evaluate(() => localStorage.getItem("testing-view-storage")));
-
   // Reload — Zustand should restore all charts from localStorage
   await page.reload();
   await waitForHydration(page);
-
-  console.log("After reload:", await page.evaluate(() => localStorage.getItem("testing-view-storage")));
 
   await expect(page.getByTestId("chart")).toHaveCount(initialCount + 2);
 });
