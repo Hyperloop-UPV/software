@@ -27,11 +27,6 @@ export const test = base.extend<ElectronFixtures>({
       },
     });
 
-    // Suppress backend error dialogs — binary may not be available in test env
-    await app.evaluate(({ dialog }) => {
-      dialog.showErrorBox = () => {};
-    });
-
     // Wait for both windows to open before yielding the app fixture,
     // so logPage and logWindow fixtures can safely index into app.windows()
     await app.firstWindow();           // Backend Logs — always first
