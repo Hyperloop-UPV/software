@@ -1,15 +1,15 @@
 import { create } from "zustand";
+import { createChartsSlice } from "../chartsSlice";
 import { createAppSlice } from "../../../../store/slices/appSlice";
 import { createCatalogSlice } from "../../../../store/slices/catalogSlice";
 import { createConnectionsSlice } from "../../../../store/slices/connectionsSlice";
 import { createMessagesSlice } from "../../../../store/slices/messagesSlice";
 import { createTelemetrySlice } from "../../../../store/slices/telemetrySlice";
-import type { Store } from "../../../../store/store";
-import type { BoardName } from "../../../../types/data/board";
-import { createChartsSlice } from "../../../charts/store/chartsSlice";
 import { createRightSidebarSlice } from "../../../workspace/store/rightSidebarSlice";
 import { createWorkspacesSlice } from "../../../workspace/store/workspacesSlice";
-import { createFilteringSlice } from "../filteringSlice";
+import { createFilteringSlice } from "../../../filtering/store/filteringSlice";
+import type { Store } from "../../../../store/store";
+import type { WorkspaceChartSeries } from "../../types/charts";
 
 export const createTestStore = () =>
   create<Store>()((...a) => ({
@@ -24,28 +24,28 @@ export const createTestStore = () =>
     ...createFilteringSlice(...a),
   }));
 
-export const BOARDS: BoardName[] = ["BCU", "PCU"];
+export const WORKSPACE_ID = "workspace-1";
 
-export const COMMANDS_CATALOG = {
-  BCU: [
-    { id: 1, name: "cmd_start", label: "Start" },
-    { id: 2, name: "cmd_stop", label: "Stop" },
-  ],
-  PCU: [{ id: 3, name: "cmd_reset", label: "Reset" }],
+export const SERIES_A: WorkspaceChartSeries = {
+  packetId: 1,
+  variable: "speed",
 };
 
-export const TELEMETRY_CATALOG = {
-  BCU: [
-    { id: 10, name: "bcu_speed", label: "Speed" },
-    { id: 20, name: "bcu_temp", label: "Temperature" },
-  ],
-  PCU: [{ id: 30, name: "pcu_voltage", label: "Voltage" }],
+export const SERIES_B: WorkspaceChartSeries = {
+  packetId: 2,
+  variable: "temperature",
 };
 
-export function seedStore(store: ReturnType<typeof createTestStore>) {
-  const s = store.getState();
-  s.setBoards(BOARDS);
-  s.setCommandsCatalog(COMMANDS_CATALOG);
-  s.setTelemetryCatalog(TELEMETRY_CATALOG);
-  s.initializeWorkspaceFilters();
+export const SERIES_ENUM: WorkspaceChartSeries = {
+  packetId: 3,
+  variable: "state",
+  enumOptions: ["Idle", "Running", "Fault"],
+};
+
+/** Adds a chart to the given workspace and returns its ID. */
+export function addChart(
+  store: ReturnType<typeof createTestStore>,
+  workspaceId = WORKSPACE_ID,
+) {
+  return store.getState().addChart(workspaceId);
 }

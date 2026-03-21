@@ -72,7 +72,6 @@ export const useStore = create<Store>()(
         testingPage: state.testingPage,
 
         // Workspace UI state
-        activeTab: state.activeTab,
         workspaceFilters: state.workspaceFilters,
       }),
     },

@@ -89,18 +89,16 @@ describe("toggleItemFilter", () => {
     store.getState().clearFilters("commands");
     store.getState().toggleItemFilter("commands", "BCU", 1);
 
-    expect(
-      store.getState().getActiveFilters("commands")?.["BCU"],
-    ).toContain(1);
+    expect(store.getState().getActiveFilters("commands")?.["BCU"]).toContain(1);
   });
 
   it("does not affect other categories", () => {
     const pcuBefore = store.getState().getActiveFilters("commands")?.["PCU"];
     store.getState().toggleItemFilter("commands", "BCU", 1);
 
-    expect(store.getState().getActiveFilters("commands")?.["PCU"]).toStrictEqual(
-      pcuBefore,
-    );
+    expect(
+      store.getState().getActiveFilters("commands")?.["PCU"],
+    ).toStrictEqual(pcuBefore);
   });
 
   it("does not affect the other scope", () => {
@@ -146,8 +144,8 @@ describe("toggleCategoryFilter", () => {
     const pcuBefore = store.getState().getActiveFilters("commands")?.["PCU"];
     store.getState().toggleCategoryFilter("commands", "BCU", false);
 
-    expect(store.getState().getActiveFilters("commands")?.["PCU"]).toStrictEqual(
-      pcuBefore,
-    );
+    expect(
+      store.getState().getActiveFilters("commands")?.["PCU"],
+    ).toStrictEqual(pcuBefore);
   });
 });

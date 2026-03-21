@@ -12,9 +12,9 @@ beforeEach(() => {
 
 describe("isItemExpanded", () => {
   it("is false by default", () => {
-    expect(
-      store.getState().isItemExpanded("telemetry", "board", "BCU"),
-    ).toBe(false);
+    expect(store.getState().isItemExpanded("telemetry", "board", "BCU")).toBe(
+      false,
+    );
   });
 });
 
@@ -22,34 +22,34 @@ describe("toggleExpandedItem", () => {
   it("expands a collapsed item", () => {
     store.getState().toggleExpandedItem("telemetry", "board", "BCU");
 
-    expect(
-      store.getState().isItemExpanded("telemetry", "board", "BCU"),
-    ).toBe(true);
+    expect(store.getState().isItemExpanded("telemetry", "board", "BCU")).toBe(
+      true,
+    );
   });
 
   it("collapses an already-expanded item", () => {
     store.getState().toggleExpandedItem("telemetry", "board", "BCU");
     store.getState().toggleExpandedItem("telemetry", "board", "BCU");
 
-    expect(
-      store.getState().isItemExpanded("telemetry", "board", "BCU"),
-    ).toBe(false);
+    expect(store.getState().isItemExpanded("telemetry", "board", "BCU")).toBe(
+      false,
+    );
   });
 
   it("does not expand other items in the same scope", () => {
     store.getState().toggleExpandedItem("telemetry", "board", "BCU");
 
-    expect(
-      store.getState().isItemExpanded("telemetry", "board", "PCU"),
-    ).toBe(false);
+    expect(store.getState().isItemExpanded("telemetry", "board", "PCU")).toBe(
+      false,
+    );
   });
 
   it("is scoped — expanding in 'telemetry' does not affect 'commands'", () => {
     store.getState().toggleExpandedItem("telemetry", "board", "BCU");
 
-    expect(
-      store.getState().isItemExpanded("commands", "board", "BCU"),
-    ).toBe(false);
+    expect(store.getState().isItemExpanded("commands", "board", "BCU")).toBe(
+      false,
+    );
   });
 });
 

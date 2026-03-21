@@ -22,11 +22,6 @@ import type {
 } from "../types/filters";
 
 export interface FilteringSlice {
-  /** Sidebar Navigation */
-  activeTab: Record<string, SidebarTab>;
-  getActiveTab: () => SidebarTab;
-  setActiveTab: (tab: SidebarTab) => void;
-
   filterDialog: {
     isOpen: boolean;
     scope: FilterScope | null;
@@ -100,22 +95,6 @@ export const createFilteringSlice: StateCreator<
   [],
   FilteringSlice
 > = (set, get) => ({
-  // Tabs (per workspace)
-  activeTab: {},
-  getActiveTab: () => {
-    const activeWorkspaceId = get().getActiveWorkspaceId();
-    if (!activeWorkspaceId) return "commands";
-    return get().activeTab[activeWorkspaceId] || "commands";
-  },
-  setActiveTab: (tab) => {
-    const activeWorkspaceId = get().getActiveWorkspaceId();
-    if (!activeWorkspaceId) return;
-
-    set((state) => ({
-      activeTab: { ...state.activeTab, [activeWorkspaceId]: tab },
-    }));
-  },
-
   openFilterDialog: (scope: FilterScope) =>
     set({ filterDialog: { isOpen: true, scope } }),
   closeFilterDialog: () =>

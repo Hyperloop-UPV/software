@@ -97,12 +97,12 @@ describe("getFilteredCount", () => {
 
 describe("getFilteredCountByCategory", () => {
   it("returns count per board for commands", () => {
-    expect(
-      store.getState().getFilteredCountByCategory("commands", "BCU"),
-    ).toBe(2);
-    expect(
-      store.getState().getFilteredCountByCategory("commands", "PCU"),
-    ).toBe(1);
+    expect(store.getState().getFilteredCountByCategory("commands", "BCU")).toBe(
+      2,
+    );
+    expect(store.getState().getFilteredCountByCategory("commands", "PCU")).toBe(
+      1,
+    );
   });
 
   it("returns count per board for telemetry", () => {
