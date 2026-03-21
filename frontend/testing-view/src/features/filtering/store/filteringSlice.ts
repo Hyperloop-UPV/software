@@ -68,6 +68,7 @@ export interface FilteringSlice {
     category: BoardName,
   ) => number;
   getTotalCount: (scope: FilterScope) => number;
+  isAllSelected: (scope: FilterScope) => boolean;
   getSelectionState: (scope: FilterScope, category: BoardName) => CheckboxState;
 
   /** Virtualization & Expansion */
@@ -335,6 +336,10 @@ export const createFilteringSlice: StateCreator<
   getTotalCount: (scope) => {
     const catalog = get().getCatalog(scope);
     return Object.values(catalog).reduce((acc, items) => acc + items.length, 0);
+  },
+  isAllSelected: (scope) => {
+    const total = get().getTotalCount(scope);
+    return total > 0 && get().getFilteredCount(scope) === total;
   },
 
   getSelectionState: (scope, category) => {
