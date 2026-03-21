@@ -34,9 +34,7 @@ jobs:
           cd backend/cmd && go build -o ../../electron-app/binaries/backend-darwin-arm64 .
 
       - name: Patch backend config
-        run: |
-          sed -i '' 's/validate = true/validate = false/' backend/cmd/dev-config.toml
-          sed -i '' 's/^branch = .*/branch = "software"/' backend/cmd/dev-config.toml
+        run: sed -i '' 's/validate = true/validate = false/' backend/cmd/dev-config.toml
 
       - name: Add loopback aliases required by backend
         run: sudo ifconfig lo0 alias 127.0.0.9
