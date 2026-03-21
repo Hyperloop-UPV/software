@@ -58,6 +58,9 @@ export const useStore = create<Store>()(
     {
       // Partial persist
       name: "testing-view-storage",
+      onRehydrateStorage: () => () => {
+        document.documentElement.setAttribute("data-store-hydrated", "true");
+      },
       partialize: (state) => ({
         // Charts
         charts: state.charts,

@@ -76,6 +76,7 @@ export const TelemetryChart = ({
 
   return (
     <div
+      data-testid="chart"
       className={cn(
         "border-border bg-card hover:border-accent group relative h-full w-full rounded-xl border p-4 shadow-sm transition-colors duration-200",
         isOver ? "border-primary/20 bg-primary/5" : "",
