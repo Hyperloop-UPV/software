@@ -33,11 +33,17 @@ jobs:
           mkdir -p electron-app/binaries
           cd backend/cmd && go build -o ../../electron-app/binaries/backend-darwin-arm64 .
 
-      - name: Debug - test backend binary
+      - name: Patch backend config
         run: |
           sed -i '' 's/validate = true/validate = false/' backend/cmd/dev-config.toml
           sed -i '' 's/^branch = .*/branch = "software"/' backend/cmd/dev-config.toml
           cp backend/cmd/dev-config.toml electron-app/config.toml
+
+      - name: Add loopback aliases required by backend
+        run: sudo ifconfig lo0 alias 127.0.0.9
+
+      - name: Debug - test backend binary
+        run: |
           ./electron-app/binaries/backend-darwin-arm64 --config backend/cmd/dev-config.toml 2>&1 &
           PID=$!
           sleep 5
