@@ -29,8 +29,9 @@ jobs:
           go-version: "1.23"
 
       - name: Build backend binary
-        working-directory: backend/cmd
-        run: go build -o ../../electron-app/binaries/backend-darwin-arm64 .
+        run: |
+          mkdir -p electron-app/binaries
+          cd backend/cmd && go build -o ../../electron-app/binaries/backend-darwin-arm64 .
 
       - uses: pnpm/action-setup@v4
 
