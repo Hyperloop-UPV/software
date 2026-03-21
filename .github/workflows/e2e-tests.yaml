@@ -7,6 +7,7 @@ on:
       - develop
       - production
       - "frontend/**"
+      - "control-station/**"
       - "testing-view/**"
       - "e2e/**"
     paths:
@@ -53,11 +54,14 @@ jobs:
       - name: Install Playwright dependencies
         run: pnpm --filter e2e exec playwright install --with-deps chromium
 
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+
       - name: Build testing-view (e2e mode)
         run: pnpm --filter testing-view build:e2e
 
       - name: Run UI tests
-        run: pnpm --filter e2e exec playwright test tests/ui
+        run: xvfb-run --auto-servernum pnpm --filter e2e exec playwright test tests/ui
 
       - name: Upload test report
         if: always()

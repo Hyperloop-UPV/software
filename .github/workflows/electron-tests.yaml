@@ -1,0 +1,34 @@
+name: Electron Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - production
+      - "frontend/**"
+      - "control-station/**"
+      - "testing-view/**"
+    paths:
+      - "electron-app/**"
+      - ".github/workflows/electron-tests.yaml"
+
+jobs:
+  test:
+    name: Run Electron Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter=hyperloop-control-station
+
+      - name: Run tests
+        run: pnpm test --filter=hyperloop-control-station
