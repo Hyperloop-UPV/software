@@ -46,6 +46,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Electron binary
+        run: node node_modules/electron/install.js
+        working-directory: e2e
+
       - name: Install Playwright dependencies
         run: pnpm --filter e2e exec playwright install --with-deps chromium
 
