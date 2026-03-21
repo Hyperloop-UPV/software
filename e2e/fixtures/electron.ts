@@ -49,9 +49,11 @@ export const test = base.extend<ElectronFixtures>({
   },
 
   // Main control station window — always opens second
+  // Waits for the app to reach "active" mode before yielding
   page: async ({ app }, use) => {
     const page = app.windows()[1];
     await page.waitForLoadState("domcontentloaded");
+    await page.waitForSelector('[data-testid="mode-badge"][data-mode="active"]', { timeout: 15000 });
     await use(page);
   },
 });
