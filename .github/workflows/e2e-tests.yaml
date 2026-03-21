@@ -37,7 +37,6 @@ jobs:
         run: |
           sed -i '' 's/validate = true/validate = false/' backend/cmd/dev-config.toml
           sed -i '' 's/^branch = .*/branch = "software"/' backend/cmd/dev-config.toml
-          cp backend/cmd/dev-config.toml electron-app/config.toml
 
       - name: Add loopback aliases required by backend
         run: sudo ifconfig lo0 alias 127.0.0.9
