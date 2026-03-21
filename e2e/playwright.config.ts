@@ -10,23 +10,21 @@ export default defineConfig({
   retries: 0,
   workers: 1, // Electron tests must run serially — only one app instance at a time
 
-  reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
+  reporter: [
+    ["list"],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
+  ],
 
   projects: [
     {
       name: "ui",
       testDir: "./tests/ui",
-      use: {
-        // UI tests run in mock mode — no backend needed
-        // Requires testing-view to be built with: pnpm --filter testing-view build:e2e
-      },
+      use: {},
     },
     {
       name: "integration",
       testDir: "./tests/integration",
-      use: {
-        // Integration tests require the Go backend binary to be built
-      },
+      use: {},
     },
   ],
 });
