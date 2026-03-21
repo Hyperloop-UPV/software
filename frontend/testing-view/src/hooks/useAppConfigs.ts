@@ -3,7 +3,8 @@ import { useEffect } from "react";
 import type { OrdersData, PacketsData } from "../types/data/board";
 
 const useAppConfigs = (isConnected: boolean) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:4000/backend";
 
   const {
     data: packets,
