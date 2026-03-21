@@ -55,7 +55,7 @@ jobs:
 
       - name: Debug - test backend binary
         run: |
-          timeout 5 ./electron-app/binaries/backend-darwin-arm64 --config electron-app/config.toml 2>&1 || true
+          timeout 5 ./electron-app/binaries/backend-darwin-arm64 --config backend/cmd/dev-config.toml 2>&1 || true
         continue-on-error: true
 
       - name: Build testing-view (e2e mode)
