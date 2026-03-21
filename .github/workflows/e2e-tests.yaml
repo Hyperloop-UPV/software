@@ -54,10 +54,10 @@ jobs:
         working-directory: e2e
 
       - name: Build testing-view (e2e mode)
-        run: pnpm --filter testing-view build:e2e
-
-      - name: Debug - verify built renderer
-        run: ls -la electron-app/renderer/testing-view/
+        run: |
+          pnpm --filter testing-view build:e2e
+          mkdir -p electron-app/renderer/testing-view
+          cp -r frontend/testing-view/dist/. electron-app/renderer/testing-view/
 
       - name: Run UI tests
         run: pnpm --filter e2e exec playwright test tests/ui/startup.test.ts
