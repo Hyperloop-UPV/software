@@ -4,8 +4,6 @@ import { cn } from "@workspace/ui/lib";
 import { LOGGER_CONTROL_CONFIG } from "../../../constants/loggerControlConfig";
 import { useLogger } from "../../../hooks/useLogger";
 import { useStore } from "../../../store/store";
-import type { BoardName } from "../../../types/data/board";
-import type { TelemetryCatalogItem } from "../../../types/data/telemetryCatalogItem";
 
 interface LoggerControlProps {
   disabled: boolean;
@@ -22,25 +20,7 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
     if (status === "recording") {
       stopLogging();
     } else {
-      const catalog = useStore.getState().getCatalog("logs");
-      const filters = useStore.getState().getActiveFilters("logs");
-
-      if (!catalog || !filters) return;
-
-      const variableNames = Object.entries(catalog).flatMap(
-        ([boardName, items]) => {
-          const selectedIds = filters[boardName as BoardName] || [];
-          const selectedPackets = items.filter((item) =>
-            selectedIds.includes(item.id),
-          ) as TelemetryCatalogItem[];
-
-          return selectedPackets.flatMap((p) =>
-            p.measurements.map((m) => `${boardName}/${m.id}`),
-          );
-        },
-      );
-
-      startLogging(variableNames);
+      startLogging();
     }
   };
 

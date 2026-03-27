@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
 	"github.com/rs/zerolog"
 )
@@ -33,12 +32,6 @@ func (transport *Transport) WithDecoder(decoder *presentation.Decoder) *Transpor
 func (transport *Transport) WithEncoder(encoder *presentation.Encoder) *Transport {
 	transport.encoder = encoder
 	transport.logger.Trace().Msg("set encoder")
-	return transport
-}
-
-func (transport *Transport) WithTFTP(client *tftp.Client) *Transport {
-	transport.tftp = client
-	transport.logger.Trace().Msg("set TFTP")
 	return transport
 }
 

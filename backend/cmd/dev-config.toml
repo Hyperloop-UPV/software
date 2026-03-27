@@ -19,7 +19,7 @@ boards = ["HVSCU", "HVSCU-Cabinet", "PCU", "LCU", "BCU", "BMSL"]
 # ADJ (Architecture Description JSON) Configuration
 [adj]
 branch = "software" # Leave blank when using ADJ as a submodule (like this: "")
-
+validate = true # Execute ADJ validator before starting backend
 
 # Transport Configuration
 [transport]
@@ -34,6 +34,12 @@ backoff_multiplier = 1         # Exponential backoff multiplier (e.g., 1.5 means
 max_retries = 0                # Maximum retries before cycling (0 = infinite retries, recommended for persistent reconnection)
 connection_timeout_ms = 999999 # Timeout for the initial connection attempt
 keep_alive_ms = 0              # Keep-alive interval in milliseconds (0 to disable)
+
+# UDP Configuration
+# These settings control the UDP server's buffer sizes and performance characteristics
+[udp]
+ring_buffer_size = 64      # Size of the ring buffer for incoming packets (number of packets, not bytes)
+packet_chan_size = 16      # Size of the channel buffer
 
 # Server Configuration
 [server.ethernet-view]

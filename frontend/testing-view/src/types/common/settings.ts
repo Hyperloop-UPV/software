@@ -7,7 +7,8 @@ export type FieldType =
   | "boolean"
   | "select"
   | "multi-checkbox"
-  | "path";
+  | "path"
+  | "combobox";
 
 /**
  * Generic props for a field component showed in the settings form.\
@@ -22,6 +23,8 @@ export interface FieldProps<T> {
   value: T;
   /** Function to handle the change of the field value */
   onChange: (value: T) => void;
+  /** Loading state */
+  loading?: boolean;
 }
 
 /**

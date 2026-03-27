@@ -130,11 +130,8 @@ jobs:
 
       - name: Install Linux Deps
         if: runner.os == 'Linux' && steps.download.outcome != 'success'
-        run: sudo apt-get update && sudo apt-get install -y libpcap-dev gcc
+        run: sudo apt-get update && sudo apt-get install -y gcc
 
-      - name: Install macOS Deps
-        if: runner.os == 'macOS' && steps.download.outcome != 'success'
-        run: brew install libpcap
 
       - name: Build Binary
         if: steps.download.outcome != 'success'

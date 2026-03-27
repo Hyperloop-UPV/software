@@ -1,15 +1,23 @@
-package main
+// Package tracelogger provides initialization and configuration for trace-level logging using zerolog.
+package tracelogger
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"strconv"
-	"time"
 
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
+	loggerHandler "github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
+
+	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
 	"github.com/rs/zerolog"
 	trace "github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
+)
+
+const (
+	Trace abstraction.LoggerName = "trace"
 )
 
 // traceLevelMap maps human-readable level names to zerolog levels.
@@ -31,27 +39,21 @@ var traceLevelMap = map[string]zerolog.Level{
 //
 // Parameters:
 // - traceLevel: human-friendly level name (see traceLevelMap)
-// - traceFile: filesystem path where log output will be written
 //
 // Returns the opened *os.File for the trace file so the caller can close it later,
 // or nil if an error occurred while creating the file or if the level is invalid.
-func initTrace(traceLevel string, traceFile string) *os.File {
+func InitTrace(traceLevel string) *os.File {
 
-	// If trace file is undefined  use user settings
+	// Directory of trace
+	traceDir := loggerHandler.BasePath
 
-	if traceFile == "" {
-		configDir, err := os.UserConfigDir()
-		if err != nil {
-			// fallback to current directory if user config dir is unavailable
-			configDir = "."
-		}
-		traceDir := filepath.Join(configDir, "hyperloop-control-station")
-		// Ensure directory exists
-		_ = os.MkdirAll(traceDir, 0o755)
-		// Use current time in filename to avoid collisions
-		timestamp := time.Now().Format("20060102T150405")
-		traceFile = filepath.Join(traceDir, fmt.Sprintf("trace-%s.json", timestamp))
-	}
+	// Use current time in filename to avoid collisions
+	timestamp := loggerHandler.StartAppTimestamp.Format(loggerHandler.TimestampFormat)
+
+	traceFile := path.Join(
+		"others",
+		fmt.Sprintf("trace-%s.jsonl", timestamp),
+	)
 
 	// Format the caller as "file:line" instead of the default format.
 	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
@@ -68,7 +70,7 @@ func initTrace(traceLevel string, traceFile string) *os.File {
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
 	// Try to create/open the file for writing logs. On failure, fall back to console only and exit.
-	file, err := os.Create(traceFile)
+	file, err := loggerbase.CreateFile(traceDir, Trace, traceFile)
 	if err != nil {
 		// Keep logger configured to write to console and log the fatal error.
 		trace.Logger = trace.Logger.Output(consoleWriter)

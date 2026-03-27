@@ -33,10 +33,9 @@ export const FilterDialog = ({
   extraCategories,
   FilterCategoryComponent,
 }: FilterDialogProps) => {
-  console.log(extraCategories);
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-background text-foreground max-h-[85vh] w-full max-w-2xl min-w-[600px] overflow-y-auto px-10 py-8">
+      <DialogContent className="bg-background text-foreground min-w-150 max-h-[85vh] w-full max-w-2xl overflow-y-auto px-10 py-8">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -76,9 +75,15 @@ export const FilterDialog = ({
         )}
 
         <div className="space-y-1">
-          {categories.map((category) => (
-            <FilterCategoryComponent key={category} category={category} />
-          ))}
+          {categories.length > 0 ? (
+            categories.map((category) => (
+              <FilterCategoryComponent key={category} category={category} />
+            ))
+          ) : (
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              No boards loaded
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>

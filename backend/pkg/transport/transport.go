@@ -11,13 +11,11 @@ import (
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/sniffer"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tcp"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/tftp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
-	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/session"
+	"github.com/pin/tftp/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -372,17 +370,6 @@ func (transport *Transport) handlePacketEvent(message PacketMessage) error {
 
 	eventLogger.Info().Msg("sent")
 	return nil
-}
-
-// HandleSniffer starts listening for packets on the provided sniffer and handles them.
-//
-// This function will block until the sniffer is closed
-func (transport *Transport) HandleSniffer(sniffer *sniffer.Sniffer) {
-	demux, errChan := session.NewSnifferDemux(transport.handleConversation, transport.logger)
-	go demux.ReadPackets(sniffer)
-	for err := range errChan {
-		transport.errChan <- err
-	}
 }
 
 // HandleUDPServer starts listening for packets on the provided UDP server and handles them.

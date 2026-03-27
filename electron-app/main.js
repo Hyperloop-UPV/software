@@ -57,7 +57,6 @@ app.whenReady().then(async () => {
     logger.electron.header("Backend process spawned");
   } catch (error) {
     // Start backend already shows these errors
-    return;
   }
 
   // Create main application window

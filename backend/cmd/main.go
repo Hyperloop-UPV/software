@@ -9,6 +9,8 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
+	tracelogger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/trace"
+
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
 	adj_module "github.com/HyperloopUPV-H8/h9-backend/pkg/adj"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport"
@@ -33,7 +35,7 @@ func main() {
 	handleVersionFlag()
 
 	// Configure trace
-	traceFile := initTrace(flags.TraceLevel, flags.TraceFile)
+	traceFile := tracelogger.InitTrace(flags.TraceLevel)
 	if traceFile != nil {
 		defer traceFile.Close()
 	}
@@ -49,7 +51,7 @@ func main() {
 	}
 
 	// <--- ADJ --->
-	adj, err := adj_module.NewADJ(config.Adj.Branch)
+	adj, err := adj_module.NewADJ(config.Adj)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("setting up ADJ")
 	}
@@ -146,5 +148,6 @@ func main() {
 }
 
 // <-- Hall of Fame -->
-// H09 -- Zürich    -- PM Juan Martínez, Marc Sanchis -- Winners
-// H10 -- Groningen -- PM Marc Sanchis, Joan Física   -- 3rd Place
+// H09 -- Zürich    -- PM Juan Martínez, Marc Sanchis                      -- Winners
+// H10 -- Groningen -- PM Marc Sanchis, Joan Física   					   -- 3rd Place
+// H11 -- Groningen -- PM Alejandro González, Javier Ribal, Vasyl Klymenko -- ???

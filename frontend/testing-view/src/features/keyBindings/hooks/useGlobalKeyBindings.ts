@@ -1,16 +1,26 @@
 import { logger, socketService } from "@workspace/core";
 import { useEffect } from "react";
+import { useLogger } from "../../../hooks/useLogger";
 import { getDefaultParameterValues } from "../../../lib/commandUtils";
 import { useStore } from "../../../store/store";
 import type { CommandCatalogItem } from "../../../types/data/commandCatalogItem";
+import {
+  START_LOGGER_COMMAND_ID,
+  STOP_LOGGER_COMMAND_ID,
+  TOGGLE_LOGGER_COMMAND_ID,
+} from "../constants/specialCommands";
 import { SPECIAL_KEY_BINDINGS } from "../constants/specialKeyBindings";
 
 export const useGlobalKeyBindings = () => {
   const getKeyBindings = useStore((s) => s.getKeyBindings);
   const commandsCatalog = useStore((s) => s.commandsCatalog);
+  const { startLogging, stopLogging, toggleLogging } = useLogger();
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Skip if a dialog is open
+      if (document.querySelector('[role="dialog"]')) return;
+
       // Skip if user is typing in an input/textarea/contenteditable
       if (
         e.target instanceof HTMLInputElement ||
@@ -37,6 +47,22 @@ export const useGlobalKeyBindings = () => {
 
       // Execute each binding
       bindings.forEach((binding) => {
+        // Handle special built-in commands
+        if (binding.commandId === START_LOGGER_COMMAND_ID) {
+          startLogging();
+          return;
+        }
+
+        if (binding.commandId === STOP_LOGGER_COMMAND_ID) {
+          stopLogging();
+          return;
+        }
+
+        if (binding.commandId === TOGGLE_LOGGER_COMMAND_ID) {
+          toggleLogging();
+          return;
+        }
+
         // Find the command in the catalog
         let commandToExecute: CommandCatalogItem | null = null;
         for (const commands of Object.values(commandsCatalog)) {
@@ -103,5 +129,11 @@ export const useGlobalKeyBindings = () => {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [getKeyBindings, commandsCatalog]);
+  }, [
+    getKeyBindings,
+    commandsCatalog,
+    startLogging,
+    stopLogging,
+    toggleLogging,
+  ]);
 };
