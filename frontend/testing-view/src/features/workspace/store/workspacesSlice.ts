@@ -3,7 +3,6 @@ import { createFullFilter } from "../../../lib/utils";
 import type { Store } from "../../../store/store";
 import type { KeyBinding } from "../../keyBindings/types/keyBinding";
 import { DEFAULT_WORKSPACES } from "../constants/defaultWorkspaces";
-import type { SidebarTab } from "../types/sidebar";
 import type { Workspace } from "../types/workspace";
 
 export interface WorkspacesSlice {
@@ -79,12 +78,6 @@ export const createWorkspacesSlice: StateCreator<
         },
       };
 
-      // Initialize active tab for the new workspace
-      const newActiveTabs = {
-        ...state.activeTab,
-        [newWorkspaceId]: "commands" as SidebarTab,
-      };
-
       // Initialize charts for the new workspace
       const newCharts = {
         ...state.charts,
@@ -96,7 +89,6 @@ export const createWorkspacesSlice: StateCreator<
         activeWorkspace: newWorkspace, // Auto-switch to the new workspace
         workspaceFilters: newWorkspaceFilters,
         expandedItems: newExpandedItems,
-        activeTab: newActiveTabs,
         charts: newCharts,
       };
     });
@@ -137,12 +129,10 @@ export const createWorkspacesSlice: StateCreator<
       // Clean up workspace-specific data
       const newWorkspaceFilters = { ...state.workspaceFilters };
       const newExpandedItems = { ...state.expandedItems };
-      const newActiveTabs = { ...state.activeTab };
       const newCharts = { ...state.charts };
 
       delete newWorkspaceFilters[id];
       delete newExpandedItems[id];
-      delete newActiveTabs[id];
       delete newCharts[id];
 
       return {
@@ -150,7 +140,6 @@ export const createWorkspacesSlice: StateCreator<
         activeWorkspace: newActiveWorkspace,
         workspaceFilters: newWorkspaceFilters,
         expandedItems: newExpandedItems,
-        activeTab: newActiveTabs,
         charts: newCharts,
       };
     });

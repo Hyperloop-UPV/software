@@ -26,6 +26,7 @@ The frontend is organized as 6 workspaces out of 9 in the whole monorepo, divide
 - **Zustand** for state management
 - **React Router** for navigation
 - **Radix UI / shadcn/ui** for UI components
+- **RxJS** for reactive data streams
 - **WebSocket** for real-time backend communication
 - **@dnd-kit** for drag-and-drop functionality
 

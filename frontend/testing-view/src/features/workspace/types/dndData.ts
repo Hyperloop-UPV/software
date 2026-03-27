@@ -6,6 +6,7 @@ type DndVariableData = {
   variableId: string;
   variableType: string;
   variableName: string;
+  variableEnumOptions?: string[];
 };
 
 type DndChartData = {

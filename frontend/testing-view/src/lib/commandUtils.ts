@@ -10,7 +10,7 @@ export const getDefaultParameterValues = (
 
   Object.entries(fields).forEach(([key, field]) => {
     if (field.kind === "numeric") {
-      defaults[key] = 0;
+      defaults[key] = "";
     } else if (field.kind === "enum") {
       defaults[key] = (field as EnumCommandParameter).options[0] || "";
     } else if (field.kind === "boolean") {

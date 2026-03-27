@@ -1,10 +1,18 @@
 import { Button, Input, Label } from "@workspace/ui";
+import { FolderOpen } from "@workspace/ui/icons";
+import { logger } from "@workspace/core";
+import { useOpenFolder } from "../../hooks/useOpenFolder";
 import type { FieldProps } from "../../types/common/settings";
 
 export const PathField = ({ field, value, onChange }: FieldProps<string>) => {
+  const { openFolder } = useOpenFolder();
+
   const handleBrowse = async () => {
-    // Accessing the Electron API exposed via preload script
-    const path = await window.electronAPI?.selectFolder();
+    if (!window.electronAPI) {
+      logger.testingView.warn("electronAPI is not available");
+      return;
+    }
+    const path = await window.electronAPI.selectFolder();
     if (path) {
       onChange(path);
     }
@@ -20,6 +28,9 @@ export const PathField = ({ field, value, onChange }: FieldProps<string>) => {
           placeholder={field.placeholder || "No path selected"}
           className="bg-muted/50"
         />
+        <Button variant="outline" size="icon" type="button" onClick={() => openFolder(value?.toString())} title="Open folder">
+          <FolderOpen size={16} />
+        </Button>
         <Button variant="outline" type="button" onClick={handleBrowse}>
           Browse
         </Button>

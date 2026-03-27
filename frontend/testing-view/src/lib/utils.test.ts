@@ -3,10 +3,12 @@ import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
 import type { FilterScope } from "../features/filtering/types/filters";
 import type { MessageTimestamp } from "../types/data/message";
 import {
+  canAddSeriesToChart,
   createEmptyFilter,
   createFullFilter,
   formatName,
   formatTimestamp,
+  formatVariableValue,
   getCatalogKey,
   getTypeBadgeClass,
 } from "./utils";
@@ -100,6 +102,63 @@ describe("getTypeBadgeClass", () => {
 
   it("should return the correct badge class for an unknown type", () => {
     expect(getTypeBadgeClass("unknown")).toBe(variablesBadgeClasses.unknown);
+  });
+});
+
+describe("canAddSeriesToChart", () => {
+  it("should allow adding a numeric series to an empty chart", () => {
+    expect(canAddSeriesToChart([], false)).toBe(true);
+  });
+
+  it("should allow adding an enum series to an empty chart", () => {
+    expect(canAddSeriesToChart([], true)).toBe(true);
+  });
+
+  it("should prevent adding an enum series to a chart with existing series", () => {
+    expect(canAddSeriesToChart([{}], true)).toBe(false);
+    expect(canAddSeriesToChart([{ enumOptions: ["A", "B"] }], true)).toBe(false);
+  });
+
+  it("should prevent adding a numeric series to a chart with an enum series", () => {
+    expect(canAddSeriesToChart([{ enumOptions: ["A", "B"] }], false)).toBe(false);
+  });
+
+  it("should allow adding a numeric series to a chart with existing numeric series", () => {
+    expect(canAddSeriesToChart([{}], false)).toBe(true);
+    expect(canAddSeriesToChart([{}, {}], false)).toBe(true);
+  });
+});
+
+describe("formatVariableValue", () => {
+  it("should return '—' for null or undefined", () => {
+    expect(formatVariableValue(null)).toBe("—");
+    expect(formatVariableValue(undefined)).toBe("—");
+  });
+
+  it("should return enum label by string value", () => {
+    expect(formatVariableValue("Running", ["Idle", "Running", "Fault"])).toBe("Running");
+  });
+
+  it("should return enum label by numeric index", () => {
+    expect(formatVariableValue(1, ["Idle", "Running", "Fault"])).toBe("Running");
+  });
+
+  it("should return raw string if index is out of bounds", () => {
+    expect(formatVariableValue(5, ["Idle", "Running"])).toBe("5");
+  });
+
+  it("should format booleans as 0/1", () => {
+    expect(formatVariableValue(true)).toBe("1");
+    expect(formatVariableValue(false)).toBe("0");
+  });
+
+  it("should format numbers with 2 decimal places", () => {
+    expect(formatVariableValue(3.14159)).toBe("3.14");
+    expect(formatVariableValue(42)).toBe("42.00");
+  });
+
+  it("should format object with last/average using last", () => {
+    expect(formatVariableValue({ last: 1.5, average: 1.2 })).toBe("1.50");
   });
 });
 

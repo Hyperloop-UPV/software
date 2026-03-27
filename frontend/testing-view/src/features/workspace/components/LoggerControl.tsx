@@ -1,8 +1,9 @@
 import { Button, Separator } from "@workspace/ui";
-import { Settings2 } from "@workspace/ui/icons";
+import { FolderOpen, Settings2 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { LOGGER_CONTROL_CONFIG } from "../../../constants/loggerControlConfig";
 import { useLogger } from "../../../hooks/useLogger";
+import { useOpenFolder } from "../../../hooks/useOpenFolder";
 import { useStore } from "../../../store/store";
 
 interface LoggerControlProps {
@@ -11,8 +12,10 @@ interface LoggerControlProps {
 
 export const LoggerControl = ({ disabled }: LoggerControlProps) => {
   const { status, startLogging, stopLogging } = useLogger();
+  const { openFolder } = useOpenFolder();
   const openFilterDialog = useStore((s) => s.openFilterDialog);
   const filteredCount = useStore((state) => state.getFilteredCount("logs"));
+  const loggingPath = useStore((s) => s.config?.logging?.logging_path as string | undefined);
 
   const handleToggle = () => {
     if (status === "loading") return;
@@ -64,6 +67,17 @@ export const LoggerControl = ({ disabled }: LoggerControlProps) => {
           disabled={disabled || status === "loading"}
         >
           {config.icon}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground h-8 w-8"
+          onClick={() => openFolder(loggingPath)}
+          title="Open logs folder"
+          disabled={disabled}
+        >
+          <FolderOpen size={14} />
         </Button>
 
         <Button

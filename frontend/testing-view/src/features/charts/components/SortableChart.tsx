@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { canAddSeriesToChart } from "../../../lib/utils";
 import type { WorkspaceChartSeries } from "../types/charts";
 import { TelemetryChart } from "./TelemetryChart";
 
@@ -24,6 +25,10 @@ export function SortableChart({ id, series }: SortableChartProps) {
   });
 
   const isVariableOver = isOver && active?.data.current?.type === "variable";
+  const draggedIsEnum =
+    (active?.data.current?.variableEnumOptions?.length ?? 0) > 0;
+  const isIncompatibleDrop =
+    isVariableOver && !canAddSeriesToChart(series, draggedIsEnum);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -37,7 +42,8 @@ export function SortableChart({ id, series }: SortableChartProps) {
         id={id}
         series={series}
         isDragging={false}
-        isOver={isVariableOver}
+        isOver={isVariableOver && !isIncompatibleDrop}
+        isIncompatibleDrop={isIncompatibleDrop}
         dragAttributes={attributes}
         dragListeners={listeners}
       />

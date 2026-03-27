@@ -24,6 +24,11 @@ export function useTransformedBoards(
     )
       return;
 
+    const store = useStore.getState();
+    const wasAllCommands = store.isAllSelected("commands");
+    const wasAllTelemetry = store.isAllSelected("telemetry");
+    const wasAllLogs = store.isAllSelected("logs");
+
     setTelemetryCatalog(transformedBoards.telemetryCatalog);
     setCommandsCatalog(transformedBoards.commandsCatalog);
     setBoards(Array.from(transformedBoards.boards));
@@ -33,7 +38,12 @@ export function useTransformedBoards(
     const hasCommandsData =
       Object.keys(transformedBoards.commandsCatalog).length > 0;
 
-    if (hasTelemetryData && hasCommandsData) initializeWorkspaceFilters();
+    if (hasTelemetryData && hasCommandsData) {
+      initializeWorkspaceFilters();
+      if (wasAllCommands) useStore.getState().selectAllFilters("commands");
+      if (wasAllTelemetry) useStore.getState().selectAllFilters("telemetry");
+      if (wasAllLogs) useStore.getState().selectAllFilters("logs");
+    }
   }, [
     transformedBoards,
     setTelemetryCatalog,

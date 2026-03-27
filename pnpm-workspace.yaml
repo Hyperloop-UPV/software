@@ -7,3 +7,4 @@ packages:
   - "backend"
   - "electron-app"
   - "packet-sender"
+  - "e2e"

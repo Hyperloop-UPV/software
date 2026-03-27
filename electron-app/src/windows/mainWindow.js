@@ -54,10 +54,15 @@ function createWindow(screenWidth, screenHeight) {
   const menu = createMenu(mainWindow);
   mainWindow.setMenu(menu);
 
-  // Open DevTools in development mode
-  if (!app.isPackaged) {
+  // Open DevTools in development mode (skip in test env to keep window order predictable)
+  if (!app.isPackaged && process.env.NODE_ENV !== "test") {
     mainWindow.webContents.openDevTools();
   }
+
+  // Quit the app when main window is closed
+  mainWindow.on("close", () => {
+    app.quit();
+  });
 
   // Clear window reference when closed
   mainWindow.on("closed", () => {

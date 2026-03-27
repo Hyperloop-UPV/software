@@ -4,6 +4,7 @@
 export interface WorkspaceChartSeries {
   packetId: number;
   variable: string;
+  enumOptions?: string[];
 }
 
 /**
