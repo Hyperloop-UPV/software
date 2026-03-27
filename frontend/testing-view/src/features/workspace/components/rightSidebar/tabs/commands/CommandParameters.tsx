@@ -47,6 +47,7 @@ export const CommandParameters = ({
             placeholder={field.type}
             value={values[field.id] ?? ""}
             onChange={(e) => onChange(field.id, e.target.value)}
+            onWheel={(e) => e.currentTarget.blur()}
             className="h-8 text-xs"
           />
           {minSafeRange !== null && maxSafeRange !== null && (
