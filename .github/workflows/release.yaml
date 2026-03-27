@@ -11,6 +11,9 @@ on:
         type: boolean
         default: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   determine-version:
     name: Determine Version
@@ -24,6 +27,27 @@ jobs:
         run: |
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           echo "is_draft=${{ github.event.inputs.draft }}" >> $GITHUB_OUTPUT
+
+  create-draft-release:
+    name: Create Draft Release
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release
+        shell: bash
+        run: |
+          DRAFT_FLAG=""
+          if [ "${{ needs.determine-version.outputs.is_draft }}" = "true" ]; then
+            DRAFT_FLAG="--draft"
+          fi
+          gh release create v${{ needs.determine-version.outputs.version }} \
+            --title "Control Station v${{ needs.determine-version.outputs.version }}" \
+            --generate-notes \
+            $DRAFT_FLAG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-frontend:
     name: Build Frontend
@@ -53,9 +77,9 @@ jobs:
           path: frontend/testing-view/dist/**
           retention-days: 1
 
-  build-and-package:
-    name: Package - ${{ matrix.os }}
-    needs: [determine-version, build-frontend]
+  build-backend:
+    name: Build Backend - ${{ matrix.os }}
+    needs: determine-version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -92,9 +116,46 @@ jobs:
           CGO_ENABLED: 1
           GOARCH: ${{ matrix.goarch }}
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.os }}
+          path: electron-app/binaries/${{ matrix.binary }}
+          retention-days: 1
+
+  package-and-upload:
+    name: Package & Upload - ${{ matrix.os }}
+    needs: [determine-version, create-draft-release, build-frontend, build-backend]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            binary: backend-windows-amd64.exe
+          - os: ubuntu-latest
+            binary: backend-linux-amd64
+          - os: macos-latest
+            binary: backend-darwin-arm64
+          - os: macos-15-intel
+            binary: backend-darwin-amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download backend binary
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-${{ matrix.os }}
+          path: electron-app/binaries
+
       - name: Set executable permissions (Unix)
         if: runner.os != 'Windows'
         run: chmod +x electron-app/binaries/*
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: electron-app/renderer/testing-view
 
       - uses: pnpm/action-setup@v4
         with:
@@ -110,12 +171,6 @@ jobs:
         shell: bash
         run: pnpm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
 
-      - name: Download frontend dist
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: electron-app/renderer/testing-view
-
       - name: Install Electron dependencies
         working-directory: electron-app
         run: pnpm install
@@ -128,48 +183,12 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           ELECTRON_BUILDER_PUBLISH: never
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: electron-${{ runner.os }}-${{ runner.arch }}
-          path: |
-            electron-app/dist/*.exe
-            electron-app/dist/*.AppImage
-            electron-app/dist/*.deb
-            electron-app/dist/*.dmg
-            electron-app/dist/*.zip
-            electron-app/dist/*.yml
-            electron-app/dist/*.blockmap
-            !electron-app/dist/*-unpacked
-            !electron-app/dist/mac
-            !electron-app/dist/win-unpacked
-            !electron-app/dist/linux-unpacked
-          if-no-files-found: error
-          retention-days: 1
-
-  create-release:
-    name: Create GitHub Release
-    needs: [build-and-package, determine-version]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all electron artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: electron-*
-          path: dist
-          merge-multiple: true
-
-      - name: Display structure
-        run: ls -laR dist/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.determine-version.outputs.version }}
-          name: Control Station v${{ needs.determine-version.outputs.version }}
-          draft: ${{ needs.determine-version.outputs.is_draft }}
-          generate_release_notes: true
-          files: dist/**/*
+      - name: Upload to GitHub Release
+        shell: bash
+        run: |
+          find electron-app/dist -maxdepth 1 -type f \
+            \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" \
+               -o -name "*.dmg" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) \
+            | xargs gh release upload v${{ needs.determine-version.outputs.version }} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
