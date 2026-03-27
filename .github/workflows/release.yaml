@@ -1,10 +1,6 @@
 name: Release Electron App
 
 on:
-  # Commented because provokes duplicated builds
-  # push:
-  #   tags:
-  #     - "v*.*.*"
   workflow_dispatch:
     inputs:
       version:
@@ -16,7 +12,6 @@ on:
         default: true
 
 jobs:
-  # Determine version once on Linux
   determine-version:
     name: Determine Version
     runs-on: ubuntu-latest
@@ -27,134 +22,99 @@ jobs:
       - name: Determine version
         id: get_version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-            echo "is_draft=${{ github.event.inputs.draft }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-            echo "is_draft=false" >> $GITHUB_OUTPUT
-          fi
-          echo "Version determined: $(cat $GITHUB_OUTPUT | grep version)"
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          echo "is_draft=${{ github.event.inputs.draft }}" >> $GITHUB_OUTPUT
 
-  build-electron:
-    name: Build Electron App
+  build-frontend:
+    name: Build Frontend
     needs: determine-version
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-15-intel]
+    runs-on: ubuntu-latest
     steps:
-      - name: Debug all contexts
-        run: |
-          echo "=== Runner Context ==="
-          echo "runner.os: ${{ runner.os }}"
-          echo "runner.arch: ${{ runner.arch }}"
-          echo "runner.name: ${{ runner.name }}"
-          echo "runner.temp: ${{ runner.temp }}"
-          echo "runner.workspace: ${{ runner.workspace }}"
-          echo ""
-          echo "=== Matrix Context ==="
-          echo "matrix.os: ${{ matrix.os }}"
-          echo "matrix.platform: ${{ matrix.platform }}"
-          echo "matrix.arch: ${{ matrix.arch }}"
-          echo ""
-          echo "=== Environment Variables ==="
-          echo "RUNNER_OS: $RUNNER_OS"
-          echo "RUNNER_ARCH: $RUNNER_ARCH"
-          echo "RUNNER_NAME: $RUNNER_NAME"
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
           version: 10.26.0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
 
-      # Update package.json with release version
-      - name: Update version in package.json
-        working-directory: electron-app
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build with Turbo
+        run: pnpm turbo build --filter=testing-view
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/testing-view/dist/**
+          retention-days: 1
+
+  build-and-package:
+    name: Package - ${{ matrix.os }}
+    needs: [determine-version, build-frontend]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            binary: backend-windows-amd64.exe
+            goarch: amd64
+          - os: ubuntu-latest
+            binary: backend-linux-amd64
+            goarch: amd64
+          - os: macos-latest
+            binary: backend-darwin-arm64
+            goarch: arm64
+          - os: macos-15-intel
+            binary: backend-darwin-amd64
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Install Linux deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y gcc
+
+      - name: Build backend binary
+        working-directory: backend/cmd
         shell: bash
-        run: |
-          pnpm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
-          echo "Updated version to:"
-          cat package.json | grep version
-
-      - name: Install Linux build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-
-      # Download ONLY the appropriate backend for this platform
-      - name: Download Linux backend
-        if: runner.os == 'Linux'
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: build.yaml
-          branch: production
-          workflow_conclusion: success
-          name: backend-linux
-          path: electron-app/binaries
-
-      - name: Download Windows backend
-        if: runner.os == 'Windows'
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: build.yaml
-          branch: production
-          workflow_conclusion: success
-          name: backend-windows
-          path: electron-app/binaries
-
-      - name: Download macOS Intel backend
-        if: runner.os == 'macOS' && runner.arch == 'X64'
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: build.yaml
-          branch: production
-          workflow_conclusion: success
-          name: backend-macos-intel
-          path: electron-app/binaries
-
-      - name: Download macOS ARM64 backend
-        if: runner.os == 'macOS' && runner.arch == 'ARM64'
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: build.yaml
-          branch: production
-          workflow_conclusion: success
-          name: backend-macos-arm64
-          path: electron-app/binaries
-
-      # Download frontend builds from latest build
-      # TODO: Uncomment when competition view is ready
-      # - name: Download competition-view
-      #   uses: dawidd6/action-download-artifact@v3
-      #   with:
-      #     workflow: build.yaml
-      #     branch: production
-      #     workflow_conclusion: success
-      #     name: competition-view
-      #     path: electron-app/renderer/competition-view
-
-      - name: Download testing-view
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: build.yaml
-          branch: production
-          workflow_conclusion: success
-          name: testing-view
-          path: electron-app/renderer/testing-view
+        run: go build -o ../../electron-app/binaries/${{ matrix.binary }} .
+        env:
+          CGO_ENABLED: 1
+          GOARCH: ${{ matrix.goarch }}
 
       - name: Set executable permissions (Unix)
         if: runner.os != 'Windows'
         run: chmod +x electron-app/binaries/*
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Update version in package.json
+        working-directory: electron-app
+        shell: bash
+        run: pnpm version ${{ needs.determine-version.outputs.version }} --no-git-tag-version
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: electron-app/renderer/testing-view
 
       - name: Install Electron dependencies
         working-directory: electron-app
@@ -168,19 +128,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           ELECTRON_BUILDER_PUBLISH: never
 
-      - name: Display structure (Windows)
-        if: runner.os == 'Windows'
-        working-directory: electron-app
-        shell: pwsh
-        run: Get-ChildItem -Recurse dist/ | Select-Object FullName
-
-      - name: Display structure (Unix)
-        if: runner.os != 'Windows'
-        working-directory: electron-app
-        run: ls -laR dist/
-
-      - name: Upload electron artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: electron-${{ runner.os }}-${{ runner.arch }}
           path: |
@@ -196,17 +144,14 @@ jobs:
             !electron-app/dist/win-unpacked
             !electron-app/dist/linux-unpacked
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
-  # Create GitHub Release
   create-release:
     name: Create GitHub Release
-    needs: [build-electron, determine-version]
+    needs: [build-and-package, determine-version]
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Download all electron artifacts
         uses: actions/download-artifact@v4
