@@ -38,7 +38,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter testing-view --filter e2e --filter hyperloop-control-station
+        run: pnpm install --frozen-lockfile --filter "testing-view..." --filter "e2e..." --filter "hyperloop-control-station..."
 
       - name: Build backend binary
         run: |
