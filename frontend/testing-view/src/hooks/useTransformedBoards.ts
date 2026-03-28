@@ -31,7 +31,7 @@ export function useTransformedBoards(
 
     setTelemetryCatalog(transformedBoards.telemetryCatalog);
     setCommandsCatalog(transformedBoards.commandsCatalog);
-    setBoards(Array.from(transformedBoards.boards));
+    setBoards(Array.from(transformedBoards.boards).sort());
 
     const hasTelemetryData =
       Object.keys(transformedBoards.telemetryCatalog).length > 0;
