@@ -38,12 +38,12 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter testing-view --filter e2e --filter hyperloop-control-station
 
       - name: Build backend binary
         run: |
           mkdir -p electron-app/binaries
-          pnpm --filter backend run build:ci -- -o ../electron-app/binaries/backend-windows-amd64.exe ./cmd
+          cd backend/cmd && go build -o ../../electron-app/binaries/backend-windows-amd64.exe .
 
       - name: Patch backend config
         run: sed -i 's/validate = true/validate = false/' backend/cmd/dev-config.toml
