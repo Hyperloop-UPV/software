@@ -31,10 +31,19 @@ jobs:
         with:
           go-version: "1.23"
 
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Build backend binary
         run: |
           mkdir -p electron-app/binaries
-          cd backend/cmd && go build -o ../../electron-app/binaries/backend-windows-amd64.exe .
+          pnpm --filter backend run build:ci -- -o ../electron-app/binaries/backend-windows-amd64.exe ./cmd
 
       - name: Patch backend config
         run: sed -i 's/validate = true/validate = false/' backend/cmd/dev-config.toml
@@ -46,16 +55,6 @@ jobs:
           sleep 5
           kill $PID 2>/dev/null || true
         continue-on-error: true
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Install Electron binary
         run: node node_modules/electron/install.js
