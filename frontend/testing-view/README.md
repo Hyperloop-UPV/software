@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# Testing View
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The Testing View is the web interface used during vehicle testing sessions. It provides real-time telemetry charts and a filtering system for monitoring packet data from the pod.
 
-Currently, two official plugins are available:
+It is built with **React**, **TypeScript**, and **Vite**, and runs embedded inside the Hyperloop Control Station Electron app.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Features
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+### Workspaces
 
-## Expanding the ESLint configuration
+Workspaces are named tabs that each hold their own independent set of charts. You can create, rename, and delete workspaces, and switch between them at any time. The active workspace and its charts are persisted across sessions.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Charts
 
-```js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
+The charts panel displays live telemetry data as line charts within the active workspace. You can add, remove, and reorder charts via drag and drop. Each chart supports multiple data series and a configurable history limit that controls how many data points are kept in memory.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Filtering
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+The filtering system lets you select which telemetry packets and commands are visible. Filters are organized in a tree matching the packet catalog structure, with search, select all, and clear all controls.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Settings
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
+A settings dialog exposes runtime configuration for the vehicle connection, including vehicle board selection, ADJ branch, TCP/TFTP connection parameters, BLCU addresses, and logging options (time unit and output path).
 
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+### Key Bindings
+
+The key bindings system lets you assign keyboard shortcuts to commands sent to the vehicle, as well as special built-in actions like starting, stopping, or toggling the logger.
+
+---
+
+## Scripts
+
+| Script            | Description                                     |
+| :---------------- | :---------------------------------------------- |
+| `pnpm dev`        | Start the Vite dev server                       |
+| `pnpm build`      | Type-check and build for production             |
+| `pnpm build:e2e`  | Build in e2e mode (used by the `e2e` workspace) |
+| `pnpm preview`    | Preview the production build                    |
+| `pnpm lint`       | Run ESLint                                      |
+| `pnpm test`       | Run unit tests once (Vitest)                    |
+| `pnpm test:watch` | Run unit tests in watch mode                    |
+
+---
+
+## Tests
+
+Unit tests are written with **Vitest**. The charts store, filtering store, and utility functions are covered.

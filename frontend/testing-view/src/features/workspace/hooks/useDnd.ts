@@ -6,6 +6,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useState } from "react";
+import { canAddSeriesToChart } from "../../../lib/utils";
 import { useStore } from "../../../store/store";
 import type { DndActiveData } from "../types/dndData";
 
@@ -34,12 +35,17 @@ export function useDnd() {
     // Logic for adding a variable to a chart
     if (active.data.current?.type === "variable") {
       const chartId = over.data.current?.chartId;
-      const { packetId, variableId } = active.data.current;
+      const { packetId, variableId, variableEnumOptions } =
+        active.data.current;
+      const incomingIsEnum = (variableEnumOptions?.length ?? 0) > 0;
       // Add a variable to an existing chart
       if (chartId) {
+        const chart = charts.find((c) => c.id === chartId);
+        if (!canAddSeriesToChart(chart?.series ?? [], incomingIsEnum)) return;
         addSeries(activeWorkspaceId, chartId, {
           packetId,
           variable: variableId,
+          enumOptions: variableEnumOptions,
         });
         // Add a new chart to the main panel
       } else if (over.id === "main-panel-droppable") {
@@ -47,6 +53,7 @@ export function useDnd() {
         addSeries(activeWorkspaceId, newChartId, {
           packetId,
           variable: variableId,
+          enumOptions: variableEnumOptions,
         });
       }
     }

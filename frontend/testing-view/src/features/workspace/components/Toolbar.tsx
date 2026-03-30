@@ -30,6 +30,7 @@ export const TestingToolbar = ({
         onClick={handleAddChart}
         variant="secondary"
         size="sm"
+        data-testid="add-chart-button"
         className="ring-border/50 hover:ring-primary/30 gap-2 px-6 shadow-sm ring-1 transition-all"
       >
         <Plus className="h-4 w-4" /> Add Chart

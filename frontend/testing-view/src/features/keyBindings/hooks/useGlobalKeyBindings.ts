@@ -100,8 +100,18 @@ export const useGlobalKeyBindings = () => {
                 ];
               }
 
+              const numericValue =
+                field.kind === "numeric" ? parseFloat(value) : value;
+
+              if (field.kind === "numeric" && isNaN(numericValue as number)) {
+                logger.testingView.warn(
+                  `Skipping command: numeric field "${fieldKey}" has no valid value`,
+                );
+                return acc;
+              }
+
               acc[fieldKey] = {
-                value: field.kind === "numeric" ? parseFloat(value) : value,
+                value: numericValue,
                 isEnabled: true,
                 type: field.type,
               };

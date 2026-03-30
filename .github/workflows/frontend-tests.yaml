@@ -14,19 +14,9 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/frontend-tests.yaml"
 
-  push:
-    branches:
-      - "frontend/**"
-      - "testing-view/**"
-      - "competition-view/**"
-    paths:
-      - "frontend/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/frontend-tests.yaml"
-
 jobs:
   test:
-    name: Run Frontend Tests
+    name: Run Frontend Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

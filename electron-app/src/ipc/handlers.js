@@ -7,13 +7,15 @@
  * - Folder selection dialogs
  */
 
-import { dialog, ipcMain } from "electron";
+import { dialog, ipcMain, shell } from "electron";
+import fs from "fs";
+import { isAbsolute, join } from "path";
 import {
   importConfig,
   readConfig,
   writeConfig,
 } from "../config/configInstance.js";
-import { restartBackend } from "../processes/backend.js";
+import { getBackendWorkingDir, restartBackend } from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
 import {
   getCurrentView,
@@ -133,6 +135,28 @@ function setupIpcHandlers() {
       return result.filePaths[0] || null;
     } catch (error) {
       logger.electron.error("Error selecting folder:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * @event open-folder
+   * @async
+   * @description Opens the specified folder path in the OS file explorer.
+   * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
+   * @param {string} folderPath - The folder path to open.
+   * @returns {Promise<void>}
+   * @throws {Error} If opening the folder fails.
+   */
+  ipcMain.handle("open-folder", async (event, folderPath) => {
+    try {
+      const resolvedPath = isAbsolute(folderPath)
+        ? folderPath
+        : join(getBackendWorkingDir(), folderPath);
+      const loggerPath = join(resolvedPath, "logger");
+      await shell.openPath(fs.existsSync(loggerPath) ? loggerPath : resolvedPath);
+    } catch (error) {
+      logger.electron.error("Error opening folder:", error);
       throw error;
     }
   });

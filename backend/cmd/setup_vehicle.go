@@ -161,6 +161,7 @@ func configureHTTPServer(
 		)
 
 		httpServer := h.NewServer(server.Addr, mux)
+		trace.Info().Str("localAddr", server.Addr).Msg("http server listening")
 		go httpServer.ListenAndServe()
 	}
 

@@ -2,15 +2,18 @@ import { useDraggable } from "@dnd-kit/core";
 import { Badge } from "@workspace/ui";
 import { cn } from "@workspace/ui/lib";
 import { useShallow } from "zustand/shallow";
-import { getTypeBadgeClass } from "../../../../../../lib/utils";
+import {
+  canAddSeriesToChart,
+  getTypeBadgeClass,
+} from "../../../../../../lib/utils";
 import { useStore } from "../../../../../../store/store";
-import type { Variable } from "../../../../../../types/data/telemetryCatalogItem";
+import type { TelemetryVariable } from "../../../../../../types/data/telemetryCatalogItem";
 import ChartPicker from "./ChartPicker";
 import { TelemetryValue } from "./TelemetryValue";
 
 interface VariableItemProps {
   packetId: number;
-  variable: Variable;
+  variable: TelemetryVariable;
   liveValue?:
     | {
         average: number;
@@ -34,13 +37,14 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `draggable-${packetId}-${variable.id}`,
-      disabled: variable.type === "enum",
       data: {
         type: "variable",
         packetId,
         variableId: variable.id,
         variableName: variable.name,
         variableType: variable.type,
+        variableEnumOptions:
+          "options" in variable ? variable.options : undefined,
       },
     });
 
@@ -52,9 +56,14 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
 
   const handleAddToChart = (chartId: string) => {
     if (!activeWorkspaceId) return;
+    const chart = charts.find((c) => c.id === chartId);
+    if (!canAddSeriesToChart(chart?.series ?? [], "options" in variable))
+      return;
     addSeries(activeWorkspaceId, chartId, {
       packetId,
       variable: variable.id,
+      enumOptions:
+        "options" in variable ? variable.options : undefined,
     });
   };
 
@@ -65,11 +74,7 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
     handleAddToChart(newChartId);
   };
 
-  const isEnum = variable.type === "enum";
-
-  const cursorStyle = isEnum
-    ? "cursor-default"
-    : "cursor-grab active:cursor-grabbing";
+  const cursorStyle = "cursor-grab active:cursor-grabbing";
 
   const opacityStyle = isDragging
     ? "scale-[0.98] border-dashed opacity-20 grayscale"
@@ -112,15 +117,13 @@ export const VariableItem = ({ packetId, variable }: VariableItemProps) => {
         </div>
 
         {/* Chart Picker */}
-        {!isEnum && (
-          <div className="opacity-0 transition-opacity group-hover:opacity-100">
-            <ChartPicker
-              charts={charts}
-              onAdd={handleAddToChart}
-              onCreate={handleCreateChart}
-            />
-          </div>
-        )}
+        <div className="opacity-0 transition-opacity group-hover:opacity-100">
+          <ChartPicker
+            charts={charts}
+            onAdd={handleAddToChart}
+            onCreate={handleCreateChart}
+          />
+        </div>
       </div>
 
       {/* Live Value */}
