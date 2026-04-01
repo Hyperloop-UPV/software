@@ -1,3 +1,4 @@
+import type { VariableValue } from "@workspace/core";
 import { ACRONYMS } from "../constants/acronyms";
 import { variablesBadgeClasses } from "../constants/variablesBadgeClasses";
 import type {
@@ -118,6 +119,30 @@ export const getCatalogKey = (scope: FilterScope) => {
 export const formatTimestamp = (ts: MessageTimestamp) => {
   if (!ts) return "00:00:00";
   return `${ts.hour.toString().padStart(2, "0")}:${ts.minute.toString().padStart(2, "0")}:${ts.second.toString().padStart(2, "0")}`;
+};
+
+export const canAddSeriesToChart = (
+  chartSeries: { enumOptions?: string[] }[],
+  incomingIsEnum: boolean,
+): boolean => {
+  const chartHasEnum = chartSeries.some((s) => (s.enumOptions?.length ?? 0) > 0);
+  if (incomingIsEnum && chartSeries.length > 0) return false;
+  if (!incomingIsEnum && chartHasEnum) return false;
+  return true;
+};
+
+export const formatVariableValue = (
+  m: VariableValue | null | undefined,
+  enumOptions?: string[],
+): string => {
+  if (m == null) return "—";
+  if (enumOptions?.length) {
+    return typeof m === "string" ? m : (enumOptions[m as number] ?? String(m));
+  }
+  if (typeof m === "boolean") return m ? "1" : "0";
+  if (typeof m === "object" && "last" in m) return m.last.toFixed(2);
+  if (typeof m === "number") return m.toFixed(2);
+  return String(m);
 };
 
 export const detectExtraBoards = (

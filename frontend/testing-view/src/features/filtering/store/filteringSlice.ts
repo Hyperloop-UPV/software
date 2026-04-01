@@ -22,11 +22,6 @@ import type {
 } from "../types/filters";
 
 export interface FilteringSlice {
-  /** Sidebar Navigation */
-  activeTab: Record<string, SidebarTab>;
-  getActiveTab: () => SidebarTab;
-  setActiveTab: (tab: SidebarTab) => void;
-
   filterDialog: {
     isOpen: boolean;
     scope: FilterScope | null;
@@ -73,6 +68,7 @@ export interface FilteringSlice {
     category: BoardName,
   ) => number;
   getTotalCount: (scope: FilterScope) => number;
+  isAllSelected: (scope: FilterScope) => boolean;
   getSelectionState: (scope: FilterScope, category: BoardName) => CheckboxState;
 
   /** Virtualization & Expansion */
@@ -100,22 +96,6 @@ export const createFilteringSlice: StateCreator<
   [],
   FilteringSlice
 > = (set, get) => ({
-  // Tabs (per workspace)
-  activeTab: {},
-  getActiveTab: () => {
-    const activeWorkspaceId = get().getActiveWorkspaceId();
-    if (!activeWorkspaceId) return "commands";
-    return get().activeTab[activeWorkspaceId] || "commands";
-  },
-  setActiveTab: (tab) => {
-    const activeWorkspaceId = get().getActiveWorkspaceId();
-    if (!activeWorkspaceId) return;
-
-    set((state) => ({
-      activeTab: { ...state.activeTab, [activeWorkspaceId]: tab },
-    }));
-  },
-
   openFilterDialog: (scope: FilterScope) =>
     set({ filterDialog: { isOpen: true, scope } }),
   closeFilterDialog: () =>
@@ -356,6 +336,10 @@ export const createFilteringSlice: StateCreator<
   getTotalCount: (scope) => {
     const catalog = get().getCatalog(scope);
     return Object.values(catalog).reduce((acc, items) => acc + items.length, 0);
+  },
+  isAllSelected: (scope) => {
+    const total = get().getTotalCount(scope);
+    return total > 0 && get().getFilteredCount(scope) === total;
   },
 
   getSelectionState: (scope, category) => {

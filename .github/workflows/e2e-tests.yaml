@@ -1,0 +1,76 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - production
+      - "frontend/**"
+      - "control-station/**"
+      - "testing-view/**"
+      - "e2e/**"
+    paths:
+      - "frontend/testing-view/**"
+      - "electron-app/**"
+      - "e2e/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/e2e-tests.yaml"
+
+jobs:
+  e2e:
+    name: Playwright E2E Tests
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter "testing-view..." --filter "e2e..." --filter "hyperloop-control-station..."
+
+      - name: Build backend binary
+        run: |
+          mkdir -p electron-app/binaries
+          cd backend/cmd && go build -o ../../electron-app/binaries/backend-windows-amd64.exe .
+
+      - name: Patch backend config
+        run: sed -i 's/validate = true/validate = false/' backend/cmd/dev-config.toml
+
+      - name: Debug - test backend binary
+        run: |
+          ./electron-app/binaries/backend-windows-amd64.exe --config backend/cmd/dev-config.toml 2>&1 &
+          PID=$!
+          sleep 5
+          kill $PID 2>/dev/null || true
+        continue-on-error: true
+
+      - name: Install Electron binary
+        run: node node_modules/electron/install.js
+        working-directory: e2e
+
+      - name: Debug - verify Electron binary
+        run: |
+          node -e "const e = require('electron'); console.log('Electron path:', e);"
+          ls -la "$(node -e "process.stdout.write(require('electron'))")"
+        working-directory: e2e
+
+      - name: Build testing-view (e2e mode)
+        run: |
+          pnpm --filter testing-view build:e2e
+          mkdir -p electron-app/renderer/testing-view
+          cp -r frontend/testing-view/dist/. electron-app/renderer/testing-view/
+
+      - name: Run UI tests
+        run: pnpm --filter e2e exec playwright test tests/ui/

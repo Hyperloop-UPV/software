@@ -35,17 +35,17 @@ export const FilterDialog = ({
 }: FilterDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-background text-foreground min-w-150 max-h-[85vh] w-full max-w-2xl overflow-y-auto px-10 py-8">
+      <DialogContent data-testid="filter-dialog" className="bg-background text-foreground min-w-150 max-h-[85vh] w-full max-w-2xl overflow-y-auto px-10 py-8">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
         <div className="flex justify-end gap-2">
-          <Button size="sm" onClick={onClearAll}>
+          <Button size="sm" data-testid="filter-clear-all" onClick={onClearAll}>
             Clear All
           </Button>
-          <Button size="sm" onClick={onSelectAll}>
+          <Button size="sm" data-testid="filter-select-all" onClick={onSelectAll}>
             Select All
           </Button>
         </div>

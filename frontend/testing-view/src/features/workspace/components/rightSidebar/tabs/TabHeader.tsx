@@ -32,6 +32,7 @@ export const TabHeader = ({ title, scope }: TabHeaderProps) => {
           onClick={() => openFilterDialog(scope)}
           size="sm"
           variant="secondary"
+          data-testid={`filter-button-${scope}`}
           className="ring-border/50 hover:ring-primary/30 gap-2 shadow-sm ring-1 transition-all"
         >
           <ListFilterPlus className="h-4 w-4" />

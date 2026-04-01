@@ -13,6 +13,7 @@ export const SettingsDialog = () => {
   const isSettingsOpen = useStore((s) => s.isSettingsOpen);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
   const setRestarting = useStore((s) => s.setRestarting);
+  const setConfig = useStore((s) => s.setConfig);
   const [localConfig, setLocalConfig] = useState<ConfigData | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [isSaving, startSaving] = useTransition();
@@ -24,6 +25,7 @@ export const SettingsDialog = () => {
       try {
         const config = await window.electronAPI.getConfig();
         setLocalConfig(config);
+        setConfig(config);
         setIsSynced(true);
       } catch (error) {
         console.error("Error loading config:", error);
@@ -37,24 +39,33 @@ export const SettingsDialog = () => {
     }
   };
 
-  const loadBranches = () => {
+  const loadBranches = (signal: AbortSignal) => {
     startBranchesTransition(async () => {
       try {
         const res = await fetch(
           "https://api.github.com/repos/hyperloop-upv/adj/branches?per_page=100",
+          { signal: AbortSignal.any([signal, AbortSignal.timeout(2000)]) },
         );
         const data = await res.json();
         setBranches(data.map((b: { name: string }) => b.name));
       } catch (error) {
-        console.error("Error loading branches:", error);
+        if (
+          error instanceof Error &&
+          error.name !== "AbortError" &&
+          error.name !== "TimeoutError"
+        ) {
+          console.error("Error loading branches:", error);
+        }
       }
     });
   };
 
   useEffect(() => {
     if (isSettingsOpen) {
+      const controller = new AbortController();
       loadConfig();
-      loadBranches();
+      loadBranches(controller.signal);
+      return () => controller.abort();
     }
   }, [isSettingsOpen]);
 

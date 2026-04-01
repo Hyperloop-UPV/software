@@ -42,9 +42,9 @@ async function getConfigManager() {
     );
 
     logger.config.info("ConfigManager initialized");
-    logger.config.path("User config", userConfigPath);
-    logger.config.path("User version config", versionFilePath);
-    logger.config.path("Template path", templatePath);
+    logger.config.debug("User config", userConfigPath);
+    logger.config.debug("User version config", versionFilePath);
+    logger.config.debug("Template path", templatePath);
   }
 
   // Return the singleton instance

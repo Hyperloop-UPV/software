@@ -30,8 +30,8 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
     () => getDefaultParameterValues(commandCatalogItem.fields),
   );
 
-  const hasParameters = Object.keys(commandCatalogItem.fields).length > 0;
   const paramCount = Object.keys(commandCatalogItem.fields).length;
+  const hasParameters = paramCount > 0;
 
   const hasInvalidNumeric = Object.entries(commandCatalogItem.fields).some(
     ([key, field]) =>
@@ -87,7 +87,7 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
           <CollapsibleTrigger className="hover:bg-accent/50 group flex w-full items-center gap-2 px-3 py-2 transition-colors">
             <div
               role="button"
-              aria-disabled={hasInvalidNumeric}
+              aria-label={`Run ${commandCatalogItem.label}`}
               onClick={handleRun}
               className={cn(
                 "bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
@@ -153,6 +153,7 @@ export const CommandItem = ({ item: commandCatalogItem }: CommandItemProps) => {
       ) : (
         <div className="hover:bg-accent/50 group flex items-center gap-2 px-3 py-2 transition-colors">
           <button
+            aria-label={`Run ${commandCatalogItem.label}`}
             onClick={handleRun}
             disabled={hasInvalidNumeric}
             className="hover:bg-primary/90 hover:text-primary-foreground bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-40"

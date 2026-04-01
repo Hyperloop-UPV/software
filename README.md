@@ -28,6 +28,7 @@ Our `pnpm-workspace.yaml` defines the following workspaces:
 | `backend`                      | Go       | Data ingestion and pod communication server           |
 | `packet-sender`                | Rust     | Utility for simulating vehicle packets                |
 | `hyperloop-control-station`    | JS       | The main Control Station electron desktop application |
+| `e2e`                          | TS       | End-to-end tests for the whole app (Playwright)       |
 | `@workspace/ui`                | TS/React | Shared UI component library (frontend-kit)            |
 | `@workspace/core`              | TS       | Shared business logic and types (frontend-kit)        |
 | `@workspace/eslint-config`     | ESLint   | Common ESLint configuration (frontend-kit)            |
@@ -57,9 +58,19 @@ All Turbo scripts support filtering to target specific workspaces:
 #### Lifecycle Scripts
 
 - `pnpm build` – Compiles every package in the monorepo (Go binaries, Rust crates, and Vite apps).
-- `pnpm test` – Runs all test suites across the repo (Vitest, Go tests, and Cargo tests).
+- `pnpm test` – Runs all test suites across the repo (Vitest, Go tests, Cargo tests, and Playwright e2e tests).
 - `pnpm lint` – Runs ESLint across all TypeScript packages.
 - `pnpm preview` – Previews the production Vite builds for the frontend applications.
+
+#### Electron App Scripts
+
+- `pnpm start` – Launches the Electron app directly (requires a prior build).
+- `pnpm build:win` – Packages the Electron app for Windows.
+- `pnpm build:linux` – Packages the Electron app for Linux.
+- `pnpm build:mac` – Packages the Electron app for macOS.
+
+#### Utility Scripts
+
 - `pnpm ui:add <component-name>` - To add shadcn/ui components
 
   > Note: don't forget to also include it in frontend-kit/ui/src/components/shadcn/index.ts to be able to access it from @workspace/ui

@@ -6,7 +6,6 @@
   "license": "MIT",
   "scripts": {
     "build": "go build -o packet-sender main.go",
-    "build:ci": "go build",
-    "test": "go test ./..."
+    "build:ci": "go build"
   }
 }
