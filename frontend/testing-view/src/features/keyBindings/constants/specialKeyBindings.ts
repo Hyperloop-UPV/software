@@ -7,6 +7,5 @@ export const SPECIAL_KEY_BINDINGS: Record<string, string> = {
   ArrowDown: "ArrowDown",
   ArrowLeft: "ArrowLeft",
   ArrowRight: "ArrowRight",
-  Backspace: "Backspace",
   Delete: "Delete",
 };

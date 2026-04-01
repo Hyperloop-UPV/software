@@ -87,6 +87,11 @@ export const AddKeyBindingDialog = ({
       return;
     }
 
+    // Disallow number keys (0-9) and Backspace
+    if (/^\d$/.test(e.key) || e.key === "Backspace") {
+      return;
+    }
+
     let key: string;
     if (SPECIAL_KEY_BINDINGS[e.key]) {
       key = SPECIAL_KEY_BINDINGS[e.key];
