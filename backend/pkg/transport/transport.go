@@ -15,7 +15,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
-	"github.com/pin/tftp/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -34,8 +33,6 @@ type Transport struct {
 
 	ipToTarget map[string]abstraction.TransportTarget
 	idToTarget map[abstraction.PacketId]abstraction.TransportTarget
-
-	tftp *tftp.Client
 
 	propagateFault bool
 
