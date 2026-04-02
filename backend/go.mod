@@ -10,7 +10,6 @@ require (
 	github.com/jmaralo/sntp v0.0.0-20240116111937-45a0a3419272
 	github.com/pelletier/go-toml/v2 v2.0.7
 	github.com/pin/tftp/v3 v3.0.0
-	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/rs/zerolog v1.29.0
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )
@@ -41,6 +40,4 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
 
-require (
-	golang.org/x/net v0.38.0 // indirect
-)
+require golang.org/x/net v0.38.0 // indirect
