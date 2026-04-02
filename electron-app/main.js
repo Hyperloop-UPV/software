@@ -6,7 +6,6 @@
 
 import { app, BrowserWindow, dialog, screen } from "electron";
 import pkg from "electron-updater";
-import fs from "fs";
 import { getConfigManager } from "./src/config/configInstance.js";
 import { setupIpcHandlers } from "./src/ipc/handlers.js";
 import { startBackend, stopBackend } from "./src/processes/backend.js";
@@ -16,13 +15,6 @@ import { createLogWindow } from "./src/windows/logWindow.js";
 import { createWindow } from "./src/windows/mainWindow.js";
 
 const { autoUpdater } = pkg;
-
-// Disable sandbox on Linux — sandbox restrictions vary across distros
-// (AppArmor on Ubuntu, SELinux on Fedora, etc.) and this is an internal
-// app where all content is trusted.
-if (process.platform === "linux") {
-  app.commandLine.appendSwitch("no-sandbox");
-}
 
 // Setup IPC handlers for renderer process communication
 setupIpcHandlers();

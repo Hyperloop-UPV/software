@@ -79,7 +79,11 @@ async function startBackend(logWindow = null) {
       logger.backend.info(text);
 
       // Send log message to log window
-      if (currentLogWindow && !currentLogWindow.isDestroyed()) {
+      if (
+        currentLogWindow &&
+        !currentLogWindow.isDestroyed() &&
+        currentLogWindow.webContents
+      ) {
         const htmlData = convert.toHtml(text);
         currentLogWindow.webContents.send("log", htmlData);
       }
