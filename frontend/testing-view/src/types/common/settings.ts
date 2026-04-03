@@ -41,6 +41,9 @@ export type SettingField = {
   /** Options of the field */
   options?: string[];
 
+  /** Whether the field supports refetching its options */
+  refetchable?: boolean;
+
   /** Placeholder of the field. The text showed inside the field when it is empty. */
   placeholder?: string;
 

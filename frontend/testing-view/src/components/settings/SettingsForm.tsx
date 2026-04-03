@@ -1,6 +1,7 @@
 import { get, set } from "lodash";
 import { useMemo } from "react";
 import { getSettingsSchema } from "../../constants/settingsSchema";
+import type { BranchesFetchState } from "../../hooks/useBranches";
 import { useStore } from "../../store/store";
 import type { ConfigData } from "../../types/common/config";
 import type { SettingField } from "../../types/common/settings";
@@ -14,11 +15,10 @@ import { TextField } from "./TextField";
 interface SettingsFormProps {
   config: ConfigData;
   onChange: (newConfig: ConfigData) => void;
-  branches: string[];
-  branchesLoading: boolean;
+  branchesFetch: BranchesFetchState;
 }
 
-export const SettingsForm = ({ config, onChange, branches, branchesLoading }: SettingsFormProps) => {
+export const SettingsForm = ({ config, onChange, branchesFetch }: SettingsFormProps) => {
   const handleFieldChange = (
     path: string,
     value: string | number | boolean | string[],
@@ -30,7 +30,7 @@ export const SettingsForm = ({ config, onChange, branches, branchesLoading }: Se
 
   const boards = useStore((s) => s.boards);
   const sortedBoard = boards.sort();
-  const schema = useMemo(() => getSettingsSchema(sortedBoard, branches), [sortedBoard, branches]);
+  const schema = useMemo(() => getSettingsSchema(sortedBoard, branchesFetch.branches), [sortedBoard, branchesFetch.branches]);
 
   const renderField = (field: SettingField) => {
     const currentValue = get(config, field.path);
@@ -103,7 +103,8 @@ export const SettingsForm = ({ config, onChange, branches, branchesLoading }: Se
             field={field}
             value={currentValue as unknown as string}
             onChange={(value) => handleFieldChange(field.path, value)}
-            loading={branchesLoading}
+            loading={branchesFetch.isLoading}
+            fetchState={field.refetchable ? branchesFetch : undefined}
           />
         );
 

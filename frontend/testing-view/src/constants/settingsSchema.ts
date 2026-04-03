@@ -22,6 +22,7 @@ export const getSettingsSchema = (boards: BoardName[], branches: string[] = []):
         path: "adj.branch",
         type: "combobox",
         options: branches,
+        refetchable: true,
       },
     ],
   },

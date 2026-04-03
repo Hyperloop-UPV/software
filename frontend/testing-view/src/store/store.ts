@@ -41,6 +41,16 @@ export type Store = AppSlice &
   ChartsSlice &
   FilteringSlice;
 
+type PersistedStore = {
+  charts: Store["charts"];
+  workspaces: Store["workspaces"];
+  activeWorkspace: Store["activeWorkspace"];
+  colorScheme: Store["colorScheme"];
+  isDarkMode: Store["isDarkMode"];
+  testingPage: Store["testingPage"];
+  workspaceFilters: Store["workspaceFilters"];
+};
+
 export const useStore = create<Store>()(
   // devtools(
   persist(
@@ -58,6 +68,22 @@ export const useStore = create<Store>()(
     {
       // Partial persist
       name: "testing-view-storage",
+      version: 1,
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as PersistedStore;
+        if (version < 1) {
+          // Remove keybindings that use number keys (0-9) or Backspace
+          const strip = (workspace: Store["workspaces"][number]): Store["workspaces"][number] => ({
+            ...workspace,
+            keyBindings: (workspace.keyBindings ?? []).filter(
+              (b) => !/^\d$/.test(b.key) && b.key !== "Backspace",
+            ),
+          });
+          if (state.workspaces) state.workspaces = state.workspaces.map(strip);
+          if (state.activeWorkspace) state.activeWorkspace = strip(state.activeWorkspace);
+        }
+        return state;
+      },
       onRehydrateStorage: () => () => {
         document.documentElement.setAttribute("data-store-hydrated", "true");
       },

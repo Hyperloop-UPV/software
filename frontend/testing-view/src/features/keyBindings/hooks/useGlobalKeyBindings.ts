@@ -18,18 +18,6 @@ export const useGlobalKeyBindings = () => {
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Skip if a dialog is open
-      if (document.querySelector('[role="dialog"]')) return;
-
-      // Skip if user is typing in an input/textarea/contenteditable
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        (e.target as HTMLElement).isContentEditable
-      ) {
-        return;
-      }
-
       // Build key string (matching the format from AddKeyBindingDialog)
       let key: string;
       if (SPECIAL_KEY_BINDINGS[e.key]) {
