@@ -69,11 +69,11 @@ func InitTrace(traceLevel string) *os.File {
 	// Human-friendly console writer that prints logs to stdout.
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
-	// Console writer that prints warn/error/fatal logs to stderr so the
+	// Console writer that prints fatal logs to stderr so the
 	// parent process (Electron) can capture them via the stderr pipe.
 	stderrConsoleWriter := &levelFilterWriter{
 		w:        zerolog.ConsoleWriter{Out: os.Stderr},
-		minLevel: zerolog.WarnLevel,
+		minLevel: zerolog.FatalLevel,
 	}
 
 	// Try to create/open the file for writing logs. On failure, fall back to console only and exit.
