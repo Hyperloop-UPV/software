@@ -39,6 +39,24 @@ const ERROR_HINTS = [
     advice:
       "Your ADJ files contain schema errors. Check the ADJ validator log file in the logs folder for details.",
   },
+  {
+    pattern: /error reading config file/,
+    message: "Config file not found",
+    advice:
+      "The configuration file could not be read. Check that the config file path is correct and the file exists.",
+  },
+  {
+    pattern: /error unmarshaling toml file/,
+    message: "Config file has errors",
+    advice:
+      "The configuration file contains invalid TOML. Check the config file for syntax or type errors.",
+  },
+  {
+    pattern: /setting up ADJ/,
+    message: "ADJ not available",
+    advice:
+      "Could not load the ADJ. If this is your first run, connect to the internet so the ADJ can be downloaded.",
+  },
 ];
 
 /**
