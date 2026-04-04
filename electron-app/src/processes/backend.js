@@ -28,8 +28,29 @@ let backendProcess = null;
 // Common log window instance for all backend processes
 let storedLogWindow = null;
 
-// Store error messages (keep last 10 lines to avoid memory issues)
+// Store error messages accumulated from the current process run
 let lastBackendError = null;
+
+const ERROR_HINTS = [
+  {
+    pattern: /bind: The requested address is not valid/,
+    message: "Network address unavailable",
+    advice:
+      "The configured IP address doesn't exist on this machine. Check your network adapter or ADJ.",
+  },
+  {
+    pattern: /failed to start UDP server/,
+    message: "UDP server failed to start",
+    advice: "Another process may already be using this port.",
+  },
+];
+
+function getHint(errorText) {
+  const match = ERROR_HINTS.find(({ pattern }) => pattern.test(errorText));
+  return match
+    ? `${match.message}\n\n${match.advice}\n\n${errorText}`
+    : errorText;
+}
 
 /**
  * Starts the backend process by spawning the backend binary with the user configuration.
@@ -73,6 +94,9 @@ async function startBackend(logWindow = null) {
       cwd: workingDir,
     });
 
+    console.log("[DEBUG] backendProcess.stderr:", backendProcess.stderr);
+    console.log("[DEBUG] backendProcess.stdout:", backendProcess.stdout);
+
     // Log stdout output from backend
     backendProcess.stdout.on("data", (data) => {
       const text = data.toString().trim();
@@ -101,6 +125,7 @@ async function startBackend(logWindow = null) {
     backendProcess.stderr.on("data", (data) => {
       const errorMsg = data.toString().trim();
       logger.backend.error(errorMsg);
+      console.log("[DEBUG stderr chunk]", JSON.stringify(errorMsg));
       lastBackendError = errorMsg;
 
       // Send error message to log window
@@ -129,7 +154,8 @@ async function startBackend(logWindow = null) {
         let errorMessage = `Backend exited with code ${code}`;
 
         if (lastBackendError) {
-          errorMessage += `\n\n${lastBackendError}`;
+          const stripped = lastBackendError.replace(/\x1b\[[0-9;]*m/g, "");
+          errorMessage += `\n\n${getHint(stripped)}`;
         } else {
           errorMessage += "\n\n(No error output captured)";
         }

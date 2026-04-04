@@ -69,6 +69,13 @@ func InitTrace(traceLevel string) *os.File {
 	// Human-friendly console writer that prints logs to stdout.
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 
+	// Console writer that prints warn/error/fatal logs to stderr so the
+	// parent process (Electron) can capture them via the stderr pipe.
+	stderrConsoleWriter := &levelFilterWriter{
+		w:        zerolog.ConsoleWriter{Out: os.Stderr},
+		minLevel: zerolog.WarnLevel,
+	}
+
 	// Try to create/open the file for writing logs. On failure, fall back to console only and exit.
 	file, err := loggerbase.CreateFile(traceDir, Trace, traceFile)
 	if err != nil {
@@ -78,8 +85,8 @@ func InitTrace(traceLevel string) *os.File {
 		return nil
 	}
 
-	// Write logs to both the console and the file.
-	multi := zerolog.MultiLevelWriter(consoleWriter, file)
+	// Write logs to stdout, stderr (warn+), and the file.
+	multi := zerolog.MultiLevelWriter(consoleWriter, stderrConsoleWriter, file)
 
 	// Create a new logger that includes timestamps and caller information.
 	trace.Logger = zerolog.New(multi).With().Timestamp().Caller().Logger()
@@ -95,4 +102,25 @@ func InitTrace(traceLevel string) *os.File {
 	}
 
 	return file
+}
+
+// levelFilterWriter is a zerolog.LevelWriter that forwards log entries to w
+// only when their level is >= minLevel. This lets us route warn/error/fatal
+// to stderr while keeping info/debug on stdout.
+type levelFilterWriter struct {
+	w        zerolog.ConsoleWriter
+	minLevel zerolog.Level
+}
+
+// Write satisfies the io.Writer interface required by zerolog.LevelWriter.
+// MultiLevelWriter always calls WriteLevel instead.
+func (f *levelFilterWriter) Write(p []byte) (int, error) {
+	return f.w.Write(p)
+}
+
+func (f *levelFilterWriter) WriteLevel(l zerolog.Level, p []byte) (int, error) {
+	if l >= f.minLevel {
+		return f.w.Write(p)
+	}
+	return len(p), nil
 }
