@@ -32,7 +32,7 @@ When running in development mode (unpackaged), the application creates temporary
 
 - **Configuration and Logs**: Stored in `{UserConfigDir}/hyperloop-control-station/` (using Go's `os.UserConfigDir()`)
   - Config files and backups: `{UserConfigDir}/hyperloop-control-station/configs/`
-  - Trace/log files: `{UserConfigDir}/hyperloop-control-station/trace-*.json`
+  - Trace/log files: `{UserConfigDir}/hyperloop-control-station/configs/trace-*.json`
 
 - **ADJ Module**: Stored in `{UserCacheDir}/hyperloop-control-station/adj/` (using Go's `os.UserCacheDir()`)
 

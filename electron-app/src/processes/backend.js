@@ -15,6 +15,7 @@ import {
   getBinaryPath,
   getUserConfigPath,
 } from "../utils/paths.js";
+import { formatBackendError, getHint } from "./backendError.js";
 
 // Create ANSI to HTML converter
 const convert = new AnsiToHtml();
@@ -28,7 +29,7 @@ let backendProcess = null;
 // Common log window instance for all backend processes
 let storedLogWindow = null;
 
-// Store error messages (keep last 10 lines to avoid memory issues)
+// Store error messages accumulated from the current process run
 let lastBackendError = null;
 
 /**
@@ -129,7 +130,9 @@ async function startBackend(logWindow = null) {
         let errorMessage = `Backend exited with code ${code}`;
 
         if (lastBackendError) {
-          errorMessage += `\n\n${lastBackendError}`;
+          const stripped = lastBackendError.replace(/\x1b\[[0-9;]*m/g, "");
+          const formatted = formatBackendError(stripped);
+          errorMessage += `\n\n${getHint(stripped, formatted)}`;
         } else {
           errorMessage += "\n\n(No error output captured)";
         }
