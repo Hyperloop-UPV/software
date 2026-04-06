@@ -21,7 +21,10 @@ func WithErrChan(conn net.Conn) (net.Conn, <-chan error) {
 func (conn *connWithErr) Read(b []byte) (n int, err error) {
 	n, err = conn.Conn.Read(b)
 	if err != nil && !errors.Is(err, net.ErrClosed) {
-		conn.errors <- err
+		select {
+		case conn.errors <- err:
+		default:
+		}
 	}
 	return
 }
@@ -29,12 +32,14 @@ func (conn *connWithErr) Read(b []byte) (n int, err error) {
 func (conn *connWithErr) Write(b []byte) (n int, err error) {
 	n, err = conn.Conn.Write(b)
 	if err != nil && !errors.Is(err, net.ErrClosed) {
-		conn.errors <- err
+		select {
+		case conn.errors <- err:
+		default:
+		}
 	}
 	return
 }
 
 func (conn *connWithErr) Close() error {
-	close(conn.errors)
 	return conn.Conn.Close()
 }
