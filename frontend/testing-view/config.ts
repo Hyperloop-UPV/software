@@ -31,4 +31,10 @@ export const config = {
 
   /** Timeout applied after settings save to give enough time for backend to restart. */
   SETTINGS_RESPONSE_TIMEOUT: 1000,
+
+  /** GitHub repository used to fetch available branches for ADJ configuration. */
+  ADJ_GITHUB_REPO: "hyperloop-upv/adj",
+
+  /** Timeout for fetching branches from GitHub API. */
+  BRANCHES_FETCH_TIMEOUT: 5000,
 } as const;

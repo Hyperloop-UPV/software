@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Loader2, X } from "@workspace/ui/icons";
 import { useEffect, useState, useTransition } from "react";
 import { config } from "../../../config";
 import { DEFAULT_CONFIG } from "../../constants/defaultConfig";
+import { useBranches } from "../../hooks/useBranches";
 import { useStore } from "../../store/store";
 import type { ConfigData } from "../../types/common/config";
 import { SettingsForm } from "./SettingsForm";
@@ -17,8 +18,7 @@ export const SettingsDialog = () => {
   const [localConfig, setLocalConfig] = useState<ConfigData | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [isSaving, startSaving] = useTransition();
-  const [isBranchesLoading, startBranchesTransition] = useTransition();
-  const [branches, setBranches] = useState<string[]>([]);
+  const branchesFetch = useBranches(isSettingsOpen);
 
   const loadConfig = async () => {
     if (window.electronAPI) {
@@ -39,33 +39,9 @@ export const SettingsDialog = () => {
     }
   };
 
-  const loadBranches = (signal: AbortSignal) => {
-    startBranchesTransition(async () => {
-      try {
-        const res = await fetch(
-          "https://api.github.com/repos/hyperloop-upv/adj/branches?per_page=100",
-          { signal: AbortSignal.any([signal, AbortSignal.timeout(2000)]) },
-        );
-        const data = await res.json();
-        setBranches(data.map((b: { name: string }) => b.name));
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          error.name !== "AbortError" &&
-          error.name !== "TimeoutError"
-        ) {
-          console.error("Error loading branches:", error);
-        }
-      }
-    });
-  };
-
   useEffect(() => {
     if (isSettingsOpen) {
-      const controller = new AbortController();
       loadConfig();
-      loadBranches(controller.signal);
-      return () => controller.abort();
     }
   }, [isSettingsOpen]);
 
@@ -120,8 +96,7 @@ export const SettingsDialog = () => {
               <SettingsForm
                 config={localConfig}
                 onChange={setLocalConfig}
-                branches={branches}
-                branchesLoading={isBranchesLoading}
+                branchesFetch={branchesFetch}
               />
             )}
           </div>
