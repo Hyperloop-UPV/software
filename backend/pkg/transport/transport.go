@@ -15,7 +15,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/network/udp"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/packet/data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/transport/presentation"
-	"github.com/pin/tftp/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -34,8 +33,6 @@ type Transport struct {
 
 	ipToTarget map[string]abstraction.TransportTarget
 	idToTarget map[abstraction.PacketId]abstraction.TransportTarget
-
-	tftp *tftp.Client
 
 	propagateFault bool
 
@@ -58,7 +55,7 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 	client := tcp.NewClient(remote, config, transport.logger)
 	clientLogger := transport.logger.With().Str("remoteAddress", remote).Logger()
 	defer clientLogger.Warn().Msg("abort connection")
-	var hasConnected = false
+	hasConnected := false
 
 	for {
 		conn, err := client.Dial()
@@ -129,7 +126,8 @@ func (transport *Transport) handleTCPConn(conn net.Conn) error {
 		return err
 	}
 
-	connectionLogger := transport.logger.With().Str("remoteAddress", conn.RemoteAddr().String()).Str("target", string(target)).Logger()
+	connectionLogger := transport.logger.With().
+		Str("remoteAddress", conn.RemoteAddr().String()).Str("target", string(target)).Logger()
 	connectionLogger.Info().Msg("new connection")
 
 	if err := transport.rejectIfConnectedTCPConn(target, conn, connectionLogger); err != nil {
@@ -146,6 +144,7 @@ func (transport *Transport) handleTCPConn(conn net.Conn) error {
 	cleanupConn := transport.registerTCPConn(target, conn, connectionLogger)
 	defer cleanupConn()
 
+	// Notify vehicle of connection status.
 	transport.api.ConnectionUpdate(target, true)
 	defer transport.api.ConnectionUpdate(target, false)
 

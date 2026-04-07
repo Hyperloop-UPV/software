@@ -135,9 +135,6 @@ func main() {
 		}
 	}
 
-	// Open browser tabs
-	openBrowserTabs(config)
-
 	// Wait for interrupt signal to gracefully shutdown the backend
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)

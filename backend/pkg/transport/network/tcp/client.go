@@ -1,10 +1,8 @@
 package tcp
 
 import (
-	"errors"
 	"fmt"
 	"net"
-	"syscall"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -38,6 +36,7 @@ func (client *Client) Dial() (net.Conn, error) {
 
 	var err error
 	var conn net.Conn
+	client.currentRetries = 0
 	client.logger.Info().Msg("dialing")
 
 	for client.config.MaxConnectionRetries <= 0 || client.currentRetries < client.config.MaxConnectionRetries {
@@ -64,8 +63,8 @@ func (client *Client) Dial() (net.Conn, error) {
 			return nil, client.config.Context.Err()
 		}
 
-		// Check if we should retry this error
-		if netErr, ok := err.(net.Error); !client.config.TryReconnect || (!errors.Is(err, syscall.ECONNREFUSED) && (!ok || !netErr.Timeout())) {
+		// If reconnection is disabled, bail out immediately on any error
+		if !client.config.TryReconnect {
 			client.logger.Error().Stack().Err(err).Msg("failed with non-retryable error")
 			return nil, err
 		}

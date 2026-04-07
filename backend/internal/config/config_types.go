@@ -6,10 +6,6 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 )
 
-type App struct {
-	AutomaticWindowOpening string `toml:"automatic_window_opening"`
-}
-
 type Adj struct {
 	Branch   string `toml:"branch"`
 	Validate bool   `toml:"validate"`
@@ -17,14 +13,6 @@ type Adj struct {
 
 type Transport struct {
 	PropagateFault bool `toml:"propagate_fault"`
-}
-
-type TFTP struct {
-	BlockSize      int  `toml:"block_size"`
-	Retries        int  `toml:"retries"`
-	TimeoutMs      int  `toml:"timeout_ms"`
-	BackoffFactor  int  `toml:"backoff_factor"`
-	EnableProgress bool `toml:"enable_progress"`
 }
 
 type TCP struct {
@@ -47,12 +35,10 @@ type Logging struct {
 }
 
 type Config struct {
-	App       App
 	Vehicle   vehicle.Config
 	Server    server.Config
 	Adj       Adj
 	Transport Transport
-	TFTP      TFTP
 	TCP       TCP
 	UDP       UDP
 	Logging   Logging
