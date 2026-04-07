@@ -7,9 +7,6 @@
 # 3. Toggle the Fault Propagation to your needs (true/false)
 # 4. Check the TCP configuration and make sure to use the needed Keep Alive settings
 
-# Control Station general configuration
-[app]
-automatic_window_opening = "" # Leave blank to open no windows (<blank>, ethernet-view, control-station, both)
 
 # Vehicle Configuration
 [vehicle]
@@ -40,13 +37,6 @@ keep_alive_ms = 1000         # Keep-alive interval in milliseconds
 ring_buffer_size = 64      # Size of the ring buffer for incoming packets (number of packets, not bytes)
 packet_chan_size = 16      # Size of the channel buffer
 
-# TFTP Configuration
-[tftp]
-block_size = 131072    # TFTP block size in bytes (128kB)
-retries = 3            # Maximum number of retries before aborting transfer
-timeout_ms = 5000      # Timeout between retries in milliseconds
-backoff_factor = 2     # Backoff multiplier for retry delays
-enable_progress = true # Enable progress callbacks during transfers
 
 # Logger Configuration
 [logging]

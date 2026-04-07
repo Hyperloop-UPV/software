@@ -24,7 +24,13 @@ func NewClientConfig(laddr net.Addr) ClientConfig {
 		Dialer: net.Dialer{
 			Timeout:   time.Second,
 			LocalAddr: laddr,
-			KeepAlive: time.Second, // Going under 1 second won't work in most systems
+			KeepAlive: -1, // managed via KeepAliveConfig
+			KeepAliveConfig: net.KeepAliveConfig{
+				Enable:   true,
+				Idle:     time.Second,
+				Interval: time.Second,
+				Count:    3,
+			},
 		},
 
 		Context:                   context.TODO(),
@@ -69,7 +75,13 @@ type ServerConfig struct {
 func NewServerConfig() ServerConfig {
 	return ServerConfig{
 		ListenConfig: net.ListenConfig{
-			KeepAlive: time.Second,
+			KeepAlive: -1, // managed via KeepAliveConfig
+			KeepAliveConfig: net.KeepAliveConfig{
+				Enable:   true,
+				Idle:     time.Second,
+				Interval: time.Second,
+				Count:    3,
+			},
 		},
 		Context: context.TODO(),
 	}

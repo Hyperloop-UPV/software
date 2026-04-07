@@ -64,16 +64,19 @@ func configureTCPClientTransport(
 	i := 0 // count
 
 	// map of remote server addresses to transport targets for boards not present in vehicle config
-	serverTargets := make(map[string]abstraction.TransportTarget)
 	for _, board := range podData.Boards {
+
+		// Skip boards not in config.Vehicle.Boards to avoid unnecessary TCP clients and potential connection issues
 		if !common.Contains(config.Vehicle.Boards, board.Name) {
-			serverTargets[fmt.Sprintf("%s:%d", adj.Info.Addresses[board.Name], adj.Info.Ports[TcpClient])] = abstraction.TransportTarget(board.Name)
 			continue
 		}
+
+		// Resolve local TCP client address with incremental port to avoid conflicts
 		backendTcpClientAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", adj.Info.Addresses[BACKEND], adj.Info.Ports[TcpClient]+uint16(i)))
 		if err != nil {
-			panic("Failed to resolve local backend TCP client address")
+			trace.Fatal().Err(err).Msg("failed to resolve local backend TCP client address: " + err.Error())
 		}
+
 		// Create TCP client config with custom parameters from config
 		clientConfig := tcp.NewClientConfig(backendTcpClientAddr)
 

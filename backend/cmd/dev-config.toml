@@ -9,8 +9,6 @@
 # 4. Check the TCP configuration and make sure to use the needed Keep Alive settings
 
 # Control Station general configuration
-[app]
-automatic_window_opening = "" # Leave blank to open no windows (<blank>, ethernet-view, control-station, both)
 
 # Vehicle Configuration
 [vehicle]
@@ -63,16 +61,6 @@ order_data = "/orderStructures"
 programable_boards = "/uploadableBoards"
 connections = "/backend"
 files = "/"
-
-# TFTP Configuration
-[tftp]
-block_size = 512       # TFTP block size (512 or 1468 bytes)
-retries = 3            # Number of retries for TFTP operations
-timeout_ms = 5000      # Timeout for TFTP operations in milliseconds
-backoff_factor = 2     # Backoff factor for retries
-enable_progress = true # Enable progress updates during transfers
-
-
 
 # Logging Configuration
 [logging]
