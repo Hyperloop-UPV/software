@@ -10,6 +10,7 @@ import { getConfigManager } from "./src/config/configInstance.js";
 import { setupIpcHandlers } from "./src/ipc/handlers.js";
 import { startBackend, stopBackend } from "./src/processes/backend.js";
 import { stopPacketSender } from "./src/processes/packetSender.js";
+import { startBlcuProgramming, stopBlcuProgramming } from "./src/processes/blcuProgramming.js";
 import { logger } from "./src/utils/logger.js";
 import { createLogWindow } from "./src/windows/logWindow.js";
 import { createWindow } from "./src/windows/mainWindow.js";
@@ -40,6 +41,13 @@ app.whenReady().then(async () => {
     logger.electron.header("Backend process spawned");
   } catch (error) {
     // Start backend already shows these errors
+  }
+
+  try {
+    await startBlcuProgramming(logWindow);
+    logger.electron.header("BLCU programming process spawned");
+  } catch (error) {
+    logger.electron.error("Failed to start BLCU programming:", error);
   }
 
   // Create main application window
@@ -100,7 +108,7 @@ app.on("window-all-closed", () => {
 // Cleanup before app quits
 app.on("before-quit", (e) => {
   e.preventDefault();
-  Promise.all([stopBackend(), stopPacketSender()])
+  Promise.all([stopBackend(), stopPacketSender(), stopBlcuProgramming()])
     .catch((error) => logger.electron.error("Error during shutdown:", error))
     .finally(() => app.exit());
 });
