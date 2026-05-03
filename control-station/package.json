@@ -13,7 +13,7 @@
     "dependencies": {
         "@react-spring/three": "^9.7.2",
         "@react-spring/web": "^9.7.3",
-        "@react-three/drei": "^9.74.15",
+        "@react-three/drei": "^9.122.0",
         "@react-three/fiber": "^8.13.3",
         "@reduxjs/toolkit": "^1.9.5",
         "common": "file:../common-front",
