@@ -48,7 +48,7 @@
     "asar": "^3.2.0",
     "electron": "^40.1.0",
     "electron-builder": "^26.7.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.5"
   },
   "build": {
     "appId": "com.hyperloop.controlstation",
