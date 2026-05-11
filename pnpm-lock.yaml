@@ -282,6 +282,9 @@ importers:
       lodash:
         specifier: ^4.17.23
         version: 4.17.23
+      lucide-react:
+        specifier: ^0.563.0
+        version: 0.563.0(react@19.2.4)
       react:
         specifier: ^19.2.4
         version: 19.2.4

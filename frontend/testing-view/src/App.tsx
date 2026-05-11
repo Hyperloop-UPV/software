@@ -9,6 +9,7 @@ import { useAppMode } from "./hooks/useAppMode";
 import { useErrorHandler } from "./hooks/useErrorHandler";
 import { useTransformedBoards } from "./hooks/useTransformedBoards";
 import { AppLayout } from "./layout/AppLayout";
+import { FlashStationView } from "./features/flash-station/flash-station-view";
 import { Logs } from "./pages/Logs";
 import { Testing } from "./pages/Testing";
 import { useStore } from "./store/store";
@@ -70,6 +71,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Testing />} />
             <Route path="/logs" element={<Logs />} />
+            <Route path="/flashing" element={<FlashStationView />} />
           </Routes>
         </AppModeRouter>
         <ModeSwitcher />

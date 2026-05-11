@@ -16,6 +16,12 @@ const { contextBridge, ipcRenderer } = require("electron");
  * @property {function(): Promise<Object>} getConfig - Gets the current configuration object.
  * @property {function(): Promise<boolean>} importConfig - Imports configuration from a file dialog.
  * @property {function(): Promise<string | null>} selectFolder - Opens a folder selection dialog.
+ * @property {function(string): Promise<void>} openFolder - Opens a folder path in the OS file explorer.
+ * @property {function(): Promise<string | null>} blcuSelectFile - Opens a firmware file selection dialog.
+ * @property {function(Object): Promise<Object>} blcuUpload - Uploads a file via the BLCU programming API.
+ * @property {function(Object): Promise<Object>} blcuDownload - Downloads a file via the BLCU programming API.
+ * @property {function(): Promise<Object>} blcuHealth - Checks BLCU programming API health.
+ * @property {function(number): Promise<Object>} blcuLogs - Retrieves BLCU programming logs.
  * @example
  * // In renderer process:
  * const view = await window.electronAPI.getCurrentView();
@@ -45,4 +51,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("log", listener);
     return () => ipcRenderer.removeListener("log", listener);
   },
+  // BLCU Programming API proxies
+  blcuSelectFile: () => ipcRenderer.invoke("blcu-select-file"),
+  blcuUpload: (request) => ipcRenderer.invoke("blcu-upload", request),
+  blcuDownload: (request) => ipcRenderer.invoke("blcu-download", request),
+  blcuHealth: () => ipcRenderer.invoke("blcu-health"),
+  blcuLogs: (tail) => ipcRenderer.invoke("blcu-logs", tail),
 });

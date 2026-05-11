@@ -225,15 +225,28 @@ class ConfigManager {
       : null;
 
     if (storedVersion !== this.appVersion) {
-      fs.copyFileSync(this.templatePath, this.userConfigPath);
-      fs.writeFileSync(
-        this.versionFilePath,
-        `version = "${this.appVersion}"`,
-        "utf-8",
-      );
-      logger.config.info(
-        `Config updated from template (from version ${storedVersion ?? "unknown"} to ${this.appVersion})`,
-      );
+      if (storedVersion === null) {
+        // version.toml is missing but user config already exists — preserve it
+        // and just create the version file to prevent future overwrites
+        fs.writeFileSync(
+          this.versionFilePath,
+          `version = "${this.appVersion}"`,
+          "utf-8",
+        );
+        logger.config.info(
+          `Created version file (preserved existing config)`,
+        );
+      } else {
+        fs.copyFileSync(this.templatePath, this.userConfigPath);
+        fs.writeFileSync(
+          this.versionFilePath,
+          `version = "${this.appVersion}"`,
+          "utf-8",
+        );
+        logger.config.info(
+          `Config updated from template (from version ${storedVersion ?? "unknown"} to ${this.appVersion})`,
+        );
+      }
     }
   }
 

@@ -1,0 +1,1 @@
+{"level":"fatal","error":"strict mode: fields in the document are missing in the target struct","time":1778432766986946000,"caller":"/Users/lcastel/workspace/hyper/software/backend/cmd/main.go:50","message":"error unmarshaling toml file"}

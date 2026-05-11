@@ -93,10 +93,13 @@ function loadView(view) {
     // Load the view HTML file
     mainWindow.loadFile(viewPath);
     // Update window title based on view type
+    const viewTitles = {
+      "control-station": "Competition View",
+      "testing-view": "Testing View",
+      "flashing-view": "Flashing View",
+    };
     mainWindow.setTitle(
-      `Hyperloop Control Station - ${
-        view === "control-station" ? "Competition View" : "Testing View"
-      }`
+      `Hyperloop Control Station - ${viewTitles[view] || view}`
     );
   } else {
     // Log error and show dialog if view not found
