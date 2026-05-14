@@ -18,3 +18,7 @@ flashing-view/dist-ssr/
 flashing-view/.cache/
 flashing-view/*.tsbuildinfo
 flashing-view/.env
+
+# electron modules
+electron-app/python
+electron-app/logger
