@@ -1,10 +1,14 @@
 packages:
-  # Frontend packages
-  - "frontend/frontend-kit/**"
-  - "frontend/testing-view"
-  - "frontend/competition-view"
+  - frontend/frontend-kit/**
+  - frontend/testing-view
+  - frontend/competition-view
+  - frontend/log-view
+  - backend
+  - electron-app
+  - e2e
 
-  - "backend"
-  - "electron-app"
-  - "packet-sender"
-  - "e2e"
+onlyBuiltDependencies:
+  - '@swc/core'
+  - core-js-pure
+  - electron
+  - esbuild

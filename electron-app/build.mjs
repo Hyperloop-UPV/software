@@ -109,6 +109,15 @@ const CONFIG = {
     ],
     optional: true,
   },
+  "log-view": {
+  type: "frontend",
+  path: join(ROOT, "frontend/log-view"),
+  dest: join(__dirname, "renderer/log-view"),
+  commands: [
+    "pnpm --filter log-view install --frozen-lockfile",
+    "pnpm run build",
+  ],
+}
 };
 
 // --- Helpers ---

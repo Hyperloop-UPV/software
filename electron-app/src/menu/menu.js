@@ -61,6 +61,13 @@ function createMenu(mainWindow) {
             loadView("testing-view");
           },
         },
+        {
+          label: "Log View",
+          accelerator: "CmdOrCtrl+3",
+          click: () => {
+            loadView("log-view");
+          },
+        },
         { type: "separator" },
         {
           label: "Toggle DevTools",
