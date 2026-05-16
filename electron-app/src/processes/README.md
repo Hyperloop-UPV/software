@@ -9,7 +9,6 @@ Manages the lifecycle of external binary processes spawned by the Electron appli
 ## Files
 
 - `backend.js` - Backend process management
-- `packetSender.js` - Packet sender utility process management
 
 ## Backend Process (`backend.js`)
 
@@ -29,23 +28,6 @@ Manages the Go backend process that handles data processing.
 - Shows error dialogs on startup failures or crashes
 - Passes config file path via `--config` flag
 
-## Packet Sender Process (`packetSender.js`)
-
-Manages the packet sender utility tool for testing.
-
-### Functions
-
-- `startPacketSender(args)` - Spawns packet sender with optional arguments
-- `stopPacketSender()` - Stops the packet sender process
-- `restartPacketSender()` - Restarts the packet sender process
-- `getPacketSenderProcess()` - Returns the current process instance
-
-### Behavior
-
-- Validates binary exists before starting
-- Logs stdout/stderr to logger
-- Returns `null` if binary not found (optional tool)
-- Defaults to `--help` flag when restarted
 
 ## Dependencies
 

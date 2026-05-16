@@ -40,7 +40,6 @@ Creates and sets the application menu bar. Takes the main window instance as par
 
 ## Dependencies
 
-- `../processes/packetSender.js` - For starting/stopping packet sender
 - `../utils/paths.js` - For resolving binary paths
 - `electron` - For Menu, dialog, and app APIs
 
