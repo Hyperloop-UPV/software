@@ -11,7 +11,7 @@ This project implements `pnpm` workspaces and `turbo` pack to manage the develop
 Before starting, ensure you have the following installed:
 
 - **PNPM** (v10.26.0+)
-- **Node.js** (v20+)
+- **Node.js** (v20+) **USE node=22** for electron 
 - **Go** (for the backend)
 - **Rust/Cargo** (for the packet-sender)
 
