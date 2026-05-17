@@ -203,6 +203,7 @@ func ConfigureLogger(unit TimeUnit, basePath string, commitHash string) error {
 type LoggerSettings struct {
 	AdjCommitHash string   `json:"adj_commit_hash"`
 	TimeUnit      TimeUnit `json:"time_unit"`
+	Time          string   `json:"date"`
 }
 
 // WriteLoggerSettings writes the logger settings to a JSON file in the logger directory
@@ -210,6 +211,7 @@ func WriteLoggerSettings(path string) error {
 	settings := LoggerSettings{
 		AdjCommitHash: CommitHash,
 		TimeUnit:      TimestampUnit,
+		Time:          Timestamp.Format(TimestampFormat),
 	}
 
 	settingsBytes, err := json.Marshal(settings)
