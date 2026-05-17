@@ -134,16 +134,17 @@ func createLookupTables(
 		createBoardToPackets(podData)
 }
 
-func setUpLogger(config config.Config) (*logger.Logger, abstraction.SubloggersMap) {
+func setUpLogger(config config.Config, commitHash string) (*logger.Logger, abstraction.SubloggersMap, error) {
 
 	var subloggers = abstraction.SubloggersMap{
 		data_logger.Name:  data_logger.NewLogger(),
 		order_logger.Name: order_logger.NewLogger(),
 	}
 
-	logger.ConfigureLogger(config.Logging.TimeUnit, config.Logging.LoggingPath)
+	err := logger.ConfigureLogger(config.Logging.TimeUnit, config.Logging.LoggingPath, commitHash)
+
 	loggerHandler := logger.NewLogger(subloggers, trace.Logger)
 
-	return loggerHandler, subloggers
+	return loggerHandler, subloggers, err
 
 }

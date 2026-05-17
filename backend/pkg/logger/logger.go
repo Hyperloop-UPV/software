@@ -2,6 +2,8 @@
 package logger
 
 import (
+	"encoding/json"
+	"os"
 	"path"
 	"sync"
 	"sync/atomic"
@@ -40,6 +42,12 @@ var Timestamp = time.Now()
 
 // StartAppTimestamp is the time in which the app was started
 var StartAppTimestamp = time.Now()
+
+// CommitHash is the commit hash of the current version of ADJ
+var CommitHash string
+
+// TimestampUnit is the unit of time used for the logger timestamps
+var TimestampUnit TimeUnit
 
 var BasePath = path.Join("logger", StartAppTimestamp.Format(TimestampFormat))
 
@@ -93,6 +101,13 @@ func (logger *Logger) Start() error {
 
 	logger.trace.Info().Msg("started")
 
+	// Write logger settings to a JSON file in the sublogger directory
+	err := WriteLoggerSettings(path.Join(BasePath, Timestamp.Format(TimestampFormat), "logger_settings.json"))
+	if err != nil {
+		logger.trace.Warn().Stack().Err(err).Msg("write logger settings")
+		return err
+	}
+
 	if logger.onStart != nil {
 		logger.onStart()
 	}
@@ -127,22 +142,6 @@ func (logger *Logger) PullRecord(request abstraction.LoggerRequest) (abstraction
 
 	panic("PullRecord")
 
-	// logger.trace.
-	// 	Trace().
-	// 	Type("request", request).
-	// 	Msg("request")
-
-	// loggerChecked, ok := logger.subloggers[request.Name()]
-	// if !ok {
-	// 	logger.trace.
-	// 		Warn().
-	// 		Type("request", request).
-	// 		Str("name", string(request.Name())).
-	// 		Msg("no subloggger found for request")
-
-	// 	return nil, ErrLoggerNotFound{request.Name()}
-	// }
-	// return loggerChecked.PullRecord(request)
 }
 
 func (logger *Logger) Stop() error {
@@ -173,11 +172,51 @@ func (logger *Logger) Stop() error {
 }
 
 // ConfigureLogger configures the logger attributes before initializing it.
-func ConfigureLogger(unit TimeUnit, basePath string) {
+func ConfigureLogger(unit TimeUnit, basePath string, commitHash string) error {
 
 	// Start the sublogger
 	SetFormatTimestamp(unit)
 
+	// Set unit for logger timestamps
+	TimestampUnit = unit
+
+	// Set commit hash
+	CommitHash = commitHash
+
 	// Update base Path
 	BasePath = path.Join(basePath, "logger", StartAppTimestamp.Format(TimestampFormat))
+
+	err := WriteLoggerSettings(path.Join(BasePath, "others", "logger_settings.json"))
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+/******************
+* Logger Settings *
+*******************/
+
+// JSON with adj commit  and unit of time for logger settings
+type LoggerSettings struct {
+	AdjCommitHash string   `json:"adj_commit_hash"`
+	TimeUnit      TimeUnit `json:"time_unit"`
+}
+
+// WriteLoggerSettings writes the logger settings to a JSON file in the logger directory
+func WriteLoggerSettings(path string) error {
+	settings := LoggerSettings{
+		AdjCommitHash: CommitHash,
+		TimeUnit:      TimestampUnit,
+	}
+
+	settingsBytes, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, settingsBytes, 0644)
+
 }
