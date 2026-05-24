@@ -75,7 +75,10 @@ func main() {
 	updateFactory := update_factory.NewFactory(boardToPackets)
 
 	// <--- logger --->
-	loggerHandler, subloggers := setUpLogger(config)
+	loggerHandler, subloggers, err := setUpLogger(config, adj.Commit)
+	if err != nil {
+		trace.Fatal().Err(err).Msg("setting up logger")
+	}
 
 	// <-- connections & upgrader -->
 	connections := make(chan *websocket.Client)

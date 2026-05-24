@@ -1,6 +1,7 @@
 package data
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -37,7 +38,6 @@ var packetPool = sync.Pool{
 	},
 }
 
-
 // NewPacketWithValues creates a new data packet with the given values
 func NewPacketWithValues(id abstraction.PacketId, values map[ValueName]Value, enabled map[ValueName]bool) *Packet {
 	return &Packet{
@@ -69,6 +69,34 @@ func (packet *Packet) GetValues() map[ValueName]Value {
 	return packet.values
 }
 
+// numericValuer is implemented by NumericValue[N] for any numeric N.
+type numericValuer interface {
+	Value() float64
+}
+
+// GetValuesAsJSON returns the values of the packet as a JSON object
+func (packet *Packet) GetValuesAsJSON() ([]byte, error) {
+	out := make(map[string]any, len(packet.values))
+
+	for k, v := range packet.values {
+		switch x := v.(type) {
+		case BooleanValue:
+			out[string(k)] = x.Value()
+		case EnumValue:
+			out[string(k)] = string(x.Variant())
+		default:
+			if nv, ok := v.(numericValuer); ok {
+				out[string(k)] = nv.Value()
+			} else {
+				out[string(k)] = nil
+			}
+		}
+	}
+
+	return json.Marshal(out)
+}
+
+// SetTimestamp sets the timestamp of the packet to the given time
 func (packet *Packet) SetTimestamp(timestamp time.Time) *Packet {
 	packet.timestamp = timestamp
 	return packet
