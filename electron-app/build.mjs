@@ -53,43 +53,6 @@ const CONFIG = {
       },
     ],
   },
-  // "packet-sender": {
-  //   type: "go",
-  //   path: join(ROOT, "packet-sender"),
-  //   output: join(__dirname, "binaries"),
-  //   entry: ".",
-  //   commands: ["pnpm run build:ci"],
-  //   platforms: [
-  //     {
-  //       id: "win64",
-  //       goos: "windows",
-  //       goarch: "amd64",
-  //       ext: ".exe",
-  //       tags: ["win", "windows"],
-  //     },
-  //     {
-  //       id: "linux64",
-  //       goos: "linux",
-  //       goarch: "amd64",
-  //       ext: "",
-  //       tags: ["linux"],
-  //     },
-  //     {
-  //       id: "mac64",
-  //       goos: "darwin",
-  //       goarch: "amd64",
-  //       ext: "",
-  //       tags: ["mac", "macos"],
-  //     },
-  //     {
-  //       id: "macArm",
-  //       goos: "darwin",
-  //       goarch: "arm64",
-  //       ext: "",
-  //       tags: ["mac", "macos"],
-  //     },
-  //   ],
-  // },
   "testing-view": {
     type: "frontend",
     path: join(ROOT, "frontend/testing-view"),

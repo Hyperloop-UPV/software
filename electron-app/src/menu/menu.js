@@ -5,13 +5,6 @@
  */
 
 import { Menu, app, dialog } from "electron";
-import fs from "fs";
-import {
-  getPacketSenderProcess,
-  startPacketSender,
-  stopPacketSender,
-} from "../processes/packetSender.js";
-import { getBinaryPath } from "../utils/paths.js";
 import { loadView } from "../windows/mainWindow.js";
 
 /**
@@ -68,40 +61,6 @@ function createMenu(mainWindow) {
           click: (_, browserWindow) => {
             if (browserWindow) {
               browserWindow.webContents.toggleDevTools();
-            }
-          },
-        },
-      ],
-    },
-    {
-      label: "Tools",
-      submenu: [
-        {
-          label: "Start Packet Sender",
-          click: () => {
-            const packetSenderBin = getBinaryPath("packet-sender");
-            if (!fs.existsSync(packetSenderBin)) {
-              dialog.showMessageBox(mainWindow, {
-                type: "warning",
-                title: "Packet Sender Not Available",
-                message: "Packet sender binary not found",
-                detail: "This optional tool was not included in the build.",
-              });
-              return;
-            }
-            const packetSenderProcess = getPacketSenderProcess();
-            if (!packetSenderProcess || packetSenderProcess.killed) {
-              startPacketSender();
-            }
-          },
-        },
-        {
-          label: "Stop Packet Sender",
-          click: () => {
-            stopPacketSender();
-            const packetSenderProcess = getPacketSenderProcess();
-            if (packetSenderProcess && !packetSenderProcess.killed) {
-              stopPacketSender();
             }
           },
         },

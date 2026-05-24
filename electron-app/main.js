@@ -9,7 +9,6 @@ import pkg from "electron-updater";
 import { getConfigManager } from "./src/config/configInstance.js";
 import { setupIpcHandlers } from "./src/ipc/handlers.js";
 import { startBackend, stopBackend } from "./src/processes/backend.js";
-import { stopPacketSender } from "./src/processes/packetSender.js";
 import { startBlcuProgramming, stopBlcuProgramming } from "./src/processes/blcuProgramming.js";
 import { logger } from "./src/utils/logger.js";
 import { createLogWindow } from "./src/windows/logWindow.js";
@@ -108,7 +107,7 @@ app.on("window-all-closed", () => {
 // Cleanup before app quits
 app.on("before-quit", (e) => {
   e.preventDefault();
-  Promise.all([stopBackend(), stopPacketSender(), stopBlcuProgramming()])
+  Promise.all([stopBackend(), stopBlcuProgramming()])
     .catch((error) => logger.electron.error("Error during shutdown:", error))
     .finally(() => app.exit());
 });
