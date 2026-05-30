@@ -40,7 +40,7 @@
     "@iarna/toml": "^2.2.5",
     "ansi-to-html": "^0.7.2",
     "electron-store": "^11.0.2",
-    "electron-updater": "^6.7.3",
+    "electron-updater": "^6.8.3",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
