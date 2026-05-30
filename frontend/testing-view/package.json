@@ -23,7 +23,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-virtual": "^3.13.18",
     "@types/lodash": "^4.17.23",
-    "@vitejs/plugin-react-swc": "^4.2.3",
+    "@vitejs/plugin-react-swc": "^4.3.1",
     "@workspace/core": "workspace:*",
     "@workspace/ui": "workspace:*",
     "lodash": "^4.17.23",
