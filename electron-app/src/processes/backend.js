@@ -13,7 +13,6 @@ import { logger } from "../utils/logger.js";
 import {
   getAppPath,
   getBinaryPath,
-  getBundledPythonPath,
   getUserConfigPath,
 } from "../utils/paths.js";
 import { formatBackendError, getHint } from "./backendError.js";
@@ -70,17 +69,9 @@ async function startBackend(logWindow = null) {
       ? path.join(appPath, "..", "backend", "cmd")
       : path.dirname(configPath);
 
-    // Use bundled Python for ADJ validation if available
-    const env = { ...process.env };
-    const bundledPython = getBundledPythonPath();
-    if (bundledPython) {
-      env.HYPERLOOP_PYTHON_PATH = bundledPython;
-    }
-
     // Spawn the backend process with config argument
-    backendProcess = spawn(backendBin, ["--config", configPath, "--config-allow-unknown"], {
+    backendProcess = spawn(backendBin, ["--config", configPath], {
       cwd: workingDir,
-      env,
     });
 
     // Log stdout output from backend

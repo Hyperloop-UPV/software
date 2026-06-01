@@ -5,7 +5,6 @@
  */
 
 import { app } from "electron";
-import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -128,45 +127,9 @@ function getTemplatePath() {
   return path.join(process.resourcesPath, "config.toml");
 }
 
-/**
- * Gets the path to the bundled Python interpreter for ADJ validation.
- * Returns null if no bundled Python exists for the current platform.
- * @returns {string|null} Absolute path to the bundled python executable, or null.
- */
-function getBundledPythonPath() {
-  const platform = process.platform;
-  const arch = process.arch;
-
-  const goosMap = {
-    win32: "windows",
-    darwin: "darwin",
-    linux: "linux",
-  };
-
-  const goarchMap = {
-    x64: "amd64",
-    arm64: "arm64",
-  };
-
-  const goos = goosMap[platform] || platform;
-  const goarch = goarchMap[arch] || arch;
-
-  const pythonDir = `python-${goos}-${goarch}`;
-  const pythonExe = platform === "win32" ? "python.exe" : path.join("bin", "python3");
-
-  if (!app.isPackaged) {
-    const devPath = path.join(getAppPath(), "python", pythonDir, pythonExe);
-    return fs.existsSync(devPath) ? devPath : null;
-  }
-
-  const prodPath = path.join(process.resourcesPath, "python", pythonDir, pythonExe);
-  return fs.existsSync(prodPath) ? prodPath : null;
-}
-
 export {
   getAppPath,
   getBinaryPath,
-  getBundledPythonPath,
   getTemplatePath,
   getUserConfigPath,
   getVersionFilePath,

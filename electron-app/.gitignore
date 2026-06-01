@@ -1,12 +1,6 @@
 # Dependencies
 node_modules
 
-# Python
-python
-
-# Logger
-logger
-
 # Build output
 dist
 dist-ssr

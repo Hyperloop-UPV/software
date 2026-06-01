@@ -109,12 +109,6 @@ const CONFIG = {
     ],
     optional: true,
   },
-  "flashing-view": {
-    type: "frontend",
-    path: join(ROOT, "flashing-view"),
-    dest: join(__dirname, "renderer/flashing-view"),
-    commands: ["npm install", "npm run build"],
-  },
 };
 
 // --- Helpers ---
@@ -246,12 +240,6 @@ _  __  / _  /_/ /__  /_/ /  __/  /   _  / / /_/ / /_/ /_  /_/ /     / /_/ / _  _
 logger.header("Hyperloop Control Station Build");
 
 (async () => {
-  // Setup bundled Python when building backend
-  if (targetsToBuild.includes("backend")) {
-    logger.info("Setting up bundled Python for ADJ validation...");
-    run("node scripts/setup-python.mjs", __dirname);
-  }
-
   let frontendBuilt = false;
   let allSuccess = true;
 
