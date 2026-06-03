@@ -2,6 +2,7 @@ import { HVSCU, PCU, VCU } from "../../constants/measurements";
 import useMeasurement from "../../hooks/useMeasurement";
 import BrakeIndicator from "./components/BrakeIndicator";
 import MetricCard from "./components/MetricCard";
+import OrdersPanel from "./components/OrdersPanel";
 import RecentMessages from "./components/RecentMessages";
 import VehicleStateBanner from "./components/VehicleStateBanner";
 
@@ -84,6 +85,9 @@ const Overview = () => {
           unit="bar"
         />
       </div>
+
+      {/* Quick orders */}
+      <OrdersPanel />
 
       {/* Recent messages */}
       <RecentMessages />
