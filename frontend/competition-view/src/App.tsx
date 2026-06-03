@@ -1,6 +1,8 @@
 import { useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { Route, Routes } from "react-router";
 import AppLayout from "./layout/AppLayout";
+import Batteries from "./pages/Batteries";
+import Boards from "./pages/Boards";
 import Messages from "./pages/Messages";
 import Overview from "./pages/Overview";
 import { useStore } from "./store/store";
@@ -34,6 +36,8 @@ const App = () => {
     <AppLayout backendConnected={isConnected}>
       <Routes>
         <Route path="/" element={<Overview />} />
+        <Route path="/batteries" element={<Batteries />} />
+        <Route path="/boards" element={<Boards />} />
         <Route path="/messages" element={<Messages />} />
       </Routes>
     </AppLayout>
