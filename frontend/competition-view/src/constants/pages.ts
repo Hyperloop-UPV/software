@@ -1,11 +1,11 @@
-import { Activity, BatteryFull, CircuitBoard, LineChart, ScrollText } from "@workspace/ui/icons";
+import { Activity, Layout, ScrollText, Terminal, Wrench } from "@workspace/ui/icons";
 
 export const PAGES = {
-  "/":           { title: "Overview",  icon: Activity     },
-  "/charts":     { title: "Charts",    icon: LineChart    },
-  "/batteries":  { title: "Batteries", icon: BatteryFull  },
-  "/boards":     { title: "Boards",    icon: CircuitBoard },
-  "/messages":   { title: "Messages",  icon: ScrollText   },
+  "/":           { title: "Overview",  icon: Layout    },
+  "/charts":     { title: "Charts",    icon: Activity  },
+  "/batteries":  { title: "Batteries", icon: Wrench    },
+  "/boards":     { title: "Boards",    icon: Terminal  },
+  "/messages":   { title: "Messages",  icon: ScrollText },
 } as const;
 
 export const PAGES_ARRAY = Object.entries(PAGES).map(
