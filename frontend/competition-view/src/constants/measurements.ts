@@ -59,6 +59,7 @@ export const BMSL = {
 } as const;
 
 export const LCU = {
+  // Airgaps — vertical (V1–V4) and horizontal (H1–H4)
   verticalAirgap1:   "LCU/lcu_airgap_1",
   verticalAirgap2:   "LCU/lcu_airgap_2",
   verticalAirgap3:   "LCU/lcu_airgap_3",
@@ -67,9 +68,15 @@ export const LCU = {
   horizontalAirgap2: "LCU/lcu_airgap_6",
   horizontalAirgap3: "LCU/lcu_airgap_7",
   horizontalAirgap4: "LCU/lcu_airgap_8",
-  positionY:         "LCU/dist_control_y",
-  positionZ:         "LCU/dist_control_z",
-  generalState:      "LCU/general_state",
+  // Position control outputs
+  positionY:      "LCU/dist_control_y",
+  positionZ:      "LCU/dist_control_z",
+  // Rotation control outputs
+  rotationPitch:  "LCU/rot_control_y",
+  rotationRoll:   "LCU/rot_control_x",
+  rotationYaw:    "LCU/rot_control_z",
+  // State
+  generalState:   "LCU/general_state",
 } as const;
 
 export const PCU_BOARD = {

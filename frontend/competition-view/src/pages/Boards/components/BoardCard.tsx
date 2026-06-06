@@ -1,4 +1,5 @@
 import {
+  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -35,15 +36,16 @@ const BoardCard = ({ name, stateMeasurementKey, stats = [] }: BoardCardProps) =>
       <CardHeader className="px-4 pb-0">
         <CardTitle className="flex items-center justify-between">
           <span className="text-sm font-semibold">{name}</span>
-          <span
-            className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+          <Badge
+            variant="outline"
+            className={
               !hasData
-                ? "border-border text-muted-foreground"
+                ? "text-muted-foreground"
                 : "border-green-500 text-green-600 dark:text-green-400"
-            }`}
+            }
           >
             {hasData ? String(state) : "—"}
-          </span>
+          </Badge>
         </CardTitle>
       </CardHeader>
 

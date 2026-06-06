@@ -1,20 +1,25 @@
+import { Badge } from "@workspace/ui/components";
+
 interface ConnectionBadgeProps {
   connected: boolean;
 }
 
 const ConnectionBadge = ({ connected }: ConnectionBadgeProps) => (
-  <span
-    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+  <Badge
+    variant="outline"
+    className={`gap-1.5 ${
       connected
-        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+        ? "border-green-500 text-green-600 dark:text-green-400"
+        : "border-red-500 text-red-600 dark:text-red-400"
     }`}
   >
     <span
-      className={`size-1.5 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`}
+      className={`size-1.5 rounded-full ${
+        connected ? "bg-green-500" : "bg-red-500"
+      }`}
     />
     {connected ? "Connected" : "Disconnected"}
-  </span>
+  </Badge>
 );
 
 export default ConnectionBadge;

@@ -7,69 +7,124 @@ import {
 import { LCU } from "../../../constants/measurements";
 import useMeasurement from "../../../hooks/useMeasurement";
 
-/** Warning threshold in mm — highlights airgap values that are too low. */
-const AIRGAP_MIN_MM = 5;
+/** Airgap warning threshold in mm. */
+const AIRGAP_WARN_MM = 5;
 
-const fmt = (v: number | boolean | string | undefined) =>
-  typeof v === "number" ? v.toFixed(1) : "—";
+const fmt = (v: number | boolean | string | undefined, decimals = 1) =>
+  typeof v === "number" ? v.toFixed(decimals) : "—";
 
-interface AirgapRowProps {
+/* ─── Shared row components ────────────────────────────────────────────── */
+
+interface MeasurementRowProps {
   label: string;
   measurementKey: string;
+  unit: string;
+  decimals?: number;
+  warnBelow?: number;
 }
 
-const AirgapRow = ({ label, measurementKey }: AirgapRowProps) => {
+const MeasurementRow = ({
+  label,
+  measurementKey,
+  unit,
+  decimals = 1,
+  warnBelow,
+}: MeasurementRowProps) => {
   const value = useMeasurement(measurementKey);
-  const isLow = typeof value === "number" && value < AIRGAP_MIN_MM;
+  const isWarning =
+    warnBelow !== undefined &&
+    typeof value === "number" &&
+    value < warnBelow;
 
   return (
     <div className="flex items-baseline justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span
         className={`font-medium tabular-nums ${
-          isLow ? "text-amber-500" : "text-foreground"
+          isWarning ? "text-amber-500" : "text-foreground"
         }`}
       >
-        {fmt(value)}
-        <span className="text-muted-foreground ml-0.5 font-normal">mm</span>
+        {fmt(value, decimals)}
+        <span className="text-muted-foreground ml-0.5 font-normal">{unit}</span>
       </span>
     </div>
   );
 };
 
+/* ─── Section components ───────────────────────────────────────────────── */
+
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">
+    {children}
+  </p>
+);
+
+const PositionSection = () => (
+  <div>
+    <SectionLabel>Position</SectionLabel>
+    <div className="flex flex-col gap-1">
+      <MeasurementRow label="Y" measurementKey={LCU.positionY} unit="mm" decimals={2} />
+      <MeasurementRow label="Z" measurementKey={LCU.positionZ} unit="mm" decimals={2} />
+    </div>
+  </div>
+);
+
+const RotationSection = () => (
+  <div>
+    <SectionLabel>Rotation</SectionLabel>
+    <div className="flex flex-col gap-1">
+      <MeasurementRow label="Pitch" measurementKey={LCU.rotationPitch} unit="°" decimals={2} />
+      <MeasurementRow label="Roll"  measurementKey={LCU.rotationRoll}  unit="°" decimals={2} />
+      <MeasurementRow label="Yaw"   measurementKey={LCU.rotationYaw}   unit="°" decimals={2} />
+    </div>
+  </div>
+);
+
+const VerticalAirgapsSection = () => (
+  <div>
+    <SectionLabel>Vertical Airgaps</SectionLabel>
+    <div className="flex flex-col gap-1">
+      <MeasurementRow label="V1" measurementKey={LCU.verticalAirgap1} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+      <MeasurementRow label="V2" measurementKey={LCU.verticalAirgap2} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+      <MeasurementRow label="V3" measurementKey={LCU.verticalAirgap3} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+      <MeasurementRow label="V4" measurementKey={LCU.verticalAirgap4} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+    </div>
+  </div>
+);
+
+const HorizontalAirgapsSection = () => (
+  <div>
+    <SectionLabel>Horizontal Airgaps</SectionLabel>
+    <div className="flex flex-col gap-1">
+      <MeasurementRow label="H1" measurementKey={LCU.horizontalAirgap1} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+      <MeasurementRow label="H2" measurementKey={LCU.horizontalAirgap2} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+      <MeasurementRow label="H3" measurementKey={LCU.horizontalAirgap3} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+      <MeasurementRow label="H4" measurementKey={LCU.horizontalAirgap4} unit="mm" warnBelow={AIRGAP_WARN_MM} />
+    </div>
+  </div>
+);
+
+/* ─── Main card ─────────────────────────────────────────────────────────── */
+
+import React from "react";
+
 /**
- * LCU airgap card — shows vertical and horizontal sensor readings
- * with a warning highlight when any gap falls below the minimum threshold.
+ * Full levitation status card for the LCU.
+ * Displays position, rotation, and all 8 airgap sensors in a 4-column grid.
+ * Airgap values below 5 mm are highlighted in amber.
  */
 const LcuAirgapCard = () => (
   <Card className="gap-3 py-4">
     <CardHeader className="px-4 pb-0">
-      <CardTitle className="text-sm font-semibold">LCU — Airgap</CardTitle>
+      <CardTitle className="text-sm font-semibold">LCU — Levitation</CardTitle>
     </CardHeader>
 
-    <CardContent className="flex flex-col gap-3 px-4">
-      <div>
-        <p className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
-          Vertical
-        </p>
-        <div className="flex flex-col gap-1">
-          <AirgapRow label="Airgap 1" measurementKey={LCU.verticalAirgap1} />
-          <AirgapRow label="Airgap 2" measurementKey={LCU.verticalAirgap2} />
-          <AirgapRow label="Airgap 3" measurementKey={LCU.verticalAirgap3} />
-          <AirgapRow label="Airgap 4" measurementKey={LCU.verticalAirgap4} />
-        </div>
-      </div>
-
-      <div>
-        <p className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
-          Horizontal
-        </p>
-        <div className="flex flex-col gap-1">
-          <AirgapRow label="Airgap 5" measurementKey={LCU.horizontalAirgap1} />
-          <AirgapRow label="Airgap 6" measurementKey={LCU.horizontalAirgap2} />
-          <AirgapRow label="Airgap 7" measurementKey={LCU.horizontalAirgap3} />
-          <AirgapRow label="Airgap 8" measurementKey={LCU.horizontalAirgap4} />
-        </div>
+    <CardContent className="px-4">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+        <PositionSection />
+        <RotationSection />
+        <VerticalAirgapsSection />
+        <HorizontalAirgapsSection />
       </div>
     </CardContent>
   </Card>

@@ -73,12 +73,10 @@ const Boards = () => (
       </div>
     </section>
 
-    {/* LCU airgap detail */}
+    {/* LCU levitation detail */}
     <section className="flex flex-col gap-3">
       <h2 className="text-foreground text-base font-semibold">Levitation</h2>
-      <div className="max-w-sm">
-        <LcuAirgapCard />
-      </div>
+      <LcuAirgapCard />
     </section>
   </div>
 );

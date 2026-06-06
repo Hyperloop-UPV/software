@@ -41,17 +41,15 @@ const Messages = () => {
           Filter
         </span>
         {ALL_KINDS.map((kind) => (
-          <button
+          <Button
             key={kind}
+            size="sm"
+            variant={activeKinds.has(kind) ? "default" : "outline"}
             onClick={() => toggleKind(kind)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              activeKinds.has(kind)
-                ? "bg-primary text-primary-foreground border-primary"
-                : "text-muted-foreground border-border hover:text-foreground"
-            }`}
+            className="rounded-full text-xs"
           >
             {KIND_LABEL[kind]}
-          </button>
+          </Button>
         ))}
 
         <div className="ml-auto flex items-center gap-2">
