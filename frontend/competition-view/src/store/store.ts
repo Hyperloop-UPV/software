@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createAppSlice, type AppSlice } from "./slices/appSlice";
+import { createCatalogSlice, type CatalogSlice } from "./slices/catalogSlice";
 import {
   createConnectionsSlice,
   type ConnectionsSlice,
@@ -15,6 +16,7 @@ import {
 } from "./slices/telemetrySlice";
 
 export type Store = AppSlice &
+  CatalogSlice &
   ConnectionsSlice &
   MessagesSlice &
   TelemetrySlice;
@@ -23,6 +25,7 @@ export const useStore = create<Store>()(
   persist(
     (...a) => ({
       ...createAppSlice(...a),
+      ...createCatalogSlice(...a),
       ...createConnectionsSlice(...a),
       ...createMessagesSlice(...a),
       ...createTelemetrySlice(...a),
