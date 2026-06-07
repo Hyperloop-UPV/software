@@ -96,7 +96,8 @@ const TelemetryChart = memo(({
 
     uplotRef.current = new uPlot(opts, [[], []], containerRef.current);
 
-    const handleDblClick = () => uplotRef.current?.setScale("x", { min: undefined, max: undefined });
+    // Pass null to reset zoom; cast needed since uplot's TS types omit null here.
+    const handleDblClick = () => uplotRef.current?.setScale("x", { min: null as unknown as number, max: null as unknown as number });
     containerRef.current.addEventListener("dblclick", handleDblClick);
 
     return () => {

@@ -1,11 +1,11 @@
-import { Separator } from "@workspace/ui/components";
+import { Badge, Separator } from "@workspace/ui/components";
 import { useStore } from "../../../store/store";
 import type { Message, MessageKind } from "../../../types/message";
 
-const KIND_STYLES: Record<MessageKind, string> = {
-  info:    "text-blue-500",
-  warning: "text-amber-500",
-  error:   "text-red-500",
+const KIND_BADGE_CLASS: Record<MessageKind, string> = {
+  info:    "border-blue-300  text-blue-700  dark:border-blue-700  dark:text-blue-400",
+  warning: "border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400",
+  error:   "border-red-300   text-red-700   dark:border-red-700   dark:text-red-400",
   debug:   "text-muted-foreground",
 };
 
@@ -27,11 +27,12 @@ const MessageRow = ({ message }: MessageRowProps) => {
       <span className="text-muted-foreground w-20 shrink-0 font-mono text-xs">
         {time}
       </span>
-      <span
-        className={`shrink-0 w-14 font-semibold uppercase text-xs ${KIND_STYLES[message.kind]}`}
+      <Badge
+        variant="outline"
+        className={`shrink-0 text-[10px] font-semibold uppercase ${KIND_BADGE_CLASS[message.kind]}`}
       >
         {message.kind}
-      </span>
+      </Badge>
       <span className="text-foreground min-w-0 truncate">{message.content}</span>
     </div>
   );

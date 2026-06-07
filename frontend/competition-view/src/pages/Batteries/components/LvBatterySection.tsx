@@ -74,7 +74,6 @@ interface CellCardProps {
   measurementKey: string;
 }
 
-const CELL_NOMINAL = 3.7;
 const CELL_MIN     = 3.0;
 const CELL_MAX     = 4.2;
 
