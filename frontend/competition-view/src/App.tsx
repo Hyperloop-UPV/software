@@ -1,5 +1,6 @@
 import { useTopic, useWebSocket } from "@workspace/ui/hooks";
 import { Route, Routes } from "react-router";
+import ErrorBoundary from "./components/ErrorBoundary";
 import AppLayout from "./layout/AppLayout";
 import Batteries from "./pages/Batteries";
 import Boards from "./pages/Boards";
@@ -17,8 +18,8 @@ const App = () => {
   const { isConnected } = useWebSocket();
 
   const updateConnections = useStore((s) => s.updateConnections);
-  const addMessage = useStore((s) => s.addMessage);
-  const updateTelemetry = useStore((s) => s.updateTelemetry);
+  const addMessage        = useStore((s) => s.addMessage);
+  const updateTelemetry   = useStore((s) => s.updateTelemetry);
 
   // Fetch and cache the orders catalog; refetches on every reconnect
   useOrdersCatalog(isConnected);
@@ -41,12 +42,12 @@ const App = () => {
   return (
     <AppLayout backendConnected={isConnected}>
       <Routes>
-        <Route path="/" element={<Overview />} />
-        <Route path="/charts" element={<Charts />} />
-        <Route path="/batteries" element={<Batteries />} />
-        <Route path="/boards" element={<Boards />} />
-        <Route path="/orders" element={<Orders isConnected={isConnected} />} />
-        <Route path="/messages" element={<Messages />} />
+        <Route path="/"          element={<ErrorBoundary title="Overview failed to render">  <Overview />                          </ErrorBoundary>} />
+        <Route path="/charts"    element={<ErrorBoundary title="Charts failed to render">    <Charts />                            </ErrorBoundary>} />
+        <Route path="/batteries" element={<ErrorBoundary title="Batteries failed to render"> <Batteries />                         </ErrorBoundary>} />
+        <Route path="/boards"    element={<ErrorBoundary title="Boards failed to render">    <Boards />                            </ErrorBoundary>} />
+        <Route path="/orders"    element={<ErrorBoundary title="Orders failed to render">    <Orders isConnected={isConnected} />  </ErrorBoundary>} />
+        <Route path="/messages"  element={<ErrorBoundary title="Messages failed to render">  <Messages />                          </ErrorBoundary>} />
       </Routes>
     </AppLayout>
   );
