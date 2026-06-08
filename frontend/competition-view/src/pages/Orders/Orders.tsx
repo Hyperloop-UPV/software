@@ -1,27 +1,28 @@
 import { Input, Skeleton } from "@workspace/ui/components";
+import { useWebSocket } from "@workspace/ui/hooks";
 import { useState } from "react";
+import useOrdersCatalog from "../../hooks/useOrdersCatalog";
 import { useStore } from "../../store/store";
 import BoardSection from "./components/BoardSection";
-
-interface OrdersProps {
-  /** Whether the backend WebSocket is currently connected. */
-  isConnected: boolean;
-}
 
 /**
  * Dynamic orders catalog page.
  *
+ * Owns its own catalog fetch so loading state is scoped here.
  * Layout:
  *   - Search input to filter across all boards and order labels/IDs
+ *   - Skeleton while the catalog is loading
  *   - One collapsible BoardSection per board
- *   - Skeleton loading state while the catalog is being fetched
+ *   - Empty state if the catalog loaded but returned no boards
  */
-const Orders = ({ isConnected: _isConnected }: OrdersProps) => {
-  const boards = useStore((s) => s.boards);
+const Orders = () => {
+  const { isConnected } = useWebSocket();
+  const boards          = useStore((s) => s.boards);
   const commandsCatalog = useStore((s) => s.commandsCatalog);
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter]     = useState("");
 
-  const isLoading = boards.length === 0;
+  // Fetch catalog here; refetches on every WS reconnect
+  const { loading } = useOrdersCatalog(isConnected);
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-auto p-4">
@@ -31,11 +32,18 @@ const Orders = ({ isConnected: _isConnected }: OrdersProps) => {
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         className="max-w-sm"
+        disabled={loading}
       />
 
       {/* Board sections */}
-      {isLoading ? (
+      {loading ? (
         <LoadingSkeleton />
+      ) : boards.length === 0 ? (
+        <div className="flex h-40 items-center justify-center">
+          <p className="text-muted-foreground text-sm">
+            No orders available — check the backend connection.
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {boards.map((boardName) => {

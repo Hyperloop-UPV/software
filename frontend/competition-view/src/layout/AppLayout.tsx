@@ -7,9 +7,10 @@ import { useStore } from "../store/store";
 interface AppLayoutProps {
   children: ReactNode;
   backendConnected: boolean;
+  onShowShortcuts: () => void;
 }
 
-const AppLayout = ({ children, backendConnected }: AppLayoutProps) => {
+const AppLayout = ({ children, backendConnected, onShowShortcuts }: AppLayoutProps) => {
   const isDarkMode = useStore((s) => s.isDarkMode);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ const AppLayout = ({ children, backendConnected }: AppLayoutProps) => {
         <div className="bg-background flex h-full w-full">
           <AppSidebar backendConnected={backendConnected} />
           <SidebarInset className="flex h-full flex-col">
-            <Header backendConnected={backendConnected} />
+            <Header backendConnected={backendConnected} onShowShortcuts={onShowShortcuts} />
             <div className="flex-1 overflow-auto">{children}</div>
           </SidebarInset>
         </div>

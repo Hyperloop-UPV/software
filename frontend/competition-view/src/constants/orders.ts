@@ -3,9 +3,15 @@
  * Each ID maps to a backend command understood by the VCU/HV system.
  */
 
+export interface OrderFieldValue {
+  value: unknown;
+  isEnabled: boolean;
+  type: string;
+}
+
 export interface Order {
   id: number;
-  fields: Record<string, never>;
+  fields: Record<string, OrderFieldValue>;
 }
 
 /** Engages the brakes. */
