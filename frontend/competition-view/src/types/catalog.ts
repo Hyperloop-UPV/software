@@ -31,7 +31,7 @@ export type CommandParameter = NumericParameter | EnumParameter | BooleanParamet
 
 export interface CommandCatalogItem {
   id: number;
-  label: string;
+  name: string;
   fields: Record<string, CommandParameter>;
 }
 

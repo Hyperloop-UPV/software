@@ -1,4 +1,4 @@
-import { Input, Skeleton } from "@workspace/ui/components";
+import { InputGroup, InputGroupInput, Skeleton } from "@workspace/ui/components";
 import { useWebSocket } from "@workspace/ui/hooks";
 import { useState } from "react";
 import useOrdersCatalog from "../../hooks/useOrdersCatalog";
@@ -25,15 +25,15 @@ const Orders = () => {
   const { loading } = useOrdersCatalog(isConnected);
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-auto p-4">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
       {/* Search */}
-      <Input
-        placeholder="Search orders by name or ID…"
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        className="max-w-sm"
-        disabled={loading}
-      />
+      <InputGroup className="max-w-96">
+        <InputGroupInput
+          placeholder="Search orders by name or ID…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+      </InputGroup>
 
       {/* Board sections */}
       {loading ? (
@@ -50,7 +50,7 @@ const Orders = () => {
             const board = commandsCatalog[boardName];
             if (!board) return null;
             return (
-              <BoardSection key={boardName} board={board} filter={filter} />
+              <BoardSection key={boardName} board={board} filter={filter} isConnected={isConnected} />
             );
           })}
         </div>

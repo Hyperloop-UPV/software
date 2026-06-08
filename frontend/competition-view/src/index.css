@@ -1,1 +1,14 @@
 @import "@workspace/ui/globals.css";
+
+/* Ensure Tailwind v4 scans competition-view source files directly.
+   The @source paths in globals.css resolve via the @workspace/ui symlink
+   and don't correctly reach this project's source tree. */
+@source "./**/*.{ts,tsx}";
+
+/* Apply base foreground color so text inherits correctly in both light and dark
+   mode. Without this, text falls back to the browser UA default (black), which
+   is invisible on the dark mode background (#181818). */
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+}

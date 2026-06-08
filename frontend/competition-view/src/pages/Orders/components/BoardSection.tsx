@@ -13,13 +13,14 @@ interface BoardSectionProps {
   board: BoardOrdersData;
   /** If provided, only orders whose label matches are rendered. */
   filter: string;
+  isConnected: boolean;
 }
 
 const matchesFilter = (item: CommandCatalogItem, filter: string) => {
   if (!filter) return true;
   const q = filter.toLowerCase();
   return (
-    item.label.toLowerCase().includes(q) ||
+    item.name.toLowerCase().includes(q) ||
     String(item.id).includes(q)
   );
 };
@@ -28,7 +29,7 @@ const matchesFilter = (item: CommandCatalogItem, filter: string) => {
  * Collapsible section for a single board's orders.
  * Starts collapsed; auto-expands when a search filter is active.
  */
-const BoardSection = ({ board, filter }: BoardSectionProps) => {
+const BoardSection = ({ board, filter, isConnected }: BoardSectionProps) => {
   const [open, setOpen] = useState(false);
 
   const visibleOrders = board.orders.filter((o) => matchesFilter(o, filter));
@@ -58,7 +59,7 @@ const BoardSection = ({ board, filter }: BoardSectionProps) => {
       <CollapsibleContent>
         <div className="bg-card rounded-b-xl border border-t-0">
           {visibleOrders.map((order) => (
-            <OrderItem key={order.id} item={order} />
+            <OrderItem key={order.id} item={order} isConnected={isConnected} />
           ))}
         </div>
       </CollapsibleContent>

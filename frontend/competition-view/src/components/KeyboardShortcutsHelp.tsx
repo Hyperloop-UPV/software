@@ -19,7 +19,7 @@ interface KeyboardShortcutsHelpProps {
  */
 const KeyboardShortcutsHelp = ({ open, onOpenChange }: KeyboardShortcutsHelpProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-sm">
+    <DialogContent className="sm:max-w-[500px]">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Keyboard className="size-4" />
@@ -31,9 +31,9 @@ const KeyboardShortcutsHelp = ({ open, onOpenChange }: KeyboardShortcutsHelpProp
 
       <ul className="flex flex-col gap-3 py-1">
         {SHORTCUT_DEFS.map(({ key, label, description }) => (
-          <li key={key} className="flex items-center justify-between gap-4">
+          <li key={key} className="flex items-start justify-between gap-4">
             <span className="text-foreground text-sm">{description}</span>
-            <kbd className="bg-muted text-muted-foreground rounded-md border px-2.5 py-1 font-mono text-xs font-semibold tracking-wider shadow-sm">
+            <kbd className="bg-muted text-muted-foreground shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 font-mono text-xs font-semibold tracking-wider shadow-sm">
               {label}
             </kbd>
           </li>

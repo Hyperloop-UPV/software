@@ -9,7 +9,6 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components";
 import { Check, ChevronDown, Send } from "@workspace/ui/icons";
-import { useWebSocket } from "@workspace/ui/hooks";
 import { useState } from "react";
 import useSendOrder from "../../../hooks/useSendOrder";
 import type { CommandCatalogItem, ParameterValues } from "../../../types/catalog";
@@ -18,6 +17,7 @@ import OrderParameters from "./OrderParameters";
 
 interface OrderItemProps {
   item: CommandCatalogItem;
+  isConnected: boolean;
 }
 
 const getDefaultValues = (item: CommandCatalogItem): ParameterValues => {
@@ -37,8 +37,7 @@ const getDefaultValues = (item: CommandCatalogItem): ParameterValues => {
  * - Send is disabled while the WS is disconnected or any required numeric field is empty/invalid.
  * - After a successful dispatch the button briefly shows a checkmark.
  */
-const OrderItem = ({ item }: OrderItemProps) => {
-  const { isConnected } = useWebSocket();
+const OrderItem = ({ item, isConnected }: OrderItemProps) => {
   const sendOrder = useSendOrder();
 
   const [values, setValues] = useState<ParameterValues>(() => getDefaultValues(item));
@@ -123,7 +122,7 @@ const OrderItem = ({ item }: OrderItemProps) => {
     return (
       <div className="flex items-center justify-between gap-3 border-b px-4 py-2 last:border-0">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="text-foreground truncate text-sm font-medium">{item.label}</span>
+          <span className="text-foreground truncate text-sm font-medium">{item.name}</span>
           <Badge variant="outline" className="shrink-0 font-mono text-xs">{item.id}</Badge>
         </div>
         {sendButtonWithTooltip}
@@ -135,7 +134,7 @@ const OrderItem = ({ item }: OrderItemProps) => {
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="hover:bg-accent/50 flex w-full items-center justify-between gap-3 border-b px-4 py-2 transition-colors last:border-0">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="text-foreground truncate text-sm font-medium">{item.label}</span>
+          <span className="text-foreground truncate text-sm font-medium">{item.name}</span>
           <Badge variant="outline" className="shrink-0 font-mono text-xs">{item.id}</Badge>
           <Badge variant="secondary" className="shrink-0 text-xs">
             {Object.keys(item.fields).length} params
