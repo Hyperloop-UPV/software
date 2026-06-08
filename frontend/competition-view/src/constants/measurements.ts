@@ -13,9 +13,23 @@ export const VCU = {
 } as const;
 
 export const PCU = {
-  speed: "PCU/speetec_velocity",
-  position: "PCU/speetec_position",
-  acceleration: "PCU/speetec_accel",
+  speed:         "PCU/speetec_velocity",
+  position:      "PCU/speetec_position",
+  acceleration:  "PCU/speetec_accel",
+  // DLIM phase currents (motor A)
+  motorCurrentU: "PCU/current_sensor_u_a",
+  motorCurrentV: "PCU/current_sensor_v_a",
+  motorCurrentW: "PCU/current_sensor_w_a",
+} as const;
+
+/** BCU (Booster Control Unit) — LSM phase currents and board states. */
+export const BCU = {
+  averageCurrentU: "BCU/average_current_u",
+  averageCurrentV: "BCU/average_current_v",
+  averageCurrentW: "BCU/average_current_w",
+  generalState:    "BCU/bcu_general_state",
+  operationalState:"BCU/bcu_operational_state",
+  nestedState:     "BCU/bcu_nested_state",
 } as const;
 
 export const HVSCU = {
