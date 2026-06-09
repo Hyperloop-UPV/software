@@ -1,4 +1,4 @@
-import { BLCU, HVBMS, HVBMS_CABINET, LCU, LVBMS, PCU_BOARD, VCU } from "../../constants/measurements";
+import { BCU, BLCU, HVBMS, HVBMS_CABINET, LCU, LVBMS, PCU_BOARD, VCU } from "../../constants/measurements";
 import BoardCard from "./components/BoardCard";
 import LcuAirgapCard from "./components/LcuAirgapCard";
 
@@ -70,6 +70,15 @@ const Boards = () => (
             { label: "Total voltage", measurementKey: LVBMS.totalVoltage, unit: "V"              },
             { label: "Current",       measurementKey: LVBMS.current,      unit: "A"              },
             { label: "Temp max",      measurementKey: LVBMS.tempMax,      unit: "°C"             },
+          ]}
+        />
+
+        <BoardCard
+          name="BCU"
+          stateMeasurementKey={BCU.generalState}
+          stats={[
+            { label: "Operational state", measurementKey: BCU.operationalState },
+            { label: "Nested state",      measurementKey: BCU.nestedState      },
           ]}
         />
 
