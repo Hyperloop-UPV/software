@@ -1,4 +1,4 @@
-import { Circle } from "lucide-react";
+import { Circle } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib/utils";
 import type { BoardState } from "../types";
 

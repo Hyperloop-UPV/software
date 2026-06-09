@@ -1,6 +1,6 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "@workspace/ui/icons";
+import { TableCell, TableRow } from "@workspace/ui/components";
 import type { FlashResult } from "../types";
-import { TableCell, TableRow } from "./table";
 
 /** One row in the results table — board name, success/fail icon, and timestamp. */
 export function ResultRow({ result }: { result: FlashResult }) {

@@ -1,5 +1,5 @@
-import { Plug } from "lucide-react";
-import { Separator } from "@workspace/ui/components/shadcn/separator";
+import { Plug } from "@workspace/ui/icons";
+import { Separator } from "@workspace/ui/components";
 import { cn } from "@workspace/ui/lib/utils";
 import type { Board } from "../types";
 import { getBoardDisplayStatus } from "../utils";

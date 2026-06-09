@@ -1,28 +1,26 @@
 import { useRef } from "react";
-import { FileCode2, LoaderCircle, Upload } from "lucide-react";
-import { Badge } from "@workspace/ui/components/shadcn/badge";
-import { Button } from "@workspace/ui/components/shadcn/button";
+import { FileCode2, Loader2, Upload } from "@workspace/ui/icons";
 import {
+  Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components/shadcn/card";
-import { Separator } from "@workspace/ui/components/shadcn/separator";
-import { Textarea } from "@workspace/ui/components/shadcn/textarea";
+  Separator,
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Textarea,
+} from "@workspace/ui/components";
 import { cn } from "@workspace/ui/lib/utils";
 
 import { useFlashStation } from "./use-flash-station";
 import { BoardCard } from "./components/board-card";
 import { ResultRow } from "./components/result-row";
 import { SectionCard } from "./components/section-card";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./components/table";
 import {
   getConnectedBoardCount,
   getConnectedBoardIds,
@@ -120,7 +118,7 @@ export function FlashStationView() {
                 disabled={cantFlash}
               >
                 {station.isFlashing ? (
-                  <LoaderCircle className="size-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <Upload className="size-4" />
                 )}

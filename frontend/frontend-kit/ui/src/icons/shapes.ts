@@ -1,1 +1,1 @@
-export { Square } from "lucide-react";
+export { Circle, Square } from "lucide-react";

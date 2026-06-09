@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/shadcn/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components";
 import type { ReactNode } from "react";
 
 type Props = {
