@@ -30,6 +30,10 @@
     "build:backend:win": "node build.mjs --backend --win",
     "build:backend:linux": "node build.mjs --backend --linux",
     "build:backend:mac": "node build.mjs --backend --mac",
+    "build:blcu": "node build.mjs --blcu-programming",
+    "build:blcu:win": "node build.mjs --blcu-programming --win",
+    "build:blcu:linux": "node build.mjs --blcu-programming --linux",
+    "build:blcu:mac": "node build.mjs --blcu-programming --mac",
     "build:testing": "node build.mjs --testing-view",
     "build:competition": "node build.mjs --competition-view",
     "asar:win": "asar list dist/win-unpacked/resources/app.asar | findstr /V node_modules",
@@ -112,7 +116,9 @@
       "icon": "icons/512x512.png",
       "category": "Utility",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
-      "executableArgs": ["--no-sandbox"]
+      "executableArgs": [
+        "--no-sandbox"
+      ]
     }
   }
 }
