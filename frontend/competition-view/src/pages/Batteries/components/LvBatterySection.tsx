@@ -1,5 +1,5 @@
 import { Separator } from "@workspace/ui/components";
-import { BMSL } from "../../../constants/measurements";
+import { LVBMS } from "../../../constants/measurements";
 import useMeasurement from "../../../hooks/useMeasurement";
 
 const fmt = (v: number | boolean | string | undefined, decimals = 2) =>
@@ -9,21 +9,21 @@ const fmt = (v: number | boolean | string | undefined, decimals = 2) =>
  * Low-voltage battery section: BMSL summary stats + individual cell voltages.
  */
 const LvBatterySection = () => {
-  const soc          = useMeasurement(BMSL.soc);
-  const totalVoltage = useMeasurement(BMSL.totalVoltage);
-  const voltageMax   = useMeasurement(BMSL.voltageMax);
-  const voltageMin   = useMeasurement(BMSL.voltageMin);
-  const tempMax      = useMeasurement(BMSL.tempMax);
-  const tempMin      = useMeasurement(BMSL.tempMin);
-  const current      = useMeasurement(BMSL.current);
-  const state        = useMeasurement(BMSL.generalState);
+  const soc          = useMeasurement(LVBMS.soc);
+  const totalVoltage = useMeasurement(LVBMS.totalVoltage);
+  const voltageMax   = useMeasurement(LVBMS.voltageMax);
+  const voltageMin   = useMeasurement(LVBMS.voltageMin);
+  const tempMax      = useMeasurement(LVBMS.tempMax);
+  const tempMin      = useMeasurement(LVBMS.tempMin);
+  const current      = useMeasurement(LVBMS.current);
+  const state        = useMeasurement(LVBMS.generalState);
 
   return (
     <section className="flex flex-col gap-4">
       {/* Section header */}
       <div className="flex items-center gap-3">
         <h2 className="text-foreground text-base font-semibold">
-          Low Voltage (BMSL)
+          Low Voltage (LVBMS)
         </h2>
         {state !== undefined && (
           <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs font-medium">
@@ -59,7 +59,7 @@ const LvBatterySection = () => {
 
       {/* Individual cell voltages */}
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-        {BMSL.cells.map((key, i) => (
+        {LVBMS.cells.map((key, i) => (
           <CellCard key={key} cellNumber={i + 1} measurementKey={key} />
         ))}
       </div>

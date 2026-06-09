@@ -13,7 +13,7 @@ import useMeasurement from "../../../hooks/useMeasurement";
 interface TelemetryChartProps {
   /** Human-readable label shown in the card header. */
   title: string;
-  /** Backend telemetry key to track (e.g. "PCU/speetec_velocity"). */
+  /** Backend telemetry key to track (e.g. "PCU/encoder_speed_km_h"). */
   measurementKey: string;
   /** Unit appended to the y-axis label. */
   unit?: string;

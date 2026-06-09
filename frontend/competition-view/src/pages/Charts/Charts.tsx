@@ -1,4 +1,4 @@
-import { BCU, HVSCU, PCU, VCU } from "../../constants/measurements";
+import { BCU, HVBMS, PCU, VCU } from "../../constants/measurements";
 import MultiSeriesChart, { type SeriesConfig } from "./components/MultiSeriesChart";
 import TelemetryChart from "./components/TelemetryChart";
 
@@ -35,7 +35,7 @@ const Charts = () => (
       <TelemetryChart
         title="Speed"
         measurementKey={PCU.speed}
-        unit="m/s"
+        unit="km/h"
         colorIndex={0}
       />
       <TelemetryChart
@@ -48,7 +48,7 @@ const Charts = () => (
       {/* Row 2 — Electrical */}
       <TelemetryChart
         title="HV Battery SOC"
-        measurementKey={HVSCU.minimumSoc}
+        measurementKey={HVBMS.minimumSoc}
         unit="%"
         colorIndex={2}
       />

@@ -6,7 +6,7 @@ import LvBatterySection from "./components/LvBatterySection";
  * Batteries monitoring page.
  *
  * Layout:
- *   - High-voltage section (HVSCU summary + 10 OBCCU pack cards)
+ *   - High-voltage section (HVSCU summary + 18 pack cards)
  *   - Separator
  *   - Low-voltage section (BMSL summary + 6 cell cards)
  */

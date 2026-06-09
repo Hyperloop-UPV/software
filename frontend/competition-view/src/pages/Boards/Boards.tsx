@@ -1,16 +1,9 @@
-import { BMSL, HVSCU, LCU, PCU_BOARD, VCU } from "../../constants/measurements";
+import { BLCU, HVBMS, HVBMS_CABINET, LCU, LVBMS, PCU_BOARD, VCU } from "../../constants/measurements";
 import BoardCard from "./components/BoardCard";
 import LcuAirgapCard from "./components/LcuAirgapCard";
 
-/**
- * Boards status page.
- *
- * Gives an at-a-glance view of every ECU's state machine status
- * plus the most critical secondary measurements for each board.
- */
 const Boards = () => (
   <div className="flex h-full flex-col gap-6 overflow-auto p-4">
-    {/* Primary board states */}
     <section className="flex flex-col gap-3">
       <h2 className="text-foreground text-base font-semibold">Board States</h2>
 
@@ -27,15 +20,26 @@ const Boards = () => (
         />
 
         <BoardCard
-          name="HVSCU"
-          stateMeasurementKey={HVSCU.operationalState}
+          name="HVBMS"
+          stateMeasurementKey={HVBMS.operationalState}
           stats={[
-            { label: "Min SOC",    measurementKey: HVSCU.minimumSoc,     unit: "%"  },
-            { label: "Voltage",    measurementKey: HVSCU.voltageReading, unit: "V"  },
-            { label: "Current",    measurementKey: HVSCU.currentReading, unit: "A"  },
-            { label: "Temp max",   measurementKey: HVSCU.tempMax,        unit: "°C" },
-            { label: "IMD",        measurementKey: HVSCU.imdOk                      },
-            { label: "SDC status", measurementKey: HVSCU.sdcStatus                  },
+            { label: "Min SOC",    measurementKey: HVBMS.minimumSoc,     unit: "%"  },
+            { label: "Voltage",    measurementKey: HVBMS.voltageReading, unit: "V"  },
+            { label: "Current",    measurementKey: HVBMS.currentReading, unit: "A"  },
+            { label: "Temp max",   measurementKey: HVBMS.tempMax,        unit: "°C" },
+            { label: "IMD",        measurementKey: HVBMS.imdOk                      },
+            { label: "SDC status", measurementKey: HVBMS.sdcStatus                  },
+          ]}
+        />
+
+        <BoardCard
+          name="HVBMS-Cabinet"
+          stateMeasurementKey={HVBMS_CABINET.contactorsState}
+          stats={[
+            { label: "Bus voltage",    measurementKey: HVBMS_CABINET.busVoltage,            unit: "V" },
+            { label: "Output current", measurementKey: HVBMS_CABINET.outputCurrent,         unit: "A" },
+            { label: "SDC",            measurementKey: HVBMS_CABINET.sdcGood                          },
+            { label: "Supercaps V",    measurementKey: HVBMS_CABINET.totalSupercapsVoltage, unit: "V" },
           ]}
         />
 
@@ -43,11 +47,9 @@ const Boards = () => (
           name="PCU"
           stateMeasurementKey={PCU_BOARD.generalState}
           stats={[
-            { label: "Operating state", measurementKey: PCU_BOARD.operatingState            },
-            { label: "Peak current",    measurementKey: PCU_BOARD.peakCurrent,   unit: "A"  },
-            { label: "Motor A temp",    measurementKey: PCU_BOARD.motorATemp,    unit: "°C" },
-            { label: "Motor B temp",    measurementKey: PCU_BOARD.motorBTemp,    unit: "°C" },
-            { label: "Frequency",       measurementKey: PCU_BOARD.frequency,     unit: "Hz" },
+            { label: "Operating state", measurementKey: PCU_BOARD.operatingState           },
+            { label: "Peak current",    measurementKey: PCU_BOARD.peakCurrent,  unit: "A"  },
+            { label: "Frequency",       measurementKey: PCU_BOARD.frequency,    unit: "Hz" },
           ]}
         />
 
@@ -61,14 +63,19 @@ const Boards = () => (
         />
 
         <BoardCard
-          name="BMSL"
-          stateMeasurementKey={BMSL.generalState}
+          name="LVBMS"
+          stateMeasurementKey={LVBMS.generalState}
           stats={[
-            { label: "SOC",           measurementKey: BMSL.soc,          unit: "%", decimals: 0 },
-            { label: "Total voltage", measurementKey: BMSL.totalVoltage, unit: "V"              },
-            { label: "Current",       measurementKey: BMSL.current,      unit: "A"              },
-            { label: "Temp max",      measurementKey: BMSL.tempMax,      unit: "°C"             },
+            { label: "SOC",           measurementKey: LVBMS.soc,          unit: "%", decimals: 0 },
+            { label: "Total voltage", measurementKey: LVBMS.totalVoltage, unit: "V"              },
+            { label: "Current",       measurementKey: LVBMS.current,      unit: "A"              },
+            { label: "Temp max",      measurementKey: LVBMS.tempMax,      unit: "°C"             },
           ]}
+        />
+
+        <BoardCard
+          name="BLCU"
+          stateMeasurementKey={BLCU.state}
         />
       </div>
     </section>

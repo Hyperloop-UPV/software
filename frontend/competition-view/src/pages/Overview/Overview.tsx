@@ -1,4 +1,4 @@
-import { HVSCU, PCU, VCU } from "../../constants/measurements";
+import { HVBMS, PCU, VCU } from "../../constants/measurements";
 import useMeasurement from "../../hooks/useMeasurement";
 import BrakeIndicator from "./components/BrakeIndicator";
 import MetricCard from "./components/MetricCard";
@@ -21,10 +21,10 @@ const Overview = () => {
   const speed        = useMeasurement(PCU.speed);
   const position     = useMeasurement(PCU.position);
   const acceleration = useMeasurement(PCU.acceleration);
-  const soc          = useMeasurement(HVSCU.minimumSoc);
-  const hvVoltage    = useMeasurement(HVSCU.voltageReading);
-  const hvCurrent    = useMeasurement(HVSCU.currentReading);
-  const tempMax      = useMeasurement(HVSCU.tempMax);
+  const soc          = useMeasurement(HVBMS.minimumSoc);
+  const hvVoltage    = useMeasurement(HVBMS.voltageReading);
+  const hvCurrent    = useMeasurement(HVBMS.currentReading);
+  const tempMax      = useMeasurement(HVBMS.tempMax);
   const brakePsi     = useMeasurement(VCU.pressureBrakes);
   const highPsi      = useMeasurement(VCU.highPressure);
   const capsulePsi   = useMeasurement(VCU.pressureCapsule);
@@ -45,7 +45,7 @@ const Overview = () => {
         <div className="lg:col-span-1">
           <BrakeIndicator />
         </div>
-        <MetricCard label="Speed"    value={fmt(speed)}    unit="m/s" />
+        <MetricCard label="Speed"    value={fmt(speed)}    unit="km/h" />
         <MetricCard label="Position" value={fmt(position)} unit="m"   />
         <MetricCard
           label="HV Battery SOC"

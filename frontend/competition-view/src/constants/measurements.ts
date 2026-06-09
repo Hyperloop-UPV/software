@@ -4,72 +4,94 @@
  * rather than an inline magic string.
  */
 export const VCU = {
-  generalState: "VCU/general_state",
+  generalState:     "VCU/general_state",
   operationalState: "VCU/operational_state",
-  allReeds: "VCU/all_reeds",
-  highPressure: "VCU/high_pressure",
-  pressureBrakes: "VCU/pressure_brakes",
-  pressureCapsule: "VCU/pressure_capsule",
+  allReeds:         "VCU/all_reeds",
+  highPressure:     "VCU/pressure_high",
+  pressureBrakes:   "VCU/pressure_brakes",
+  pressureCapsule:  "VCU/pressure_capsule",
 } as const;
 
 export const PCU = {
-  speed:         "PCU/speetec_velocity",
-  position:      "PCU/speetec_position",
-  acceleration:  "PCU/speetec_accel",
+  speed:         "PCU/encoder_speed_km_h",
+  position:      "PCU/encoder_position",
+  acceleration:  "PCU/encoder_acceleration",
   // DLIM phase currents (motor A)
   motorCurrentU: "PCU/current_sensor_u_a",
   motorCurrentV: "PCU/current_sensor_v_a",
   motorCurrentW: "PCU/current_sensor_w_a",
 } as const;
 
+export const PCU_BOARD = {
+  generalState:   "PCU/general_state_machine",
+  operatingState: "PCU/operational_state_machine",
+  peakCurrent:    "PCU/current_Peak",
+  frequency:      "PCU/frequency",
+} as const;
+
 /** BCU (Booster Control Unit) — LSM phase currents and board states. */
 export const BCU = {
-  averageCurrentU: "BCU/average_current_u",
-  averageCurrentV: "BCU/average_current_v",
-  averageCurrentW: "BCU/average_current_w",
-  generalState:    "BCU/bcu_general_state",
-  operationalState:"BCU/bcu_operational_state",
-  nestedState:     "BCU/bcu_nested_state",
+  averageCurrentU:  "BCU/average_current_u",
+  averageCurrentV:  "BCU/average_current_v",
+  averageCurrentW:  "BCU/average_current_w",
+  generalState:     "BCU/bcu_general_state",
+  operationalState: "BCU/bcu_operational_state",
+  nestedState:      "BCU/bcu_nested_state",
 } as const;
 
-export const HVSCU = {
-  minimumSoc: "HVSCU/minimum_soc",
-  voltageReading: "HVSCU/voltage_reading",
-  batteriesVoltage: "HVSCU/batteries_voltage_reading",
-  currentReading: "HVSCU/current_reading",
-  tempMax: "HVSCU/temp_max",
-  tempMin: "HVSCU/temp_min",
-  voltageMax: "HVSCU/voltage_max",
-  voltageMin: "HVSCU/voltage_min",
-  imdOk: "HVSCU/imd_is_ok",
-  sdcStatus: "HVSCU/sdc_status",
-  contactors: "HVSCU/contactors_state",
-  operationalState: "HVSCU/operational_state_machine_status",
+/** HVBMS — high-voltage battery management system. */
+export const HVBMS = {
+  minimumSoc:       "HVBMS/minimum_soc",
+  voltageReading:   "HVBMS/voltage_reading",
+  batteriesVoltage: "HVBMS/batteries_voltage_reading",
+  currentReading:   "HVBMS/current_reading",
+  tempMax:          "HVBMS/temp_max",
+  tempMin:          "HVBMS/temp_min",
+  voltageMax:       "HVBMS/voltage_max",
+  voltageMin:       "HVBMS/voltage_min",
+  imdOk:            "HVBMS/imd_is_ok",
+  sdcStatus:        "HVBMS/sdc_status",
+  operationalState: "HVBMS/operational_state_machine_status",
 } as const;
 
-/** Per-pack indices are 1-based (1–10). */
-const obccuPackKey = (n: number, suffix: string) => `OBCCU/${suffix}${n}` as const;
+/** HVBMS-Cabinet — supercapacitor bank and HV bus. */
+export const HVBMS_CABINET = {
+  contactorsState:       "HVBMS-Cabinet/HVBMS-Cabinet_contactors_state",
+  busVoltage:            "HVBMS-Cabinet/HVBMS-Cabinet_bus_voltage",
+  outputCurrent:         "HVBMS-Cabinet/HVBMS-Cabinet_output_current",
+  sdcGood:               "HVBMS-Cabinet/HVBMS-Cabinet_sdc_good",
+  totalSupercapsVoltage: "HVBMS-Cabinet/HVBMS-Cabinet_total_supercaps_voltage",
+} as const;
 
-/** Generates the measurement key set for a single OBCCU battery pack (1–10). */
-export const obccuPack = (n: number) => ({
-  soc:         obccuPackKey(n, "SOC"),
-  temperature: `OBCCU/battery_temperature_${n}`,
-  maxCell:     `OBCCU/maximum_cell_${n}`,
-  minCell:     `OBCCU/minimum_cell_${n}`,
-  voltage:     `OBCCU/total_voltage${n}`,
-  isBalancing: `OBCCU/is_balancing${n}`,
+/** Per-pack indices are 1-based (1–18). */
+export const hvbmsPack = (n: number) => ({
+  soc:         `HVBMS/battery${n}_SOC`,
+  temperature: `HVBMS/battery${n}_temperature1`,
+  voltage:     `HVBMS/battery${n}_total_voltage`,
+  cell1:       `HVBMS/battery${n}_cell1`,
+  cell2:       `HVBMS/battery${n}_cell2`,
+  cell3:       `HVBMS/battery${n}_cell3`,
+  cell4:       `HVBMS/battery${n}_cell4`,
+  cell5:       `HVBMS/battery${n}_cell5`,
+  cell6:       `HVBMS/battery${n}_cell6`,
 });
 
-export const BMSL = {
-  cells:        ["BMSL/cell_1","BMSL/cell_2","BMSL/cell_3","BMSL/cell_4","BMSL/cell_5","BMSL/cell_6"] as string[],
-  soc:          "BMSL/SOC",
-  totalVoltage: "BMSL/total_voltage",
-  voltageMin:   "BMSL/voltage_min",
-  voltageMax:   "BMSL/voltage_max",
-  tempMin:      "BMSL/temp_min",
-  tempMax:      "BMSL/temp_max",
-  current:      "BMSL/current",
-  generalState: "BMSL/general_state",
+/** LVBMS — low-voltage battery management system. */
+export const LVBMS = {
+  cells:        ["LVBMS/cell_1","LVBMS/cell_2","LVBMS/cell_3","LVBMS/cell_4","LVBMS/cell_5","LVBMS/cell_6"] as string[],
+  soc:          "LVBMS/SOC",
+  totalVoltage: "LVBMS/total_voltage",
+  voltageMin:   "LVBMS/voltage_min",
+  voltageMax:   "LVBMS/voltage_max",
+  tempMin:      "LVBMS/temp_min",
+  tempMax:      "LVBMS/temp_max",
+  current:      "LVBMS/current",
+  generalState: "LVBMS/state",
+} as const;
+
+/** BLCU — bootloader control unit (firmware flashing). */
+export const BLCU = {
+  state: "BLCU/state",
 } as const;
 
 export const LCU = {
@@ -91,13 +113,4 @@ export const LCU = {
   rotationYaw:    "LCU/rot_control_z",
   // State
   generalState:   "LCU/general_state",
-} as const;
-
-export const PCU_BOARD = {
-  generalState:   "PCU/general_state",
-  operatingState: "PCU/operating_state",
-  peakCurrent:    "PCU/peak_current",
-  motorATemp:     "PCU/motor_a_temp_u",
-  motorBTemp:     "PCU/motor_b_temp_v",
-  frequency:      "PCU/target_frequency",
 } as const;

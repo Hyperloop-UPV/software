@@ -1,26 +1,22 @@
 import { Separator } from "@workspace/ui/components";
-import { HVSCU } from "../../../constants/measurements";
+import { HVBMS, HVBMS_CABINET } from "../../../constants/measurements";
 import useMeasurement from "../../../hooks/useMeasurement";
 import BatteryPackCard from "./BatteryPackCard";
 
-const PACK_COUNT = 10;
+const PACK_COUNT = 18;
 const PACK_NUMBERS = Array.from({ length: PACK_COUNT }, (_, i) => i + 1);
 
 const fmt = (v: number | boolean | string | undefined, decimals = 1) =>
   typeof v === "number" ? v.toFixed(decimals) : "—";
 
-/**
- * High-voltage battery section: global HVSCU summary stats
- * followed by a grid of individual OBCCU pack cards.
- */
 const HvBatterySection = () => {
-  const totalVoltage = useMeasurement(HVSCU.batteriesVoltage);
-  const voltageMax   = useMeasurement(HVSCU.voltageMax);
-  const voltageMin   = useMeasurement(HVSCU.voltageMin);
-  const tempMax      = useMeasurement(HVSCU.tempMax);
-  const tempMin      = useMeasurement(HVSCU.tempMin);
-  const soc          = useMeasurement(HVSCU.minimumSoc);
-  const contactors   = useMeasurement(HVSCU.contactors);
+  const totalVoltage = useMeasurement(HVBMS.batteriesVoltage);
+  const voltageMax   = useMeasurement(HVBMS.voltageMax);
+  const voltageMin   = useMeasurement(HVBMS.voltageMin);
+  const tempMax      = useMeasurement(HVBMS.tempMax);
+  const tempMin      = useMeasurement(HVBMS.tempMin);
+  const soc          = useMeasurement(HVBMS.minimumSoc);
+  const contactors   = useMeasurement(HVBMS_CABINET.contactorsState);
 
   return (
     <section className="flex flex-col gap-4">
@@ -32,12 +28,12 @@ const HvBatterySection = () => {
         {contactors !== undefined && (
           <span
             className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
-              contactors
+              contactors === "Close"
                 ? "border-green-500 text-green-600 dark:text-green-400"
                 : "border-red-500 text-red-600 dark:text-red-400"
             }`}
           >
-            Contactors {contactors ? "closed" : "open"}
+            Contactors {contactors}
           </span>
         )}
       </div>

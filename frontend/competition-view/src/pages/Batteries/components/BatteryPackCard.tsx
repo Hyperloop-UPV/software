@@ -4,46 +4,47 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components";
-import { obccuPack } from "../../../constants/measurements";
+import { hvbmsPack } from "../../../constants/measurements";
 import useMeasurement from "../../../hooks/useMeasurement";
 
 interface BatteryPackCardProps {
-  /** Pack number, 1-based (1–10). */
+  /** Pack number, 1-based (1–18). */
   packNumber: number;
 }
 
 const fmt = (v: number | boolean | string | undefined, decimals = 1) =>
   typeof v === "number" ? v.toFixed(decimals) : "—";
 
-/**
- * Displays the state of one OBCCU battery pack:
- * SOC bar, voltage, temperature (min/max), and balancing status.
- */
 const BatteryPackCard = ({ packNumber }: BatteryPackCardProps) => {
-  const keys = obccuPack(packNumber);
+  const keys = hvbmsPack(packNumber);
 
-  const soc         = useMeasurement(keys.soc);
-  const voltage     = useMeasurement(keys.voltage);
-  const temp        = useMeasurement(keys.temperature);
-  const maxCell     = useMeasurement(keys.maxCell);
-  const minCell     = useMeasurement(keys.minCell);
-  const isBalancing = useMeasurement(keys.isBalancing);
+  const soc     = useMeasurement(keys.soc);
+  const voltage = useMeasurement(keys.voltage);
+  const temp    = useMeasurement(keys.temperature);
+  const cell1   = useMeasurement(keys.cell1);
+  const cell2   = useMeasurement(keys.cell2);
+  const cell3   = useMeasurement(keys.cell3);
+  const cell4   = useMeasurement(keys.cell4);
+  const cell5   = useMeasurement(keys.cell5);
+  const cell6   = useMeasurement(keys.cell6);
+
+  const cells = [cell1, cell2, cell3, cell4, cell5, cell6];
+  const cellNums = cells.filter((c): c is number => typeof c === "number");
+  const cellMax = cellNums.length ? Math.max(...cellNums) : undefined;
+  const cellMin = cellNums.length ? Math.min(...cellNums) : undefined;
 
   const socNum = typeof soc === "number" ? soc : null;
   const socColor =
-    socNum === null  ? "bg-muted"       :
-    socNum < 15      ? "bg-red-500"     :
-    socNum < 30      ? "bg-amber-500"   :
-                       "bg-green-500";
+    socNum === null ? "bg-muted"     :
+    socNum < 15     ? "bg-red-500"   :
+    socNum < 30     ? "bg-amber-500" :
+                      "bg-green-500";
 
   return (
     <Card className="gap-2 py-3">
       <CardHeader className="px-3 pb-0">
-        <CardTitle className="flex items-center justify-between text-xs font-semibold">
-          <span>Pack {packNumber}</span>
-          {isBalancing && (
-            <span className="text-amber-500 text-xs font-normal">⚡ balancing</span>
-          )}
+        <CardTitle className="text-xs font-semibold">
+          Pack {packNumber}
         </CardTitle>
       </CardHeader>
 
@@ -63,10 +64,10 @@ const BatteryPackCard = ({ packNumber }: BatteryPackCardProps) => {
 
         {/* Key values */}
         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
-          <Stat label="Voltage" value={fmt(voltage)} unit="V" />
-          <Stat label="Temp"    value={fmt(temp)}    unit="°C" />
-          <Stat label="Cell max" value={fmt(maxCell, 3)} unit="V" />
-          <Stat label="Cell min" value={fmt(minCell, 3)} unit="V" />
+          <Stat label="Voltage"  value={fmt(voltage)}      unit="V"  />
+          <Stat label="Temp"     value={fmt(temp)}          unit="°C" />
+          <Stat label="Cell max" value={fmt(cellMax, 3)}   unit="V"  />
+          <Stat label="Cell min" value={fmt(cellMin, 3)}   unit="V"  />
         </div>
       </CardContent>
     </Card>
