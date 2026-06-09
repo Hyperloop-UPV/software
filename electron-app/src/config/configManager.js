@@ -224,16 +224,17 @@ class ConfigManager {
           .match(/^version\s*=\s*"(.+)"$/)?.[1] ?? null)
       : null;
 
-    if (storedVersion !== null) {
+    if (storedVersion !== this.appVersion) {
       fs.copyFileSync(this.templatePath, this.userConfigPath);
+      fs.writeFileSync(
+        this.versionFilePath,
+        `version = "${this.appVersion}"`,
+        "utf-8",
+      );
+      logger.config.info(
+        `Config updated from template (from version ${storedVersion ?? "unknown"} to ${this.appVersion})`,
+      );
     }
-
-    fs.writeFileSync(
-      this.versionFilePath,
-      `version = "${this.appVersion}`,
-      "utf-8",
-    );
-    logger.config.info(`Config updated from template to ${this.appVersion}"`);
   }
 
   /**
