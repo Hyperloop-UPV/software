@@ -11,14 +11,6 @@ node_modules/
 # Global binaries
 *.exe
 
-# Flashing view build artifacts
-flashing-view/node_modules/
-flashing-view/dist/
-flashing-view/dist-ssr/
-flashing-view/.cache/
-flashing-view/*.tsbuildinfo
-flashing-view/.env
-
 # electron modules
 electron-app/python
 electron-app/logger
