@@ -30,9 +30,10 @@ async function showModeSelector(screenWidth, screenHeight) {
     let mainWindow = null;
 
     const selectorWindow = new BrowserWindow({
-      width: 480,
-      height: 320,
-      resizable: false,
+      width: 920,
+      height: 680,
+      useContentSize: true,
+      resizable: true,
       modal: true,
       parent: mainWindow,
       show: true,
