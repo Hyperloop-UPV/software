@@ -11,6 +11,7 @@ import { startBlcuProgramming } from "../processes/blcuProgramming.js";
 import { logger } from "../utils/logger.js";
 import { getAppPath } from "../utils/paths.js";
 import { createLogWindow, createWindow } from "../windows/index.js";
+import { loadView } from "../windows/mainWindow.js";
 
 const VALID_MODES = {
   testing: "testing-view",
@@ -70,17 +71,20 @@ async function showModeSelector(screenWidth, screenHeight) {
       try {
         const view = VALID_MODES[mode] || VALID_MODES.default;
 
-        // Create the main window with selected view
-        mainWindow = createWindow(screenWidth, screenHeight, view);
+        // Create the main window without loading the view yet.
+        mainWindow = createWindow(screenWidth, screenHeight, null);
         try {
           mainWindow.maximize();
         } catch (e) {}
         logger.electron.header("Main application window created");
 
-        // Start backend and logging only for testing view
+        // Start services and only then load the selected view.
         if (view === "testing-view" || view === "flashing-view") {
           await startServices(screenWidth, screenHeight, view);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
+
+        loadView(view);
 
         // Show and focus main window
         try {
