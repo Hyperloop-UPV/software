@@ -24,7 +24,7 @@ let currentView = "testing-view";
  * @example
  * createWindow();
  */
-function createWindow(screenWidth, screenHeight) {
+function createWindow(screenWidth, screenHeight, initialView) {
   // Create new browser window with configuration
   mainWindow = new BrowserWindow({
     x: 0,
@@ -47,8 +47,15 @@ function createWindow(screenWidth, screenHeight) {
     backgroundColor: "#1a1a1a",
   });
 
-  // Load ethernet view by default
-  loadView(currentView);
+  // If an initial view string is provided, load it.
+  // If `initialView` is explicitly null, skip loading so caller can decide later.
+  if (typeof initialView === "string") {
+    loadView(initialView);
+  } else if (initialView === null) {
+    // skip loading any view for now
+  } else {
+    loadView(currentView);
+  }
 
   // Create application menu
   const menu = createMenu(mainWindow);
