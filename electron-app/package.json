@@ -1,6 +1,6 @@
 {
   "name": "hyperloop-control-station",
-  "version": "1.0.0",
+  "version": "11.1.0",
   "description": "Hyperloop UPV Control Station",
   "main": "main.js",
   "type": "module",

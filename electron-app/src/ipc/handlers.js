@@ -7,21 +7,21 @@
  * - Folder selection dialogs
  */
 
-import { dialog, ipcMain, shell } from "electron";
+import { app, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import { isAbsolute, join } from "path";
 import {
-    importConfig,
-    readConfig,
-    writeConfig,
+  importConfig,
+  readConfig,
+  writeConfig,
 } from "../config/configInstance.js";
 import { getBackendWorkingDir, restartBackend } from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
 import {
-    getCurrentView,
-    getMainWindow,
-    loadView,
-    reloadWindow,
+  getCurrentView,
+  getMainWindow,
+  loadView,
+  reloadWindow,
 } from "../windows/mainWindow.js";
 
 /**
@@ -39,6 +39,8 @@ function setupIpcHandlers() {
    * @returns {string} The current view name (e.g., "ethernet-view", "control-station").
    */
   ipcMain.handle("get-current-view", () => getCurrentView());
+
+  ipcMain.handle("get-app-version", () => app.getVersion());
 
   /**
    * @event switch-view

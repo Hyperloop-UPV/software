@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   selectFolder: () => ipcRenderer.invoke("select-folder"),
   // Open a folder path in the OS file explorer
   openFolder: (path) => ipcRenderer.invoke("open-folder", path),
+  // Get the application version from the main process
+  getAppVersion: () => ipcRenderer.invoke("get-app-version"),
   // Set initial mode (used by mode selector renderer)
   setInitialMode: (mode) => {
     ipcRenderer.send("mode-selected", mode);
