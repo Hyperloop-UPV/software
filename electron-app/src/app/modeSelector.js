@@ -110,7 +110,12 @@ async function showModeSelector(screenWidth, screenHeight) {
  * @returns {Promise<void>}
  */
 async function startServices(screenWidth, screenHeight, view) {
-  const logWindow = createLogWindow(screenWidth, screenHeight);
+  let logWindow = null;
+
+  // Create the backend log window only for testing view
+  if (view === "testing-view") {
+    logWindow = createLogWindow(screenWidth, screenHeight);
+  }
 
   // Start backend only for testing view
   if (view === "testing-view") {
@@ -124,7 +129,7 @@ async function startServices(screenWidth, screenHeight, view) {
 
   // Start BLCU Programming for both testing and flashing views
   try {
-    await startBlcuProgramming(logWindow);
+    await startBlcuProgramming();
     logger.electron.header("BLCU programming process spawned");
   } catch (err) {
     logger.electron.error("Failed to start BLCU programming:", err);
