@@ -1,15 +1,15 @@
 /**
  * @module menu
  * @description Application menu creation and management for the Electron application.
- * Defines menu structure with File, View, Tools, and Help sections with keyboard shortcuts and actions.
+ * Defines menu structure with File, Tools, and Help sections with keyboard shortcuts and actions.
  */
 
 import { Menu, app, dialog } from "electron";
-import { loadView } from "../windows/mainWindow.js";
 
 /**
- * Creates and sets the application menu with File, View, Tools, and Help sections.
- * Includes menu items for reloading, exiting, switching views, toggling DevTools, and managing packet sender.
+ * Creates and sets the application menu with File, Tools, and Help sections.
+ * Includes menu items for reloading, exiting, toggling DevTools, and app information.
+ * View switching is no longer available since the mode is selected at startup.
  * @param {import("electron").BrowserWindow} mainWindow - The main browser window instance to attach menu actions to.
  * @returns {void}
  * @example
@@ -38,23 +38,8 @@ function createMenu(mainWindow) {
       ],
     },
     {
-      label: "View",
+      label: "Tools",
       submenu: [
-        {
-          label: "Competition View",
-          accelerator: "CmdOrCtrl+1",
-          click: () => {
-            loadView("competition-view");
-          },
-        },
-        {
-          label: "Testing View",
-          accelerator: "CmdOrCtrl+2",
-          click: () => {
-            loadView("testing-view");
-          },
-        },
-        { type: "separator" },
         {
           label: "Toggle DevTools",
           accelerator: "F12",
