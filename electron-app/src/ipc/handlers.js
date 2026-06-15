@@ -11,17 +11,17 @@ import { dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import { isAbsolute, join } from "path";
 import {
-  importConfig,
-  readConfig,
-  writeConfig,
+    importConfig,
+    readConfig,
+    writeConfig,
 } from "../config/configInstance.js";
 import { getBackendWorkingDir, restartBackend } from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
 import {
-  getCurrentView,
-  getMainWindow,
-  loadView,
-  reloadWindow,
+    getCurrentView,
+    getMainWindow,
+    loadView,
+    reloadWindow,
 } from "../windows/mainWindow.js";
 
 /**
@@ -51,6 +51,8 @@ function setupIpcHandlers() {
     loadView(view);
     return view;
   });
+
+  // Mode selection is handled in main process via 'mode-selected' event.
 
   /**
    * @event save-config
