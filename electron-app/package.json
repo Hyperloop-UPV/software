@@ -112,7 +112,9 @@
       "icon": "icons/512x512.png",
       "category": "Utility",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
-      "executableArgs": ["--no-sandbox"]
+      "executableArgs": [
+        "--no-sandbox"
+      ]
     }
   }
 }
