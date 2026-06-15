@@ -329,8 +329,6 @@ importers:
         specifier: ^7.3.1
         version: 7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.30.2)
 
-  packet-sender: {}
-
 packages:
 
   7zip-bin@5.2.0:
