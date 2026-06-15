@@ -29,6 +29,11 @@ function createMenu(mainWindow) {
             }
           },
         },
+        {
+          label: "Return to Selector",
+          accelerator: "CmdOrCtrl+Shift+S",
+          click: () => app.emit("return-to-selector"),
+        },
         { type: "separator" },
         {
           label: "Exit",

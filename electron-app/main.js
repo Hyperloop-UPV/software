@@ -9,7 +9,7 @@
  * - lifecycle: App lifecycle event handling
  */
 
-import { app, screen } from "electron";
+import { app, BrowserWindow, screen } from "electron";
 import {
   handleSelectorFallback,
   initializeApp,
@@ -17,6 +17,8 @@ import {
   setupUpdater,
   showModeSelector,
 } from "./src/app/index.js";
+import { stopBackend } from "./src/processes/backend.js";
+import { stopBlcuProgramming } from "./src/processes/blcuProgramming.js";
 import { logger } from "./src/utils/logger.js";
 
 /**
@@ -34,6 +36,28 @@ app.whenReady().then(async () => {
 
     // Get screen dimensions for window creation
     const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+
+    // Register return-to-selector handler before starting the app.
+    app.on("return-to-selector", async () => {
+      try {
+        logger.electron.info("Returning to selector mode...");
+        await Promise.all([stopBackend(), stopBlcuProgramming()]);
+
+        const existingWindows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
+        existingWindows.forEach((window) => window.hide());
+
+        const { width: selectorWidth, height: selectorHeight } = screen.getPrimaryDisplay().workAreaSize;
+        await showModeSelector(selectorWidth, selectorHeight);
+
+        existingWindows.forEach((window) => {
+          if (!window.isDestroyed()) {
+            window.close();
+          }
+        });
+      } catch (error) {
+        logger.electron.error("Failed to return to selector:", error);
+      }
+    });
 
     // Show mode selector and get user choice
     try {
