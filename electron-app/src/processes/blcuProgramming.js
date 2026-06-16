@@ -139,12 +139,27 @@ async function startBlcuProgramming() {
 }
 
 async function stopBlcuProgramming() {
-  if (!blcuProgrammingProcess || blcuProgrammingProcess.killed) {
-    return;
-  }
+  return new Promise((resolve) => {
+    if (!blcuProgrammingProcess || blcuProgrammingProcess.killed) {
+      resolve();
+      return;
+    }
 
-  blcuProgrammingProcess.kill("SIGTERM");
-  blcuProgrammingProcess = null;
+    blcuProgrammingProcess.once("close", () => {
+      resolve();
+    });
+
+    blcuProgrammingProcess.kill("SIGTERM");
+
+    const fallbackTimer = setTimeout(() => {
+      if (blcuProgrammingProcess && !blcuProgrammingProcess.killed) {
+        blcuProgrammingProcess.kill("SIGKILL");
+      }
+      resolve();
+    }, 3000);
+
+    fallbackTimer.unref();
+  });
 }
 
 export { startBlcuProgramming, stopBlcuProgramming };

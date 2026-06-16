@@ -13,6 +13,7 @@ import { app, BrowserWindow, screen } from "electron";
 import {
   handleSelectorFallback,
   initializeApp,
+  setTransitionMode,
   setupLifecycleHandlers,
   setupUpdater,
   showModeSelector,
@@ -40,8 +41,14 @@ app.whenReady().then(async () => {
     // Register return-to-selector handler before starting the app.
     app.on("return-to-selector", async () => {
       try {
+        // Set transition mode to prevent window-all-closed from quitting
+        setTransitionMode(true);
+        
         logger.electron.info("Returning to selector mode...");
         await Promise.all([stopBackend(), stopBlcuProgramming()]);
+        
+        // Give ports time to be released (increased to 3s for TCP TIME_WAIT state)
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         const existingWindows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
         existingWindows.forEach((window) => window.hide());
@@ -51,11 +58,16 @@ app.whenReady().then(async () => {
 
         existingWindows.forEach((window) => {
           if (!window.isDestroyed()) {
+            window.removeAllListeners("close");
             window.close();
           }
         });
+        
+        // Exit transition mode once selector is shown
+        setTransitionMode(false);
       } catch (error) {
         logger.electron.error("Failed to return to selector:", error);
+        setTransitionMode(false);
       }
     });
 

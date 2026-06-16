@@ -9,6 +9,17 @@ import { stopBlcuProgramming } from "../processes/blcuProgramming.js";
 import { logger } from "../utils/logger.js";
 import { createWindow } from "../windows/index.js";
 
+// Flag to indicate we're in a transition (e.g., returning to selector)
+let isInTransition = false;
+
+/**
+ * Sets the transition flag
+ * @param {boolean} inTransition
+ */
+function setTransitionMode(inTransition) {
+  isInTransition = inTransition;
+}
+
 /**
  * Sets up all application lifecycle event handlers.
  * @returns {void}
@@ -16,6 +27,12 @@ import { createWindow } from "../windows/index.js";
 function setupLifecycleHandlers() {
   // Handle window close behavior
   app.on("window-all-closed", () => {
+    // Don't quit if we're in a transition (returning to selector)
+    if (isInTransition) {
+      logger.electron.debug("In transition mode - skipping app quit on window-all-closed");
+      return;
+    }
+
     // On macOS, keep app running even when all windows are closed
     if (process.platform !== "darwin") {
       // Quit app on other platforms when all windows are closed
@@ -46,4 +63,5 @@ function setupLifecycleHandlers() {
   });
 }
 
-export { setupLifecycleHandlers };
+export { setTransitionMode, setupLifecycleHandlers };
+

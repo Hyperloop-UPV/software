@@ -107,7 +107,7 @@ async function showModeSelector(screenWidth, screenHeight) {
 
 /**
  * Starts services based on the selected view.
- * - testing-view: Backend + BLCU Programming
+ * - testing-view: Backend only
  * - flashing-view: BLCU Programming only
  * @param {number} screenWidth
  * @param {number} screenHeight
@@ -115,29 +115,30 @@ async function showModeSelector(screenWidth, screenHeight) {
  * @returns {Promise<void>}
  */
 async function startServices(screenWidth, screenHeight, view) {
-  let logWindow = null;
-
-  // Create the backend log window only for testing view
-  if (view === "testing-view") {
-    logWindow = createLogWindow(screenWidth, screenHeight);
-  }
-
   // Start backend only for testing view
   if (view === "testing-view") {
+    const logWindow = createLogWindow(screenWidth, screenHeight);
+    logWindow.show(); // Show the log window
+
     try {
       await startBackend(logWindow);
       logger.electron.header("Backend process spawned");
     } catch (err) {
       logger.electron.error("Failed to start backend:", err);
+      if (logWindow && !logWindow.isDestroyed()) {
+        logWindow.close();
+      }
     }
   }
 
-  // Start BLCU Programming for both testing and flashing views
-  try {
-    await startBlcuProgramming();
-    logger.electron.header("BLCU programming process spawned");
-  } catch (err) {
-    logger.electron.error("Failed to start BLCU programming:", err);
+  // Start BLCU Programming only for flashing view
+  if (view === "flashing-view") {
+    try {
+      await startBlcuProgramming();
+      logger.electron.header("BLCU programming process spawned");
+    } catch (err) {
+      logger.electron.error("Failed to start BLCU programming:", err);
+    }
   }
 }
 
