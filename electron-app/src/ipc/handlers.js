@@ -54,7 +54,7 @@ function setupIpcHandlers() {
     return view;
   });
 
-  // Mode selection is handled in main process via 'mode-selected' event.
+  
 
   /**
    * @event save-config
