@@ -24,7 +24,7 @@ When running in development mode (unpackaged), the application creates temporary
 
 - `binaries/` - Directory containing compiled backend and BLCU programming executables for your platform. These are generated during the build process, when running `pnpm run build`.
 
-- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `pnpm run build`.
+- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `pnpm run build`. All its content is ignored, except `mode-selector`
 
 - `dist/` - Build output directory containing compiled and packaged application files. Generated during build and distribution processes, when running `pnpm run dist`.
 
@@ -100,9 +100,10 @@ sudo ifconfig lo0 alias 127.0.0.9 up
 
 - **Backend Process**: Go backend for data processing
 - **BLCU Programming Process**: Packaged FastAPI/TFTP API for firmware transfers
-- **Packet Sender**: Tool for sending test packets
 - **Configuration**: TOML-based config management
-- **Views**: Multiple frontend interfaces (Competition/Testing)
+- **Views**: Multiple frontend interfaces (Competition, Testing & Flashing)
+
+- **Mode Selector**: html5 file to chose the mode of the app: testing, competition or flashing. Placed at `renderer/mode-selector`
 
 ## Dependencies
 
