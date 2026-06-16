@@ -4,7 +4,7 @@ The main Electron application that provides the control interface for the Hyperl
 
 ## Overview
 
-Desktop application built with Electron that manages the Hyperloop pod control system. Handles backend process management, configuration, and provides multiple frontend views for competition and testing.
+Desktop application built with Electron that manages the Hyperloop pod control system. Handles backend process management, BLCU programming API process management, configuration, and provides multiple frontend views for competition and testing.
 
 ## Project Structure
 
@@ -22,7 +22,7 @@ When running in development mode (unpackaged), the application creates temporary
 
 - `config.toml.backup-{timestamp}` - Automatic backup files created when importing a configuration. These timestamped backups help recover previous configurations if needed.
 
-- `binaries/` - Directory containing compiled backend executables for your platform. These are generated during the build process, when running `pnpm run build`.
+- `binaries/` - Directory containing compiled backend and BLCU programming executables for your platform. These are generated during the build process, when running `pnpm run build`.
 
 - `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `pnpm run build`.
 
@@ -56,7 +56,7 @@ Typical locations:
 # Install dependencies
 pnpm install
 
-# Build backend and frontends
+# Build backend, BLCU programming API, and frontends
 pnpm run build
 
 # Run in development mode (you MUST run `pnpm run build` BEFORE!)
@@ -99,6 +99,7 @@ sudo ifconfig lo0 alias 127.0.0.9 up
 ## Architecture
 
 - **Backend Process**: Go backend for data processing
+- **BLCU Programming Process**: Packaged FastAPI/TFTP API for firmware transfers
 - **Packet Sender**: Tool for sending test packets
 - **Configuration**: TOML-based config management
 - **Views**: Multiple frontend interfaces (Competition/Testing)

@@ -1,6 +1,8 @@
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -90,3 +92,15 @@ def get_logs(tail: int = Query(default=200, ge=1, le=5000)) -> dict:
         "lines": selected_lines,
         "line_count": len(selected_lines),
     }
+
+
+def main() -> None:
+    host = os.environ.get("BLCU_API_HOST", "127.0.0.1")
+    port = int(os.environ.get("BLCU_API_PORT", "8000"))
+    log_level = os.environ.get("BLCU_API_LOG_LEVEL", "info")
+
+    uvicorn.run(app, host=host, port=port, log_level=log_level)
+
+
+if __name__ == "__main__":
+    main()
