@@ -81,7 +81,6 @@ async function showModeSelector(screenWidth, screenHeight) {
         // Start services and only then load the selected view.
         if (view === "testing-view" || view === "flashing-view") {
           await startServices(screenWidth, screenHeight, view);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
 
         loadView(view);
