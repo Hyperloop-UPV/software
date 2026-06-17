@@ -40,10 +40,12 @@ def health() -> dict:
     }
 
 
+# Upload a file to the TFTP server
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)) -> dict:
     data = await file.read()
 
+    # Acquire a lock to ensure thread safety during the upload operation
     with _lock:
         try:
             _client.upload(file.filename, io.BytesIO(data))
