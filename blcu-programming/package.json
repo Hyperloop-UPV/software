@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "postinstall": "python -m venv .venv && .venv/bin/pip install -r requirements.txt",
-    "dev": ".venv/bin/uvicorn api.main:app --host 127.0.0.1 --port 8069 --reload",
+    "dev": ".venv/bin/python -m api.main",
     "start": ".venv/bin/python -m api.main"
   }
 }
