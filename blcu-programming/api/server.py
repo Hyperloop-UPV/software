@@ -4,17 +4,20 @@ from pathlib import Path
 from fastapi import APIRouter, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from api.config import load
 from tftp.TftpClient import TftpClient
+
+_cfg = load()
+_blcu_host: str = _cfg["blcu"]["host"]
+_blcu_port: int = _cfg["blcu"]["port"]
 
 app = FastAPI(title="TFTP API", version="0.1.0")
 router = APIRouter(prefix="/api")
 
-LOG_FILE = Path("tftp_server_activity.log")
+LOG_FILE = Path(_cfg["log_file"])
 
 
 class TransferRequest(BaseModel):
-    host: str
-    port: int = Field(default=69, ge=1, le=65535)
     remote_filename: str
     local_path: str
 
@@ -38,7 +41,7 @@ def upload_file(request: TransferRequest) -> dict:
     if not local_path.exists() or not local_path.is_file():
         raise HTTPException(status_code=400, detail="local_path must be an existing file")
 
-    client = TftpClient(request.host, request.port)
+    client = TftpClient(_blcu_host, _blcu_port)
 
     try:
         with local_path.open("rb") as file_handle:
@@ -49,8 +52,8 @@ def upload_file(request: TransferRequest) -> dict:
     return {
         "ok": True,
         "message": "Upload complete",
-        "host": request.host,
-        "port": request.port,
+        "host": _blcu_host,
+        "port": _blcu_port,
         "remote_filename": request.remote_filename,
         "local_path": str(local_path),
     }
@@ -61,7 +64,7 @@ def download_file(request: TransferRequest) -> dict:
     local_path = Path(request.local_path).expanduser().resolve()
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
-    client = TftpClient(request.host, request.port)
+    client = TftpClient(_blcu_host, _blcu_port)
 
     try:
         client.download(request.remote_filename, output=str(local_path))
@@ -71,8 +74,8 @@ def download_file(request: TransferRequest) -> dict:
     return {
         "ok": True,
         "message": "Download complete",
-        "host": request.host,
-        "port": request.port,
+        "host": _blcu_host,
+        "port": _blcu_port,
         "remote_filename": request.remote_filename,
         "local_path": str(local_path),
     }
