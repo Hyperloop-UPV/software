@@ -29,6 +29,8 @@ importers:
 
   backend: {}
 
+  blcu-programming: {}
+
   e2e:
     devDependencies:
       '@playwright/test':

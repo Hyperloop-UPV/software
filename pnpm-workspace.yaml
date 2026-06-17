@@ -4,6 +4,10 @@ packages:
   - "frontend/testing-view"
   - "frontend/competition-view"
 
+  # Backend packages
   - "backend"
+  - "blcu-programming"
+  
+  # Electron packages
   - "electron-app"
   - "e2e"

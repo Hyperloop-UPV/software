@@ -13,6 +13,7 @@ Before starting, ensure you have the following installed:
 - **PNPM** (v10.26.0+)
 - **Node.js** (v20+)
 - **Go** (for the backend)
+- **Python** (v3.8+, for the BLCU programming service)
 
 ---
 
@@ -25,6 +26,7 @@ Our `pnpm-workspace.yaml` defines the following workspaces:
 | `testing-view`                 | TS/React | Web interface for telemetry testing                   |
 | `competition-view`             | TS/React | UI for the competition                                |
 | `backend`                      | Go       | Data ingestion and pod communication server           |
+| `blcu-programming`             | Python   | FastAPI service that flashes firmware to the BLCU board via TFTP |
 | `hyperloop-control-station`    | JS       | The main Control Station electron desktop application |
 | `e2e`                          | TS       | End-to-end tests for the whole app (Playwright)       |
 | `@workspace/ui`                | TS/React | Shared UI component library (frontend-kit)            |
