@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import logo from "../../assets/logo.svg";
 import { FileCode2, Loader2, Upload } from "@workspace/ui/icons";
 import {
   Badge,
@@ -62,13 +63,16 @@ export function FlashStationView() {
   return (
     <main className="min-h-full w-full p-4">
       <header className="mb-4 flex items-center gap-4">
-        <div className="shrink-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Flash Station
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Choose a firmware file, select a connected board, and flash.
-          </p>
+        <div className="shrink-0 flex items-center gap-3">
+          <img src={logo} alt="Hyperloop UPV" className="size-10 dark:invert" />
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Flash Station
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose a firmware file, select a connected board, and flash.
+            </p>
+          </div>
         </div>
         <div className="h-[3px] flex-1 rounded-full bg-primary/25" />
       </header>
