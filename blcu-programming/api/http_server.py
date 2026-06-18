@@ -7,6 +7,7 @@ from fastapi import APIRouter, FastAPI, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 
 from api.config import load
+from api.udp_server import get_state
 from tftp.TftpClient import TftpClient
 
 _cfg = load()
@@ -31,6 +32,16 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+@router.get("/status")
+def status() -> dict:
+    state = get_state()
+    return {
+        "received": state.received,
+        "general": state.general,
+        "operational": state.operational,
+    }
+
+
 @router.get("/health")
 def health() -> dict:
     return {
@@ -41,8 +52,10 @@ def health() -> dict:
 
 
 # Upload a file to the TFTP server
-@router.post("/upload")
+@router.post("/flash")
 async def upload_file(file: UploadFile = File(...)) -> dict:
+
+    # First send the file to the TFTP server
     data = await file.read()
 
     # Acquire a lock to ensure thread safety during the upload operation
@@ -51,6 +64,8 @@ async def upload_file(file: UploadFile = File(...)) -> dict:
             _client.upload(file.filename, io.BytesIO(data))
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    # Send order of flash
 
     return {
         "ok": True,

@@ -7,13 +7,16 @@
 import uvicorn
 
 from api.config import load
+import api.udp_server as udp_server
 
 
 def main() -> None:
     cfg = load()["api"]
 
+    udp_server.start()
+
     uvicorn.run(
-        "api.server:app",
+        "api.http_server:app",
         host=cfg["host"],
         port=cfg["port"],
         log_level=cfg["log_level"],
