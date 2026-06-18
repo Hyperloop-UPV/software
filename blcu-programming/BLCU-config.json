@@ -34,7 +34,7 @@
   },
   "api": {
     "host": "127.0.0.1",
-    "port": 69,
+    "port": 8069,
     "log_level": "info"
   },
   "log_file": "tftp_server_activity.log"
