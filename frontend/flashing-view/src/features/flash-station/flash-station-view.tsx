@@ -1,254 +1,174 @@
-import { useRef } from "react";
-import logo from "../../assets/logo.svg";
+import { useEffect, useState } from "react";
 import { FileCode2, Loader2, Upload } from "@workspace/ui/icons";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Separator,
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Textarea,
-} from "@workspace/ui/components";
-import { cn } from "@workspace/ui/lib/utils";
-
-import { useFlashStation } from "./use-flash-station";
-import { BoardCard } from "./components/board-card";
-import { ResultRow } from "./components/result-row";
+import { Badge, Button, Textarea } from "@workspace/ui/components";
+import logo from "../../assets/logo.svg";
 import { SectionCard } from "./components/section-card";
-import {
-  getConnectedBoardCount,
-  getConnectedBoardIds,
-  getSelectedFileLabel,
-} from "./utils";
+import { BoardCard } from "./components/board-card";
+import type { Board } from "./types";
 
-/**
- * Main flash station page.
- *
- * Left column : file picker, flash controls, and the live log.
- * Right column: board grid and the results history table.
- */
+const BLCU_URL = "http://localhost:8000";
+const POLL_INTERVAL_MS = 300;
+const MAX_LOG_LINES = 20;
+
 export function FlashStationView() {
-  const station = useFlashStation();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+  const [log, setLog] = useState<string[]>([]);
+  const [isFlashing, setIsFlashing] = useState(false);
 
-  const selectedFileLabel = getSelectedFileLabel(station);
-  const connectedBoardIds = getConnectedBoardIds(station.boards);
-  const connectedCount = getConnectedBoardCount(station.boards);
+  // Poll /boards every 300ms. Deselects the current board if it disappears.
+  useEffect(() => {
+    async function poll() {
+      try {
+        const res = await fetch(`${BLCU_URL}/boards`);
+        const data: Board[] = await res.json();
+        setBoards(data);
+        setSelectedBoard((prev) =>
+          data.some((b) => b.name === prev) ? prev : null,
+        );
+      } catch {
+        setBoards([]);
+      }
+    }
 
-  const selectedBoards = station.boards.filter((board) =>
-    station.selectedBoardIds.includes(board.id),
-  );
+    poll();
+    const id = setInterval(poll, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, []);
 
-  const cantFlash =
-    !selectedBoards.length || station.isFlashing || !station.selectedFileName;
-
-  /**
-   * Two-stage file picker:
-   * 1. Try the Electron native dialog (blcuSelectFile).
-   * 2. Fall back to the hidden HTML <input> when running in a browser.
-   */
-  async function openFilePicker() {
-    const fileName = await station.chooseFile();
-    if (fileName) return;
-    fileInputRef.current?.click();
+  function appendLog(message: string) {
+    const timestamp = new Date().toLocaleTimeString("en-GB");
+    setLog((prev) =>
+      [...prev, `[${timestamp}] ${message}`].slice(-MAX_LOG_LINES),
+    );
   }
+
+  async function selectFile() {
+    const path = await window.electronAPI?.blcuSelectFile?.();
+    if (!path) return;
+    setFilePath(path);
+    setFileName(path.split(/[/\\]/).pop() ?? path);
+  }
+
+  async function flash() {
+    if (!filePath || !selectedBoard) return;
+    const board = boards.find((b) => b.name === selectedBoard);
+    if (!board) return;
+
+    setIsFlashing(true);
+    appendLog(`Flash started → ${board.name}`);
+
+    try {
+      const res = await fetch(`${BLCU_URL}/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: board.host,
+          port: 69,
+          remote_filename: fileName,
+          local_path: filePath,
+        }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      appendLog(`Flash successful → ${board.name}`);
+    } catch (err) {
+      appendLog(
+        `Flash failed → ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
+    } finally {
+      setIsFlashing(false);
+    }
+  }
+
+  const connectedCount = boards.length;
+  const canFlash = !!filePath && !!selectedBoard && !isFlashing;
 
   return (
     <main className="min-h-full w-full p-4">
       <header className="mb-4 flex items-center gap-4">
-        <div className="shrink-0 flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <img src={logo} alt="Hyperloop UPV" className="size-10 dark:invert" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            <h1 className="text-foreground text-2xl font-semibold tracking-tight">
               Flash Station
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Choose a firmware file, select a connected board, and flash.
+            <p className="text-muted-foreground mt-1 text-sm">
+              Choose a firmware file, select a board, and flash.
             </p>
           </div>
         </div>
-        <div className="h-[3px] flex-1 rounded-full bg-primary/25" />
+        <div className="bg-primary/25 h-[3px] flex-1 rounded-full" />
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-        {/* ── Left column ── */}
+      <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-4">
-          <SectionCard title="Code">
-            {/* Hidden fallback for browser-mode file picking. */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".bin,.hex,.elf"
-              className="hidden"
-              onClick={(e) => {
-                // Reset so onChange fires even if the same file is picked twice.
-                e.currentTarget.value = "";
-              }}
-              onChange={(e) =>
-                station.setSelectedFile(e.target.files?.[0] ?? null)
-              }
-            />
-            <Button className="w-full" onClick={openFilePicker}>
+          <SectionCard title="Firmware">
+            <Button className="w-full" onClick={selectFile}>
               <FileCode2 className="size-4" />
               Choose File
             </Button>
-            <ReadOnlyField
-              label="Selected file"
-              value={selectedFileLabel}
-              mono
-            />
+            <div className="border-border/80 bg-secondary/45 rounded-lg border px-3">
+              <div className="text-muted-foreground text-[11px] font-medium tracking-[0.14em] uppercase">
+                Selected file
+              </div>
+              <div className="text-foreground mt-1 truncate font-mono text-sm">
+                {fileName || "No file selected"}
+              </div>
+            </div>
           </SectionCard>
 
           <SectionCard title="Flash">
-            <div className="grid gap-2 text-sm">
-              <KeyValueRow label="File" value={selectedFileLabel} />
-              <KeyValueRow
-                label="Board"
-                value={selectedBoards[0]?.name ?? "None"}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                onClick={station.startFlash}
-                disabled={cantFlash}
-              >
-                {station.isFlashing ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Upload className="size-4" />
-                )}
-                Flash
-              </Button>
-              <Button variant="outline" onClick={station.reset}>
-                Reset
-              </Button>
-            </div>
-
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => station.selectBoards(connectedBoardIds)}
-            >
-              Use First Connected Board
+            <Button className="w-full" onClick={flash} disabled={!canFlash}>
+              {isFlashing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
+              {isFlashing ? "Flashing..." : "Flash"}
             </Button>
           </SectionCard>
 
           <SectionCard title="Log">
             <Textarea
               readOnly
-              value={station.log.join("\n")}
-              className="min-h-40 resize-none border-border/80 bg-secondary/45 font-mono text-xs text-foreground"
+              value={log.join("\n")}
+              className="border-border/80 bg-secondary/45 text-foreground min-h-40 resize-none font-mono text-xs"
             />
           </SectionCard>
         </div>
 
-        {/* ── Right column ── */}
-        <div className="space-y-4">
-          <Card className="rounded-2xl border-border/80 bg-card shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-lg text-foreground">
-                  Boards
-                </CardTitle>
-                <Badge
-                  variant="outline"
-                  className="rounded-full border-primary/30 bg-primary/10 text-primary"
-                >
-                  {connectedCount} connected
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {station.boards.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No boards available. Check your backend connection.
-                </p>
-              ) : (
-                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                  {station.boards.map((board) => (
-                    <BoardCard
-                      key={board.id}
-                      board={board}
-                      selected={station.selectedBoardIds.includes(board.id)}
-                      disabled={board.state === "offline"}
-                      isFlashing={station.isFlashing}
-                      activeBoardId={station.activeBoardId}
-                      onSelect={station.toggleBoard}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <SectionCard title="Results">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Board</TableHead>
-                  <TableHead>Result</TableHead>
-                  <TableHead>Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {station.results.map((result) => (
-                  <ResultRow key={result.id} result={result} />
-                ))}
-              </TableBody>
-            </Table>
-          </SectionCard>
-        </div>
+        <SectionCard
+          title="Boards"
+          action={
+            <Badge
+              variant="outline"
+              className="border-primary/30 bg-primary/10 text-primary rounded-full"
+            >
+              {connectedCount} connected
+            </Badge>
+          }
+        >
+          {boards.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No boards found. Waiting for backend…
+            </p>
+          ) : (
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {boards.map((board) => (
+                <BoardCard
+                  key={board.name}
+                  board={board}
+                  selected={selectedBoard === board.name}
+                  onSelect={() => setSelectedBoard(board.name)}
+                />
+              ))}
+            </div>
+          )}
+        </SectionCard>
       </section>
-
-      <footer className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <FileCode2 className="size-3.5" />
-          {selectedFileLabel}
-        </span>
-        <Separator orientation="vertical" className="h-4" />
-        <span>{selectedBoards.length} board(s) armed</span>
-      </footer>
     </main>
-  );
-}
-
-/* ── Presentational helpers ── */
-
-function ReadOnlyField({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-lg border border-border/80 bg-secondary/45 px-3 py-2">
-      <div className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-        {label}
-      </div>
-      <div className={cn("mt-1 text-sm text-foreground", mono && "font-mono")}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function KeyValueRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border/80 bg-secondary/45 px-3 py-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-foreground">{value}</span>
-    </div>
   );
 }
