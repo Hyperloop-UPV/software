@@ -74,7 +74,7 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0)(msw@2.14.6(@types/node@25.2.0)(typescript@6.0.3))
 
-  frontend/flashing-view:
+  frontend/competition-view:
     dependencies:
       '@tailwindcss/vite':
         specifier: ^4.1.18
@@ -82,52 +82,6 @@ importers:
       '@vitejs/plugin-react-swc':
         specifier: ^4.2.3
         version: 4.2.3(vite@7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0))
-      '@workspace/ui':
-        specifier: workspace:*
-        version: link:../frontend-kit/ui
-      lucide-react:
-        specifier: ^0.563.0
-        version: 0.563.0(react@19.2.4)
-      react:
-        specifier: ^19.2.4
-        version: 19.2.4
-      react-dom:
-        specifier: ^19.2.4
-        version: 19.2.4(react@19.2.4)
-      tailwindcss:
-        specifier: ^4.1.18
-        version: 4.3.0
-    devDependencies:
-      '@types/react':
-        specifier: 19.2.11
-        version: 19.2.11
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.11)
-      '@workspace/eslint-config':
-        specifier: workspace:^
-        version: link:../frontend-kit/esling-config
-      '@workspace/typescript-config':
-        specifier: workspace:*
-        version: link:../frontend-kit/typescript-config
-      eslint:
-        specifier: ^9.39.2
-        version: 9.39.4(jiti@2.6.1)
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      vite:
-        specifier: ^7.3.1
-        version: 7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0)
-
-  frontend/competition-view:
-    dependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.1.18
-        version: 4.1.18(vite@7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.30.2))
-      '@vitejs/plugin-react-swc':
-        specifier: ^4.2.3
-        version: 4.2.3(vite@7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.30.2))
       '@workspace/core':
         specifier: workspace:*
         version: link:../frontend-kit/core
@@ -179,7 +133,53 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^7.3.1
-        version: 7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.30.2)
+        version: 7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0)
+
+  frontend/flashing-view:
+    dependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.3.0(vite@7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0))
+      '@vitejs/plugin-react-swc':
+        specifier: ^4.2.3
+        version: 4.2.3(vite@7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0))
+      '@workspace/ui':
+        specifier: workspace:*
+        version: link:../frontend-kit/ui
+      lucide-react:
+        specifier: ^0.563.0
+        version: 0.563.0(react@19.2.4)
+      react:
+        specifier: ^19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.2.4
+        version: 19.2.4(react@19.2.4)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.3.0
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.11
+        version: 19.2.11
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.11)
+      '@workspace/eslint-config':
+        specifier: workspace:^
+        version: link:../frontend-kit/esling-config
+      '@workspace/typescript-config':
+        specifier: workspace:*
+        version: link:../frontend-kit/typescript-config
+      eslint:
+        specifier: ^9.39.2
+        version: 9.39.4(jiti@2.6.1)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0)
 
   frontend/frontend-kit/core:
     dependencies:
