@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileCode2, Loader2, Upload } from "@workspace/ui/icons";
 import { Badge, Button, Textarea } from "@workspace/ui/components";
 import logo from "../../assets/logo.svg";
@@ -18,6 +18,7 @@ export function FlashStationView() {
   const [file, setFile] = useState<File | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [isFlashing, setIsFlashing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Poll /boards every 300ms. Deselects the current board if it disappears.
   useEffect(() => {
@@ -41,23 +42,33 @@ export function FlashStationView() {
   }, []);
 
   function appendLog(message: string) {
-    const timestamp = new Date().toLocaleTimeString("en-GB");
+    const timestamp = new Date().toLocaleTimeString("es-ES");
     setLog((prev) =>
       [...prev, `[${timestamp}] ${message}`].slice(-MAX_LOG_LINES),
     );
   }
 
   async function selectFile() {
-    const path = await window.electronAPI?.blcuSelectFile?.();
-    if (!path) return;
+    if (window.electronAPI) {
+      const path = await window.electronAPI.blcuSelectFile?.();
+      if (!path) return;
+      const name = path.split(/[/\\]/).pop() ?? path;
+      setFilePath(path);
+      setFileName(name);
+      const buffer = await window.electronAPI.blcuReadFile?.(path);
+      if (!buffer) return;
+      setFile(new File([buffer], name, { type: "application/octet-stream" }));
+    } else {
+      fileInputRef.current?.click();
+    }
+  }
 
-    const name = path.split(/[/\\]/).pop() ?? path;
-    setFilePath(path);
-    setFileName(name);
-
-    const buffer = await window.electronAPI?.blcuReadFile?.(path);
-    if (!buffer) return;
-    setFile(new File([buffer], name, { type: "application/octet-stream" }));
+  function onFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0];
+    if (!picked) return;
+    setFileName(picked.name);
+    setFilePath(picked.name);
+    setFile(picked);
   }
 
   async function flash() {
@@ -80,30 +91,6 @@ export function FlashStationView() {
 
       if (!res.ok) throw new Error(await res.text());
       appendLog(`Flash successful → ${board.name}`);
-    } catch (err) {
-      appendLog(
-        `Flash failed → ${err instanceof Error ? err.message : "Unknown error"}`,
-      );
-    } finally {
-      setIsFlashing(false);
-    }
-  }
-
-  async function upload() {
-    if (!file || !filePath) return;
-
-    setIsFlashing(true);
-
-    const form = new FormData();
-    form.append("file", file);
-
-    try {
-      const res = await fetch(`${BLCU_URL}/upload`, {
-        method: "POST",
-        body: form,
-      });
-
-      if (!res.ok) throw new Error(await res.text());
     } catch (err) {
       appendLog(
         `Flash failed → ${err instanceof Error ? err.message : "Unknown error"}`,
@@ -136,6 +123,13 @@ export function FlashStationView() {
       <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-4">
           <SectionCard title="Firmware">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".bin,.hex,.elf"
+              className="hidden"
+              onChange={onFileInputChange}
+            />
             <Button className="w-full" onClick={selectFile}>
               <FileCode2 className="size-4" />
               Choose File
@@ -151,7 +145,7 @@ export function FlashStationView() {
           </SectionCard>
 
           <SectionCard title="Flash">
-            <Button className="w-full" onClick={upload} disabled={!canFlash}>
+            <Button className="w-full" onClick={flash} disabled={!canFlash}>
               {isFlashing ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
