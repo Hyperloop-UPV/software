@@ -7,7 +7,7 @@
  * - Folder selection dialogs
  */
 
-import { dialog, ipcMain, shell } from "electron";
+import { app, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import { isAbsolute, join } from "path";
 import {
@@ -40,6 +40,8 @@ function setupIpcHandlers() {
    */
   ipcMain.handle("get-current-view", () => getCurrentView());
 
+  ipcMain.handle("get-app-version", () => app.getVersion());
+
   /**
    * @event switch-view
    * @description Switches the main window to the specified view.
@@ -51,6 +53,8 @@ function setupIpcHandlers() {
     loadView(view);
     return view;
   });
+
+  
 
   /**
    * @event save-config
