@@ -33,7 +33,8 @@
     "tailwindcss": "^4.1.18",
     "uplot": "^1.6.32",
     "vitest": "^4.0.18",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.11",
+    "lucide-react": "^0.563.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.11",
