@@ -8,6 +8,7 @@
  */
 
 import { dialog, ipcMain, shell } from "electron";
+import { readFile } from "fs/promises";
 import fs from "fs";
 import { isAbsolute, join } from "path";
 import {
@@ -179,6 +180,10 @@ function setupIpcHandlers() {
       logger.electron.error("Error opening firmware file dialog:", error);
       return null;
     }
+  });
+
+  ipcMain.handle("blcu-read-file", async (_event, filePath) => {
+    return await readFile(filePath);
   });
 }
 

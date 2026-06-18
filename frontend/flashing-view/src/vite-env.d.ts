@@ -2,6 +2,7 @@
 
 interface ElectronAPI {
   blcuSelectFile?: () => Promise<string | null>;
+  blcuReadFile?: (path: string) => Promise<Uint8Array<ArrayBuffer>>;
 }
 
 declare global {

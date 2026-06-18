@@ -6,7 +6,7 @@ import { SectionCard } from "./components/section-card";
 import { BoardCard } from "./components/board-card";
 import type { Board } from "./types";
 
-const BLCU_URL = "http://localhost:8000";
+const BLCU_URL = "http://localhost:8069/api";
 const POLL_INTERVAL_MS = 300;
 const MAX_LOG_LINES = 20;
 
@@ -15,6 +15,7 @@ export function FlashStationView() {
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
+  const [file, setFile] = useState<File | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [isFlashing, setIsFlashing] = useState(false);
 
@@ -23,6 +24,7 @@ export function FlashStationView() {
     async function poll() {
       try {
         const res = await fetch(`${BLCU_URL}/boards`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: Board[] = await res.json();
         setBoards(data);
         setSelectedBoard((prev) =>
@@ -48,28 +50,32 @@ export function FlashStationView() {
   async function selectFile() {
     const path = await window.electronAPI?.blcuSelectFile?.();
     if (!path) return;
+
+    const name = path.split(/[/\\]/).pop() ?? path;
     setFilePath(path);
-    setFileName(path.split(/[/\\]/).pop() ?? path);
+    setFileName(name);
+
+    const buffer = await window.electronAPI?.blcuReadFile?.(path);
+    if (!buffer) return;
+    setFile(new File([buffer], name, { type: "application/octet-stream" }));
   }
 
   async function flash() {
-    if (!filePath || !selectedBoard) return;
+    if (!filePath || !selectedBoard || !file) return;
     const board = boards.find((b) => b.name === selectedBoard);
     if (!board) return;
 
     setIsFlashing(true);
     appendLog(`Flash started → ${board.name}`);
 
+    const form = new FormData();
+    form.append("file", file);
+    form.append("board", board.name);
+
     try {
-      const res = await fetch(`${BLCU_URL}/upload`, {
+      const res = await fetch(`${BLCU_URL}/flash`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          host: board.host,
-          port: 69,
-          remote_filename: fileName,
-          local_path: filePath,
-        }),
+        body: form,
       });
 
       if (!res.ok) throw new Error(await res.text());
@@ -83,8 +89,32 @@ export function FlashStationView() {
     }
   }
 
+  async function upload() {
+    if (!file || !filePath) return;
+
+    setIsFlashing(true);
+
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await fetch(`${BLCU_URL}/upload`, {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+    } catch (err) {
+      appendLog(
+        `Flash failed → ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
+    } finally {
+      setIsFlashing(false);
+    }
+  }
+
   const connectedCount = boards.length;
-  const canFlash = !!filePath && !!selectedBoard && !isFlashing;
+  const canFlash = !!file && !!selectedBoard && !isFlashing;
 
   return (
     <main className="min-h-full w-full p-4">
@@ -121,7 +151,7 @@ export function FlashStationView() {
           </SectionCard>
 
           <SectionCard title="Flash">
-            <Button className="w-full" onClick={flash} disabled={!canFlash}>
+            <Button className="w-full" onClick={upload} disabled={!canFlash}>
               {isFlashing ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (

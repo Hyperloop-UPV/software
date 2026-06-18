@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openFolder: (path) => ipcRenderer.invoke("open-folder", path),
   // BLCU: open native file picker and return the selected path
   blcuSelectFile: () => ipcRenderer.invoke("blcu-select-file"),
+  // BLCU: read a file from disk and return its contents as a Buffer
+  blcuReadFile: (path) => ipcRenderer.invoke("blcu-read-file", path),
   // Receive log message from backend
   onLog: (callback) => {
     const listener = (_event, value) => callback(value);
