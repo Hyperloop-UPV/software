@@ -109,6 +109,15 @@ const CONFIG = {
     ],
     optional: true,
   },
+  "flashing-view": {
+    type: "frontend",
+    path: join(ROOT, "frontend/flashing-view"),
+    dest: join(__dirname, "renderer/flashing-view"),
+    commands: [
+      "pnpm --filter flashing-view install --frozen-lockfile",
+      "pnpm run build",
+    ],
+  },
 };
 
 // --- Helpers ---
