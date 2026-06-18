@@ -15,14 +15,15 @@ import (
 // connectivity). If the remote branch is accessible, the local repository is completely
 // removed and replaced with a clean, shallow clone of that branch.
 // If the remote is not accessible, the existing local repository is left untouched.
+// returns commit an error if any operation fails, otherwise returns nil
 
-func updateRepo(AdjBranch string) error {
+func updateRepo(AdjBranch string) (string, error) {
 	var err error
-
+	var commitHash string
 	if AdjBranch == "" {
 		// Makes use of user's custom ADJ
 		trace.Info().Msg("No ADJ branch specified. Using local ADJ.")
-		return nil
+		return "", nil
 	} else {
 		trace.Info().Msgf("Updating local ADJ repository to match remote branch '%s'", AdjBranch)
 		cloneOptions := &git.CloneOptions{
@@ -37,7 +38,7 @@ func updateRepo(AdjBranch string) error {
 
 		// Remove previous failed cloning attempts
 		if err = os.RemoveAll(tempPath); err != nil {
-			return err
+			return "", err
 		}
 
 		// Try to import the ADJ to the temp directory
@@ -45,30 +46,44 @@ func updateRepo(AdjBranch string) error {
 		if err != nil {
 			// If the clone fails, work with the local ADJ
 			trace.Info().Msgf("Warning: Could not clone ADJ branch '%s' from remote. Working with local ADJ. Error: %v", AdjBranch, err)
-			return nil
+
+			return "", nil
 		}
 
 		// If the clone is succesful, delete the temp files
 		if err = os.RemoveAll(tempPath); err != nil {
-			return err
+			return "", err
 		}
 
 		// After checking that the repo is accessible, clone or update (overwrite) the local ADJ repo
 		if _, err = os.Stat(RepoPath); os.IsNotExist(err) {
-			_, err = git.PlainClone(RepoPath, false, cloneOptions)
+			repo, err := git.PlainClone(RepoPath, false, cloneOptions)
 			if err != nil {
-				return err
+				return "", err
 			}
+			// log the commit
+			ref, err := repo.Head()
+			if err != nil {
+				return "", err
+			}
+			commitHash = ref.Hash().String()
+
 		} else {
 			if err = os.RemoveAll(RepoPath); err != nil {
-				return err
+				return "", err
 			}
-			_, err = git.PlainClone(RepoPath, false, cloneOptions)
+			repo, err := git.PlainClone(RepoPath, false, cloneOptions)
 			if err != nil {
-				return err
+				return "", err
 			}
+			// log the commit
+			ref, err := repo.Head()
+			if err != nil {
+				return "", err
+			}
+			commitHash = ref.Hash().String()
 		}
 	}
 
-	return nil
+	return commitHash, nil
 }

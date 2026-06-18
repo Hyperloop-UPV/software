@@ -1,4 +1,7 @@
 /.venv
+/.venv-build
+build/
+dist/
 /.vscode
 *.pyc
 *__pycache__/

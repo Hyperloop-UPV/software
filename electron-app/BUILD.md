@@ -1,18 +1,19 @@
 # Hyperloop Control Station Build System
 
-The project uses a unified, modular build script (`electron-app/build.mjs`) to handle building the backend (Go), and frontends (React/Vite) for the Electron application.
+The project uses a unified, modular build script (`electron-app/build.mjs`) to handle building the backend (Go), the BLCU programming API (Python/PyInstaller), and frontends (React/Vite) for the Electron application.
 
 ## Prerequisites
 
 - **Node.js** & **pnpm**
 - **Go** (1.21+)
+- **Python 3** (for building the BLCU programming API executable)
 
 ## Basic Usage
 
 Run the build script from the `electron-app` directory (or via npm scripts).
 
 ```sh
-# Build EVERYTHING (Backend, Frontends)
+# Build EVERYTHING (Backend, BLCU API, Frontends)
 pnpm build
 
 # OR
@@ -31,6 +32,9 @@ You can build individual components by passing their flag.
 # Build only the Backend
 node build.mjs --backend
 
+# Build only the BLCU programming API executable
+node build.mjs --blcu-programming
+
 # Build only the Testing View
 node build.mjs --testing-view
 ```
@@ -43,9 +47,14 @@ By default, the script builds for all defined platforms (Windows, Linux, macOS).
 # Build backend for Windows only
 node build.mjs --backend --win
 
+# Build BLCU API for the current Windows host
+node build.mjs --blcu-programming --win
+
 # Build everything for Linux
 node build.mjs --linux
 ```
+
+The BLCU programming API is packaged with PyInstaller and cannot be cross-compiled. Build it on the same OS as the Electron release target.
 
 ## Advanced: Overwriting Commands
 

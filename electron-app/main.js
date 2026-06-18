@@ -1,122 +1,91 @@
 /**
  * @module main
  * @description Main entry point for the Electron application.
- * Handles application lifecycle, initialization, and cleanup of processes and windows.
+ * 
+ * Orchestrates application lifecycle and initialization through modular components:
+ * - initialization: Config, IPC, and process cleanup
+ * - modeSelector: Mode selection UI and main window creation
+ * - updater: Auto-update functionality
+ * - lifecycle: App lifecycle event handling
  */
 
-import { app, BrowserWindow, dialog, screen } from "electron";
-import pkg from "electron-updater";
-import { getConfigManager } from "./src/config/configInstance.js";
-import { setupIpcHandlers } from "./src/ipc/handlers.js";
-import { startBackend, stopBackend } from "./src/processes/backend.js";
-import { stopPacketSender } from "./src/processes/packetSender.js";
-import { startBlcuProgramming, stopBlcuProgramming } from "./src/processes/blcuProgramming.js";
+import { app, BrowserWindow, screen } from "electron";
+import {
+  handleSelectorFallback,
+  initializeApp,
+  setTransitionMode,
+  setupLifecycleHandlers,
+  setupUpdater,
+  showModeSelector,
+} from "./src/app/index.js";
+import { stopBackend } from "./src/processes/backend.js";
+import { stopBlcuProgramming } from "./src/processes/blcuProgramming.js";
 import { logger } from "./src/utils/logger.js";
-import { createLogWindow } from "./src/windows/logWindow.js";
-import { createWindow } from "./src/windows/mainWindow.js";
 
-const { autoUpdater } = pkg;
-
-// Setup IPC handlers for renderer process communication
-setupIpcHandlers();
-
-// App lifecycle: wait for Electron to be ready
+/**
+ * Initializes the application when Electron is ready.
+ * Orchestrates startup sequence:
+ * 1. Initialize config and IPC
+ * 2. Show mode selector
+ * 3. Setup auto-updater
+ * 4. Setup lifecycle handlers
+ */
 app.whenReady().then(async () => {
-  // Get the screen width and height
-  // Only can be used inside app.whenReady()
-  const { width: screenWidth, height: screenHeight } =
-    screen.getPrimaryDisplay().workAreaSize;
-
-  // Initialize ConfigManager and ensure config exists BEFORE starting backend
-  logger.electron.header("Initializing configuration...");
-  // Get ConfigManager instance (creates config from template if needed)
-  await getConfigManager();
-  logger.electron.header("Configuration ready");
-
-  const logWindow = createLogWindow(screenWidth, screenHeight);
-
-  // Start backend process
   try {
-    await startBackend(logWindow);
-    logger.electron.header("Backend process spawned");
-  } catch (error) {
-    // Start backend already shows these errors
-  }
+    // Initialize configuration, IPC, and cleanup
+    await initializeApp();
 
-  try {
-    await startBlcuProgramming(logWindow);
-    logger.electron.header("BLCU programming process spawned");
-  } catch (error) {
-    logger.electron.error("Failed to start BLCU programming:", error);
-  }
+    // Get screen dimensions for window creation
+    const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
 
-  // Create main application window
-  const mainWindow = createWindow(screenWidth, screenHeight);
-  mainWindow.maximize();
+    // Register return-to-selector handler before starting the app.
+    app.on("return-to-selector", async () => {
+      try {
+        // Set transition mode to prevent window-all-closed from quitting
+        setTransitionMode(true);
+        
+        logger.electron.info("Returning to selector mode...");
+        await Promise.all([stopBackend(), stopBlcuProgramming()]);
+        
+        // Give ports time to be released (increased to 3s for TCP TIME_WAIT state)
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
-  logger.electron.header("Main application window created");
+        const existingWindows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
+        existingWindows.forEach((window) => window.hide());
 
-  // Updater setup
-  if (!app.isPackaged) {
-    autoUpdater.forceDevUpdateConfig = true;
-  }
+        const { width: selectorWidth, height: selectorHeight } = screen.getPrimaryDisplay().workAreaSize;
+        await showModeSelector(selectorWidth, selectorHeight);
 
-  autoUpdater.logger = {
-    info: (message) => logger.electron.info(message),
-    error: (message) => logger.electron.error(message),
-    warn: (message) => logger.electron.warning(message),
-    debug: (message) => logger.electron.debug(message),
-  };
+        existingWindows.forEach((window) => {
+          if (!window.isDestroyed()) {
+            window.removeAllListeners("close");
+            window.close();
+          }
+        });
+        
+        // Exit transition mode once selector is shown
+        setTransitionMode(false);
+      } catch (error) {
+        logger.electron.error("Failed to return to selector:", error);
+        setTransitionMode(false);
+      }
+    });
 
-  // Check for updates
-  autoUpdater.checkForUpdates();
-
-  // Handle update downloaded event
-  autoUpdater.on("update-downloaded", (info) => {
-    dialog
-      .showMessageBox({
-        type: "info",
-        title: "Update Ready",
-        message: `Version ${info.version} has been downloaded. Restart now to install?`,
-        buttons: ["Restart", "Later"],
-      })
-      .then((result) => {
-        if (result.response === 0) {
-          autoUpdater.quitAndInstall();
-        }
-      });
-  });
-
-  // Handle macOS app activation (reopen window when dock icon clicked)
-  app.on("activate", () => {
-    // Only create window if no windows exist
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+    // Show mode selector and get user choice
+    try {
+      await showModeSelector(screenWidth, screenHeight);
+    } catch (error) {
+      logger.electron.error("Mode selector failed:", error);
+      await handleSelectorFallback(screenWidth, screenHeight);
     }
-  });
-});
 
-// Handle window close behavior
-app.on("window-all-closed", () => {
-  // On macOS, keep app running even when all windows are closed
-  if (process.platform !== "darwin") {
-    // Quit app on other platforms when all windows are closed
+    // Setup auto-updater
+    setupUpdater();
+
+    // Setup application lifecycle handlers (window-all-closed, before-quit, activate, exceptions)
+    setupLifecycleHandlers();
+  } catch (error) {
+    logger.electron.error("Failed to initialize application:", error);
     app.quit();
   }
-});
-
-// Cleanup before app quits
-app.on("before-quit", (e) => {
-  e.preventDefault();
-  Promise.all([stopBackend(), stopPacketSender(), stopBlcuProgramming()])
-    .catch((error) => logger.electron.error("Error during shutdown:", error))
-    .finally(() => app.exit());
-});
-
-// Handle uncaught exceptions globally
-process.on("uncaughtException", (error) => {
-  // Log error to console
-  logger.electron.error("Uncaught exception:", error);
-  // Show error dialog to user
-  dialog.showErrorBox("Error", error.message);
 });

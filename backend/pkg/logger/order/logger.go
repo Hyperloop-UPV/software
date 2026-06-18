@@ -6,12 +6,11 @@ import (
 	"path"
 	"time"
 
-	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
-	trace "github.com/rs/zerolog/log"
-
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
+	loggerbase "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/base"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger/file"
+	trace "github.com/rs/zerolog/log"
 )
 
 const (
@@ -86,12 +85,18 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 		}
 	}
 
-	err := sublogger.writer.Write([]string{
+	// Convert the values of the packet to JSON
+	jsonValues, err := orderRecord.Packet.GetValuesAsJSON()
+	if err != nil {
+		return err
+	}
+
+	err = sublogger.writer.Write([]string{
 		fmt.Sprint(logger.FormatTimestamp(orderRecord.Packet.Timestamp()) - sublogger.StartTime),
 		orderRecord.From,
 		orderRecord.To,
 		fmt.Sprint(orderRecord.Packet.Id()),
-		fmt.Sprint(orderRecord.Packet.GetValues()),
+		string(jsonValues),
 		orderRecord.Timestamp.Format(time.RFC3339),
 	})
 	sublogger.writer.Flush()

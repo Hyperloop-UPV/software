@@ -35,7 +35,7 @@ func getRepoPath() string {
 }
 
 func NewADJ(AdjSettings config.Adj) (ADJ, error) {
-	infoRaw, boardsRaw, err := downloadADJ(AdjSettings)
+	commitHash, infoRaw, boardsRaw, err := downloadADJ(AdjSettings)
 	if err != nil {
 		return ADJ{}, err
 	}
@@ -84,31 +84,38 @@ func NewADJ(AdjSettings config.Adj) (ADJ, error) {
 	adj := ADJ{
 		Info:   info,
 		Boards: boards,
+		Commit: commitHash,
 	}
 
 	return adj, nil
 }
 
-func downloadADJ(AdjSettings config.Adj) (json.RawMessage, json.RawMessage, error) {
-	updateRepo(AdjSettings.Branch)
+func downloadADJ(AdjSettings config.Adj) (string, json.RawMessage, json.RawMessage, error) {
+	commitHash, err := updateRepo(AdjSettings.Branch)
+	if err != nil {
+		return "local", nil, nil, err
+	}
+
+	// If not downloading use local ADJ
+	if commitHash == "" {
+		commitHash = "local"
+	}
 
 	// After downloading adj apply adj validator
 
 	if AdjSettings.Validate {
-
 		Validate()
-
 	}
 
 	info, err := os.ReadFile(RepoPath + "general_info.json")
 	if err != nil {
-		return nil, nil, err
+		return commitHash, nil, nil, err
 	}
 
 	boardsList, err := os.ReadFile(RepoPath + "boards.json")
 	if err != nil {
-		return nil, nil, err
+		return commitHash, nil, nil, err
 	}
 
-	return info, boardsList, nil
+	return commitHash, info, boardsList, nil
 }

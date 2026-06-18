@@ -42,6 +42,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   blcuSelectFile: () => ipcRenderer.invoke("blcu-select-file"),
   // BLCU: read a file from disk and return its contents as a Buffer
   blcuReadFile: (path) => ipcRenderer.invoke("blcu-read-file", path),
+  // Get the application version from the main process
+  getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  // Set initial mode (used by mode selector renderer)
+  setInitialMode: (mode) => {
+    ipcRenderer.send("mode-selected", mode);
+    return Promise.resolve();
+  },
   // Receive log message from backend
   onLog: (callback) => {
     const listener = (_event, value) => callback(value);

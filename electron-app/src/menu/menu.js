@@ -1,22 +1,15 @@
 /**
  * @module menu
  * @description Application menu creation and management for the Electron application.
- * Defines menu structure with File, View, Tools, and Help sections with keyboard shortcuts and actions.
+ * Defines menu structure with File, Tools, and Help sections with keyboard shortcuts and actions.
  */
 
 import { Menu, app, dialog } from "electron";
-import fs from "fs";
-import {
-  getPacketSenderProcess,
-  startPacketSender,
-  stopPacketSender,
-} from "../processes/packetSender.js";
-import { getBinaryPath } from "../utils/paths.js";
-import { loadView } from "../windows/mainWindow.js";
 
 /**
- * Creates and sets the application menu with File, View, Tools, and Help sections.
- * Includes menu items for reloading, exiting, switching views, toggling DevTools, and managing packet sender.
+ * Creates and sets the application menu with File, Tools, and Help sections.
+ * Includes menu items for reloading, exiting, toggling DevTools, and app information.
+ * View switching is no longer available since the mode is selected at startup.
  * @param {import("electron").BrowserWindow} mainWindow - The main browser window instance to attach menu actions to.
  * @returns {void}
  * @example
@@ -36,6 +29,11 @@ function createMenu(mainWindow) {
             }
           },
         },
+        {
+          label: "Return to Selector",
+          accelerator: "CmdOrCtrl+Shift+S",
+          click: () => app.emit("return-to-selector"),
+        },
         { type: "separator" },
         {
           label: "Exit",
@@ -45,63 +43,14 @@ function createMenu(mainWindow) {
       ],
     },
     {
-      label: "View",
+      label: "Tools",
       submenu: [
-        {
-          label: "Competition View",
-          accelerator: "CmdOrCtrl+1",
-          click: () => {
-            loadView("competition-view");
-          },
-        },
-        {
-          label: "Testing View",
-          accelerator: "CmdOrCtrl+2",
-          click: () => {
-            loadView("testing-view");
-          },
-        },
-        { type: "separator" },
         {
           label: "Toggle DevTools",
           accelerator: "F12",
           click: (_, browserWindow) => {
             if (browserWindow) {
               browserWindow.webContents.toggleDevTools();
-            }
-          },
-        },
-      ],
-    },
-    {
-      label: "Tools",
-      submenu: [
-        {
-          label: "Start Packet Sender",
-          click: () => {
-            const packetSenderBin = getBinaryPath("packet-sender");
-            if (!fs.existsSync(packetSenderBin)) {
-              dialog.showMessageBox(mainWindow, {
-                type: "warning",
-                title: "Packet Sender Not Available",
-                message: "Packet sender binary not found",
-                detail: "This optional tool was not included in the build.",
-              });
-              return;
-            }
-            const packetSenderProcess = getPacketSenderProcess();
-            if (!packetSenderProcess || packetSenderProcess.killed) {
-              startPacketSender();
-            }
-          },
-        },
-        {
-          label: "Stop Packet Sender",
-          click: () => {
-            stopPacketSender();
-            const packetSenderProcess = getPacketSenderProcess();
-            if (packetSenderProcess && !packetSenderProcess.killed) {
-              stopPacketSender();
             }
           },
         },
