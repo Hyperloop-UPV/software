@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { FileCode2, Loader2, SunMoon, Upload } from "@workspace/ui/icons";
 import { Badge, Button, Textarea, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components";
+import { cn } from "@workspace/ui/lib/utils";
 import logo from "../../assets/logo.svg";
 import { SectionCard } from "./components/section-card";
 import { BoardCard } from "./components/board-card";
-import type { Board } from "./types";
+import type { Board, BoardsResponse, GeneralState } from "./types";
 
 const BLCU_URL = "http://localhost:8069/api";
 const POLL_INTERVAL_MS = 300;
 const MAX_LOG_LINES = 20;
+
+const STATE_STYLES: Record<GeneralState, string> = {
+  Connecting: "border-yellow-500/40 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400",
+  Operational: "border-green-500/40 bg-green-500/15 text-green-600 dark:text-green-400",
+  Fault: "border-red-500/40 bg-red-500/15 text-red-600 dark:text-red-400",
+};
 
 interface FlashStationViewProps {
   isDark: boolean;
@@ -17,6 +24,7 @@ interface FlashStationViewProps {
 
 export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProps) {
   const [boards, setBoards] = useState<Board[]>([]);
+  const [generalState, setGeneralState] = useState<GeneralState>("Connecting");
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
@@ -25,19 +33,26 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
   const [isFlashing, setIsFlashing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Poll /boards every 300ms. Deselects the current board if it disappears.
   useEffect(() => {
     async function poll() {
       try {
         const res = await fetch(`${BLCU_URL}/boards`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: Board[] = await res.json();
-        setBoards(data);
+        const data: BoardsResponse = await res.json();
+
+        const parsed: Board[] = Object.entries(data.boards).map(([name, accessible]) => ({
+          name,
+          accessible,
+        }));
+
+        setBoards(parsed);
+        setGeneralState(data.general_state_machine);
         setSelectedBoard((prev) =>
-          data.some((b) => b.name === prev) ? prev : null,
+          parsed.some((b) => b.name === prev) ? prev : null,
         );
       } catch {
         setBoards([]);
+        setGeneralState("Connecting");
       }
     }
 
@@ -105,7 +120,6 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
     }
   }
 
-  const connectedCount = boards.length;
   const canFlash = !!file && !!selectedBoard && !isFlashing;
 
   return (
@@ -122,7 +136,16 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
             </p>
           </div>
         </div>
+
+        <Badge
+          variant="outline"
+          className={cn("rounded-full shrink-0", STATE_STYLES[generalState])}
+        >
+          {generalState}
+        </Badge>
+
         <div className="bg-primary/25 h-[3px] flex-1 rounded-full" />
+
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -186,7 +209,7 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
               variant="outline"
               className="border-primary/30 bg-primary/10 text-primary rounded-full"
             >
-              {connectedCount} connected
+              {boards.length} boards
             </Badge>
           }
         >

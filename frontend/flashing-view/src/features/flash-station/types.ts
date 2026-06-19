@@ -1,10 +1,12 @@
-/**
- * Shape returned by GET /boards on the BLCU Python server.
- * The `host` field is used as the TFTP target for uploads.
- */
 export type Board = {
   name: string;
-  host: string;
-  operational_state: string;
-  flashing_state: string;
+  accessible: boolean;
+};
+
+export type GeneralState = "Connecting" | "Operational" | "Fault";
+
+export type BoardsResponse = {
+  boards: Record<string, boolean>;
+  general_state_machine: GeneralState;
+  operational_state_machine: string;
 };
