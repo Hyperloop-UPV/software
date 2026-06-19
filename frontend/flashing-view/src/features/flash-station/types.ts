@@ -4,6 +4,7 @@ export type Board = {
 };
 
 export type GeneralState = "Connecting" | "Operational" | "Fault";
+export type OperationalState = "Idle" | "Flashing";
 
 export type BoardsResponse = {
   boards: Record<string, boolean>;

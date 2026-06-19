@@ -5,7 +5,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import logo from "../../assets/logo.svg";
 import { SectionCard } from "./components/section-card";
 import { BoardCard } from "./components/board-card";
-import type { Board, BoardsResponse, GeneralState } from "./types";
+import type { Board, BoardsResponse, GeneralState, OperationalState } from "./types";
 
 const BLCU_URL = "http://localhost:8069/api";
 const POLL_INTERVAL_MS = 300;
@@ -17,6 +17,11 @@ const STATE_STYLES: Record<GeneralState, string> = {
   Fault: "border-red-500/40 bg-red-500/15 text-red-600 dark:text-red-400",
 };
 
+const OPERATIONAL_STYLES: Record<OperationalState, string> = {
+  Idle: "border-muted-foreground/30 bg-muted/50 text-muted-foreground",
+  Flashing: "border-blue-500/40 bg-blue-500/15 text-blue-600 dark:text-blue-400",
+};
+
 interface FlashStationViewProps {
   isDark: boolean;
   onToggleTheme: () => void;
@@ -25,6 +30,7 @@ interface FlashStationViewProps {
 export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProps) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [generalState, setGeneralState] = useState<GeneralState>("Connecting");
+  const [operationalState, setOperationalState] = useState<OperationalState>("Idle");
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
@@ -47,12 +53,14 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
 
         setBoards(parsed);
         setGeneralState(data.general_state_machine);
+        setOperationalState(data.operational_state_machine);
         setSelectedBoard((prev) =>
           parsed.some((b) => b.name === prev) ? prev : null,
         );
       } catch {
         setBoards([]);
         setGeneralState("Connecting");
+        setOperationalState("Idle");
       }
     }
 
@@ -120,7 +128,7 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
     }
   }
 
-  const canFlash = !!file && !!selectedBoard && !isFlashing;
+  const canFlash = !!file && !!selectedBoard && !isFlashing && operationalState !== "Flashing";
 
   return (
     <main className="min-h-full w-full p-4">
@@ -146,6 +154,13 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
 
         <div className="bg-primary/25 h-[3px] flex-1 rounded-full" />
 
+        <Badge
+          variant="outline"
+          className={cn("rounded-full shrink-0", OPERATIONAL_STYLES[operationalState])}
+        >
+          {operationalState}
+        </Badge>
+
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -168,6 +183,7 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
               className="hidden"
               onChange={onFileInputChange}
             />
+            <p className="text-muted-foreground text-xs">Accepted formats: .bin, .hex, .elf</p>
             <Button className="w-full" onClick={selectFile}>
               <FileCode2 className="size-4" />
               Choose File
