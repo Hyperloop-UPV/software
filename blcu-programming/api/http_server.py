@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, FastAPI, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 
+from api.board_pinger import get_board_status
 from api.config import load
 from api.udp_server import get_state
 from tftp.TftpClient import TftpClient
@@ -36,10 +37,15 @@ def _utc_now() -> str:
 def status() -> dict:
     state = get_state()
     return {
-        "received": state.received,
-        "general": state.general,
-        "operational": state.operational,
+        "boards": get_board_status(),
+        "general_state_machine": state.general,
+        "operational_state_machine": state.operational,
     }
+
+
+@router.get("/boards")
+def boards() -> list:
+    return list(get_board_status().keys())
 
 
 @router.get("/health")
