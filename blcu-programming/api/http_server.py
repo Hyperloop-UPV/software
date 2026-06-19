@@ -1,5 +1,8 @@
+import asyncio
 import io
+import logging
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +15,8 @@ from api.config import load
 from api.udp_server import get_state
 from tftp.TftpClient import TftpClient
 
+# Load config and initialise a single shared TFTP client for the process lifetime.
+# A threading lock guards it because TFTP is stateful and not thread-safe.
 _cfg = load()
 _blcu_host: str = _cfg["blcu"]["host"]
 _blcu_port: int = _cfg["blcu"]["port"]
@@ -30,6 +35,8 @@ router = APIRouter(prefix="/api")
 
 LOG_FILE = Path(_cfg["log_file"])
 
+logger = logging.getLogger(__name__)
+
 
 class DownloadRequest(BaseModel):
     remote_filename: str
@@ -42,6 +49,7 @@ def _utc_now() -> str:
 
 @router.get("/status")
 def status() -> dict:
+    """Return board connectivity and state-machine snapshot."""
     state = get_state()
     return {
         "boards": get_board_status(),
@@ -52,11 +60,13 @@ def status() -> dict:
 
 @router.get("/boards")
 def boards() -> list:
+    """Return the list of known board names."""
     return list(get_board_status().keys())
 
 
 @router.get("/health")
 def health() -> dict:
+    """Liveness probe used by the control station to confirm the API is up."""
     return {
         "status": "ok",
         "service": "tftp-api",
@@ -64,31 +74,55 @@ def health() -> dict:
     }
 
 
-# Upload a file to the TFTP server
 @router.post("/flash")
 async def upload_file(file: UploadFile = File(...)) -> dict:
+    """Upload a firmware file to the BLCU via TFTP, then trigger a flash.
 
-    # First send the file to the TFTP server
+    The entire upload is serialised with a lock because the underlying TFTP
+    client is not safe for concurrent use.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Missing filename")
+
     data = await file.read()
+    size_bytes = len(data)
 
-    # Acquire a lock to ensure thread safety during the upload operation
-    with _lock:
-        try:
+    logger.info("Flash upload started: file=%s size=%d bytes", file.filename, size_bytes)
+
+    def _do_upload() -> None:
+        with _lock:
             _client.upload(file.filename, io.BytesIO(data))
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    # Send order of flash
+    t0 = time.monotonic()
+    loop = asyncio.get_running_loop()
+    try:
+        await asyncio.wait_for(loop.run_in_executor(None, _do_upload), timeout=30.0)
+    except TimeoutError:
+        logger.error("Flash upload timed out after 30 s: file=%s", file.filename)
+        raise HTTPException(status_code=504, detail="TFTP upload timed out after 30 seconds")
+    except Exception as exc:
+        logger.error("Flash upload failed: file=%s error=%s", file.filename, exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    elapsed_ms = (time.monotonic() - t0) * 1000
+    logger.info(
+        "Flash upload complete: file=%s size=%d bytes elapsed=%.1f ms",
+        file.filename, size_bytes, elapsed_ms,
+    )
 
     return {
         "ok": True,
         "message": "Upload complete",
-        "remote_filename": file.filename,
+        "filename": file.filename,
+        "size_bytes": size_bytes,
+        "elapsed_ms": round(elapsed_ms, 1),
     }
 
 
 @router.post("/download")
 def download_file(request: DownloadRequest) -> dict:
+    """Download a file from the BLCU via TFTP and save it locally."""
+    # Resolve to an absolute path so the response always contains a usable location.
     local_path = Path(request.local_path).expanduser().resolve()
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -108,6 +142,7 @@ def download_file(request: DownloadRequest) -> dict:
 
 @router.get("/logs")
 def get_logs(tail: int = Query(default=200, ge=1, le=5000)) -> dict:
+    """Return the last `tail` lines of the application log file."""
     if not LOG_FILE.exists():
         return {"path": str(LOG_FILE), "lines": [], "line_count": 0}
 
