@@ -8,6 +8,7 @@ import uvicorn
 
 from api.config import load
 import api.board_pinger as board_pinger
+import api.tcp_client as tcp_client
 import api.udp_server as udp_server
 
 
@@ -16,6 +17,7 @@ def main() -> None:
 
     udp_server.start()
     board_pinger.start()
+    tcp_client.start()
 
     uvicorn.run(
         "api.http_server:app",

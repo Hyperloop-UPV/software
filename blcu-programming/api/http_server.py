@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from api.board_pinger import get_board_status
 from api.config import load
+from api.tcp_client import send_orders
 from api.udp_server import get_state
 from tftp.TftpClient import TftpClient
 
@@ -109,6 +110,12 @@ async def upload_file(file: UploadFile = File(...)) -> dict:
         "Flash upload complete: file=%s size=%d bytes elapsed=%.1f ms",
         file.filename, size_bytes, elapsed_ms,
     )
+
+    try:
+        send_orders(["Write Program"])
+    except Exception as exc:
+        logger.error("Failed to send flash order: %s", exc)
+        raise HTTPException(status_code=500, detail=f"TFTP upload succeeded but order failed: {exc}") from exc
 
     return {
         "ok": True,
