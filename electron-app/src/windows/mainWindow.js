@@ -16,7 +16,7 @@ const appPath = getAppPath();
 // Store the main window instance
 let mainWindow = null;
 // Track the currently loaded view
-let currentView = "testing-view";
+let currentView = "competition-view";
 
 /**
  * Creates and initializes the main application window.
@@ -93,10 +93,13 @@ function loadView(view) {
     // Load the view HTML file
     mainWindow.loadFile(viewPath);
     // Update window title based on view type
+    const titles = {
+      "competition-view": "Competition View",
+      "testing-view": "Testing View",
+      "flashing-view": "Flashing View",
+    };
     mainWindow.setTitle(
-      `Hyperloop Control Station - ${
-        view === "control-station" ? "Competition View" : "Testing View"
-      }`
+      `Hyperloop Control Station - ${titles[view] ?? view}`,
     );
   } else {
     // Log error and show dialog if view not found
