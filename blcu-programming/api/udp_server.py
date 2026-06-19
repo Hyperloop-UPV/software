@@ -43,7 +43,7 @@ def _parse(data: bytes) -> None:
     packet_id = struct.unpack_from("<H", data, 0)[0]
 
     if packet_id != PACKET_ID:
-        log.debug("Unknown packet ID %d, ignoring", packet_id)
+        log.info("Packet ID mismatch: received %d, expected %d", packet_id, PACKET_ID)
         return
 
     general_idx = data[2]
@@ -77,8 +77,7 @@ def _serve(host: str, port: int, stop: threading.Event) -> None:
 
     while not stop.is_set():
         try:
-            data, addr = sock.recvfrom(1500)
-            log.debug("Received %d bytes from %s", len(data), addr)
+            data, _ = sock.recvfrom(1500)
             _parse(data)
         except socket.timeout:
             continue
@@ -89,7 +88,8 @@ def _serve(host: str, port: int, stop: threading.Event) -> None:
     log.info("UDP server stopped")
 
 
-def start(host: str = "0.0.0.0") -> threading.Event:
+def start() -> threading.Event:
+    host: str = "0.0.0.0"
     port: int = _cfg["blcu"]["UDP_PORT_DESTINATION"]
     stop = threading.Event()
     t = threading.Thread(
