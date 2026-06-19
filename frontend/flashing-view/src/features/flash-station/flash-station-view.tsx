@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { FileCode2, Loader2, Upload } from "@workspace/ui/icons";
-import { Badge, Button, Textarea } from "@workspace/ui/components";
+import { FileCode2, Loader2, SunMoon, Upload } from "@workspace/ui/icons";
+import { Badge, Button, Textarea, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components";
 import logo from "../../assets/logo.svg";
 import { SectionCard } from "./components/section-card";
 import { BoardCard } from "./components/board-card";
@@ -10,7 +10,12 @@ const BLCU_URL = "http://localhost:8069/api";
 const POLL_INTERVAL_MS = 300;
 const MAX_LOG_LINES = 20;
 
-export function FlashStationView() {
+interface FlashStationViewProps {
+  isDark: boolean;
+  onToggleTheme: () => void;
+}
+
+export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProps) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
@@ -118,6 +123,16 @@ export function FlashStationView() {
           </div>
         </div>
         <div className="bg-primary/25 h-[3px] flex-1 rounded-full" />
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onToggleTheme} aria-label="Toggle theme">
+                <SunMoon className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isDark ? "Switch to light mode" : "Switch to dark mode"}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </header>
 
       <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">

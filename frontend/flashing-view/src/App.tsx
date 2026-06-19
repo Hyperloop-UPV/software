@@ -1,27 +1,24 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlashStationView } from "./features/flash-station/flash-station-view";
 
-/**
- * Root component for the flashing-view standalone app.
- *
- * Dark-mode state is persisted to localStorage under the key
- * "flashing-view-dark-mode" and applied to the document root so Tailwind's
- * `dark:` variants work correctly.
- */
 export default function App() {
-  useEffect(() => {
+  const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("flashing-view-dark-mode");
-    const isDark =
-      saved !== null
-        ? saved === "true"
-        : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return saved !== null
+      ? saved === "true"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
 
+  useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
-  }, []);
+    localStorage.setItem("flashing-view-dark-mode", String(isDark));
+  }, [isDark]);
+
+  const toggleTheme = useCallback(() => setIsDark((d) => !d), []);
 
   return (
     <div className="h-screen w-screen overflow-auto bg-background text-foreground">
-      <FlashStationView />
+      <FlashStationView isDark={isDark} onToggleTheme={toggleTheme} />
     </div>
   );
 }
