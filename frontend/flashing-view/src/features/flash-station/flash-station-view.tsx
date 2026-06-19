@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { FileCode2, Loader2, SunMoon, Upload } from "@workspace/ui/icons";
 import { Badge, Button, Textarea, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components";
+import { FileCode2, Loader2, SunMoon, Upload } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib/utils";
+import { useEffect, useRef, useState } from "react";
 import logo from "../../assets/logo.svg";
-import { SectionCard } from "./components/section-card";
 import { BoardCard } from "./components/board-card";
+import { SectionCard } from "./components/section-card";
 import type { Board, BoardsResponse, GeneralState, OperationalState } from "./types";
 
 const BLCU_URL = "http://localhost:8069/api";
-const POLL_INTERVAL_MS = 300;
+const POLL_INTERVAL_MS = 10000;
 const MAX_LOG_LINES = 20;
 
 const STATE_STYLES: Record<GeneralState, string> = {
@@ -42,7 +42,7 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
   useEffect(() => {
     async function poll() {
       try {
-        const res = await fetch(`${BLCU_URL}/boards`);
+        const res = await fetch(`${BLCU_URL}/status`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: BoardsResponse = await res.json();
 
