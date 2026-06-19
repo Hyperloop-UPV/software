@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api.board_pinger import get_board_status
@@ -19,6 +20,12 @@ _client = TftpClient(_blcu_host, _blcu_port)
 _lock = threading.Lock()
 
 app = FastAPI(title="TFTP API", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 router = APIRouter(prefix="/api")
 
 LOG_FILE = Path(_cfg["log_file"])
