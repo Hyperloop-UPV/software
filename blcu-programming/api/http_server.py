@@ -6,13 +6,13 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api.board_pinger import get_board_status
 from api.config import load
-from api.tcp_client import send_orders
+from api.tcp_client import send_order
 from api.udp_server import get_state
 from tftp.TftpClient import TftpClient
 
@@ -76,7 +76,7 @@ def health() -> dict:
 
 
 @router.post("/flash")
-async def upload_file(file: UploadFile = File(...)) -> dict:
+async def upload_file(file: UploadFile = File(...), board: str = Form(...)) -> dict:
     """Upload a firmware file to the BLCU via TFTP, then trigger a flash.
 
     The entire upload is serialised with a lock because the underlying TFTP
@@ -84,11 +84,14 @@ async def upload_file(file: UploadFile = File(...)) -> dict:
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
-
+    # read the file
     data = await file.read()
     size_bytes = len(data)
 
-    logger.info("Flash upload started: file=%s size=%d bytes", file.filename, size_bytes)
+    # TFTP upload
+    logger.info(
+        "Flash upload started: file=%s size=%d bytes", file.filename, size_bytes
+    )
 
     def _do_upload() -> None:
         with _lock:
@@ -100,7 +103,9 @@ async def upload_file(file: UploadFile = File(...)) -> dict:
         await asyncio.wait_for(loop.run_in_executor(None, _do_upload), timeout=30.0)
     except TimeoutError:
         logger.error("Flash upload timed out after 30 s: file=%s", file.filename)
-        raise HTTPException(status_code=504, detail="TFTP upload timed out after 30 seconds")
+        raise HTTPException(
+            status_code=504, detail="TFTP upload timed out after 30 seconds"
+        )
     except Exception as exc:
         logger.error("Flash upload failed: file=%s error=%s", file.filename, exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -108,21 +113,25 @@ async def upload_file(file: UploadFile = File(...)) -> dict:
     elapsed_ms = (time.monotonic() - t0) * 1000
     logger.info(
         "Flash upload complete: file=%s size=%d bytes elapsed=%.1f ms",
-        file.filename, size_bytes, elapsed_ms,
+        file.filename,
+        size_bytes,
+        elapsed_ms,
     )
 
+    # Send order to flash
     try:
-        send_orders(["Write Program"])
+        send_order("Write Program", board)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("Failed to send flash order: %s", exc)
-        raise HTTPException(status_code=500, detail=f"TFTP upload succeeded but order failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"Order failed: {exc}") from exc
 
     return {
         "ok": True,
         "message": "Upload complete",
         "filename": file.filename,
         "size_bytes": size_bytes,
-        "elapsed_ms": round(elapsed_ms, 1),
     }
 
 

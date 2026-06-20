@@ -10,8 +10,7 @@ log = logging.getLogger(__name__)
 _cfg = load()
 _host: str = _cfg["blcu"]["host"]
 _port: int = _cfg["blcu"]["TCP_PORT_SERVER"]
-_PACKET_ID: int = _cfg["packet"]["id"]
-_ORDERS: dict[str, int] = {k: int(v) for k, v in _cfg["orders"].items()}
+_ORDERS: dict[str, dict] = _cfg["orders"]
 
 _RECONNECT_DELAY = 5.0
 
@@ -27,17 +26,22 @@ def send(data: bytes) -> None:
         _sock.sendall(data)
 
 
-def send_orders(order_names: list[str]) -> None:
+def send_order(order_name: str, board_name: str) -> None:
     """Build and send an order packet to the BLCU.
 
-    Protocol (all little-endian):
-      [uint16 packet_id] [uint16 count] [uint16 order_id] ...
+    Protocol (little-endian):
+      [uint16 order_id] [uint8 board_enum]
+    where board_enum is the index of board_name in the order's enum-order list.
     """
-    ids = [_ORDERS[name] for name in order_names]
-    packet = struct.pack("<HH", _PACKET_ID, len(ids))
-    packet += struct.pack(f"<{len(ids)}H", *ids)
+    order = _ORDERS[order_name]
+    order_id = int(order["id"])
+    enum = order["enum-order"]
+    if board_name not in enum:
+        raise ValueError(f"Board '{board_name}' cannot be flashed with '{order_name}'. Valid boards: {', '.join(enum)}")
+    board_idx = enum.index(board_name)
+    packet = struct.pack("<HB", order_id, board_idx)
     send(packet)
-    log.info("Sent order packet: packet_id=%d orders=%s", _PACKET_ID, order_names)
+    log.info("Sent order: %s(%d) board=%s(%d)", order_name, order_id, board_name, board_idx)
 
 
 def _run(host: str, port: int, stop: threading.Event) -> None:
