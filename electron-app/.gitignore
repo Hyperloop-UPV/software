@@ -7,9 +7,9 @@ dist-ssr
 build
 binaries
 renderer
-!renderer/
 renderer/testing-view/
 renderer/flashing-view/
+renderer/competition-view/
 !renderer/mode-selector/
 !renderer/mode-selector/**
 out
