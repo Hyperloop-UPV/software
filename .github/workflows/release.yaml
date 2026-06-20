@@ -11,8 +11,6 @@ on:
         type: boolean
         default: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   determine-version:
@@ -62,7 +60,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -174,7 +172,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Update version in package.json
         working-directory: electron-app
