@@ -1,4 +1,4 @@
-import { Badge, Button, Textarea, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components";
+import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components";
 import { FileCode2, Loader2, SunMoon, Upload } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useRef, useState } from "react";
@@ -22,6 +22,8 @@ const OPERATIONAL_STYLES: Record<OperationalState, string> = {
   Flashing: "border-blue-500/40 bg-blue-500/15 text-blue-600 dark:text-blue-400",
 };
 
+type LogEntry = { message: string; isError: boolean };
+
 interface FlashStationViewProps {
   isDark: boolean;
   onToggleTheme: () => void;
@@ -35,9 +37,10 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
   const [filePath, setFilePath] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
-  const [log, setLog] = useState<string[]>([]);
+  const [log, setLog] = useState<LogEntry[]>([]);
   const [isFlashing, setIsFlashing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function poll() {
@@ -53,7 +56,7 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
 
         setBoards(parsed);
         setGeneralState(data.general_state_machine);
-        setOperationalState(data.operational_state_machine);
+        setOperationalState(data.operational_state_machine as OperationalState);
         setSelectedBoard((prev) =>
           parsed.some((b) => b.name === prev) ? prev : null,
         );
@@ -69,10 +72,14 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
     return () => clearInterval(id);
   }, []);
 
-  function appendLog(message: string) {
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [log]);
+
+  function appendLog(message: string, isError = false) {
     const timestamp = new Date().toLocaleTimeString("es-ES");
     setLog((prev) =>
-      [...prev, `[${timestamp}] ${message}`].slice(-MAX_LOG_LINES),
+      [...prev, { message: `[${timestamp}] ${message}`, isError }].slice(-MAX_LOG_LINES),
     );
   }
 
@@ -122,6 +129,7 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
     } catch (err) {
       appendLog(
         `Flash failed → ${err instanceof Error ? err.message : "Unknown error"}`,
+        true,
       );
     } finally {
       setIsFlashing(false);
@@ -188,7 +196,7 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
               <FileCode2 className="size-4" />
               Choose File
             </Button>
-            <div className="border-border/80 bg-secondary/45 rounded-lg border px-3">
+            <div className="border-border/80 bg-secondary/45 rounded-lg border px-3 py-2">
               <div className="text-muted-foreground text-[11px] font-medium tracking-[0.14em] uppercase">
                 Selected file
               </div>
@@ -208,44 +216,56 @@ export function FlashStationView({ isDark, onToggleTheme }: FlashStationViewProp
               {isFlashing ? "Flashing..." : "Flash"}
             </Button>
           </SectionCard>
-
-          <SectionCard title="Log">
-            <Textarea
-              readOnly
-              value={log.join("\n")}
-              className="border-border/80 bg-secondary/45 text-foreground min-h-40 resize-none font-mono text-xs"
-            />
-          </SectionCard>
         </div>
 
-        <SectionCard
-          title="Boards"
-          action={
-            <Badge
-              variant="outline"
-              className="border-primary/30 bg-primary/10 text-primary rounded-full"
-            >
-              {boards.length} boards
-            </Badge>
-          }
-        >
-          {boards.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              No boards found. Waiting for backend…
-            </p>
-          ) : (
-            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-              {boards.map((board) => (
-                <BoardCard
-                  key={board.name}
-                  board={board}
-                  selected={selectedBoard === board.name}
-                  onSelect={() => setSelectedBoard(board.name)}
-                />
-              ))}
+        <div className="flex flex-col gap-4">
+          <SectionCard
+            title="Boards"
+            action={
+              <Badge
+                variant="outline"
+                className="border-primary/30 bg-primary/10 text-primary rounded-full"
+              >
+                {boards.length} boards
+              </Badge>
+            }
+          >
+            {boards.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No boards found. Waiting for backend…
+              </p>
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {boards.map((board) => (
+                  <BoardCard
+                    key={board.name}
+                    board={board}
+                    selected={selectedBoard === board.name}
+                    onSelect={() => setSelectedBoard(board.name)}
+                  />
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Log">
+            <div className="border-border/80 bg-secondary/45 rounded-lg border p-3 min-h-40 max-h-60 overflow-y-auto font-mono text-xs space-y-0.5">
+              {log.length === 0 ? (
+                <span className="text-muted-foreground">No log entries yet.</span>
+              ) : (
+                log.map((entry, i) => (
+                  <div
+                    key={i}
+                    className={entry.isError ? "text-red-500 dark:text-red-400" : "text-foreground"}
+                  >
+                    {entry.message}
+                  </div>
+                ))
+              )}
+              <div ref={logEndRef} />
             </div>
-          )}
-        </SectionCard>
+          </SectionCard>
+        </div>
       </section>
     </main>
   );
