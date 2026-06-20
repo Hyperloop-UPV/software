@@ -66,7 +66,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build with Turbo
-        run: pnpm turbo build --filter=testing-view --filter=competition-view
+        run: pnpm turbo build --filter=testing-view --filter=competition-view --filter=flashing-view
 
       - uses: actions/upload-artifact@v4
         with:
@@ -78,6 +78,12 @@ jobs:
         with:
           name: competition-dist
           path: frontend/competition-view/dist/**
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flashing-dist
+          path: frontend/flashing-view/dist/**
           retention-days: 1
 
   build-backend:
@@ -165,6 +171,12 @@ jobs:
         with:
           name: competition-dist
           path: electron-app/renderer/competition-view
+
+      - name: Download flashing-view dist
+        uses: actions/download-artifact@v4
+        with:
+          name: flashing-dist
+          path: electron-app/renderer/flashing-view
 
       - uses: pnpm/action-setup@v4
         with:

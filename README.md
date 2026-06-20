@@ -25,6 +25,7 @@ Our `pnpm-workspace.yaml` defines the following workspaces:
 | :----------------------------- | :------- | :---------------------------------------------------- |
 | `testing-view`                 | TS/React | Web interface for telemetry testing                   |
 | `competition-view`             | TS/React | UI for the competition                                |
+| `flashing-view`                | TS/React | UI for flashing firmware to the BLCU board            |
 | `backend`                      | Go       | Data ingestion and pod communication server           |
 | `blcu-programming`             | Python   | FastAPI service that flashes firmware to the BLCU board via TFTP |
 | `hyperloop-control-station`    | JS       | The main Control Station electron desktop application |
@@ -68,6 +69,12 @@ All Turbo scripts support filtering to target specific workspaces:
 - `pnpm build:win` – Packages the Electron app for Windows.
 - `pnpm build:linux` – Packages the Electron app for Linux.
 - `pnpm build:mac` – Packages the Electron app for macOS.
+
+#### Frontend View Scripts
+
+- `pnpm build:testing-view` – Builds only the Testing View frontend.
+- `pnpm build:competition-view` – Builds only the Competition View frontend.
+- `pnpm build:flashing-view` – Builds only the Flashing View frontend.
 
 #### Utility Scripts
 

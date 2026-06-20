@@ -37,6 +37,12 @@ node build.mjs --blcu-programming
 
 # Build only the Testing View
 node build.mjs --testing-view
+
+# Build only the Competition View
+node build.mjs --competition-view
+
+# Build only the Flashing View
+node build.mjs --flashing-view
 ```
 
 ## Platform Targeting

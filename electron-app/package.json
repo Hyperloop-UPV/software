@@ -43,6 +43,7 @@
     "build:blcu:mac": "node build.mjs --blcu-programming --mac",
     "build:testing": "node build.mjs --testing-view",
     "build:competition": "node build.mjs --competition-view",
+    "build:flashing": "node build.mjs --flashing-view",
     "asar:win": "asar list dist/win-unpacked/resources/app.asar | findstr /V node_modules",
     "asar:mac": "asar list dist/mac-unpacked/resources/app.asar | findstr /V node_modules",
     "asar:linux": "asar list dist/linux-unpacked/resources/app.asar | findstr /V node_modules"
