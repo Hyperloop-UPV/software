@@ -16,6 +16,7 @@ import { loadView } from "../windows/mainWindow.js";
 const VALID_MODES = {
   testing: "testing-view",
   flashing: "flashing-view",
+  competition: "competition-view",
   default: "testing-view",
 };
 
@@ -79,7 +80,7 @@ async function showModeSelector(screenWidth, screenHeight) {
         logger.electron.header("Main application window created");
 
         // Start services and only then load the selected view.
-        if (view === "testing-view" || view === "flashing-view") {
+        if (view === "testing-view" || view === "flashing-view" || view === "competition-view") {
           await startServices(screenWidth, screenHeight, view);
         }
 
@@ -114,8 +115,8 @@ async function showModeSelector(screenWidth, screenHeight) {
  * @returns {Promise<void>}
  */
 async function startServices(screenWidth, screenHeight, view) {
-  // Start backend only for testing view
-  if (view === "testing-view") {
+  // Start backend for testing and competition views
+  if (view === "testing-view" || view === "competition-view") {
     const logWindow = createLogWindow(screenWidth, screenHeight);
     logWindow.show(); // Show the log window
 
