@@ -1,8 +1,8 @@
 {
   "blcu": {
-    "host": "192.168.0.27",
+    "host": "127.0.0.27",
     "port": 69,
-    "UDP_PORT_DESTINATION": 50420,
+    "UDP_PORT_DESTINATION": 50400,
     "TCP_PORT_SERVER": 50500
 
   },
@@ -24,7 +24,7 @@
   },
   "packet":{
 
-    "id": 1,
+    "id": 134,
     "general_state_machine": [
       "Connecting",
       "Operational",
