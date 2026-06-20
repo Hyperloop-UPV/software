@@ -8,23 +8,31 @@ import { useShallow } from "zustand/shallow";
 import { config } from "../../../../config";
 import { useStore } from "../../../store/store";
 import { COLORS } from "../constants/chartsColors";
+import { createTooltipPlugin } from "../plugins/tooltipPlugin";
+import { createValueLabelsPlugin } from "../plugins/valueLabelsPlugin";
 import type { WorkspaceChartSeries } from "../types/charts";
-import { createTooltipPlugin } from "./tooltipPlugin";
 
 interface ChartSurfaceProps {
   chartId: string;
   series: WorkspaceChartSeries[];
   disabledVariables: Set<string>;
+  hiddenValueLabels: Set<string>;
 }
 
 // IMPORTANT: This component was almost completely vibe-coded
 // It could provoke bugs, thus it could be improved
 
 export const ChartSurface = memo(
-  ({ chartId, series, disabledVariables }: ChartSurfaceProps) => {
+  ({
+    chartId,
+    series,
+    disabledVariables,
+    hiddenValueLabels,
+  }: ChartSurfaceProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const uplotRef = useRef<uPlot | null>(null);
     const historyRef = useRef<any[]>([]);
+    const hiddenValueLabelsRef = useRef(hiddenValueLabels);
 
     const [isZooming, setIsZooming] = useState(false);
 
@@ -80,11 +88,20 @@ export const ChartSurface = memo(
       }
     }, [disabledVariables, series]);
 
+    useEffect(() => {
+      hiddenValueLabelsRef.current = hiddenValueLabels;
+      uplotRef.current?.redraw();
+    }, [hiddenValueLabels]);
+
     const handleDoubleClick = () => {
       setIsZooming(false);
     };
 
     const tooltipPlugin = createTooltipPlugin(series);
+    const valueLabelsPlugin = createValueLabelsPlugin(
+      series,
+      hiddenValueLabelsRef,
+    );
 
     // Initialize Chart
     useEffect(() => {
@@ -104,7 +121,7 @@ export const ChartSurface = memo(
         legend: {
           show: false,
         },
-        plugins: [tooltipPlugin],
+        plugins: [tooltipPlugin, valueLabelsPlugin],
         padding: [20, 10, 5, 15],
         scales: {
           x: { time: false },

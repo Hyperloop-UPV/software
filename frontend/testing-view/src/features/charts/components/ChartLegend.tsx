@@ -1,4 +1,4 @@
-import { X } from "@workspace/ui/icons";
+import { Eye, EyeOff, X } from "@workspace/ui/icons";
 import { COLORS } from "../constants/chartsColors";
 import type { WorkspaceChartSeries } from "../types/charts";
 import { ChartSettings } from "./ChartSettings";
@@ -7,7 +7,9 @@ interface ChartLegendProps {
   chartId: string;
   series: WorkspaceChartSeries[];
   disabledVariables: Set<string>;
+  hiddenValueLabels: Set<string>;
   onToggle: (seriesKey: string) => void;
+  onToggleValueLabel: (seriesKey: string) => void;
   onRemove: (variable: string) => void;
 }
 
@@ -15,7 +17,9 @@ export const ChartLegend = ({
   chartId,
   series,
   disabledVariables,
+  hiddenValueLabels,
   onToggle,
+  onToggleValueLabel,
   onRemove,
 }: ChartLegendProps) => (
   <div className="border-border mb-4 flex flex-wrap gap-2 border-b pb-3 pr-14">
@@ -37,6 +41,25 @@ export const ChartLegend = ({
             style={{ background: COLORS[i % COLORS.length] }}
           />
           {p.variable}
+        </button>
+        <button
+          title={
+            hiddenValueLabels.has(p.variable)
+              ? `Show value label for ${p.variable}`
+              : `Hide value label for ${p.variable}`
+          }
+          onClick={() => onToggleValueLabel(p.variable)}
+          className={`border-border h-full border-l px-1.5 py-1 transition-colors ${
+            hiddenValueLabels.has(p.variable)
+              ? "text-muted-foreground/40 hover:text-muted-foreground"
+              : "text-foreground hover:bg-accent"
+          }`}
+        >
+          {hiddenValueLabels.has(p.variable) ? (
+            <EyeOff className="h-3 w-3" />
+          ) : (
+            <Eye className="h-3 w-3" />
+          )}
         </button>
         <button
           title={`Remove variable ${p.variable}`}

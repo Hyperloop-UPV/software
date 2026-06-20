@@ -46,9 +46,21 @@ export const TelemetryChart = ({
   const [disabledVariables, setDisabledVariables] = useState<Set<string>>(
     new Set(),
   );
+  const [hiddenValueLabels, setHiddenValueLabels] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleSeries = (variable: string) => {
     setDisabledVariables((prev) => {
+      const next = new Set(prev);
+      if (next.has(variable)) next.delete(variable);
+      else next.add(variable);
+      return next;
+    });
+  };
+
+  const toggleValueLabel = (variable: string) => {
+    setHiddenValueLabels((prev) => {
       const next = new Set(prev);
       if (next.has(variable)) next.delete(variable);
       else next.add(variable);
@@ -117,7 +129,9 @@ export const TelemetryChart = ({
         chartId={id}
         series={series}
         disabledVariables={disabledVariables}
+        hiddenValueLabels={hiddenValueLabels}
         onToggle={toggleSeries}
+        onToggleValueLabel={toggleValueLabel}
         onRemove={handleRemoveSeries}
       />
 
@@ -125,6 +139,7 @@ export const TelemetryChart = ({
         chartId={id}
         series={series}
         disabledVariables={disabledVariables}
+        hiddenValueLabels={hiddenValueLabels}
       />
     </div>
   );
