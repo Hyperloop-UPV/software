@@ -7,7 +7,8 @@ interface ChartLegendProps {
   chartId: string;
   series: WorkspaceChartSeries[];
   disabledVariables: Set<string>;
-  hiddenValueLabels: Set<string>;
+  visibleValueLabels: Set<string>;
+  valueLabelRefs: { current: Map<string, HTMLElement> };
   onToggle: (seriesKey: string) => void;
   onToggleValueLabel: (seriesKey: string) => void;
   onRemove: (variable: string) => void;
@@ -17,7 +18,8 @@ export const ChartLegend = ({
   chartId,
   series,
   disabledVariables,
-  hiddenValueLabels,
+  visibleValueLabels,
+  valueLabelRefs,
   onToggle,
   onToggleValueLabel,
   onRemove,
@@ -41,24 +43,33 @@ export const ChartLegend = ({
             style={{ background: COLORS[i % COLORS.length] }}
           />
           {p.variable}
+          {visibleValueLabels.has(p.variable) && (
+            <span
+              ref={(el) => {
+                if (el) valueLabelRefs.current.set(p.variable, el);
+                else valueLabelRefs.current.delete(p.variable);
+              }}
+              className="text-muted-foreground text-[11px] tabular-nums normal-case"
+            />
+          )}
         </button>
         <button
           title={
-            hiddenValueLabels.has(p.variable)
-              ? `Show value label for ${p.variable}`
-              : `Hide value label for ${p.variable}`
+            visibleValueLabels.has(p.variable)
+              ? `Hide value label for ${p.variable}`
+              : `Show value label for ${p.variable}`
           }
           onClick={() => onToggleValueLabel(p.variable)}
           className={`border-border h-full border-l px-1.5 py-1 transition-colors ${
-            hiddenValueLabels.has(p.variable)
-              ? "text-muted-foreground/40 hover:text-muted-foreground"
-              : "text-foreground hover:bg-accent"
+            visibleValueLabels.has(p.variable)
+              ? "text-foreground hover:bg-accent"
+              : "text-muted-foreground/40 hover:text-muted-foreground"
           }`}
         >
-          {hiddenValueLabels.has(p.variable) ? (
-            <EyeOff className="h-3 w-3" />
-          ) : (
+          {visibleValueLabels.has(p.variable) ? (
             <Eye className="h-3 w-3" />
+          ) : (
+            <EyeOff className="h-3 w-3" />
           )}
         </button>
         <button

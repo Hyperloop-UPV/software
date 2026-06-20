@@ -2,7 +2,7 @@ import type { DraggableAttributes } from "@dnd-kit/core";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical, Trash2 } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib/utils";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import "uplot/dist/uPlot.min.css";
 import { useStore } from "../../../store/store";
 import type { WorkspaceChartSeries } from "../types/charts";
@@ -46,9 +46,10 @@ export const TelemetryChart = ({
   const [disabledVariables, setDisabledVariables] = useState<Set<string>>(
     new Set(),
   );
-  const [hiddenValueLabels, setHiddenValueLabels] = useState<Set<string>>(
+  const [visibleValueLabels, setVisibleValueLabels] = useState<Set<string>>(
     new Set(),
   );
+  const valueLabelRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const toggleSeries = (variable: string) => {
     setDisabledVariables((prev) => {
@@ -60,7 +61,7 @@ export const TelemetryChart = ({
   };
 
   const toggleValueLabel = (variable: string) => {
-    setHiddenValueLabels((prev) => {
+    setVisibleValueLabels((prev) => {
       const next = new Set(prev);
       if (next.has(variable)) next.delete(variable);
       else next.add(variable);
@@ -129,7 +130,8 @@ export const TelemetryChart = ({
         chartId={id}
         series={series}
         disabledVariables={disabledVariables}
-        hiddenValueLabels={hiddenValueLabels}
+        visibleValueLabels={visibleValueLabels}
+        valueLabelRefs={valueLabelRefs}
         onToggle={toggleSeries}
         onToggleValueLabel={toggleValueLabel}
         onRemove={handleRemoveSeries}
@@ -139,7 +141,8 @@ export const TelemetryChart = ({
         chartId={id}
         series={series}
         disabledVariables={disabledVariables}
-        hiddenValueLabels={hiddenValueLabels}
+        visibleValueLabels={visibleValueLabels}
+        valueLabelRefs={valueLabelRefs}
       />
     </div>
   );

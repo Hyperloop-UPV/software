@@ -16,7 +16,8 @@ interface ChartSurfaceProps {
   chartId: string;
   series: WorkspaceChartSeries[];
   disabledVariables: Set<string>;
-  hiddenValueLabels: Set<string>;
+  visibleValueLabels: Set<string>;
+  valueLabelRefs: { current: Map<string, HTMLElement> };
 }
 
 // IMPORTANT: This component was almost completely vibe-coded
@@ -27,12 +28,13 @@ export const ChartSurface = memo(
     chartId,
     series,
     disabledVariables,
-    hiddenValueLabels,
+    visibleValueLabels,
+    valueLabelRefs,
   }: ChartSurfaceProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const uplotRef = useRef<uPlot | null>(null);
     const historyRef = useRef<any[]>([]);
-    const hiddenValueLabelsRef = useRef(hiddenValueLabels);
+    const visibleValueLabelsRef = useRef(visibleValueLabels);
 
     const [isZooming, setIsZooming] = useState(false);
 
@@ -89,9 +91,9 @@ export const ChartSurface = memo(
     }, [disabledVariables, series]);
 
     useEffect(() => {
-      hiddenValueLabelsRef.current = hiddenValueLabels;
+      visibleValueLabelsRef.current = visibleValueLabels;
       uplotRef.current?.redraw();
-    }, [hiddenValueLabels]);
+    }, [visibleValueLabels]);
 
     const handleDoubleClick = () => {
       setIsZooming(false);
@@ -100,7 +102,8 @@ export const ChartSurface = memo(
     const tooltipPlugin = createTooltipPlugin(series);
     const valueLabelsPlugin = createValueLabelsPlugin(
       series,
-      hiddenValueLabelsRef,
+      visibleValueLabelsRef,
+      valueLabelRefs,
     );
 
     // Initialize Chart
