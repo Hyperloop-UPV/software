@@ -210,6 +210,7 @@
     </div>
     <div class="button-grid">
       <button id="testing" class="primary">Testing View</button>
+      <button id="competition" class="secondary">Competition View</button>
       <button id="flashing" class="secondary">Flashing View</button>
     </div>
     <div class="aux-logo-wrap">
@@ -229,6 +230,7 @@
       }
     };
     document.getElementById('testing').addEventListener('click', () => sendMode('testing'));
+    document.getElementById('competition').addEventListener('click', () => sendMode('competition'));
     document.getElementById('flashing').addEventListener('click', () => sendMode('flashing'));
 
     const appVersionNode = document.getElementById('app-version');

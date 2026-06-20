@@ -10,6 +10,8 @@ renderer
 !renderer/
 renderer/testing-view/
 renderer/flashing-view/
+renderer/competition-view/
+# include mode-selector in the build output
 !renderer/mode-selector/
 !renderer/mode-selector/**
 out
