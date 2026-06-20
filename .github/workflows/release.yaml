@@ -198,7 +198,7 @@ jobs:
         run: |
           find electron-app/dist -maxdepth 1 -type f \
             \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" \
-               -o -name "*.dmg" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) \
+               -o -name "*.rpm" -o -name "*.dmg" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) \
             | xargs gh release upload v${{ needs.determine-version.outputs.version }} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
