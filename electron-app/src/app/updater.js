@@ -43,7 +43,9 @@ function setupUpdater() {
   });
 
   // Check for updates
-  autoUpdater.checkForUpdates();
+  autoUpdater.checkForUpdates().catch((error) => {
+    logger.electron.error("Update check failed:", error.message);
+  });
 }
 
 export { setupUpdater };
