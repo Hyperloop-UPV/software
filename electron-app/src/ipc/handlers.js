@@ -67,8 +67,7 @@ function setupIpcHandlers() {
   ipcMain.handle("save-config", async (event, config) => {
     try {
       await writeConfig(config);
-      app.relaunch();
-      app.exit(0);
+      app.emit("return-to-selector");
       return true;
     } catch (error) {
       logger.electron.error("Error saving config:", error);
@@ -103,8 +102,7 @@ function setupIpcHandlers() {
   ipcMain.handle("import-config", async () => {
     try {
       await importConfig();
-      app.relaunch();
-      app.exit(0);
+      app.emit("return-to-selector");
       return true;
     } catch (error) {
       logger.electron.error("Error importing config:", error);
