@@ -15,13 +15,12 @@ import {
   readConfig,
   writeConfig,
 } from "../config/configInstance.js";
-import { getBackendWorkingDir, restartBackend } from "../processes/backend.js";
+import { getBackendWorkingDir } from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
 import {
   getCurrentView,
   getMainWindow,
   loadView,
-  reloadWindow,
 } from "../windows/mainWindow.js";
 
 /**
@@ -68,10 +67,7 @@ function setupIpcHandlers() {
   ipcMain.handle("save-config", async (event, config) => {
     try {
       await writeConfig(config);
-      await restartBackend();
-
-      reloadWindow();
-
+      app.emit("return-to-selector");
       return true;
     } catch (error) {
       logger.electron.error("Error saving config:", error);
@@ -106,10 +102,7 @@ function setupIpcHandlers() {
   ipcMain.handle("import-config", async () => {
     try {
       await importConfig();
-      await restartBackend();
-
-      reloadWindow();
-
+      app.emit("return-to-selector");
       return true;
     } catch (error) {
       logger.electron.error("Error importing config:", error);

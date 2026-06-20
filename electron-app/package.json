@@ -6,8 +6,15 @@
   "type": "module",
   "author": {
     "name": "Hyperloop UPV",
-    "email": "max766667@gmail.com"
+    "email": "partners@hyperloopupv.com"
   },
+  "contributors": [
+    { "name": "Maxim Grivennyy", "email": "max766667@gmail.com" },
+    { "name": "Javier Ribal del Río", "email": "javierribaldelrio@gmail.com" },
+    { "name": "Lola Castello" },
+    { "name": "Alejandro González" },
+    { "name": "Vasyl Klymenko" }
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -111,7 +118,8 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "rpm"
       ],
       "icon": "icons/512x512.png",
       "category": "Utility",
