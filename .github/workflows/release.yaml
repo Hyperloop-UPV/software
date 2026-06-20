@@ -68,12 +68,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build with Turbo
-        run: pnpm turbo build --filter=testing-view
+        run: pnpm turbo build --filter=testing-view --filter=competition-view
 
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: frontend/testing-view/dist/**
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: competition-dist
+          path: frontend/competition-view/dist/**
           retention-days: 1
 
   build-backend:
@@ -155,6 +161,12 @@ jobs:
         with:
           name: frontend-dist
           path: electron-app/renderer/testing-view
+
+      - name: Download competition-view dist
+        uses: actions/download-artifact@v4
+        with:
+          name: competition-dist
+          path: electron-app/renderer/competition-view
 
       - uses: pnpm/action-setup@v4
         with:
