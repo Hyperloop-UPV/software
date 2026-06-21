@@ -3,6 +3,7 @@ packages:
   - "frontend/frontend-kit/**"
   - "frontend/testing-view"
   - "frontend/competition-view"
+  - "frontend/logging-view"
 
   - "backend"
   - "electron-app"

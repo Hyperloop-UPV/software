@@ -1,0 +1,37 @@
+{
+  "name": "logging-view",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "vite",
+    "dev:main": "pnpm dev",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@vitejs/plugin-react-swc": "^4.2.3",
+    "@workspace/core": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "lucide-react": "^0.563.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router": "^7.13.0",
+    "tailwindcss": "^4.1.18",
+    "uplot": "^1.6.32",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.11",
+    "@types/react-dom": "^19.2.3",
+    "@workspace/eslint-config": "workspace:^",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "^9.39.2",
+    "globals": "^17.3.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
