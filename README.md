@@ -13,7 +13,9 @@ Before starting, ensure you have the following installed:
 - **PNPM** (v10.26.0+)
 - **Node.js** (v20+)
 - **Go** (for the backend)
-- **Python** (v3.8+, for the BLCU programming service)
+- **Python** (v3.11+, for the BLCU programming service)
+
+`pnpm install` automatically creates the Python virtual environment and installs dependencies for the BLCU programming service on Windows, macOS, and Linux.
 
 ---
 
