@@ -198,8 +198,8 @@ jobs:
             --hidden-import uvicorn.lifespan.on \
             --hidden-import multipart \
             --hidden-import multipart.multiparser \
-            --paths "$(pwd)" \
-            --add-data "$(pwd)/BLCU-config.json${PATH_SEP}." \
+            --paths "." \
+            --add-data "BLCU-config.json${PATH_SEP}." \
             api/main.py
 
       - uses: actions/upload-artifact@v4
