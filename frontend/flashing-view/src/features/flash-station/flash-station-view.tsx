@@ -7,7 +7,7 @@ import { BoardCard } from "./components/board-card";
 import { SectionCard } from "./components/section-card";
 import type { Board, BoardsResponse, GeneralState, OperationalState } from "./types";
 
-const BLCU_URL = "http://localhost:8069/api";
+const BLCU_URL = import.meta.env.VITE_BLCU_URL ?? "http://localhost:8069/api";
 const POLL_INTERVAL_MS = 10000;
 const MAX_LOG_LINES = 20;
 
