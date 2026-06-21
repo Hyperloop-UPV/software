@@ -136,6 +136,8 @@ async function startServices(screenWidth, screenHeight, view) {
     try {
       await startBlcuProgramming();
       logger.electron.header("BLCU programming process spawned");
+      // Wait 5 seconds to ensure that BLCU programming (backend of frontend) is fully initialized
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (err) {
       logger.electron.error("Failed to start BLCU programming:", err);
     }
