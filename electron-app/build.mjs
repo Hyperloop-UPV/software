@@ -60,6 +60,7 @@ const CONFIG = {
     entry: join(ROOT, "blcu-programming", "api", "main.py"),
     requirements: join(ROOT, "blcu-programming", "requirements-build.txt"),
     venv: join(ROOT, "blcu-programming", ".venv-build"),
+    addData: [{ src: "BLCU-config.json", dest: "." }],
   },
   "testing-view": {
     type: "frontend",
@@ -226,6 +227,14 @@ const buildPython = (name, config, requestedPlatforms) => {
     }
   }
 
+  const pathSep = process.platform === "win32" ? ";" : ":";
+  const addDataFlags = (config.addData || [])
+    .map(({ src, dest }) => {
+      const absSrc = join(config.path, src);
+      return `--add-data "${absSrc}${pathSep}${dest}"`;
+    })
+    .join(" ");
+
   return run(
     [
       `"${pythonBin}" -m PyInstaller`,
@@ -238,9 +247,14 @@ const buildPython = (name, config, requestedPlatforms) => {
       `--specpath "${pyinstallerSpecPath}"`,
       "--hidden-import uvicorn.loops.auto",
       "--hidden-import uvicorn.protocols.http.auto",
+      "--hidden-import uvicorn.protocols.websockets.auto",
       "--hidden-import uvicorn.lifespan.on",
+      "--hidden-import multipart",
+      "--hidden-import multipart.multiparser",
+      `--paths "${config.path}"`,
+      addDataFlags,
       `"${config.entry}"`,
-    ].join(" "),
+    ].filter(Boolean).join(" "),
     config.path,
   );
 };

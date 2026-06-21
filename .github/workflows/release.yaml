@@ -131,9 +131,86 @@ jobs:
           path: electron-app/binaries/${{ matrix.binary }}
           retention-days: 1
 
+  build-blcu:
+    name: Build BLCU - ${{ matrix.os }}
+    needs: determine-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            binary: blcu-programming-windows-amd64.exe
+            binary-base: blcu-programming-windows-amd64
+          - os: ubuntu-latest
+            binary: blcu-programming-linux-amd64
+            binary-base: blcu-programming-linux-amd64
+          - os: macos-latest
+            binary: blcu-programming-darwin-arm64
+            binary-base: blcu-programming-darwin-arm64
+          - os: macos-15-intel
+            binary: blcu-programming-darwin-amd64
+            binary-base: blcu-programming-darwin-amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create virtual environment
+        working-directory: blcu-programming
+        run: python -m venv .venv-build
+
+      - name: Install dependencies
+        working-directory: blcu-programming
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            .venv-build/Scripts/pip install -r requirements-build.txt
+          else
+            .venv-build/bin/pip install -r requirements-build.txt
+          fi
+
+      - name: Build with PyInstaller
+        working-directory: blcu-programming
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            PYTHON=".venv-build/Scripts/python"
+          else
+            PYTHON=".venv-build/bin/python"
+          fi
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            PATH_SEP=";"
+          else
+            PATH_SEP=":"
+          fi
+          "$PYTHON" -m PyInstaller \
+            --clean \
+            --noconfirm \
+            --onefile \
+            --name "${{ matrix.binary-base }}" \
+            --distpath "../electron-app/binaries" \
+            --hidden-import uvicorn.loops.auto \
+            --hidden-import uvicorn.protocols.http.auto \
+            --hidden-import uvicorn.protocols.websockets.auto \
+            --hidden-import uvicorn.lifespan.on \
+            --hidden-import multipart \
+            --hidden-import multipart.multiparser \
+            --paths "$(pwd)" \
+            --add-data "$(pwd)/BLCU-config.json${PATH_SEP}." \
+            api/main.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blcu-${{ matrix.os }}
+          path: electron-app/binaries/${{ matrix.binary }}
+          retention-days: 1
+
   package-and-upload:
     name: Package & Upload - ${{ matrix.os }}
-    needs: [determine-version, create-draft-release, build-frontend, build-backend]
+    needs: [determine-version, create-draft-release, build-frontend, build-backend, build-blcu]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -141,12 +218,16 @@ jobs:
         include:
           - os: windows-latest
             binary: backend-windows-amd64.exe
+            blcu-binary: blcu-programming-windows-amd64.exe
           - os: ubuntu-latest
             binary: backend-linux-amd64
+            blcu-binary: blcu-programming-linux-amd64
           - os: macos-latest
             binary: backend-darwin-arm64
+            blcu-binary: blcu-programming-darwin-arm64
           - os: macos-15-intel
             binary: backend-darwin-amd64
+            blcu-binary: blcu-programming-darwin-amd64
     steps:
       - uses: actions/checkout@v4
 
@@ -154,6 +235,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-${{ matrix.os }}
+          path: electron-app/binaries
+
+      - name: Download BLCU binary
+        uses: actions/download-artifact@v4
+        with:
+          name: blcu-${{ matrix.os }}
           path: electron-app/binaries
 
       - name: Set executable permissions (Unix)

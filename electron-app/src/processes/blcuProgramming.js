@@ -109,7 +109,7 @@ async function startBlcuProgramming() {
     env: {
       ...process.env,
       BLCU_API_HOST: process.env.BLCU_API_HOST || "127.0.0.1",
-      BLCU_API_PORT: process.env.BLCU_API_PORT || "8000",
+      BLCU_API_PORT: process.env.BLCU_API_PORT || "8069",
       PYTHONUNBUFFERED: "1",
     },
   });

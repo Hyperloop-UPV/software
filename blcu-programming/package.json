@@ -5,6 +5,7 @@
   "scripts": {
     "postinstall": "python -m venv .venv && .venv/bin/pip install -r requirements.txt",
     "dev": ".venv/bin/python -m api.main",
-    "start": ".venv/bin/python -m api.main"
+    "start": ".venv/bin/python -m api.main",
+    "build": "node ../electron-app/build.mjs --blcu-programming"
   }
 }
