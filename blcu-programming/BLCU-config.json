@@ -1,0 +1,44 @@
+{
+  "blcu": {
+    "host": "192.168.0.27",
+    "port": 69,
+    "UDP_PORT_DESTINATION": 50420,
+    "TCP_PORT_SERVER": 50500
+
+  },
+  "adj-data": {
+    "LVBMS": "192.168.1.11",
+    "HVBMS": "192.168.1.17",
+    "PCU": "192.168.1.5",
+    "LCU": "192.168.1.4",
+    "VCU": "192.168.1.3"
+  },
+  "orders":{
+    "Write Program": {"id":"700", "description":"Write Program to BLCU", "enum-order": [
+            "VCU",
+            "HVBMS",
+            "LVBMS",
+            "PCU",
+            "LCU"
+        ]}
+  },
+  "packet":{
+
+    "id": 1,
+    "general_state_machine": [
+      "Connecting",
+      "Operational",
+      "Fault"
+    ] ,
+    "operational_state_machine":[
+      "Idle",
+      "Flashing"
+    ]
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8069,
+    "log_level": "info"
+  },
+  "log_file": "tftp_server_activity.log"
+}

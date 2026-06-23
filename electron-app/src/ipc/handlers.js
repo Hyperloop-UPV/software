@@ -8,6 +8,7 @@
  */
 
 import { app, dialog, ipcMain, shell } from "electron";
+import { readFile } from "fs/promises";
 import fs from "fs";
 import { isAbsolute, join } from "path";
 import {
@@ -151,11 +152,35 @@ function setupIpcHandlers() {
         ? folderPath
         : join(getBackendWorkingDir(), folderPath);
       const loggerPath = join(resolvedPath, "logger");
-      await shell.openPath(fs.existsSync(loggerPath) ? loggerPath : resolvedPath);
+      await shell.openPath(
+        fs.existsSync(loggerPath) ? loggerPath : resolvedPath,
+      );
     } catch (error) {
       logger.electron.error("Error opening folder:", error);
       throw error;
     }
+  });
+
+  // BLCU — only the file picker runs through IPC; all API calls go directly
+  // from the renderer to http://localhost:8000.
+
+  ipcMain.handle("blcu-select-file", async () => {
+    try {
+      const mainWindow = getMainWindow();
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: "Select Firmware File",
+        properties: ["openFile"],
+        filters: [{ name: "Firmware", extensions: ["bin", "hex", "elf"] }],
+      });
+      return result.canceled ? null : (result.filePaths[0] ?? null);
+    } catch (error) {
+      logger.electron.error("Error opening firmware file dialog:", error);
+      return null;
+    }
+  });
+
+  ipcMain.handle("blcu-read-file", async (_event, filePath) => {
+    return await readFile(filePath);
   });
 }
 

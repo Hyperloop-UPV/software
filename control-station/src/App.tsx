@@ -11,6 +11,12 @@ import { ReactComponent as Batteries } from 'assets/svg/battery-filled.svg'
 import { SplashScreen, WsHandlerProvider, useLoadBackend } from 'common';
 import { useEffect } from 'react';
 
+const FlashIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+);
+
 export const App = () => {
     const isProduction = import.meta.env.PROD;
     const loadBackend = useLoadBackend(isProduction);
@@ -29,7 +35,8 @@ export const App = () => {
                             { path: '/vehicle', icon: <Wheel /> },
                             { path: '/booster', icon: <Cabinet /> },
                             { path: '/batteries', icon: <Batteries /> },
-                            { path: '/cameras', icon: <Cameras /> }
+                            { path: '/cameras', icon: <Cameras /> },
+                            { path: '/flash', icon: <FlashIcon /> }
                         ]}
                     />
                     <Outlet />
