@@ -4,7 +4,7 @@ import type { Store } from "../store";
 
 export interface TelemetrySlice {
   telemetry: TelemetryState;
-  updateTelemetry: (packet: TelemetryData) => void;
+  updateTelemetry: (packets: TelemetryData) => void;
   getMeasurement: (id: string) => number | boolean | string | undefined;
 }
 
@@ -16,14 +16,16 @@ export const createTelemetrySlice: StateCreator<
 > = (set, get) => ({
   telemetry: {},
 
-  updateTelemetry: (packet) => {
+  updateTelemetry: (packets) => {
     const flat: TelemetryState = {};
 
-    for (const [key, value] of Object.entries(packet.measurementUpdates)) {
-      if (typeof value === "object" && value !== null && "last" in value) {
-        flat[key] = value.last;
-      } else {
-        flat[key] = value as number | boolean | string;
+    for (const packet of Object.values(packets)) {
+      for (const [key, value] of Object.entries(packet.measurementUpdates)) {
+        if (typeof value === "object" && value !== null && "last" in value) {
+          flat[key] = value.last;
+        } else {
+          flat[key] = value as number | boolean | string;
+        }
       }
     }
 
