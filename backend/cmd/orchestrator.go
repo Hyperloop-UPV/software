@@ -15,6 +15,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 	data_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/data"
 	order_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/order"
+	protection_logger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/protection"
 	trace "github.com/rs/zerolog/log"
 )
 
@@ -137,8 +138,9 @@ func createLookupTables(
 func setUpLogger(config config.Config, commitHash string) (*logger.Logger, abstraction.SubloggersMap, error) {
 
 	var subloggers = abstraction.SubloggersMap{
-		data_logger.Name:  data_logger.NewLogger(),
-		order_logger.Name: order_logger.NewLogger(),
+		data_logger.Name:       data_logger.NewLogger(),
+		protection_logger.Name: protection_logger.NewLogger(),
+		order_logger.Name:      order_logger.NewLogger(),
 	}
 
 	err := logger.ConfigureLogger(config.Logging.TimeUnit, config.Logging.LoggingPath, commitHash)

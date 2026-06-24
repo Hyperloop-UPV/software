@@ -19,17 +19,10 @@ const (
 )
 
 type Logger struct {
-
-	// embed the base logger
 	*loggerbase.BaseLogger
 
-	// An atomic boolean is used in order to use CompareAndSwap in the Start and Stop methods
-	fileLock *sync.Mutex
-	// saveFiles is a map that contains the file of each info packet
+	fileLock  *sync.Mutex
 	saveFiles map[abstraction.BoardId]*file.CSV
-	// BoardNames is a map that contains the common name of each board
-	boardNames map[abstraction.BoardId]string
-	// save the starting time of the logger in Unix microseconds in order to log relative timestamps
 }
 
 // Record is a struct that implements the abstraction.LoggerRecord interface
@@ -43,14 +36,12 @@ type Record struct {
 
 func (*Record) Name() abstraction.LoggerName { return Name }
 
-func NewLogger(boardMap map[abstraction.BoardId]string) *Logger {
+func NewLogger() *Logger {
 
-	fmt.Print("ssfs")
 	return &Logger{
 		BaseLogger: loggerbase.NewBaseLogger(Name),
 		fileLock:   &sync.Mutex{},
 		saveFiles:  make(map[abstraction.BoardId]*file.CSV),
-		boardNames: boardMap,
 	}
 }
 
@@ -63,6 +54,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	}
 
 	infoRecord, ok := record.(*Record)
+
 	if !ok {
 		return logger.ErrWrongRecordType{
 			Name:      Name,
@@ -72,7 +64,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 		}
 	}
 
-	saveFile, err := sublogger.getFile(infoRecord.BoardId)
+	saveFile, err := sublogger.getFile(infoRecord.BoardId, infoRecord.From)
 	if err != nil {
 		return err
 	}
@@ -92,7 +84,7 @@ func (sublogger *Logger) PushRecord(record abstraction.LoggerRecord) error {
 	return err
 }
 
-func (sublogger *Logger) getFile(boardId abstraction.BoardId) (*file.CSV, error) {
+func (sublogger *Logger) getFile(boardId abstraction.BoardId, boardName string) (*file.CSV, error) {
 	sublogger.fileLock.Lock()
 	defer sublogger.fileLock.Unlock()
 
@@ -101,7 +93,7 @@ func (sublogger *Logger) getFile(boardId abstraction.BoardId) (*file.CSV, error)
 		return valueFile, nil
 	}
 
-	valueFileRaw, err := sublogger.createFile(boardId)
+	valueFileRaw, err := sublogger.createFile(boardId, boardName)
 	sublogger.saveFiles[boardId] = file.NewCSV(valueFileRaw)
 
 	return sublogger.saveFiles[boardId], err
@@ -109,11 +101,7 @@ func (sublogger *Logger) getFile(boardId abstraction.BoardId) (*file.CSV, error)
 
 // override createFile from BaseLogger to add specific path
 // and filename structure
-func (sublogger *Logger) createFile(boardId abstraction.BoardId) (*os.File, error) {
-	boardName, ok := sublogger.boardNames[boardId]
-	if !ok {
-		boardName = fmt.Sprint(boardId)
-	}
+func (sublogger *Logger) createFile(boardId abstraction.BoardId, boardName string) (*os.File, error) {
 
 	filename := path.Join(
 		"logger",
