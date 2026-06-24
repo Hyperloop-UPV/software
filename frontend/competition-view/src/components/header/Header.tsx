@@ -3,6 +3,7 @@ import { Keyboard } from "@workspace/ui/icons";
 import { useLocation } from "react-router";
 import { PAGES } from "../../constants/pages";
 import ConnectionBadge from "./ConnectionBadge";
+import DashboardStatusBar from "./DashboardStatusBar";
 
 interface HeaderProps {
   backendConnected: boolean;
@@ -13,25 +14,24 @@ const Header = ({ backendConnected, onShowShortcuts }: HeaderProps) => {
   const location = useLocation();
   const page = PAGES[location.pathname as keyof typeof PAGES];
   const pageTitle = page?.title ?? "Competition View";
+  const isDashboard = location.pathname === "/";
 
   return (
-    <header className="h-(--header-height) flex shrink-0 items-center gap-2 border-b px-4">
+    <header className="h-(--header-height) relative flex shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="text-foreground -ml-1" />
-      <Separator
-        orientation="vertical"
-        className="text-foreground mx-1 data-[orientation=vertical]:h-4"
-      />
+      <Separator orientation="vertical" className="text-foreground mx-1 data-[orientation=vertical]:h-4" />
       <h1 className="text-foreground text-xl font-bold">{pageTitle}</h1>
+
+      {isDashboard && (
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <DashboardStatusBar />
+        </div>
+      )}
 
       <div className="ml-auto flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onShowShortcuts}
-              aria-label="Keyboard shortcuts"
-            >
+            <Button variant="ghost" size="icon" onClick={onShowShortcuts} aria-label="Keyboard shortcuts">
               <Keyboard className="size-4" />
             </Button>
           </TooltipTrigger>

@@ -9,11 +9,16 @@ const STATUS_STYLES: Record<BrakeStatus, { bg: string; text: string; label: stri
   unknown:  { bg: "bg-muted border-border",          text: "text-muted-foreground", label: "—" },
 };
 
+interface BrakeIndicatorProps {
+  /** Reduces padding and font sizes to fit a compact metric strip. */
+  compact?: boolean;
+}
+
 /**
- * Large visual indicator that mirrors the control-station BrakeState widget.
+ * Visual indicator that mirrors the control-station BrakeState widget.
  * Reads VCU/all_reeds — truthy means brakes are engaged.
  */
-const BrakeIndicator = () => {
+const BrakeIndicator = ({ compact = false }: BrakeIndicatorProps) => {
   const raw = useMeasurement(VCU.allReeds);
 
   const status: BrakeStatus =
@@ -23,12 +28,12 @@ const BrakeIndicator = () => {
 
   return (
     <div
-      className={`flex h-full min-h-24 flex-col items-center justify-center rounded-xl border-2 px-6 py-4 ${bg}`}
+      className={`flex h-full flex-col items-center justify-center rounded-xl border-2 ${bg} ${compact ? "px-3" : "min-h-24 px-6 py-4"}`}
     >
-      <span className="text-muted-foreground mb-1 text-xs font-medium tracking-widest uppercase">
+      <span className={`text-muted-foreground font-medium tracking-widest uppercase ${compact ? "text-[10px] leading-none mb-0.5" : "text-xs mb-1"}`}>
         Brake State
       </span>
-      <span className={`text-4xl font-black tracking-wide ${text}`}>
+      <span className={`font-black tracking-wide ${text} ${compact ? "text-lg leading-tight" : "text-4xl"}`}>
         {label}
       </span>
     </div>

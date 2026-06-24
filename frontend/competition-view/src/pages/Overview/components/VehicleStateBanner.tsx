@@ -45,15 +45,16 @@ const categorise = (state: string | number | boolean | undefined): StateCategory
   return "unknown";
 };
 
+interface VehicleStateBannerProps {
+  /** Reduces padding and font sizes to fit the compact dashboard top row. */
+  compact?: boolean;
+}
+
 /**
- * Full-width banner showing the vehicle's general and operational states.
- * Background and text colour change based on the detected state category:
- *   - Emergency / Fault / Error  → red
- *   - Running / Nominal          → green
- *   - Braking / Decelerating     → amber
- *   - Idle / Ready / Standby     → muted
+ * Banner showing the vehicle's general and operational states.
+ * Background and text colour change based on the detected state category.
  */
-const VehicleStateBanner = () => {
+const VehicleStateBanner = ({ compact = false }: VehicleStateBannerProps) => {
   const generalState     = useMeasurement(VCU.generalState);
   const operationalState = useMeasurement(VCU.operationalState);
 
@@ -61,23 +62,23 @@ const VehicleStateBanner = () => {
   const { banner, valueText, badgeClass } = STATE_STYLES[category];
 
   return (
-    <div className={`flex items-center justify-between rounded-xl border px-6 py-4 shadow-sm transition-colors duration-300 ${banner}`}>
-      <div className="flex flex-col gap-1">
+    <div className={`flex h-full items-center justify-between rounded-xl border shadow-sm transition-colors duration-300 ${banner} ${compact ? "px-4 py-2" : "px-6 py-4"}`}>
+      <div className={`flex flex-col ${compact ? "gap-0" : "gap-1"}`}>
         <span className="text-muted-foreground text-xs font-medium tracking-widest uppercase">
           Vehicle State
         </span>
-        <span className={`text-2xl font-black tracking-wide transition-colors duration-300 ${valueText}`}>
+        <span className={`font-black tracking-wide transition-colors duration-300 ${valueText} ${compact ? "text-xl leading-tight" : "text-2xl"}`}>
           {generalState !== undefined ? String(generalState) : "—"}
         </span>
       </div>
 
-      <div className="flex flex-col items-end gap-1">
+      <div className={`flex flex-col items-end ${compact ? "gap-0" : "gap-1"}`}>
         <span className="text-muted-foreground text-xs font-medium tracking-widest uppercase">
           Operational State
         </span>
         <Badge
           variant="outline"
-          className={`px-3 py-1 text-sm font-semibold transition-colors duration-300 ${badgeClass}`}
+          className={`font-semibold transition-colors duration-300 ${badgeClass} ${compact ? "px-2 py-0.5 text-xs" : "px-3 py-1 text-sm"}`}
         >
           {operationalState !== undefined ? String(operationalState) : "—"}
         </Badge>

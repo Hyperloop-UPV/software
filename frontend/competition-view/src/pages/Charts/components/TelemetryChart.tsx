@@ -34,7 +34,8 @@ const TelemetryChart = memo(({
   unit = "",
   colorIndex = 0,
 }: TelemetryChartProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef   = useRef<HTMLDivElement>(null); // flex-1 div sized by CSS layout
+  const containerRef = useRef<HTMLDivElement>(null); // uPlot mounting point
   const uplotRef     = useRef<uPlot | null>(null);
   const xRef         = useRef<number[]>([]);
   const yRef         = useRef<number[]>([]);
@@ -45,14 +46,14 @@ const TelemetryChart = memo(({
 
   // ── Initialise uplot ────────────────────────────────────────────────────
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!wrapperRef.current || !containerRef.current) return;
 
     const getVar = (name: string) =>
       getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
     const opts: uPlot.Options = {
-      width:  containerRef.current.clientWidth,
-      height: CHART_HEIGHT,
+      width:  wrapperRef.current.clientWidth  || 300,
+      height: wrapperRef.current.clientHeight || CHART_HEIGHT,
       legend: { show: false },
       padding: [16, 8, 4, 12],
       scales: {
@@ -96,14 +97,13 @@ const TelemetryChart = memo(({
 
     uplotRef.current = new uPlot(opts, [[], []], containerRef.current);
 
-    // Pass null to reset zoom; cast needed since uplot's TS types omit null here.
     const handleDblClick = () => uplotRef.current?.setScale("x", { min: null as unknown as number, max: null as unknown as number });
-    containerRef.current.addEventListener("dblclick", handleDblClick);
+    wrapperRef.current.addEventListener("dblclick", handleDblClick);
 
     return () => {
       uplotRef.current?.destroy();
       uplotRef.current = null;
-      containerRef.current?.removeEventListener("dblclick", handleDblClick);
+      wrapperRef.current?.removeEventListener("dblclick", handleDblClick);
     };
   // Intentionally runs once on mount — series config is stable.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,32 +124,34 @@ const TelemetryChart = memo(({
     uplotRef.current.setData([xRef.current, yRef.current]);
   }, [value]);
 
-  // ── Resize to container ─────────────────────────────────────────────────
+  // ── Resize to wrapper ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!wrapperRef.current) return;
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        uplotRef.current?.setSize({
-          width:  entry.contentRect.width,
-          height: CHART_HEIGHT,
-        });
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          uplotRef.current?.setSize({ width, height });
+        }
       }
     });
 
-    observer.observe(containerRef.current);
+    observer.observe(wrapperRef.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="bg-card flex flex-col rounded-xl border shadow-sm">
-      <div className="flex items-center justify-between px-4 pt-3">
+    <div className="bg-card flex h-full min-h-0 flex-col rounded-xl border shadow-sm">
+      <div className="flex shrink-0 items-center justify-between px-4 pb-1 pt-3">
         <span className="text-foreground text-sm font-semibold">{title}</span>
         {unit && (
           <span className="text-muted-foreground text-xs">{unit}</span>
         )}
       </div>
-      <div ref={containerRef} className="w-full px-1 pb-2" />
+      <div ref={wrapperRef} className="min-h-0 flex-1 px-1 pb-2">
+        <div ref={containerRef} />
+      </div>
     </div>
   );
 });

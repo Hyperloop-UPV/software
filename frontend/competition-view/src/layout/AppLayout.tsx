@@ -25,7 +25,7 @@ const AppLayout = ({ children, backendConnected, onShowShortcuts }: AppLayoutPro
           <AppSidebar backendConnected={backendConnected} />
           <SidebarInset className="flex h-full flex-col">
             <Header backendConnected={backendConnected} onShowShortcuts={onShowShortcuts} />
-            <div className="flex-1 overflow-auto">{children}</div>
+            <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
           </SidebarInset>
         </div>
       </SidebarProvider>

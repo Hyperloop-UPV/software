@@ -12,10 +12,6 @@ import useKeyboardShortcuts from "./hooks/useKeyboardShortcuts";
 import useSendOrder from "./hooks/useSendOrder";
 import AppLayout from "./layout/AppLayout";
 import Batteries from "./pages/Batteries";
-import Boards from "./pages/Boards";
-import Booster from "./pages/Booster";
-import Charts from "./pages/Charts";
-import Messages from "./pages/Messages";
 import Orders from "./pages/Orders";
 import Overview from "./pages/Overview";
 import { useStore } from "./store/store";
@@ -67,13 +63,9 @@ const App = () => {
         onShowShortcuts={() => setHelpOpen(true)}
       >
         <Routes>
-          <Route path="/"          element={<ErrorBoundary title="Overview failed to render">  <Overview />                          </ErrorBoundary>} />
-          <Route path="/charts"    element={<ErrorBoundary title="Charts failed to render">    <Charts />                            </ErrorBoundary>} />
-          <Route path="/batteries" element={<ErrorBoundary title="Batteries failed to render"> <Batteries />                         </ErrorBoundary>} />
-          <Route path="/boards"    element={<ErrorBoundary title="Boards failed to render">    <Boards />                            </ErrorBoundary>} />
-          <Route path="/booster"   element={<ErrorBoundary title="Booster failed to render">   <Booster />                           </ErrorBoundary>} />
-          <Route path="/orders"    element={<ErrorBoundary title="Orders failed to render">    <Orders />                            </ErrorBoundary>} />
-          <Route path="/messages"  element={<ErrorBoundary title="Messages failed to render">  <Messages />                          </ErrorBoundary>} />
+          <Route path="/"          element={<ErrorBoundary title="Dashboard failed to render">  <Overview />   </ErrorBoundary>} />
+          <Route path="/orders"    element={<ErrorBoundary title="Orders failed to render">     <Orders />     </ErrorBoundary>} />
+          <Route path="/batteries" element={<ErrorBoundary title="Batteries failed to render">  <Batteries />  </ErrorBoundary>} />
         </Routes>
       </AppLayout>
 
