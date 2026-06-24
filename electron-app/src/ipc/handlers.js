@@ -18,6 +18,7 @@ import {
 } from "../config/configInstance.js";
 import { getBackendWorkingDir } from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
+import { getAppPath } from "../utils/paths.js";
 import {
   getCurrentView,
   getMainWindow,
@@ -41,6 +42,18 @@ function setupIpcHandlers() {
   ipcMain.handle("get-current-view", () => getCurrentView());
 
   ipcMain.handle("get-app-version", () => app.getVersion());
+
+  ipcMain.handle("get-available-views", () => {
+    const ALL_VIEWS = [
+      { mode: "testing", label: "Testing View" },
+      { mode: "competition", label: "Competition View" },
+      { mode: "flashing", label: "Flashing View" },
+    ];
+    const rendererDir = join(getAppPath(), "renderer");
+    return ALL_VIEWS.filter(({ mode }) =>
+      fs.existsSync(join(rendererDir, `${mode}-view`))
+    );
+  });
 
   /**
    * @event switch-view
