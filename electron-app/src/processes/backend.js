@@ -242,20 +242,13 @@ async function stopBackend() {
  * restartBackend();
  */
 async function restartBackend() {
-  // Stop current process first
   await stopBackend();
-
-  if (localBackendProcess.stdin) {
-    localBackendProcess.stdin.end();
-  }
-
-  // Start a new process
   try {
     await startBackend();
     logger.electron.info("Backend restarted successfully");
   } catch (error) {
     logger.electron.error("Failed to restart backend:", error);
-    throw error; // Let the IPC handler know it failed
+    throw error;
   }
 }
 

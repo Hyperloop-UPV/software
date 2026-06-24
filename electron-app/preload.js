@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openFolder: (path) => ipcRenderer.invoke("open-folder", path),
   // Get the application version from the main process
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  // Restart the backend process and reload the renderer when ready
+  restartBackend: () => ipcRenderer.invoke("restart-backend"),
   // Set initial mode (used by mode selector renderer)
   setInitialMode: (mode) => {
     ipcRenderer.send("mode-selected", mode);

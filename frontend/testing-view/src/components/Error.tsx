@@ -23,7 +23,11 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
   const [showDetails, setShowDetails] = useState(false);
 
   const handleReload = () => {
-    window.location.reload();
+    if (window.electronAPI) {
+      window.electronAPI.restartBackend();
+    } else {
+      window.location.reload();
+    }
   };
 
   return (
