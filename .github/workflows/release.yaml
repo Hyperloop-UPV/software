@@ -10,6 +10,18 @@ on:
         description: "Create as draft release"
         type: boolean
         default: true
+      include-testing:
+        description: "Include Testing View"
+        type: boolean
+        default: true
+      include-competition:
+        description: "Include Competition View"
+        type: boolean
+        default: true
+      include-flashing:
+        description: "Include Flashing View"
+        type: boolean
+        default: true
 
 
 jobs:
@@ -19,12 +31,18 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
       is_draft: ${{ steps.get_version.outputs.is_draft }}
+      include_testing: ${{ steps.get_version.outputs.include_testing }}
+      include_competition: ${{ steps.get_version.outputs.include_competition }}
+      include_flashing: ${{ steps.get_version.outputs.include_flashing }}
     steps:
       - name: Determine version
         id: get_version
         run: |
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           echo "is_draft=${{ github.event.inputs.draft }}" >> $GITHUB_OUTPUT
+          echo "include_testing=${{ github.event.inputs.include-testing }}" >> $GITHUB_OUTPUT
+          echo "include_competition=${{ github.event.inputs.include-competition }}" >> $GITHUB_OUTPUT
+          echo "include_flashing=${{ github.event.inputs.include-flashing }}" >> $GITHUB_OUTPUT
 
   create-draft-release:
     name: Create Draft Release
@@ -66,21 +84,35 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build with Turbo
-        run: pnpm turbo build --filter=testing-view --filter=competition-view --filter=flashing-view
+        run: |
+          FILTERS=""
+          if [ "${{ needs.determine-version.outputs.include_testing }}" = "true" ]; then
+            FILTERS="$FILTERS --filter=testing-view"
+          fi
+          if [ "${{ needs.determine-version.outputs.include_competition }}" = "true" ]; then
+            FILTERS="$FILTERS --filter=competition-view"
+          fi
+          if [ "${{ needs.determine-version.outputs.include_flashing }}" = "true" ]; then
+            FILTERS="$FILTERS --filter=flashing-view"
+          fi
+          pnpm turbo build $FILTERS
 
       - uses: actions/upload-artifact@v4
+        if: needs.determine-version.outputs.include_testing == 'true'
         with:
           name: frontend-dist
           path: frontend/testing-view/dist/**
           retention-days: 1
 
       - uses: actions/upload-artifact@v4
+        if: needs.determine-version.outputs.include_competition == 'true'
         with:
           name: competition-dist
           path: frontend/competition-view/dist/**
           retention-days: 1
 
       - uses: actions/upload-artifact@v4
+        if: needs.determine-version.outputs.include_flashing == 'true'
         with:
           name: flashing-dist
           path: frontend/flashing-view/dist/**
@@ -248,18 +280,21 @@ jobs:
         run: chmod +x electron-app/binaries/*
 
       - name: Download frontend dist
+        if: needs.determine-version.outputs.include_testing == 'true'
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: electron-app/renderer/testing-view
 
       - name: Download competition-view dist
+        if: needs.determine-version.outputs.include_competition == 'true'
         uses: actions/download-artifact@v4
         with:
           name: competition-dist
           path: electron-app/renderer/competition-view
 
       - name: Download flashing-view dist
+        if: needs.determine-version.outputs.include_flashing == 'true'
         uses: actions/download-artifact@v4
         with:
           name: flashing-dist

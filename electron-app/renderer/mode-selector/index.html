@@ -208,11 +208,7 @@
     <div class="header">
       <h1>Control Station</h1>
     </div>
-    <div class="button-grid">
-      <button id="testing" class="primary">Testing View</button>
-      <button id="competition" class="secondary">Competition View</button>
-      <button id="flashing" class="secondary">Flashing View</button>
-    </div>
+    <div class="button-grid" id="button-grid"></div>
     <div class="aux-logo-wrap">
       <img src="src/sign.png" alt="Logo auxiliar" class="logo-aux" />
       <div class="app-footer">
@@ -229,9 +225,38 @@
         try { window.ipcRenderer && window.ipcRenderer.send('set-initial-mode', mode); window.close(); } catch (e) { }
       }
     };
-    document.getElementById('testing').addEventListener('click', () => sendMode('testing'));
-    document.getElementById('competition').addEventListener('click', () => sendMode('competition'));
-    document.getElementById('flashing').addEventListener('click', () => sendMode('flashing'));
+
+    const FALLBACK_VIEWS = [
+      { mode: 'testing', label: 'Testing View' },
+      { mode: 'competition', label: 'Competition View' },
+      { mode: 'flashing', label: 'Flashing View' },
+    ];
+
+    async function renderButtons() {
+      let views = FALLBACK_VIEWS;
+      try {
+        if (window.electronAPI?.getAvailableViews) {
+          const available = await window.electronAPI.getAvailableViews();
+          if (available && available.length > 0) views = available;
+        }
+      } catch (e) { }
+
+      const grid = document.getElementById('button-grid');
+      views.forEach(({ mode, label }, i) => {
+        const btn = document.createElement('button');
+        btn.id = mode;
+        btn.className = i === 0 ? 'primary' : 'secondary';
+        btn.textContent = label;
+        btn.addEventListener('click', () => sendMode(mode));
+        grid.appendChild(btn);
+      });
+
+      if (views.length === 1) {
+        sendMode(views[0].mode);
+      }
+    }
+
+    renderButtons();
 
     const appVersionNode = document.getElementById('app-version');
     if (appVersionNode && window.electronAPI?.getAppVersion) {
