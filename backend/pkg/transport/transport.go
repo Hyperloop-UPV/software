@@ -55,20 +55,11 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 	client := tcp.NewClient(remote, config, transport.logger)
 	clientLogger := transport.logger.With().Str("remoteAddress", remote).Logger()
 	defer clientLogger.Warn().Msg("abort connection")
-	hasConnected := false
 
 	for {
 		conn, err := client.Dial()
 		if err != nil {
 			clientLogger.Debug().Stack().Err(err).Msg("dial failed")
-			// Only return if reconnection is disabled
-			if !config.TryReconnect {
-				if hasConnected {
-					transport.SendFault()
-				}
-				transport.errChan <- err
-				return err
-			}
 
 			// For ErrTooManyRetries, we still want to continue retrying
 			// The client will reset its retry counter on the next Dial() call
@@ -81,8 +72,6 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 			continue
 		}
 
-		hasConnected = true
-
 		err = transport.handleTCPConn(conn)
 		if errors.Is(err, error(ErrTargetAlreadyConnected{})) {
 			clientLogger.Warn().Stack().Err(err).Msg("multiple connections for same target")
@@ -91,11 +80,6 @@ func (transport *Transport) HandleClient(config tcp.ClientConfig, remote string)
 		}
 		if err != nil {
 			clientLogger.Debug().Stack().Err(err).Msg("connection lost")
-			if !config.TryReconnect {
-				transport.SendFault()
-				transport.errChan <- err
-				return err
-			}
 
 			// Connection was lost, continue trying to reconnect
 			continue

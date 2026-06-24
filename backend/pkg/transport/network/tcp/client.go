@@ -62,12 +62,6 @@ func (client *Client) Dial() (net.Conn, error) {
 			client.logger.Error().Stack().Err(client.config.Context.Err()).Msg("canceled")
 			return nil, client.config.Context.Err()
 		}
-
-		// If reconnection is disabled, bail out immediately on any error
-		if !client.config.TryReconnect {
-			client.logger.Error().Stack().Err(err).Msg("failed with non-retryable error")
-			return nil, err
-		}
 	}
 
 	client.logger.Debug().Int("max", client.config.MaxConnectionRetries).Msg("max connection retries exceeded")
