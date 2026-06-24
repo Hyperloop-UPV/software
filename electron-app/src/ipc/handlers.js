@@ -54,7 +54,7 @@ function setupIpcHandlers() {
       reloadWindow();
     } catch (error) {
       logger.electron.error("Failed to restart backend:", error);
-      throw error;
+      dialog.showErrorBox("Restart Failed", `Could not restart backend:\n\n${error.message}`);
     }
   });
 
