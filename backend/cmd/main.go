@@ -9,6 +9,7 @@ import (
 	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/update_factory"
+	"github.com/HyperloopUPV-H8/h9-backend/pkg/logger"
 	tracelogger "github.com/HyperloopUPV-H8/h9-backend/pkg/logger/trace"
 
 	vehicle_models "github.com/HyperloopUPV-H8/h9-backend/internal/vehicle/models"
@@ -34,12 +35,6 @@ func main() {
 	flags.Init()
 	handleVersionFlag()
 
-	// Configure trace
-	traceFile := tracelogger.InitTrace(flags.TraceLevel)
-	if traceFile != nil {
-		defer traceFile.Close()
-	}
-
 	// Set use to all available CPUs and setup CPU profiling if enabled
 	cleanup := setupRuntimeCPU()
 	defer cleanup()
@@ -50,11 +45,25 @@ func main() {
 		trace.Fatal().Err(err).Msg("error unmarshaling toml file")
 	}
 
+	// Configure BasePath before InitTrace and NewADJ so all "others" files land in the right place
+	if err := logger.ConfigureLogger(config.Logging.TimeUnit, config.Logging.LoggingPath, ""); err != nil {
+		trace.Fatal().Err(err).Msg("configuring logger")
+	}
+
+	// Configure trace
+	traceFile := tracelogger.InitTrace(flags.TraceLevel)
+	if traceFile != nil {
+		defer traceFile.Close()
+	}
+
 	// <--- ADJ --->
 	adj, err := adj_module.NewADJ(config.Adj)
 	if err != nil {
 		trace.Fatal().Err(err).Msg("setting up ADJ")
 	}
+
+	// Now that we have the commit hash, update it in the logger
+	logger.CommitHash = adj.Commit
 
 	// <--- pod data --->
 	podData, err := pod_data.NewPodData(adj.Boards, adj.Info.Units)
@@ -75,10 +84,7 @@ func main() {
 	updateFactory := update_factory.NewFactory(boardToPackets)
 
 	// <--- logger --->
-	loggerHandler, subloggers, err := setUpLogger(config, adj.Commit)
-	if err != nil {
-		trace.Fatal().Err(err).Msg("setting up logger")
-	}
+	loggerHandler, subloggers := setUpLogger()
 
 	// <-- connections & upgrader -->
 	connections := make(chan *websocket.Client)

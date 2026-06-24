@@ -207,7 +207,7 @@ type LoggerSettings struct {
 }
 
 // WriteLoggerSettings writes the logger settings to a JSON file in the logger directory
-func WriteLoggerSettings(path string) error {
+func WriteLoggerSettings(filePath string) error {
 	settings := LoggerSettings{
 		AdjCommitHash: CommitHash,
 		TimeUnit:      TimestampUnit,
@@ -219,6 +219,9 @@ func WriteLoggerSettings(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, settingsBytes, 0644)
+	if err := os.MkdirAll(path.Dir(filePath), os.ModePerm); err != nil {
+		return err
+	}
 
+	return os.WriteFile(filePath, settingsBytes, 0644)
 }

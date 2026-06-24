@@ -7,7 +7,6 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"github.com/HyperloopUPV-H8/h9-backend/internal/config"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/flags"
 	"github.com/HyperloopUPV-H8/h9-backend/internal/pod_data"
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
@@ -135,7 +134,7 @@ func createLookupTables(
 		createBoardToPackets(podData)
 }
 
-func setUpLogger(config config.Config, commitHash string) (*logger.Logger, abstraction.SubloggersMap, error) {
+func setUpLogger() (*logger.Logger, abstraction.SubloggersMap) {
 
 	var subloggers = abstraction.SubloggersMap{
 		data_logger.Name:       data_logger.NewLogger(),
@@ -143,10 +142,7 @@ func setUpLogger(config config.Config, commitHash string) (*logger.Logger, abstr
 		order_logger.Name:      order_logger.NewLogger(),
 	}
 
-	err := logger.ConfigureLogger(config.Logging.TimeUnit, config.Logging.LoggingPath, commitHash)
-
 	loggerHandler := logger.NewLogger(subloggers, trace.Logger)
 
-	return loggerHandler, subloggers, err
-
+	return loggerHandler, subloggers
 }
