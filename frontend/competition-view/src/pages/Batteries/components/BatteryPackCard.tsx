@@ -1,19 +1,58 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components";
 import { hvbmsPack } from "../../../constants/measurements";
 import useMeasurement from "../../../hooks/useMeasurement";
 
 interface BatteryPackCardProps {
-  /** Pack number, 1-based (1–18). */
   packNumber: number;
 }
 
+const CELL_MIN = 3.0;
+const CELL_MAX = 4.2;
+const CELL_WARN_LOW  = 3.1;
+const CELL_WARN_HIGH = 4.15;
+
 const fmt = (v: number | boolean | string | undefined, decimals = 1) =>
   typeof v === "number" ? v.toFixed(decimals) : "—";
+
+/* ─── Individual cell tile ───────────────────────────────────────────────── */
+
+const CellTile = ({ cellNum, measurementKey }: { cellNum: number; measurementKey: string }) => {
+  const raw = useMeasurement(measurementKey);
+  const v = typeof raw === "number" ? raw : null;
+  const isLow  = v !== null && v < CELL_WARN_LOW;
+  const isHigh = v !== null && v > CELL_WARN_HIGH;
+  const fill = v !== null
+    ? Math.min(100, Math.max(0, ((v - CELL_MIN) / (CELL_MAX - CELL_MIN)) * 100))
+    : 0;
+
+  return (
+    <div
+      className={`flex flex-col gap-0.5 rounded border px-1.5 py-1 ${
+        isLow  ? "border-red-500 bg-red-500/5" :
+        isHigh ? "border-amber-500 bg-amber-500/5" :
+                 "border-border"
+      }`}
+    >
+      <span className="text-muted-foreground text-[9px] leading-none">{cellNum}</span>
+      <div className="bg-muted h-0.5 overflow-hidden rounded-full">
+        <div
+          className={`h-full rounded-full ${isLow ? "bg-red-500" : isHigh ? "bg-amber-500" : "bg-green-500"}`}
+          style={{ width: `${fill}%` }}
+        />
+      </div>
+      <span
+        className={`text-[10px] font-medium tabular-nums leading-none ${
+          isLow ? "text-red-500" : isHigh ? "text-amber-500" : "text-foreground"
+        }`}
+      >
+        {v !== null ? v.toFixed(2) : "—"}
+        <span className="text-muted-foreground ml-0.5 font-normal">V</span>
+      </span>
+    </div>
+  );
+};
+
+/* ─── Pack card ──────────────────────────────────────────────────────────── */
 
 const BatteryPackCard = ({ packNumber }: BatteryPackCardProps) => {
   const keys = hvbmsPack(packNumber);
@@ -21,19 +60,8 @@ const BatteryPackCard = ({ packNumber }: BatteryPackCardProps) => {
   const soc     = useMeasurement(keys.soc);
   const voltage = useMeasurement(keys.voltage);
   const temp    = useMeasurement(keys.temperature);
-  const cell1   = useMeasurement(keys.cell1);
-  const cell2   = useMeasurement(keys.cell2);
-  const cell3   = useMeasurement(keys.cell3);
-  const cell4   = useMeasurement(keys.cell4);
-  const cell5   = useMeasurement(keys.cell5);
-  const cell6   = useMeasurement(keys.cell6);
 
-  const cells = [cell1, cell2, cell3, cell4, cell5, cell6];
-  const cellNums = cells.filter((c): c is number => typeof c === "number");
-  const cellMax = cellNums.length ? Math.max(...cellNums) : undefined;
-  const cellMin = cellNums.length ? Math.min(...cellNums) : undefined;
-
-  const socNum = typeof soc === "number" ? soc : null;
+  const socNum   = typeof soc === "number" ? soc : null;
   const socColor =
     socNum === null ? "bg-muted"     :
     socNum < 15     ? "bg-red-500"   :
@@ -43,46 +71,41 @@ const BatteryPackCard = ({ packNumber }: BatteryPackCardProps) => {
   return (
     <Card className="gap-2 py-3">
       <CardHeader className="px-3 pb-0">
-        <CardTitle className="text-xs font-semibold">
-          Pack {packNumber}
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-sm font-semibold">Group {packNumber}</CardTitle>
+          <div className="flex items-center gap-1.5 flex-1 max-w-[60%]">
+            <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
+              <div
+                className={`h-full rounded-full transition-all ${socColor}`}
+                style={{ width: `${socNum ?? 0}%` }}
+              />
+            </div>
+            <span className="text-xs font-medium tabular-nums w-8 text-right">
+              {fmt(soc, 0)}%
+            </span>
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-2 px-3">
-        {/* SOC bar */}
-        <div className="flex items-center gap-2">
-          <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
-            <div
-              className={`h-full rounded-full transition-all ${socColor}`}
-              style={{ width: `${socNum ?? 0}%` }}
-            />
-          </div>
-          <span className="text-foreground w-10 text-right text-xs font-medium tabular-nums">
-            {fmt(soc, 0)}%
-          </span>
+        {/* Summary stats */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+          <Stat label="Voltage" value={fmt(voltage)} unit="V" />
+          <Stat label="Temp"    value={fmt(temp)}    unit="°C" />
         </div>
 
-        {/* Key values */}
-        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
-          <Stat label="Voltage"  value={fmt(voltage)}      unit="V"  />
-          <Stat label="Temp"     value={fmt(temp)}          unit="°C" />
-          <Stat label="Cell max" value={fmt(cellMax, 3)}   unit="V"  />
-          <Stat label="Cell min" value={fmt(cellMin, 3)}   unit="V"  />
+        {/* 12-cell grid: 6 cols × 2 rows */}
+        <div className="grid grid-cols-6 gap-1">
+          {keys.cells.map((key, i) => (
+            <CellTile key={key} cellNum={i + 1} measurementKey={key} />
+          ))}
         </div>
       </CardContent>
     </Card>
   );
 };
 
-const Stat = ({
-  label,
-  value,
-  unit,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-}) => (
+const Stat = ({ label, value, unit }: { label: string; value: string; unit: string }) => (
   <div className="flex items-baseline justify-between">
     <span className="text-muted-foreground">{label}</span>
     <span className="text-foreground font-medium tabular-nums">
