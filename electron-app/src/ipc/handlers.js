@@ -16,13 +16,17 @@ import {
   readConfig,
   writeConfig,
 } from "../config/configInstance.js";
-import { getBackendWorkingDir } from "../processes/backend.js";
+import {
+  getBackendWorkingDir,
+  restartBackend,
+} from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
 import { getAppPath } from "../utils/paths.js";
 import {
   getCurrentView,
   getMainWindow,
   loadView,
+  reloadWindow,
 } from "../windows/mainWindow.js";
 
 /**
@@ -40,6 +44,21 @@ function setupIpcHandlers() {
    * @returns {string} The current view name (e.g., "ethernet-view", "control-station").
    */
   ipcMain.handle("get-current-view", () => getCurrentView());
+
+  /**
+   * @event restart-backend
+   * @async
+   * @description Stops the backend process, restarts it, and reloads the renderer once ready.
+   */
+  ipcMain.handle("restart-backend", async () => {
+    try {
+      await restartBackend();
+      reloadWindow();
+    } catch (error) {
+      logger.electron.error("Failed to restart backend:", error);
+      dialog.showErrorBox("Restart Failed", `Could not restart backend:\n\n${error.message}`);
+    }
+  });
 
   ipcMain.handle("get-app-version", () => app.getVersion());
 

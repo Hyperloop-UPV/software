@@ -44,6 +44,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   blcuReadFile: (path) => ipcRenderer.invoke("blcu-read-file", path),
   // Get the application version from the main process
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  // Restart the backend process and reload the renderer when ready
+  restartBackend: () => ipcRenderer.invoke("restart-backend"),
   // Get the list of views available in this build
   getAvailableViews: () => ipcRenderer.invoke("get-available-views"),
   // Set initial mode (used by mode selector renderer)

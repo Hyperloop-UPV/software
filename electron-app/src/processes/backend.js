@@ -165,10 +165,17 @@ async function startBackend(logWindow = null) {
         }
 
         if (code === null || code === 0) {
-          logger.backend.warning("Backend closed before ready signal - likely port conflict or initialization error");
+          let errorMessage = "Backend process closed before initialization completed";
+          if (lastBackendError) {
+            const stripped = lastBackendError.replace(/\x1b\[[0-9;]*m/g, "");
+            errorMessage += `\n\n${stripped}`;
+            lastBackendError = null;
+          }
+          logger.backend.warning(errorMessage);
+          dialog.showErrorBox("Backend Failed to Start", errorMessage);
           backendProcess = null;
           resolved = true;
-          return reject(new Error("Backend process closed before initialization completed"));
+          return reject(new Error(errorMessage));
         }
       }
 
@@ -242,20 +249,15 @@ async function stopBackend() {
  * restartBackend();
  */
 async function restartBackend() {
-  // Stop current process first
   await stopBackend();
-
-  if (localBackendProcess.stdin) {
-    localBackendProcess.stdin.end();
-  }
-
-  // Start a new process
+  // Brief pause so the OS fully releases ports before the new process binds them
+  await new Promise((resolve) => setTimeout(resolve, 500));
   try {
     await startBackend();
     logger.electron.info("Backend restarted successfully");
   } catch (error) {
     logger.electron.error("Failed to restart backend:", error);
-    throw error; // Let the IPC handler know it failed
+    throw error;
   }
 }
 

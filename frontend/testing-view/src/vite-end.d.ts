@@ -8,6 +8,7 @@ interface ElectronAPI {
   importConfig: () => Promise<void>;
   selectFolder: () => Promise<string>;
   openFolder: (path: string) => Promise<void>;
+  restartBackend: () => Promise<void>;
   blcuSelectFile?: () => Promise<string | null>;
   blcuUpload?: (request: {
     host: string;
