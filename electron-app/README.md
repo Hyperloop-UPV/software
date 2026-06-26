@@ -24,7 +24,7 @@ When running in development mode (unpackaged), the application creates temporary
 
 - `binaries/` - Directory containing compiled backend and BLCU programming executables for your platform. These are generated during the build process, when running `pnpm run build`.
 
-- `renderer/` - Directory containing built frontend views (control-station, ethernet-view). These are generated during the build process, when running `pnpm run build`. All its content is ignored, except `mode-selector`
+- `renderer/` - Directory containing built frontend views (testing-view, competition-view, flashing-view). These are generated during the build process, when running `pnpm run build`. All its content is ignored, except `mode-selector`
 
 - `dist/` - Build output directory containing compiled and packaged application files. Generated during build and distribution processes, when running `pnpm run dist`.
 
@@ -86,6 +86,9 @@ sudo ifconfig lo0 alias 127.0.0.9 up
 
 ```
 - `pnpm run build` - Build all frontend views and backend
+- `pnpm run build:testing` - Build only the Testing View (and copy to renderer/)
+- `pnpm run build:competition` - Build only the Competition View (and copy to renderer/)
+- `pnpm run build:flashing` - Build only the Flashing View (and copy to renderer/)
 - `pnpm start` - Run application in development mode
 - `pnpm run dist` - Build production executable
 - `pnpm test` - Run tests

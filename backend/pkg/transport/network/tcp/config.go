@@ -13,7 +13,6 @@ type ClientConfig struct {
 
 	Context context.Context
 
-	TryReconnect              bool
 	ConnectionBackoffFunction backoffFunction
 	MaxConnectionRetries      int
 }
@@ -34,7 +33,6 @@ func NewClientConfig(laddr net.Addr) ClientConfig {
 		},
 
 		Context:                   context.TODO(),
-		TryReconnect:              true,
 		ConnectionBackoffFunction: NewExponentialBackoff(defaultBackoffMin, defaultBackoffExp, defaultBackoffMax),
 		MaxConnectionRetries:      -1,
 	}

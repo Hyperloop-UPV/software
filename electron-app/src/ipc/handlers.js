@@ -8,6 +8,7 @@
  */
 
 import { app, dialog, ipcMain, shell } from "electron";
+import { readFile } from "fs/promises";
 import fs from "fs";
 import { isAbsolute, join } from "path";
 import {
@@ -20,6 +21,7 @@ import {
   restartBackend,
 } from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
+import { getAppPath } from "../utils/paths.js";
 import {
   getCurrentView,
   getMainWindow,
@@ -59,6 +61,18 @@ function setupIpcHandlers() {
   });
 
   ipcMain.handle("get-app-version", () => app.getVersion());
+
+  ipcMain.handle("get-available-views", () => {
+    const ALL_VIEWS = [
+      { mode: "testing", label: "Testing View" },
+      { mode: "competition", label: "Competition View" },
+      { mode: "flashing", label: "Flashing View" },
+    ];
+    const rendererDir = join(getAppPath(), "renderer");
+    return ALL_VIEWS.filter(({ mode }) =>
+      fs.existsSync(join(rendererDir, `${mode}-view`))
+    );
+  });
 
   /**
    * @event switch-view
@@ -170,11 +184,35 @@ function setupIpcHandlers() {
         ? folderPath
         : join(getBackendWorkingDir(), folderPath);
       const loggerPath = join(resolvedPath, "logger");
-      await shell.openPath(fs.existsSync(loggerPath) ? loggerPath : resolvedPath);
+      await shell.openPath(
+        fs.existsSync(loggerPath) ? loggerPath : resolvedPath,
+      );
     } catch (error) {
       logger.electron.error("Error opening folder:", error);
       throw error;
     }
+  });
+
+  // BLCU — only the file picker runs through IPC; all API calls go directly
+  // from the renderer to http://localhost:8000.
+
+  ipcMain.handle("blcu-select-file", async () => {
+    try {
+      const mainWindow = getMainWindow();
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: "Select Firmware File",
+        properties: ["openFile"],
+        filters: [{ name: "Firmware", extensions: ["bin", "hex", "elf"] }],
+      });
+      return result.canceled ? null : (result.filePaths[0] ?? null);
+    } catch (error) {
+      logger.electron.error("Error opening firmware file dialog:", error);
+      return null;
+    }
+  });
+
+  ipcMain.handle("blcu-read-file", async (_event, filePath) => {
+    return await readFile(filePath);
   });
 }
 

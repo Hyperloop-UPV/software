@@ -1,6 +1,6 @@
 # Processes (`processes/`)
 
-Process management module for spawning and controlling external processes (backend and packet sender).
+Process management module for spawning and controlling external processes (backend and BLCU programming service).
 
 ## Overview
 
@@ -8,50 +8,63 @@ Manages the lifecycle of external binary processes spawned by the Electron appli
 
 ## Files
 
-- `backend.js` - Backend process management
+- `backend.js` - Go backend process management
+- `blcuProgramming.js` - BLCU programming (Python/FastAPI) process management
+
+---
 
 ## Backend Process (`backend.js`)
 
-Manages the Go backend process that handles data processing.
+Manages the Go backend binary that handles data ingestion and pod communication.
 
 ### Functions
 
-- `startBackend()` - Spawns the backend process with config file path
+- `startBackend(logWindow)` - Spawns the backend binary, piping stdout/stderr to the log window
 - `stopBackend()` - Stops the backend process gracefully (SIGTERM)
 - `restartBackend()` - Stops and restarts the backend process
 
 ### Behavior
 
-- Validates binary exists before starting
+- Validates the binary exists before starting
 - Sets working directory based on dev/production mode
-- Logs stdout/stderr to logger
+- Streams stdout/stderr to the log window via IPC
 - Shows error dialogs on startup failures or crashes
-- Passes config file path via `--config` flag
+- Passes the config file path via `--config` flag
 
+---
+
+## BLCU Programming Process (`blcuProgramming.js`)
+
+Manages the PyInstaller-compiled BLCU programming binary that serves the FastAPI HTTP server for the Flashing View.
+
+### Functions
+
+- `startBlcuProgramming()` - Spawns the BLCU binary and resolves when the process is running
+- `stopBlcuProgramming()` - Stops the BLCU process gracefully
+
+### Behavior
+
+- Resolves the platform-specific binary name from `electron-app/binaries/`
+- Sets `BLCU_API_HOST` and `BLCU_API_PORT` environment variables (defaults: `127.0.0.1:8069`)
+- Logs process stdout/stderr via `logger.process()`
+- Exits the Electron app if the binary cannot be found
+
+---
 
 ## Dependencies
 
-- `../utils/paths.js` - For resolving binary and config paths
-- `../utils/logger.js` - For process output logging
-- `child_process` - For spawning processes
-- `electron` - For dialog and app APIs
+- `../utils/paths.js` - Binary path resolution
+- `../utils/logger.js` - Process output logging
+- `child_process` - Process spawning
+- `electron` - Dialog and app APIs
 
 ## Used By
 
-- **`main.js`** - Starts backend on app ready, stops both processes on quit
-- **`ipc/handlers.js`** - Restarts backend when config is saved/imported
-- **`menu/menu.js`** - Provides start/stop controls for packet sender
-
-## Notes
-
-- Backend process is required and shows error dialogs if binary missing
-- Packet sender is optional and silently fails if binary missing
-- Processes are terminated with SIGTERM for graceful shutdown
-- Process output is captured and logged via logger utility
-- Backend working directory differs between dev and production modes
+- **`app/modeSelector.js`** - Starts the appropriate process for the selected mode (backend for testing/competition, BLCU for flashing)
+- **`main.js`** - Stops all processes on app quit
 
 ## See Also
 
-- [../ipc/README.md](../ipc/README.md) - IPC handlers that restart backend
-- [../menu/README.md](../menu/README.md) - Menu that controls packet sender
+- [../ipc/README.md](../ipc/README.md) - IPC handlers
 - [../utils/README.md](../utils/README.md) - Utility functions (paths, logger)
+- [../windows/README.md](../windows/README.md) - Window management

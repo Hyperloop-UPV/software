@@ -6,6 +6,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "bin/**", "target/release/**"]
     },
+    "blcu-programming#build": {
+      "dependsOn": [],
+      "outputs": ["../electron-app/binaries/blcu-programming-*"]
+    },
     "dev": {
       "cache": false,
       "persistent": true,

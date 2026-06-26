@@ -6,7 +6,7 @@ This directory contains the frontend workspace for the Hyperloop Control Station
 
 ## Architecture Overview
 
-The frontend is organized as 6 workspaces out of 9 in the whole monorepo, divided into 3 main areas:
+The frontend is organized as 7 workspaces out of 10 in the whole monorepo, divided into 3 main areas:
 
 ### Workspaces
 
@@ -14,6 +14,7 @@ The frontend is organized as 6 workspaces out of 9 in the whole monorepo, divide
 | :----------------------------------------------------------------- | :---------------------------------------------------- |
 | `testing-view`                                                     | Primary telemetry testing and debugging interface     |
 | `competition-view`                                                 | Competition-focused UI (simplified view)              |
+| `flashing-view`                                                    | UI for flashing firmware to the BLCU board            |
 | `frontend-kit/ui` or `@workspace/ui`                               | Component library built on shadcn/ui and Radix UI     |
 | `frontend-kit/core` or `@workspace/core`                           | Shared business logic, WebSocket utilities, and types |
 | `frontend-kit/eslint-config` or `@workspace/eslint-config`         | Common ESLint configurations                          |
@@ -156,7 +157,9 @@ frontend/
 │   │   ├── mocks/             # Mocks
 │   │   └── lib/               # Utilities
 │   └── public/                # Static assets
-└── competition-view/
+├── competition-view/
+│   └── src/                   # Similar structure
+└── flashing-view/
     └── src/                   # Similar structure
 ```
 
