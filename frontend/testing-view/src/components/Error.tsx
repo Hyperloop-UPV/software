@@ -32,6 +32,7 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
   }, [countdown]);
 
   const handleReload = () => {
+    setCountdown(RELOAD_COOLDOWN);
     if (window.electronAPI) {
       window.electronAPI.restartBackend();
     } else {
