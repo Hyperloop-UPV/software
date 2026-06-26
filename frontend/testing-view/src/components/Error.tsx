@@ -1,8 +1,10 @@
 import { Button } from "@workspace/ui";
 import { RefreshCw, Terminal } from "@workspace/ui/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import errorGif from "../assets/error.gif";
 import { useStore } from "../store/store";
+
+const RELOAD_COOLDOWN = 8;
 
 interface ErrorProps {
   /** Optional error to display. Can be null or undefined. In this case component will show default error message */
@@ -21,6 +23,13 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
   const storeError = useStore((s) => s.error);
   const error = propError || storeError;
   const [showDetails, setShowDetails] = useState(false);
+  const [countdown, setCountdown] = useState(RELOAD_COOLDOWN);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [countdown]);
 
   const handleReload = () => {
     if (window.electronAPI) {
@@ -76,11 +85,12 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
         <div className="flex items-center gap-3">
           <Button
             onClick={handleReload}
+            disabled={countdown > 0}
             className="shadow-primary/20 gap-2 px-8 font-semibold shadow-lg"
             variant="default"
           >
             <RefreshCw className="h-4 w-4" />
-            Reload App
+            {countdown > 0 ? `Reload App (${countdown})` : "Reload App"}
           </Button>
 
           {error?.stack && (
