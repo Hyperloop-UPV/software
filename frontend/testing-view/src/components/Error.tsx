@@ -21,6 +21,7 @@ interface ErrorProps {
  */
 export const Error = ({ error: propError, componentStack }: ErrorProps) => {
   const storeError = useStore((s) => s.error);
+  const setRestarting = useStore((s) => s.setRestarting);
   const error = propError || storeError;
   const [showDetails, setShowDetails] = useState(false);
   const [countdown, setCountdown] = useState(RELOAD_COOLDOWN);
@@ -34,7 +35,10 @@ export const Error = ({ error: propError, componentStack }: ErrorProps) => {
   const handleReload = () => {
     setCountdown(RELOAD_COOLDOWN);
     if (window.electronAPI) {
-      window.electronAPI.restartBackend();
+      setRestarting(true);
+      window.electronAPI.restartBackend().catch(() => {
+        setRestarting(false);
+      });
     } else {
       window.location.reload();
     }
