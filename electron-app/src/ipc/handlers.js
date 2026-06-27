@@ -26,7 +26,6 @@ import {
   getCurrentView,
   getMainWindow,
   loadView,
-  reloadWindow,
 } from "../windows/mainWindow.js";
 
 /**
@@ -53,10 +52,11 @@ function setupIpcHandlers() {
   ipcMain.handle("restart-backend", async () => {
     try {
       await restartBackend();
-      reloadWindow();
     } catch (error) {
       logger.electron.error("Failed to restart backend:", error);
       dialog.showErrorBox("Restart Failed", `Could not restart backend:\n\n${error.message}`);
+    } finally {
+      loadView("testing-view");
     }
   });
 
