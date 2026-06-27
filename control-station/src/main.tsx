@@ -9,6 +9,7 @@ import { mainPageRoute } from "pages/VehiclePage/MainPage/mainPageRoute";
 import { camerasRoute } from "pages/CamerasPage/camerasRoute";
 import { batteriesRoute } from "pages/VehiclePage/BatteriesPage/batteriesRoute";
 import { boosterRoute } from "pages/VehiclePage/BoosterPage/boosterRoute";
+import { flashRoute } from "pages/FlashPage/flashRoute";
 import { ConfigProvider, GlobalTicker } from "common";
 
 const router = createHashRouter([
@@ -21,6 +22,7 @@ const router = createHashRouter([
       boosterRoute,
       batteriesRoute,
       camerasRoute,
+      flashRoute,
     ],
   },
 ]);

@@ -8,6 +8,7 @@ import (
 type ADJ struct {
 	Info   Info
 	Boards map[string]Board
+	Commit string
 }
 
 type InfoJSON struct {

@@ -33,6 +33,18 @@ let storedLogWindow = null;
 let lastBackendError = null;
 
 /**
+ * Clears the stored log window reference and closes it
+ */
+function clearLogWindow() {
+  if (storedLogWindow && !storedLogWindow.isDestroyed()) {
+    try {
+      storedLogWindow.close();
+    } catch (e) {}
+  }
+  storedLogWindow = null;
+}
+
+/**
  * Starts the backend process by spawning the backend binary with the user configuration.
  * @returns {void}
  * @example
@@ -46,6 +58,8 @@ async function startBackend(logWindow = null) {
   const currentLogWindow = logWindow || storedLogWindow;
 
   return new Promise((resolve, reject) => {
+    let resolved = false;
+
     // Get paths for binary and config
     const backendBin = getBinaryPath("backend");
     const configPath = getUserConfigPath();
@@ -91,9 +105,10 @@ async function startBackend(logWindow = null) {
 
       // Resolve as soon as the HTTP server confirms it is listening.
       // Matches: "INF ... > http server listening localAddr=..."
-      if (text.includes("http server listening")) {
+      if (text.includes("http server listening") && !resolved) {
         logger.backend.info("Backend ready (HTTP server listening)");
         clearTimeout(startupTimer);
+        resolved = true;
         resolve(backendProcess);
       }
     });
@@ -118,7 +133,10 @@ async function startBackend(logWindow = null) {
         "Backend Error",
         `Failed to start backend: ${error.message}`,
       );
-      return reject(new Error(`Failed to start backend: ${error.message}`));
+      if (!resolved) {
+        resolved = true;
+        return reject(new Error(`Failed to start backend: ${error.message}`));
+      }
     });
 
     // Handle process exit
@@ -126,21 +144,39 @@ async function startBackend(logWindow = null) {
       logger.backend.info(`Backend process exited with code ${code}`);
       clearTimeout(startupTimer);
 
-      if (code !== 0 && code !== null) {
-        let errorMessage = `Backend exited with code ${code}`;
+      // If the process closed without success, reject the promise
+      if (!resolved) {
+        if (code !== 0 && code !== null) {
+          let errorMessage = `Backend exited with code ${code}`;
 
-        if (lastBackendError) {
-          const stripped = lastBackendError.replace(/\x1b\[[0-9;]*m/g, "");
-          const formatted = formatBackendError(stripped);
-          errorMessage += `\n\n${getHint(stripped, formatted)}`;
-        } else {
-          errorMessage += "\n\n(No error output captured)";
+          if (lastBackendError) {
+            const stripped = lastBackendError.replace(/\x1b\[[0-9;]*m/g, "");
+            const formatted = formatBackendError(stripped);
+            errorMessage += `\n\n${getHint(stripped, formatted)}`;
+          } else {
+            errorMessage += "\n\n(No error output captured)";
+          }
+
+          dialog.showErrorBox("Backend Crashed", errorMessage);
+          lastBackendError = null;
+          backendProcess = null;
+          resolved = true;
+          return reject(new Error(errorMessage));
         }
 
-        dialog.showErrorBox("Backend Crashed", errorMessage);
-        lastBackendError = null;
-        backendProcess = null;
-        return reject(new Error(errorMessage));
+        if (code === null || code === 0) {
+          let errorMessage = "Backend process closed before initialization completed";
+          if (lastBackendError) {
+            const stripped = lastBackendError.replace(/\x1b\[[0-9;]*m/g, "");
+            errorMessage += `\n\n${stripped}`;
+            lastBackendError = null;
+          }
+          logger.backend.warning(errorMessage);
+          dialog.showErrorBox("Backend Failed to Start", errorMessage);
+          backendProcess = null;
+          resolved = true;
+          return reject(new Error(errorMessage));
+        }
       }
 
       backendProcess = null;
@@ -148,10 +184,13 @@ async function startBackend(logWindow = null) {
 
     // Fallback: if the ready message never appears, resolve anyway after timeout
     const startupTimer = setTimeout(() => {
-      logger.backend.warning(
-        "Backend ready signal not received - resolving after timeout",
-      );
-      resolve(backendProcess);
+      if (!resolved) {
+        logger.backend.warning(
+          "Backend ready signal not received - resolving after timeout",
+        );
+        resolved = true;
+        resolve(backendProcess);
+      }
     }, 5000);
   });
 }
@@ -176,6 +215,8 @@ async function stopBackend() {
         if (localBackendProcess === backendProcess) {
           backendProcess = null;
         }
+        // Clean up log window
+        clearLogWindow();
         resolve();
       });
 
@@ -194,6 +235,8 @@ async function stopBackend() {
       fallbackTimer.unref();
     } else {
       logger.backend.warning("Backend process not found, skipping stop...");
+      // Clean up log window even if process doesn't exist
+      clearLogWindow();
       resolve();
     }
   });
@@ -206,16 +249,15 @@ async function stopBackend() {
  * restartBackend();
  */
 async function restartBackend() {
-  // Stop current process first
   await stopBackend();
-
-  // Start a new process
+  // Brief pause so the OS fully releases ports before the new process binds them
+  await new Promise((resolve) => setTimeout(resolve, 500));
   try {
     await startBackend();
     logger.electron.info("Backend restarted successfully");
   } catch (error) {
     logger.electron.error("Failed to restart backend:", error);
-    throw error; // Let the IPC handler know it failed
+    throw error;
   }
 }
 
@@ -225,4 +267,4 @@ function getBackendWorkingDir() {
     : path.dirname(getUserConfigPath());
 }
 
-export { getBackendWorkingDir, restartBackend, startBackend, stopBackend };
+export { clearLogWindow, getBackendWorkingDir, restartBackend, startBackend, stopBackend };

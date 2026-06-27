@@ -1,6 +1,7 @@
 package adj
 
 import (
+	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -62,6 +63,13 @@ func Validate() {
 // If none of the candidates are found, an empty string is returned,
 // indicating that no Python interpreter is available.
 func pythonCommand() string {
+	// Prefer bundled Python shipped with the Electron app
+	if bundled := os.Getenv("HYPERLOOP_PYTHON_PATH"); bundled != "" {
+		if _, err := os.Stat(bundled); err == nil {
+			return bundled
+		}
+	}
+
 	candidates := []string{"python3", "python", "py"}
 
 	for _, c := range candidates {

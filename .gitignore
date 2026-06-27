@@ -10,3 +10,7 @@ node_modules/
 
 # Global binaries
 *.exe
+
+# electron modules
+electron-app/python
+electron-app/logger

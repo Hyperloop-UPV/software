@@ -1,0 +1,11 @@
+{
+  "name": "blcu-programming",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/setup.mjs",
+    "dev": "node scripts/run.mjs",
+    "start": "node scripts/run.mjs",
+    "build": "node ../electron-app/build.mjs --blcu-programming"
+  }
+}

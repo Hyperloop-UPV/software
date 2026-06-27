@@ -10,9 +10,19 @@ on:
         description: "Create as draft release"
         type: boolean
         default: true
+      include-testing:
+        description: "Include Testing View"
+        type: boolean
+        default: true
+      include-competition:
+        description: "Include Competition View"
+        type: boolean
+        default: true
+      include-flashing:
+        description: "Include Flashing View"
+        type: boolean
+        default: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   determine-version:
@@ -21,12 +31,18 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
       is_draft: ${{ steps.get_version.outputs.is_draft }}
+      include_testing: ${{ steps.get_version.outputs.include_testing }}
+      include_competition: ${{ steps.get_version.outputs.include_competition }}
+      include_flashing: ${{ steps.get_version.outputs.include_flashing }}
     steps:
       - name: Determine version
         id: get_version
         run: |
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           echo "is_draft=${{ github.event.inputs.draft }}" >> $GITHUB_OUTPUT
+          echo "include_testing=${{ github.event.inputs.include-testing }}" >> $GITHUB_OUTPUT
+          echo "include_competition=${{ github.event.inputs.include-competition }}" >> $GITHUB_OUTPUT
+          echo "include_flashing=${{ github.event.inputs.include-flashing }}" >> $GITHUB_OUTPUT
 
   create-draft-release:
     name: Create Draft Release
@@ -62,18 +78,44 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build with Turbo
-        run: pnpm turbo build --filter=testing-view
+        run: |
+          FILTERS=""
+          if [ "${{ needs.determine-version.outputs.include_testing }}" = "true" ]; then
+            FILTERS="$FILTERS --filter=testing-view"
+          fi
+          if [ "${{ needs.determine-version.outputs.include_competition }}" = "true" ]; then
+            FILTERS="$FILTERS --filter=competition-view"
+          fi
+          if [ "${{ needs.determine-version.outputs.include_flashing }}" = "true" ]; then
+            FILTERS="$FILTERS --filter=flashing-view"
+          fi
+          pnpm turbo build $FILTERS
 
       - uses: actions/upload-artifact@v4
+        if: needs.determine-version.outputs.include_testing == 'true'
         with:
           name: frontend-dist
           path: frontend/testing-view/dist/**
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        if: needs.determine-version.outputs.include_competition == 'true'
+        with:
+          name: competition-dist
+          path: frontend/competition-view/dist/**
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        if: needs.determine-version.outputs.include_flashing == 'true'
+        with:
+          name: flashing-dist
+          path: frontend/flashing-view/dist/**
           retention-days: 1
 
   build-backend:
@@ -121,9 +163,86 @@ jobs:
           path: electron-app/binaries/${{ matrix.binary }}
           retention-days: 1
 
+  build-blcu:
+    name: Build BLCU - ${{ matrix.os }}
+    needs: determine-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            binary: blcu-programming-windows-amd64.exe
+            binary-base: blcu-programming-windows-amd64
+          - os: ubuntu-latest
+            binary: blcu-programming-linux-amd64
+            binary-base: blcu-programming-linux-amd64
+          - os: macos-latest
+            binary: blcu-programming-darwin-arm64
+            binary-base: blcu-programming-darwin-arm64
+          - os: macos-15-intel
+            binary: blcu-programming-darwin-amd64
+            binary-base: blcu-programming-darwin-amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create virtual environment
+        working-directory: blcu-programming
+        run: python -m venv .venv-build
+
+      - name: Install dependencies
+        working-directory: blcu-programming
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            .venv-build/Scripts/pip install -r requirements-build.txt
+          else
+            .venv-build/bin/pip install -r requirements-build.txt
+          fi
+
+      - name: Build with PyInstaller
+        working-directory: blcu-programming
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            PYTHON=".venv-build/Scripts/python"
+          else
+            PYTHON=".venv-build/bin/python"
+          fi
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            PATH_SEP=";"
+          else
+            PATH_SEP=":"
+          fi
+          "$PYTHON" -m PyInstaller \
+            --clean \
+            --noconfirm \
+            --onefile \
+            --name "${{ matrix.binary-base }}" \
+            --distpath "../electron-app/binaries" \
+            --hidden-import uvicorn.loops.auto \
+            --hidden-import uvicorn.protocols.http.auto \
+            --hidden-import uvicorn.protocols.websockets.auto \
+            --hidden-import uvicorn.lifespan.on \
+            --hidden-import multipart \
+            --hidden-import multipart.multiparser \
+            --paths "." \
+            --add-data "BLCU-config.json${PATH_SEP}." \
+            api/main.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blcu-${{ matrix.os }}
+          path: electron-app/binaries/${{ matrix.binary }}
+          retention-days: 1
+
   package-and-upload:
     name: Package & Upload - ${{ matrix.os }}
-    needs: [determine-version, create-draft-release, build-frontend, build-backend]
+    needs: [determine-version, create-draft-release, build-frontend, build-backend, build-blcu]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -131,12 +250,16 @@ jobs:
         include:
           - os: windows-latest
             binary: backend-windows-amd64.exe
+            blcu-binary: blcu-programming-windows-amd64.exe
           - os: ubuntu-latest
             binary: backend-linux-amd64
+            blcu-binary: blcu-programming-linux-amd64
           - os: macos-latest
             binary: backend-darwin-arm64
+            blcu-binary: blcu-programming-darwin-arm64
           - os: macos-15-intel
             binary: backend-darwin-amd64
+            blcu-binary: blcu-programming-darwin-amd64
     steps:
       - uses: actions/checkout@v4
 
@@ -146,15 +269,36 @@ jobs:
           name: backend-${{ matrix.os }}
           path: electron-app/binaries
 
+      - name: Download BLCU binary
+        uses: actions/download-artifact@v4
+        with:
+          name: blcu-${{ matrix.os }}
+          path: electron-app/binaries
+
       - name: Set executable permissions (Unix)
         if: runner.os != 'Windows'
         run: chmod +x electron-app/binaries/*
 
       - name: Download frontend dist
+        if: needs.determine-version.outputs.include_testing == 'true'
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: electron-app/renderer/testing-view
+
+      - name: Download competition-view dist
+        if: needs.determine-version.outputs.include_competition == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: competition-dist
+          path: electron-app/renderer/competition-view
+
+      - name: Download flashing-view dist
+        if: needs.determine-version.outputs.include_flashing == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: flashing-dist
+          path: electron-app/renderer/flashing-view
 
       - uses: pnpm/action-setup@v4
         with:
@@ -162,7 +306,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Update version in package.json
         working-directory: electron-app
@@ -186,7 +330,7 @@ jobs:
         run: |
           find electron-app/dist -maxdepth 1 -type f \
             \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" \
-               -o -name "*.dmg" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) \
+               -o -name "*.rpm" -o -name "*.dmg" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) \
             | xargs gh release upload v${{ needs.determine-version.outputs.version }} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

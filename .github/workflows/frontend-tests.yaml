@@ -29,7 +29,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter=testing-view --filter=ui --filter=core
+        run: pnpm install --frozen-lockfile --filter=testing-view --filter=flashing-view --filter=competition-view --filter=ui --filter=core
 
       - name: Build frontend
         run: pnpm build --filter="./frontend/**"

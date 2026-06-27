@@ -53,43 +53,15 @@ const CONFIG = {
       },
     ],
   },
-  // "packet-sender": {
-  //   type: "go",
-  //   path: join(ROOT, "packet-sender"),
-  //   output: join(__dirname, "binaries"),
-  //   entry: ".",
-  //   commands: ["pnpm run build:ci"],
-  //   platforms: [
-  //     {
-  //       id: "win64",
-  //       goos: "windows",
-  //       goarch: "amd64",
-  //       ext: ".exe",
-  //       tags: ["win", "windows"],
-  //     },
-  //     {
-  //       id: "linux64",
-  //       goos: "linux",
-  //       goarch: "amd64",
-  //       ext: "",
-  //       tags: ["linux"],
-  //     },
-  //     {
-  //       id: "mac64",
-  //       goos: "darwin",
-  //       goarch: "amd64",
-  //       ext: "",
-  //       tags: ["mac", "macos"],
-  //     },
-  //     {
-  //       id: "macArm",
-  //       goos: "darwin",
-  //       goarch: "arm64",
-  //       ext: "",
-  //       tags: ["mac", "macos"],
-  //     },
-  //   ],
-  // },
+  "blcu-programming": {
+    type: "python",
+    path: join(ROOT, "blcu-programming"),
+    output: join(__dirname, "binaries"),
+    entry: join(ROOT, "blcu-programming", "api", "main.py"),
+    requirements: join(ROOT, "blcu-programming", "requirements-build.txt"),
+    venv: join(ROOT, "blcu-programming", ".venv-build"),
+    addData: [{ src: "BLCU-config.json", dest: "." }],
+  },
   "testing-view": {
     type: "frontend",
     path: join(ROOT, "frontend/testing-view"),
@@ -108,6 +80,15 @@ const CONFIG = {
       "pnpm run build",
     ],
     optional: true,
+  },
+  "flashing-view": {
+    type: "frontend",
+    path: join(ROOT, "frontend/flashing-view"),
+    dest: join(__dirname, "renderer/flashing-view"),
+    commands: [
+      "pnpm --filter flashing-view install --frozen-lockfile",
+      "pnpm run build",
+    ],
   },
 };
 
@@ -162,6 +143,120 @@ const buildGo = (name, config, requestedPlatforms, extraArgs = "") => {
     }
   }
   return success;
+};
+
+const getVenvPython = (venvPath) => {
+  const binDir = process.platform === "win32" ? "Scripts" : "bin";
+  const executable = process.platform === "win32" ? "python.exe" : "python";
+  return join(venvPath, binDir, executable);
+};
+
+const createPythonVenv = (venvPath, cwd) => {
+  if (existsSync(getVenvPython(venvPath))) return true;
+
+  const python = process.env.PYTHON || "python";
+
+  logger.step(`Creating Python build venv with ${python}...`);
+  return run(`${python} -m venv "${venvPath}"`, cwd);
+};
+
+const getPythonTarget = () => {
+  const goos =
+    { win32: "windows", darwin: "darwin", linux: "linux" }[process.platform] ||
+    process.platform;
+  const goarch = { x64: "amd64", arm64: "arm64" }[process.arch] || process.arch;
+  const platformTag =
+    { win32: "win", darwin: "mac", linux: "linux" }[process.platform] ||
+    process.platform;
+
+  return {
+    binarySuffix: `${goos}-${goarch}${process.platform === "win32" ? ".exe" : ""}`,
+    label: `${goos}/${goarch}`,
+    platformTag,
+  };
+};
+
+const buildPython = (name, config, requestedPlatforms) => {
+  const target = getPythonTarget();
+  const targetRequested =
+    requestedPlatforms.length === 0 ||
+    requestedPlatforms.includes("all") ||
+    requestedPlatforms.includes(target.platformTag);
+
+  if (!targetRequested) {
+    logger.error(
+      `${name} must be built on the target OS because PyInstaller cannot cross-compile. Current host is ${target.label}.`,
+    );
+    return false;
+  }
+
+  logger.info(`Building ${name} (Python/PyInstaller)...`);
+  mkdirSync(config.output, { recursive: true });
+
+  if (!createPythonVenv(config.venv, config.path)) return false;
+
+  const pythonBin = getVenvPython(config.venv);
+
+  if (
+    !run(
+      `"${pythonBin}" -m pip install -r "${config.requirements}"`,
+      config.path,
+    )
+  ) {
+    return false;
+  }
+
+  const binaryName = `${name}-${target.binarySuffix}`;
+  const binaryBaseName = binaryName.replace(/\.exe$/, "");
+  const binaryPath = join(config.output, binaryName);
+  const pyinstallerWorkPath = join(config.path, "build", "pyinstaller");
+  const pyinstallerSpecPath = join(config.path, "build");
+
+  if (existsSync(binaryPath)) {
+    try {
+      rmSync(binaryPath, { force: true });
+    } catch (error) {
+      if (error.code === "EPERM" || error.code === "EACCES") {
+        logger.error(
+          `Could not replace ${binaryPath}. Stop Electron or the running BLCU programming process, then build again.`,
+        );
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  const pathSep = process.platform === "win32" ? ";" : ":";
+  const addDataFlags = (config.addData || [])
+    .map(({ src, dest }) => {
+      const absSrc = join(config.path, src);
+      return `--add-data "${absSrc}${pathSep}${dest}"`;
+    })
+    .join(" ");
+
+  return run(
+    [
+      `"${pythonBin}" -m PyInstaller`,
+      "--clean",
+      "--noconfirm",
+      "--onefile",
+      `--name "${binaryBaseName}"`,
+      `--distpath "${config.output}"`,
+      `--workpath "${pyinstallerWorkPath}"`,
+      `--specpath "${pyinstallerSpecPath}"`,
+      "--hidden-import uvicorn.loops.auto",
+      "--hidden-import uvicorn.protocols.http.auto",
+      "--hidden-import uvicorn.protocols.websockets.auto",
+      "--hidden-import uvicorn.lifespan.on",
+      "--hidden-import multipart",
+      "--hidden-import multipart.multiparser",
+      `--paths "${config.path}"`,
+      addDataFlags,
+      `"${config.entry}"`,
+    ].filter(Boolean).join(" "),
+    config.path,
+  );
 };
 
 const buildFrontend = (name, config, extraArgs = "") => {
@@ -249,6 +344,8 @@ logger.header("Hyperloop Control Station Build");
 
     if (config.type === "go") {
       success = buildGo(key, config, requestedPlatforms, extraArgs);
+    } else if (config.type === "python") {
+      success = buildPython(key, config, requestedPlatforms);
     } else if (config.type === "frontend") {
       success = buildFrontend(key, config, extraArgs);
       if (success && !config.optional) frontendBuilt = true;

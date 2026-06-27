@@ -38,6 +38,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   selectFolder: () => ipcRenderer.invoke("select-folder"),
   // Open a folder path in the OS file explorer
   openFolder: (path) => ipcRenderer.invoke("open-folder", path),
+  // BLCU: open native file picker and return the selected path
+  blcuSelectFile: () => ipcRenderer.invoke("blcu-select-file"),
+  // BLCU: read a file from disk and return its contents as a Buffer
+  blcuReadFile: (path) => ipcRenderer.invoke("blcu-read-file", path),
+  // Get the application version from the main process
+  getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  // Restart the backend process and reload the renderer when ready
+  restartBackend: () => ipcRenderer.invoke("restart-backend"),
+  // Get the list of views available in this build
+  getAvailableViews: () => ipcRenderer.invoke("get-available-views"),
+  // Set initial mode (used by mode selector renderer)
+  setInitialMode: (mode) => {
+    ipcRenderer.send("mode-selected", mode);
+    return Promise.resolve();
+  },
   // Receive log message from backend
   onLog: (callback) => {
     const listener = (_event, value) => callback(value);

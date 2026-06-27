@@ -1,10 +1,15 @@
 packages:
-  # Frontend packages
-  - "frontend/frontend-kit/**"
-  - "frontend/testing-view"
-  - "frontend/competition-view"
+  # frontend
+  - frontend/frontend-kit/**
+  - frontend/testing-view
+  - frontend/competition-view
+  - frontend/flashing-view
 
+  # Backend packages
   - "backend"
+  - "blcu-programming"
+  
+  # Electron packages
   - "electron-app"
-  - "packet-sender"
   - "e2e"
+

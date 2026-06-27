@@ -104,7 +104,7 @@ export const TelemetryHeader = memo(
             </div>
             <Separator orientation="vertical" className="h-3" />
             <div className="text-muted-foreground font-mono">
-              {liveData.cycleTime} ms
+              {(liveData.cycleTime / 1_000_000).toFixed(2)} ms
             </div>
           </div>
         )}

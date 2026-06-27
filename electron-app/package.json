@@ -1,13 +1,20 @@
 {
   "name": "hyperloop-control-station",
-  "version": "1.0.0",
+  "version": "11.1.0",
   "description": "Hyperloop UPV Control Station",
   "main": "main.js",
   "type": "module",
   "author": {
     "name": "Hyperloop UPV",
-    "email": "max766667@gmail.com"
+    "email": "partners@hyperloopupv.com"
   },
+  "contributors": [
+    { "name": "Maxim Grivennyy", "email": "max766667@gmail.com" },
+    { "name": "Javier Ribal del Río", "email": "javierribaldelrio@gmail.com" },
+    { "name": "Lola Castello" },
+    { "name": "Alejandro González" },
+    { "name": "Vasyl Klymenko" }
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -30,8 +37,13 @@
     "build:backend:win": "node build.mjs --backend --win",
     "build:backend:linux": "node build.mjs --backend --linux",
     "build:backend:mac": "node build.mjs --backend --mac",
+    "build:blcu": "node build.mjs --blcu-programming",
+    "build:blcu:win": "node build.mjs --blcu-programming --win",
+    "build:blcu:linux": "node build.mjs --blcu-programming --linux",
+    "build:blcu:mac": "node build.mjs --blcu-programming --mac",
     "build:testing": "node build.mjs --testing-view",
     "build:competition": "node build.mjs --competition-view",
+    "build:flashing": "node build.mjs --flashing-view",
     "asar:win": "asar list dist/win-unpacked/resources/app.asar | findstr /V node_modules",
     "asar:mac": "asar list dist/mac-unpacked/resources/app.asar | findstr /V node_modules",
     "asar:linux": "asar list dist/linux-unpacked/resources/app.asar | findstr /V node_modules"
@@ -107,12 +119,15 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "rpm"
       ],
       "icon": "icons/512x512.png",
       "category": "Utility",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
-      "executableArgs": ["--no-sandbox"]
+      "executableArgs": [
+        "--no-sandbox"
+      ]
     }
   }
 }
