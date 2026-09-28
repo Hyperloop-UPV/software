@@ -1,0 +1,15 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Hyperloop UPV",
+  "license": "MIT",
+  "scripts": {
+    "dev": "cargo run -p station -- --config ./crates/station/dev-config.toml",
+    "dev:main": "cargo run -p station --release -- --config ./crates/station/config.toml",
+    "build": "cargo build -p station --release",
+    "build:ci": "cargo build --workspace --release",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings",
+    "fmt": "cargo fmt --all"
+  }
+}

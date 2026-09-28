@@ -1,0 +1,44 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/station"]
+default-members = ["crates/station"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+authors = [
+    "Hyperloop UPV Software Subsystem",
+    "Javier Ribal del Río",
+    "Gazi Halawani",
+    "Pau Minguet Micó"
+]
+repository = "https://github.com/Hyperloop-UPV/software"
+
+# Shared dependency versions. Members opt in with `dep.workspace = true`.
+[workspace.dependencies]
+software-core = { path = "crates/core" }
+
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
+toml = "0.9"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"

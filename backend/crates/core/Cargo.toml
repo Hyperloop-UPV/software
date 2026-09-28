@@ -1,0 +1,46 @@
+[package]
+name = "software-core"
+version = "0.1.0"
+description = "Generic Hyperloop UPV building blocks: ADJ model, packet protocol and transport"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[features]
+default = []
+# TCP/UDP transport (pulls in tokio)
+net = ["dep:tokio"]
+# ADJ download through git (dependency added when the module is written)
+git = []
+# Packet sniffing through pcap (dependency added when the module is written)
+pcap = ["net"]
+# CSV data logger (records, sessions, subloggers)
+logger = []
+# Reusable tracing/diagnostics setup (console + non-blocking file + stderr layers)
+trace = ["dep:tracing-subscriber", "dep:tracing-appender"]
+
+[dependencies]
+bytes.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tokio = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true }
+tracing-appender = { workspace = true, optional = true }
+
+# `workspace = true` can't be combined with extra lints in the same table,
+# so the workspace list is repeated here with `missing_docs` added: this is
+# the crate meant to be reused by other projects, so its public API must be
+# documented.
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
