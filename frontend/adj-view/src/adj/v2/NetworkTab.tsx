@@ -6,7 +6,7 @@
 import { useMemo } from "react";
 import type { AdjArchiveV2 } from "./types";
 import type { BoardMeta } from "./AdjViewerTabs";
-import { protocolFromSocketType, type Protocol } from "./sockets";
+import { boardPort, protocolFromSocketType, resolveTarget, type Protocol } from "./sockets";
 
 // Hyperloop UPV's actual brand palette (no separate secondary brand color
 // documented anywhere in the repo) — --primary is the brand orange, and
@@ -42,19 +42,6 @@ interface NetworkGraph {
   edges: DiagramEdge[];
 }
 
-// A socket's remote_ip may be a symbolic key into `addresses` (e.g. "backend")
-// or the raw IP itself — resolve either form to a stable node id + label.
-function resolveTarget(remoteIp: string, addresses: Record<string, string>) {
-  if (remoteIp in addresses) {
-    return { id: remoteIp, label: remoteIp, ip: addresses[remoteIp] };
-  }
-  const knownKey = Object.entries(addresses).find(([, ip]) => ip === remoteIp)?.[0];
-  if (knownKey) {
-    return { id: knownKey, label: knownKey, ip: remoteIp };
-  }
-  return { id: `ip:${remoteIp}`, label: remoteIp, ip: remoteIp };
-}
-
 function buildNetworkGraph(boards: BoardMeta[], generalInfo: AdjArchiveV2["general_info"]): NetworkGraph {
   const addresses = generalInfo.addresses ?? {};
   const centralMap = new Map<string, DiagramNode>();
@@ -63,10 +50,10 @@ function buildNetworkGraph(boards: BoardMeta[], generalInfo: AdjArchiveV2["gener
   }
 
   // A socket's remote_ip can also point at another board directly (board-to-board
-  // traffic) — route those to the existing board node instead of resolveTarget's
-  // "unknown external IP" fallback, which would otherwise draw a second, duplicate
-  // node for an IP that's already shown on the left as a board.
-  const boardIdByIp = new Map(boards.map((b) => [b.ip, b.name]));
+  // traffic) — resolveTarget routes those to the existing board node instead of
+  // the "unknown external IP" fallback, which would otherwise draw a second,
+  // duplicate node for an IP that's already shown on the left as a board.
+  const boardByIp = new Map(boards.map((b) => [b.ip, b.name]));
 
   // Listen-only sockets (no remote_ip) have no recorded source — infer the
   // backend as the source only when there's an unambiguous one to attribute it to.
@@ -79,24 +66,18 @@ function buildNetworkGraph(boards: BoardMeta[], generalInfo: AdjArchiveV2["gener
     const badges: string[] = [];
     for (const socket of board.sockets) {
       const protocol = protocolFromSocketType(socket.type);
+      const port = boardPort(socket);
       if (socket.remote_ip) {
-        const targetBoardName = boardIdByIp.get(socket.remote_ip);
-        let to: string;
-        if (targetBoardName) {
-          to = targetBoardName;
-        } else {
-          const target = resolveTarget(socket.remote_ip, addresses);
-          if (!centralMap.has(target.id)) {
-            centralMap.set(target.id, { id: target.id, label: target.label, ip: target.ip, badges: [] });
-          }
-          to = target.id;
+        const target = resolveTarget(socket.remote_ip, addresses, boardByIp);
+        if (target.kind !== "board" && !centralMap.has(target.id)) {
+          centralMap.set(target.id, { id: target.id, label: target.label, ip: target.ip, badges: [] });
         }
         edges.push({
           key: `${board.name}-${socket.name}-out`,
           from: board.name,
-          to,
+          to: target.id,
           protocol,
-          detail: `${socket.name} · :${socket.port}`,
+          detail: `${socket.name} · :${port ?? "?"}`,
         });
       } else if (backendKey) {
         edges.push({
@@ -104,10 +85,10 @@ function buildNetworkGraph(boards: BoardMeta[], generalInfo: AdjArchiveV2["gener
           from: backendKey,
           to: board.name,
           protocol,
-          detail: `${socket.name} · :${socket.port}`,
+          detail: `${socket.name} · :${port ?? "?"}`,
         });
       } else {
-        badges.push(`listens :${socket.port}`);
+        badges.push(`listens :${port ?? "?"}`);
       }
     }
     boardNodes.push({ id: board.name, label: board.name, ip: board.ip, boardId: board.id, badges });
