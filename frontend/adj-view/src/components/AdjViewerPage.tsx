@@ -18,6 +18,8 @@ import {
 import { AlertTriangle, GitCommit, Loader2, RefreshCw, SunMoon } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import logo from "@workspace/ui/outreach/main/logo_icon.svg";
+// Black strokes on transparency; inverted in dark mode (software_white.png is 8000 px / 430 KB).
+import softwareLogo from "@workspace/ui/outreach/main/software_black.png";
 import { useCallback, useEffect, useState } from "react";
 import { config } from "../../config";
 import { parseAdj, summarizeAdj, type ParsedAdj } from "../adj";
@@ -132,7 +134,16 @@ export function AdjViewerPage({ isDark, onToggleTheme }: AdjViewerPageProps) {
           take their own full-width row; from lg it's one row, toggle last. */}
       <header className="flex flex-wrap items-center gap-x-3 gap-y-3">
         <div className="order-1 flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 lg:flex-none">
-          <TeamLogo size={32} />
+          <div className="flex shrink-0 items-center gap-2.5">
+            <TeamLogo size={32} />
+            <span className="bg-border h-6 w-px" aria-hidden />
+            <img
+              src={softwareLogo}
+              alt="Hyperloop UPV Software"
+              title="Hyperloop UPV Software"
+              className="h-7 w-auto dark:invert"
+            />
+          </div>
           <h1 className="text-foreground text-xl font-bold">ADJ Viewer</h1>
           {commitHash && (
             <span className="text-muted-foreground flex items-center gap-1 font-mono text-xs">
