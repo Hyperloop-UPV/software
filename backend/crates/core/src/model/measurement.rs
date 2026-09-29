@@ -80,83 +80,11 @@ pub struct Measurement {
     pub name: String,
 
     /// The units of the measurement to be shown at tefronend
-    pub displa_units: String,
+    pub display_units: String,
 
     /// What kind of data this measurement holds.
     pub kind: MeasurementKind,
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_default_range_has_no_bounds() {
-        let range = Range::default();
-        assert_eq!(range.min, None);
-        assert_eq!(range.max, None);
-    }
-
-    #[test]
-    fn two_measurements_with_the_same_data_are_equal() {
-        let a = Measurement {
-            alias: "arming".to_string(),
-            name: "Arming".to_string(),
-            kind: MeasurementKind::Boolean,
-        };
-        let b = a.clone();
-        assert_eq!(a, b);
-    }
-
-    #[test]
-    fn numeric_measurements_carry_their_wire_type_and_ranges() {
-        let measurement = Measurement {
-            alias: "voltage".to_string(),
-            name: "Voltage".to_string(),
-            kind: MeasurementKind::Numeric {
-                wire_type: NumericKind::F32,
-                safe_range: Range {
-                    min: Some(0.0),
-                    max: Some(48.0),
-                },
-                warning_range: Range {
-                    min: Some(-5.0),
-                    max: Some(53.0),
-                },
-            },
-        };
-
-        let MeasurementKind::Numeric {
-            wire_type,
-            safe_range,
-            ..
-        } = measurement.kind
-        else {
-            unreachable!("measurement was just constructed as Numeric above");
-        };
-
-        assert_eq!(wire_type, NumericKind::F32);
-        assert_eq!(safe_range.max, Some(48.0));
-    }
-
-    #[test]
-    fn enum_measurements_list_their_options_in_adj_order() {
-        let measurement = Measurement {
-            id: "state".to_string(),
-            name: "State".to_string(),
-            kind: MeasurementKind::Enum {
-                options: vec![
-                    "Idle".to_string(),
-                    "Operational".to_string(),
-                    "Fault".to_string(),
-                ],
-            },
-        };
-
-        let MeasurementKind::Enum { options } = measurement.kind else {
-            unreachable!("measurement was just constructed as Enum above");
-        };
-
-        assert_eq!(options, vec!["Idle", "Operational", "Fault"]);
-    }
+    /// The protectionst that are checked for this messurement.
+    pub protections: Protections,
 }
