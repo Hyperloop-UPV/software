@@ -211,7 +211,7 @@ function BoardsTab({
 
               {/* Stats row */}
               <div className="border-t px-3 py-2">
-                <div className="text-muted-foreground flex items-center gap-4 text-[11px]">
+                <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
                   <span><span className="text-foreground font-semibold">{board.measurements.length}</span> measurements</span>
                   <span><span className="text-foreground font-semibold">{board.packets.length}</span> packets</span>
                   <span><span className="text-foreground font-semibold">{board.orders.length}</span> orders</span>
@@ -675,27 +675,28 @@ export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchiveV2 }) => {
   );
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col gap-0">
-      <TabsList className="mb-4 w-fit shrink-0">
-        <TabsTrigger value="boards" className="gap-1.5 text-xs">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 min-w-0 flex-1 flex-col gap-0">
+      {/* On narrow screens the bar scrolls sideways by itself instead of widening the page. */}
+      <TabsList className="mb-4 max-w-full shrink-0 justify-start overflow-x-auto [scrollbar-width:none]">
+        <TabsTrigger value="boards" className="flex-none gap-1.5 text-xs">
           <Cpu className="size-3.5" /> Boards
         </TabsTrigger>
-        <TabsTrigger value="measurements" className="gap-1.5 text-xs">
+        <TabsTrigger value="measurements" className="flex-none gap-1.5 text-xs">
           <Activity className="size-3.5" /> Measurements
         </TabsTrigger>
-        <TabsTrigger value="packets" className="gap-1.5 text-xs">
+        <TabsTrigger value="packets" className="flex-none gap-1.5 text-xs">
           <Layers className="size-3.5" /> Packets
         </TabsTrigger>
-        <TabsTrigger value="network" className="gap-1.5 text-xs">
+        <TabsTrigger value="network" className="flex-none gap-1.5 text-xs">
           <Network className="size-3.5" /> Network
         </TabsTrigger>
-        <TabsTrigger value="sockets" className="gap-1.5 text-xs">
+        <TabsTrigger value="sockets" className="flex-none gap-1.5 text-xs">
           <Plug className="size-3.5" /> Sockets
         </TabsTrigger>
-        <TabsTrigger value="throughput" className="gap-1.5 text-xs">
+        <TabsTrigger value="throughput" className="flex-none gap-1.5 text-xs">
           <TrendingUp className="size-3.5" /> Throughput
         </TabsTrigger>
-        <TabsTrigger value="general" className="gap-1.5 text-xs">
+        <TabsTrigger value="general" className="flex-none gap-1.5 text-xs">
           <Server className="size-3.5" /> General
         </TabsTrigger>
       </TabsList>

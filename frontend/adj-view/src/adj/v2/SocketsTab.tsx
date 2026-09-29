@@ -325,7 +325,7 @@ export function SocketsTab({
       </div>
 
       <div className="flex-1 overflow-auto pr-1">
-        <table className="w-full text-xs">
+        <table className="w-full min-w-[46rem] text-xs">
           <thead className="sticky top-0 z-10 shadow-sm">
             <tr className="border-b">
               <SortableHeader label="Board" col="board" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />

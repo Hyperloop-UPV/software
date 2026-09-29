@@ -87,6 +87,10 @@ No `@workspace/core` dependency (no WebSocket/backend integration here).
 
 Tailwind v4 with CSS-variable theming, dark mode via `.dark` class on `<html>` (toggled in `App.tsx`, persisted to `localStorage["adj-view-dark-mode"]`). `NetworkTab`'s SVG reads the same CSS variables (`var(--primary)`, `var(--foreground)`, etc.) directly in inline styles so the diagram adapts automatically between themes. UI copy is English (sentence case, no all-caps labels); numbers use `tabular-nums` rather than a monospace font.
 
+Branding: the header and empty state use the team mark `@workspace/ui/outreach/main/logo_icon.svg` (not the H11 isotype the other views use), via `TeamLogo` in `AdjViewerPage.tsx`. That SVG draws the mark in only the middle ~49% of its 900×900 viewBox, so `TeamLogo` scales the image up inside a clipped box; a plain `<img className="size-9">` renders it tiny.
+
+The layout must work down to phone width (check 390 / 768 / 1440 px) without the page scrolling sideways. The header wraps into title + theme toggle, then a full-width row of load controls below `lg`. The tab bar scrolls inside itself, and wide tables and the Network SVG scroll inside their own containers.
+
 ### Gotchas
 
 - **Kit spacing tokens hijack named sizes**: `frontend-kit`'s `--spacing-sm/md/…` make `max-w-sm` etc. resolve to a few px (the kit's own `SheetContent` ships `sm:max-w-sm`). Always use arbitrary values like `max-w-[42rem]`.
