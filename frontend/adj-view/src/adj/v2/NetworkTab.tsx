@@ -4,7 +4,7 @@
 // monorepo, and the node/edge count here is small enough that manual two-column
 // layout is simpler than pulling one in.
 import { useMemo } from "react";
-import type { AdjArchive } from "../types/adj";
+import type { AdjArchiveV2 } from "./types";
 import type { BoardMeta } from "./AdjViewerTabs";
 
 type Protocol = "TCP" | "UDP" | "OTHER";
@@ -66,7 +66,7 @@ function resolveTarget(remoteIp: string, addresses: Record<string, string>) {
   return { id: `ip:${remoteIp}`, label: remoteIp, ip: remoteIp };
 }
 
-function buildNetworkGraph(boards: BoardMeta[], generalInfo: AdjArchive["general_info"]): NetworkGraph {
+function buildNetworkGraph(boards: BoardMeta[], generalInfo: AdjArchiveV2["general_info"]): NetworkGraph {
   const addresses = generalInfo.addresses ?? {};
   const centralMap = new Map<string, DiagramNode>();
   for (const [key, ip] of Object.entries(addresses)) {
@@ -233,7 +233,7 @@ function Legend() {
   );
 }
 
-export function NetworkTab({ boards, generalInfo }: { boards: BoardMeta[]; generalInfo: AdjArchive["general_info"] }) {
+export function NetworkTab({ boards, generalInfo }: { boards: BoardMeta[]; generalInfo: AdjArchiveV2["general_info"] }) {
   const graph = useMemo(() => buildNetworkGraph(boards, generalInfo), [boards, generalInfo]);
 
   const totalRows = Math.max(graph.boardNodes.length, graph.centralNodes.length, 1);

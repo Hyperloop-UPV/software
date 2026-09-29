@@ -1,4 +1,4 @@
-// Types for the ADJ archive fetched from GitHub Pages.
+// Types for an ADJ v2 archive fetched from GitHub Pages.
 
 export interface AdjMeasurement {
   id: string;
@@ -44,7 +44,7 @@ export interface AdjSocket {
 //       "packets", "packets_old", "orders", "orders_old" (AdjPacket[]), "sockets" (AdjSocket[]).
 export type AdjBoardGroup = Record<string, AdjBoardInfo | AdjMeasurement[] | AdjPacket[] | AdjSocket[] | unknown>;
 
-export interface AdjArchive {
+export interface AdjArchiveV2 {
   boards: Record<string, AdjBoardGroup>;
   general_info: {
     ports: Record<string, number>;

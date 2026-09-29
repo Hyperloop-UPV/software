@@ -15,17 +15,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components";
-import { BookOpen, GitCommit, Loader2, RefreshCw, SunMoon } from "@workspace/ui/icons";
+import { AlertTriangle, BookOpen, GitCommit, Loader2, RefreshCw, SunMoon } from "@workspace/ui/icons";
+import { cn } from "@workspace/ui/lib";
 import { useCallback, useEffect, useState } from "react";
 import { config } from "../../config";
+import { parseAdj, summarizeAdj, type ParsedAdj } from "../adj";
+import { AdjViewer } from "../adj/AdjViewer";
 import { useBranches } from "../hooks/useBranches";
-import type { AdjArchive } from "../types/adj";
-import { AdjViewerTabs, extractBoards } from "./AdjViewerTabs";
+import { UnsupportedAdjNotice } from "./UnsupportedAdjNotice";
 
 const ADJ_ARCHIVE_URL = (hash: string) =>
   `https://hyperloop-upv.github.io/ADJ-Archive/storage/commit-${hash}.json`;
 
-async function fetchAdjArchive(hash: string): Promise<AdjArchive> {
+async function fetchAdjArchive(hash: string): Promise<unknown> {
   const response = await fetch(ADJ_ARCHIVE_URL(hash));
   if (!response.ok) throw new Error(`ADJ fetch failed: ${response.status}`);
   return response.json();
@@ -48,7 +50,7 @@ interface AdjViewerPageProps {
 export function AdjViewerPage({ isDark, onToggleTheme }: AdjViewerPageProps) {
   const [hashInput, setHashInput] = useState("");
   const [commitHash, setCommitHash] = useState<string | null>(null);
-  const [adjData, setAdjData] = useState<AdjArchive | null>(null);
+  const [parsed, setParsed] = useState<ParsedAdj | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,17 +59,16 @@ export function AdjViewerPage({ isDark, onToggleTheme }: AdjViewerPageProps) {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [resolvingBranch, setResolvingBranch] = useState(false);
 
-  const boards = adjData ? extractBoards(adjData) : [];
-  const totalMeasurements = boards.reduce((s, b) => s + b.measurements.length, 0);
-  const totalPackets = boards.reduce((s, b) => s + b.packets.length + b.orders.length, 0);
+  const adj = parsed?.supported ? parsed.adj : null;
+  const version = parsed ? (parsed.supported ? parsed.adj.version : parsed.version) : null;
+  const summary = adj ? summarizeAdj(adj) : null;
 
   const load = useCallback(async (hash: string) => {
     if (!hash) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchAdjArchive(hash);
-      setAdjData(data);
+      setParsed(parseAdj(await fetchAdjArchive(hash)));
       setCommitHash(hash);
     } catch (err) {
       setError(String(err));
@@ -114,11 +115,30 @@ export function AdjViewerPage({ isDark, onToggleTheme }: AdjViewerPageProps) {
             {commitHash.slice(0, 7)}
           </span>
         )}
-        {adjData && (
+        {parsed && (
+          <Badge
+            variant="outline"
+            title={
+              parsed.supported
+                ? `ADJ format version v${version} (archives without a "version" field are v2)`
+                : `ADJ v${version} is not supported by this viewer`
+            }
+            className={cn(
+              "font-mono text-[10px]",
+              parsed.supported
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+            )}
+          >
+            {!parsed.supported && <AlertTriangle />}
+            ADJ v{version}
+          </Badge>
+        )}
+        {summary && (
           <div className="text-muted-foreground flex gap-3 text-[11px]">
-            <span><span className="text-foreground font-semibold">{boards.length}</span> boards</span>
-            <span><span className="text-foreground font-semibold">{totalMeasurements}</span> measurements</span>
-            <span><span className="text-foreground font-semibold">{totalPackets}</span> packets</span>
+            <span><span className="text-foreground font-semibold">{summary.boards}</span> boards</span>
+            <span><span className="text-foreground font-semibold">{summary.measurements}</span> measurements</span>
+            <span><span className="text-foreground font-semibold">{summary.packets}</span> packets</span>
           </div>
         )}
 
@@ -205,8 +225,10 @@ export function AdjViewerPage({ isDark, onToggleTheme }: AdjViewerPageProps) {
       )}
 
       <div className="min-h-0 flex-1">
-        {adjData ? (
-          <AdjViewerTabs adjData={adjData} />
+        {adj ? (
+          <AdjViewer adj={adj} />
+        ) : parsed && !parsed.supported ? (
+          <UnsupportedAdjNotice version={parsed.version} />
         ) : (
           <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-sm">
             <BookOpen className="size-8 opacity-20" />

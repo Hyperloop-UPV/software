@@ -23,7 +23,7 @@ import {
 } from "@workspace/ui/icons";
 import { cn, getTypeBadgeClass, typeBadgeClasses } from "@workspace/ui/lib";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AdjArchive, AdjMeasurement, AdjPacket, AdjSocket } from "../types/adj";
+import type { AdjArchiveV2, AdjMeasurement, AdjPacket, AdjSocket } from "./types";
 import { NetworkTab } from "./NetworkTab";
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ type SortDir = "asc" | "desc";
 
 // ─── data helpers ─────────────────────────────────────────────────────────────
 
-export function extractBoards(adjData: AdjArchive): BoardMeta[] {
+export function extractBoards(adjData: AdjArchiveV2): BoardMeta[] {
   return Object.entries(adjData.boards)
     .map(([boardName, boardGroup]) => {
       const g = boardGroup as Record<string, unknown>;
@@ -748,7 +748,7 @@ function GeneralSection({
   );
 }
 
-function GeneralTab({ adjData }: { adjData: AdjArchive }) {
+function GeneralTab({ adjData }: { adjData: AdjArchiveV2 }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useKeyboardSearch(inputRef);
@@ -788,7 +788,7 @@ function useKeyboardSearch(ref: React.RefObject<HTMLInputElement | null>) {
 
 // ─── main tabs component ─────────────────────────────────────────────────────
 
-export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchive }) => {
+export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchiveV2 }) => {
   const boards = useMemo(() => extractBoards(adjData), [adjData]);
 
   // Lifted state for cross-tab navigation

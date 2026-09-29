@@ -1,0 +1,67 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+pnpm dev          # Dev server on port 9004
+pnpm build        # tsc -b && vite build
+pnpm lint         # ESLint
+pnpm preview      # Preview production build
+```
+
+Run from the monorepo root (`/software`) targeting this workspace instead, if not already inside `frontend/adj-view`:
+
+```bash
+pnpm dev --filter adj-view
+pnpm build:adj-view
+pnpm add <package> --filter adj-view
+```
+
+> **pnpm only** — the `preinstall` script enforces this via `only-allow`.
+
+There is no test suite for this workspace (`pnpm test` at the root skips it). Verify changes with `pnpm build` (type-checks via `tsc -b`) and `pnpm lint`.
+
+## Architecture
+
+`adj-view` is a standalone Vite+React workspace in the Hyperloop Control Station monorepo (`frontend/`). Unlike the other frontend views (`testing-view`, `competition-view`, `logging-view`), it has **no WebSocket connection, no Zustand store, and no session dependency** — it's a pure fetch-and-browse tool for ADJ archives. Everything the app knows comes from either a commit hash the user types in or a `?commit=<hash>` query param.
+
+### What an ADJ archive is
+
+"ADJ" (see [Hyperloop-UPV/ADJ](https://github.com/hyperloop-upv/adj)) is the pod's telemetry/board definition format: boards, their measurements (typed variables with units/enum values), packets (periodic telemetry) and orders (commands), and network sockets. `adj-view` fetches a JSON snapshot of this archive, built and published per-commit to GitHub Pages, and renders it for inspection. The v2 archive's shape is documented via inline comments in `src/adj/v2/types.ts` — read that file before touching parsing logic; the JSON has non-obvious nesting (e.g. `boards[boardName]` is a group containing both the board's own config *and* sibling keys like `${boardName}_measurements`, `packets`, `orders`, `sockets` — see `extractBoards` in `src/adj/v2/AdjViewerTabs.tsx` for how it's flattened).
+
+### Versioning
+
+The ADJ format is versioned, and adj-view must keep rendering every version it has supported. The version is read from the archive's **top-level `version` key** (`{ version, boards, general_info }`). **If it's absent, the archive is v2** — every archive published before versioning existed has no such key. Version-specific code lives in `src/adj/vN/`; nothing outside `src/adj/` may import from a `vN/` folder directly.
+
+`src/adj/index.ts` is the only place that knows which versions exist: `detectAdjVersion` → `parseAdj` returns a `ParsedAdj` — either `{ supported: true, adj: LoadedAdj }` (a `{ version, data }` tagged union that `summarizeAdj` / `AdjViewer` in `src/adj/AdjViewer.tsx` switch on) or `{ supported: false, version }`. An unknown-but-well-formed version is **not** an error: the header's version badge turns amber and `src/components/UnsupportedAdjNotice.tsx` replaces the tabs, explaining the archive uses a newer ADJ format. Only a malformed `version` value (non-integer, boolean, empty string) throws.
+
+To add a version N: create `src/adj/vN/` (types, viewer, summary), add `{ version: N; data: ... }` to `LoadedAdj`, add `case N` to `parseAdj`, and add N to `SUPPORTED_ADJ_VERSIONS` (used by the notice's text). The `assertNever(adj.version)` defaults then make `tsc` fail until `summarizeAdj` and `AdjViewer` handle it too.
+
+Two external data sources, both configured in `config.ts`:
+- **Archive JSON**: `https://hyperloop-upv.github.io/ADJ-Archive/storage/commit-<hash>.json` — fetched directly by commit hash, no auth.
+- **GitHub API**: branch list and branch→commit resolution against `config.ADJ_GITHUB_REPO` (`hyperloop-upv/adj`), unauthenticated (rate-limited).
+
+### Component structure
+
+- `src/components/AdjViewerPage.tsx` — version-agnostic top-level page. Owns commit-hash input, branch combobox (via `useBranches`), fetch/loading/error state, and dark-mode toggle passed down from `App.tsx`. Reads `?commit=` on mount to support being launched from `logging-view`'s "View ADJ" shortcut. Only ever handles `LoadedAdj` — never a version-specific type — and renders `<AdjViewer>` once data is loaded.
+- `src/adj/v2/AdjViewerTabs.tsx` — the v2 browser: Boards / Measurements / Packets / Network / General tabs, all fed by `extractBoards()`. Tabs share cross-navigation state lifted into this component (e.g. clicking a board in the Boards tab or a packet in the Packets tab jumps to Measurements pre-filtered by board/variable IDs — see `handleJumpToMeasurements` / `handleJumpToPacketMeasurements`). This file is large and holds most of the UI logic; the small presentational pieces near the top (`Highlight`, `SearchInput`, `TypeChip`, `BoardChip`, `FilterPills`, etc.) are shared across tabs.
+- `src/adj/v2/NetworkTab.tsx` — hand-rolled SVG network topology diagram (boards on the left, `general_info.addresses` on the right, arrows colored by protocol derived from socket class names). No graph library is used or present in the monorepo; the node/edge count is small enough that manual two-column layout was simpler. See the file's header comments for the resolution rules used to match a socket's `remote_ip` to a board vs. a known address vs. an unknown external IP.
+- `src/hooks/useBranches.ts` — fetches the branch list from GitHub, using `useTransition` (not manual loading state) and `AbortSignal.any` to combine an external abort with a fetch timeout.
+
+### Workspace dependency
+
+Only shared package used is `@workspace/ui` (from `frontend-kit/ui`), for shadcn/Radix components, Lucide icons, and small utilities (`cn`, `getTypeBadgeClass`/`typeBadgeClasses` from `@workspace/ui/lib`):
+
+```tsx
+import { Button, Combobox } from "@workspace/ui/components";
+import { BookOpen, GitCommit } from "@workspace/ui/icons";
+import { cn, getTypeBadgeClass, typeBadgeClasses } from "@workspace/ui/lib";
+```
+
+No `@workspace/core` dependency (no WebSocket/backend integration here).
+
+### Styling
+
+Tailwind v4 with CSS-variable theming, dark mode via `.dark` class on `<html>` (toggled in `App.tsx`, persisted to `localStorage["adj-view-dark-mode"]`). `NetworkTab`'s SVG reads the same CSS variables (`var(--primary)`, `var(--foreground)`, etc.) directly in inline styles so the diagram adapts automatically between themes.
