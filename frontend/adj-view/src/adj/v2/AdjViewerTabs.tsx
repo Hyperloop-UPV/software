@@ -1,4 +1,4 @@
-// Tab-based ADJ archive browser (Boards / Measurements / Packets / General).
+// Tab-based ADJ archive browser (Boards / Measurements / Packets / Network / Throughput / General).
 // Pure data-in component — the page hosting it owns commit-hash fetching,
 // loading/error states, and header chrome.
 import {
@@ -20,11 +20,13 @@ import {
   Network,
   Search,
   Server,
+  TrendingUp,
 } from "@workspace/ui/icons";
 import { cn, getTypeBadgeClass, typeBadgeClasses } from "@workspace/ui/lib";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AdjArchiveV2, AdjMeasurement, AdjPacket, AdjSocket } from "./types";
 import { NetworkTab } from "./NetworkTab";
+import { ThroughputTab } from "./ThroughputTab";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -829,6 +831,9 @@ export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchiveV2 }) => {
         <TabsTrigger value="network" className="gap-1.5 text-xs">
           <Network className="size-3.5" /> Network
         </TabsTrigger>
+        <TabsTrigger value="throughput" className="gap-1.5 text-xs">
+          <TrendingUp className="size-3.5" /> Throughput
+        </TabsTrigger>
         <TabsTrigger value="general" className="gap-1.5 text-xs">
           <Server className="size-3.5" /> General
         </TabsTrigger>
@@ -852,6 +857,11 @@ export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchiveV2 }) => {
       </TabsContent>
       <TabsContent value="network" className="min-h-0 flex-1 overflow-hidden pb-4">
         <NetworkTab boards={boards} generalInfo={adjData.general_info} />
+      </TabsContent>
+      {/* No overflow-hidden here: it would trap ThroughputTab's sticky panel. */}
+      <TabsContent value="throughput" className="min-h-0 flex-1 pb-4">
+        {/* key resets the TCP-connected defaults when a different board set loads */}
+        <ThroughputTab key={boards.map((b) => b.name).join(",")} boards={boards} />
       </TabsContent>
       <TabsContent value="general" className="min-h-0 flex-1 overflow-hidden pb-4">
         <GeneralTab adjData={adjData} />

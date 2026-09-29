@@ -6,8 +6,7 @@
 import { useMemo } from "react";
 import type { AdjArchiveV2 } from "./types";
 import type { BoardMeta } from "./AdjViewerTabs";
-
-type Protocol = "TCP" | "UDP" | "OTHER";
+import { protocolFromSocketType, type Protocol } from "./sockets";
 
 // Hyperloop UPV's actual brand palette (no separate secondary brand color
 // documented anywhere in the repo) — --primary is the brand orange, and
@@ -18,16 +17,6 @@ const PROTOCOL_COLOR: Record<Protocol, string> = {
   UDP: "var(--primary)", // unidirectional: board → backend
   OTHER: "var(--muted-foreground)",
 };
-
-// Socket "type" comes straight from the ADJ archive (Java-style class names:
-// ServerSocket = TCP, DatagramSocket = UDP) — derive protocol from it rather
-// than hardcoding specific socket names.
-function protocolFromSocketType(type: string): Protocol {
-  const t = type.toLowerCase();
-  if (t.includes("datagram")) return "UDP";
-  if (t.includes("server") || t.includes("stream") || t.includes("tcp")) return "TCP";
-  return "OTHER";
-}
 
 // ─── graph model ───────────────────────────────────────────────────────────
 
