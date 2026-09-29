@@ -1,4 +1,4 @@
-// Types for the ADJ archive fetched from GitHub Pages.
+// Types for an ADJ v2 archive fetched from GitHub Pages.
 
 export interface AdjMeasurement {
   id: string;
@@ -29,14 +29,20 @@ export interface AdjBoardInfo {
   packets: string[];
 }
 
-// A board's network socket. ServerSocket entries have no remote_ip — the board
-// listens, but the archive doesn't record who connects. DatagramSocket entries
-// always have remote_ip (a raw IP, or sometimes a key from general_info.addresses).
+// A board's network socket. The ADJ schema (adj repo,
+// .github/workflows/scripts/adj-tester/schema/socket.schema.json) allows three types:
+// - ServerSocket (TCP server): `port`. No remote_ip — the board listens, and the
+//   archive doesn't record who connects.
+// - DatagramSocket (UDP): `port`, `remote_ip`.
+// - Socket (TCP client): `local_port`, `remote_ip`, `remote_port`.
+// remote_ip is a raw IP or a key from general_info.addresses (e.g. "backend").
 export interface AdjSocket {
   type: string;
   name: string;
-  port: number;
+  port?: number;
+  local_port?: number;
   remote_ip?: string;
+  remote_port?: number;
 }
 
 // boards[boardName] is a nested group, not a flat object.
@@ -44,7 +50,7 @@ export interface AdjSocket {
 //       "packets", "packets_old", "orders", "orders_old" (AdjPacket[]), "sockets" (AdjSocket[]).
 export type AdjBoardGroup = Record<string, AdjBoardInfo | AdjMeasurement[] | AdjPacket[] | AdjSocket[] | unknown>;
 
-export interface AdjArchive {
+export interface AdjArchiveV2 {
   boards: Record<string, AdjBoardGroup>;
   general_info: {
     ports: Record<string, number>;

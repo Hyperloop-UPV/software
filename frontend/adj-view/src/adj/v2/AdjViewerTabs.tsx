@@ -1,9 +1,8 @@
-// Tab-based ADJ archive browser (Boards / Measurements / Packets / General).
+// Tab-based ADJ archive browser (Boards / Measurements / Packets / Network / Sockets / Throughput / General).
 // Pure data-in component — the page hosting it owns commit-hash fetching,
 // loading/error states, and header chrome.
 import {
   Badge,
-  Input,
   Tabs,
   TabsContent,
   TabsList,
@@ -13,18 +12,22 @@ import {
   Activity,
   ChevronDown,
   ChevronRight,
-  ChevronUp,
   Cpu,
   ExternalLink,
   Layers,
   Network,
-  Search,
+  Plug,
   Server,
+  TrendingUp,
 } from "@workspace/ui/icons";
 import { cn, getTypeBadgeClass, typeBadgeClasses } from "@workspace/ui/lib";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AdjArchive, AdjMeasurement, AdjPacket, AdjSocket } from "../types/adj";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
+import type { AdjArchiveV2, AdjMeasurement, AdjPacket, AdjSocket } from "./types";
 import { NetworkTab } from "./NetworkTab";
+import { SocketsTab } from "./SocketsTab";
+import { ThroughputTab } from "./ThroughputTab";
+import { BoardChip, EmptyState, Highlight, ResultCount, SearchInput, SortableHeader, type SortDir } from "./ui";
+import { useKeyboardSearch } from "./useKeyboardSearch";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -39,11 +42,10 @@ export type BoardMeta = {
 };
 
 type SortKey = "board" | "name" | "type" | "units" | "id";
-type SortDir = "asc" | "desc";
 
 // ─── data helpers ─────────────────────────────────────────────────────────────
 
-export function extractBoards(adjData: AdjArchive): BoardMeta[] {
+export function extractBoards(adjData: AdjArchiveV2): BoardMeta[] {
   return Object.entries(adjData.boards)
     .map(([boardName, boardGroup]) => {
       const g = boardGroup as Record<string, unknown>;
@@ -85,98 +87,6 @@ function exportCSV(rows: { board: string; name: string; type?: string; displayUn
 
 // ─── atom components ─────────────────────────────────────────────────────────
 
-function Highlight({ text, query }: { text: string; query: string }) {
-  if (!query) return <>{text}</>;
-  const idx = text.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return <>{text}</>;
-  return (
-    <>
-      {text.slice(0, idx)}
-      <mark className="bg-primary/25 text-foreground rounded-sm px-0.5">
-        {text.slice(idx, idx + query.length)}
-      </mark>
-      {text.slice(idx + query.length)}
-    </>
-  );
-}
-
-function ResultCount({ n, total }: { n: number; total: number }) {
-  return (
-    <span className="text-muted-foreground shrink-0 text-[11px]">
-      {n === total ? total : `${n} / ${total}`}
-    </span>
-  );
-}
-
-function SearchInput({
-  value,
-  onChange,
-  placeholder,
-  inputRef,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
-}) {
-  return (
-    <div className="relative flex-1">
-      <Search className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
-      <Input
-        ref={inputRef}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-8 pl-8 pr-8 text-xs shadow-none focus-visible:ring-0"
-      />
-      {value && (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          className="text-muted-foreground hover:text-foreground absolute right-2 top-1/2 -translate-y-1/2 text-xs"
-        >
-          ✕
-        </button>
-      )}
-    </div>
-  );
-}
-
-function SortableHeader({
-  label,
-  col,
-  sortKey,
-  sortDir,
-  onSort,
-}: {
-  label: string;
-  col: SortKey;
-  sortKey: SortKey;
-  sortDir: SortDir;
-  onSort: (col: SortKey) => void;
-}) {
-  const active = sortKey === col;
-  return (
-    <th className="bg-background pb-2 pr-3 text-left">
-      <button
-        type="button"
-        onClick={() => onSort(col)}
-        className={cn(
-          "inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wider transition-colors",
-          active ? "text-primary" : "text-muted-foreground hover:text-foreground",
-        )}
-      >
-        {label}
-        {active ? (
-          sortDir === "asc" ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />
-        ) : (
-          <ChevronDown className="size-3 opacity-0 group-hover:opacity-40" />
-        )}
-      </button>
-    </th>
-  );
-}
-
 function TypeChip({
   type,
   active,
@@ -199,31 +109,6 @@ function TypeChip({
     >
       {type}
       <span className="opacity-70">{count}</span>
-    </button>
-  );
-}
-
-function BoardChip({
-  name,
-  active,
-  onClick,
-}: {
-  name: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-all",
-        active
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border text-muted-foreground opacity-50 hover:opacity-80",
-      )}
-    >
-      {name}
     </button>
   );
 }
@@ -279,15 +164,6 @@ function CopyValue({ value }: { value: string }) {
   );
 }
 
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-sm">
-      <Search className="mb-2 size-8 opacity-20" />
-      {text}
-    </div>
-  );
-}
-
 // ─── Boards tab ───────────────────────────────────────────────────────────────
 
 function BoardsTab({
@@ -335,7 +211,7 @@ function BoardsTab({
 
               {/* Stats row */}
               <div className="border-t px-3 py-2">
-                <div className="text-muted-foreground flex items-center gap-4 text-[11px]">
+                <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
                   <span><span className="text-foreground font-semibold">{board.measurements.length}</span> measurements</span>
                   <span><span className="text-foreground font-semibold">{board.packets.length}</span> packets</span>
                   <span><span className="text-foreground font-semibold">{board.orders.length}</span> orders</span>
@@ -519,9 +395,8 @@ function MeasurementsTab({
               const expanded = expandedId === rowKey;
               const isEnum = r.type === "enum";
               return (
-                <>
+                <Fragment key={rowKey}>
                   <tr
-                    key={rowKey}
                     onClick={() => setExpandedId(expanded ? null : rowKey)}
                     className={cn(
                       "border-b transition-colors",
@@ -553,7 +428,7 @@ function MeasurementsTab({
                     </td>
                   </tr>
                   {expanded && (
-                    <tr key={`${rowKey}-detail`} className="bg-muted/10">
+                    <tr className="bg-muted/10">
                       <td colSpan={5} className="px-3 pb-3 pt-1">
                         <div className="space-y-1.5 text-[11px]">
                           {r.podUnits && (
@@ -577,7 +452,7 @@ function MeasurementsTab({
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
@@ -748,7 +623,7 @@ function GeneralSection({
   );
 }
 
-function GeneralTab({ adjData }: { adjData: AdjArchive }) {
+function GeneralTab({ adjData }: { adjData: AdjArchiveV2 }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useKeyboardSearch(inputRef);
@@ -771,24 +646,9 @@ function GeneralTab({ adjData }: { adjData: AdjArchive }) {
   );
 }
 
-// ─── hook: / key focuses the nearest search input ─────────────────────────────
-
-function useKeyboardSearch(ref: React.RefObject<HTMLInputElement | null>) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
-        e.preventDefault();
-        ref.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [ref]);
-}
-
 // ─── main tabs component ─────────────────────────────────────────────────────
 
-export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchive }) => {
+export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchiveV2 }) => {
   const boards = useMemo(() => extractBoards(adjData), [adjData]);
 
   // Lifted state for cross-tab navigation
@@ -815,21 +675,28 @@ export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchive }) => {
   );
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col gap-0">
-      <TabsList className="mb-4 w-fit shrink-0">
-        <TabsTrigger value="boards" className="gap-1.5 text-xs">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 min-w-0 flex-1 flex-col gap-0">
+      {/* On narrow screens the bar scrolls sideways by itself instead of widening the page. */}
+      <TabsList className="mb-4 max-w-full shrink-0 justify-start overflow-x-auto [scrollbar-width:none]">
+        <TabsTrigger value="boards" className="flex-none gap-1.5 text-xs">
           <Cpu className="size-3.5" /> Boards
         </TabsTrigger>
-        <TabsTrigger value="measurements" className="gap-1.5 text-xs">
+        <TabsTrigger value="measurements" className="flex-none gap-1.5 text-xs">
           <Activity className="size-3.5" /> Measurements
         </TabsTrigger>
-        <TabsTrigger value="packets" className="gap-1.5 text-xs">
+        <TabsTrigger value="packets" className="flex-none gap-1.5 text-xs">
           <Layers className="size-3.5" /> Packets
         </TabsTrigger>
-        <TabsTrigger value="network" className="gap-1.5 text-xs">
+        <TabsTrigger value="network" className="flex-none gap-1.5 text-xs">
           <Network className="size-3.5" /> Network
         </TabsTrigger>
-        <TabsTrigger value="general" className="gap-1.5 text-xs">
+        <TabsTrigger value="sockets" className="flex-none gap-1.5 text-xs">
+          <Plug className="size-3.5" /> Sockets
+        </TabsTrigger>
+        <TabsTrigger value="throughput" className="flex-none gap-1.5 text-xs">
+          <TrendingUp className="size-3.5" /> Throughput
+        </TabsTrigger>
+        <TabsTrigger value="general" className="flex-none gap-1.5 text-xs">
           <Server className="size-3.5" /> General
         </TabsTrigger>
       </TabsList>
@@ -852,6 +719,18 @@ export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchive }) => {
       </TabsContent>
       <TabsContent value="network" className="min-h-0 flex-1 overflow-hidden pb-4">
         <NetworkTab boards={boards} generalInfo={adjData.general_info} />
+      </TabsContent>
+      <TabsContent value="sockets" className="min-h-0 flex-1 overflow-hidden pb-4">
+        <SocketsTab
+          boards={boards}
+          generalInfo={adjData.general_info}
+          onJumpToMeasurements={handleJumpToPacketMeasurements}
+        />
+      </TabsContent>
+      {/* No overflow-hidden here: it would trap ThroughputTab's sticky panel. */}
+      <TabsContent value="throughput" className="min-h-0 flex-1 pb-4">
+        {/* key resets the TCP-connected defaults when a different board set loads */}
+        <ThroughputTab key={boards.map((b) => b.name).join(",")} boards={boards} />
       </TabsContent>
       <TabsContent value="general" className="min-h-0 flex-1 overflow-hidden pb-4">
         <GeneralTab adjData={adjData} />
