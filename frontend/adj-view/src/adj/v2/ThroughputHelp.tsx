@@ -79,9 +79,23 @@ function Table({ head, rows }: { head: ReactNode[]; rows: ReactNode[][] }) {
 
 export function ThroughputHelp({ backendMs, boardMs }: { backendMs: number; boardMs: number }) {
   // Worked example: one enum sent every 10 ms, like "VCU State".
-  const ex = wireBreakdown(PACKET_ID_BYTES + 1, "UDP", true);
+  const ex = wireBreakdown(PACKET_ID_BYTES + 1, "UDP", "wire", "up");
+  const exShark = wireBreakdown(PACKET_ID_BYTES + 1, "UDP", "wireshark", "up");
   const exHz = 100;
-  const ka = wireBreakdown(PACKET_ID_BYTES, "TCP", true);
+  const ka = wireBreakdown(PACKET_ID_BYTES, "TCP", "wire", "down");
+  // What a capture on the backend shows: received frames padded, sent frames not.
+  const shark = {
+    udp: exShark.total,
+    kaIn: wireBreakdown(PACKET_ID_BYTES, "TCP", "wireshark", "up").total,
+    kaOut: wireBreakdown(PACKET_ID_BYTES, "TCP", "wireshark", "down").total,
+    ackIn: wireBreakdown(0, "TCP", "wireshark", "up").total,
+    ackOut: wireBreakdown(0, "TCP", "wireshark", "down").total,
+  };
+  const wire = {
+    udp: ex.total,
+    ka: ka.total,
+    ack: wireBreakdown(0, "TCP", "wire", "up").total,
+  };
   const kaRate = (ms: number) => (ms > 0 ? 1000 / ms : 0);
   const kaPerDirection = ka.total * 8 * (kaRate(backendMs) + kaRate(boardMs));
 
@@ -175,7 +189,8 @@ export function ThroughputHelp({ backendMs, boardMs }: { backendMs: number; boar
             <p className="text-muted-foreground">
               Ethernet can&apos;t send less than {ETH_MIN_PAYLOAD_BYTES} B inside a frame, so short IP packets are padded
               with zeros. Preamble and gap aren&apos;t data, but the link is busy during them, so they count toward
-              bandwidth use (turn them off under &quot;Include in the estimate&quot; to count frames only).
+              bandwidth use. Switch &quot;Count bytes as&quot; to Wireshark to count frames the way a capture shows them
+              instead (see below).
             </p>
           </Section>
 
@@ -204,6 +219,33 @@ export function ThroughputHelp({ backendMs, boardMs }: { backendMs: number; boar
             </p>
           </Section>
 
+          <Section title="Matching Wireshark">
+            <p>
+              Wireshark&apos;s frame length (&quot;bytes on wire&quot; in the frame details, and what its IO graphs and
+              Conversations add up) is not the same as the line time above. The network card never hands over the
+              preamble, SFD or inter-frame gap, and strips the FCS. Padding depends on who sent the frame: frames the
+              backend receives arrive already padded, but frames it sends are captured before its card pads them.
+            </p>
+            <Table
+              head={["Frame", "On the wire", "Wireshark on the backend"]}
+              rows={[
+                ["Small UDP packet (board → backend)", `${wire.udp} B`, `${shark.udp} B`],
+                ["Board keep-alive (received)", `${wire.ka} B`, `${shark.kaIn} B`],
+                ["Backend keep-alive (sent)", `${wire.ka} B`, `${shark.kaOut} B`],
+                ["ACK from a board (received)", `${wire.ack} B`, `${shark.ackIn} B`],
+                ["ACK from the backend (sent)", `${wire.ack} B`, `${shark.ackOut} B`],
+              ]}
+            />
+            <Formula>
+              Wireshark frame = {ETH_HEADER_BYTES} B + IP packet + padding (received frames only)
+            </Formula>
+            <p className="text-muted-foreground">
+              The Wireshark mode assumes the capture runs on the backend host. A capture from a switch mirror port sees
+              every frame padded, so sent frames show at least {ETH_HEADER_BYTES + ETH_MIN_PAYLOAD_BYTES} B there too.
+              A card configured to keep the FCS would add {ETH_FCS_BYTES} B per frame.
+            </p>
+          </Section>
+
           <Section title="3. Rate and throughput">
             <Formula>
               Rate (Hz) = 1 ÷ period in seconds (period units: ns, us, ms, s)
@@ -213,8 +255,9 @@ export function ThroughputHelp({ backendMs, boardMs }: { backendMs: number; boar
               Efficiency = payload ÷ bytes on the wire
             </Formula>
             <p>
-              Both the payload rate and the on-the-wire rate are shown; the bars and board totals use the on-the-wire
-              rate. Units are decimal: 1 kbit/s = 1,000 bit/s, 1 Mbit/s = 1,000,000 bit/s.
+              Both the payload rate and the counted rate are shown; the bars and board totals use the counted rate,
+              on the wire or as in Wireshark depending on &quot;Count bytes as&quot;. Units are decimal: 1 kbit/s = 1,000
+              bit/s, 1 Mbit/s = 1,000,000 bit/s.
             </p>
           </Section>
 
@@ -236,6 +279,8 @@ export function ThroughputHelp({ backendMs, boardMs }: { backendMs: number; boar
               <br />
               On the wire: {ex.total} B × 8 × {exHz} Hz = {formatBitrate(ex.total * 8 * exHz)} (efficiency{" "}
               {((ex.payload / ex.total) * 100).toFixed(1)}%)
+              <br />
+              In Wireshark: {exShark.total} B × 8 × {exHz} Hz = {formatBitrate(exShark.total * 8 * exHz)}
             </Formula>
           </Section>
 

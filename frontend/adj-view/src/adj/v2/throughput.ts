@@ -68,37 +68,67 @@ export interface TrafficOptions {
   // Every keep-alive acknowledged by its own pure-ACK segment instead of
   // piggybacking on the other side's keep-alive.
   acks: boolean;
-  // Preamble/SFD and inter-frame gap (physical-layer occupancy).
-  l1Overhead: boolean;
+  countAs: CountAs;
 }
 
-export const DEFAULT_TRAFFIC_OPTIONS: TrafficOptions = { udp: true, keepAlive: true, acks: true, l1Overhead: true };
+// How a frame's bytes are counted:
+// - "wire": all the line time it takes — preamble/SFD, the frame with its FCS,
+//   and the inter-frame gap. This is what fills the link.
+// - "wireshark": the frame length a capture on the backend host shows. NICs
+//   never hand over preamble, gap or FCS; frames the backend receives arrive
+//   already padded to the Ethernet minimum, but frames it sends are captured
+//   before its NIC pads them.
+export type CountAs = "wire" | "wireshark";
+
+// Name of the counted figure in tables and breakdowns.
+export const COUNTED_LABEL: Record<CountAs, string> = {
+  wire: "On the wire",
+  wireshark: "In Wireshark",
+};
+
+export const DEFAULT_TRAFFIC_OPTIONS: TrafficOptions = { udp: true, keepAlive: true, acks: true, countAs: "wire" };
 
 export interface WireBreakdown {
+  countAs: CountAs;
   transport: Transport;
   transportHeader: number;
   payload: number;
   ipPacket: number;
   padding: number;
+  fcs: number;
   frame: number;
   preambleSfd: number;
   interFrameGap: number;
   total: number;
 }
 
-export function wireBreakdown(payloadBytes: number, transport: Transport, l1Overhead: boolean): WireBreakdown {
+// "up" = board → backend, "down" = backend → board.
+export type Direction = "up" | "down";
+
+export function wireBreakdown(
+  payloadBytes: number,
+  transport: Transport,
+  countAs: CountAs,
+  direction: Direction,
+): WireBreakdown {
+  const onWire = countAs === "wire";
   const transportHeader = TRANSPORT_HEADER_BYTES[transport];
   const ipPacket = payloadBytes + transportHeader + IPV4_HEADER_BYTES;
-  const padding = Math.max(0, ETH_MIN_PAYLOAD_BYTES - ipPacket);
-  const frame = ETH_HEADER_BYTES + ipPacket + padding + ETH_FCS_BYTES;
-  const preambleSfd = l1Overhead ? ETH_PREAMBLE_SFD_BYTES : 0;
-  const interFrameGap = l1Overhead ? ETH_INTERFRAME_GAP_BYTES : 0;
+  // A capture on the backend sees its outgoing ("down") frames before the NIC pads them.
+  const padded = onWire || direction === "up";
+  const padding = padded ? Math.max(0, ETH_MIN_PAYLOAD_BYTES - ipPacket) : 0;
+  const fcs = onWire ? ETH_FCS_BYTES : 0;
+  const frame = ETH_HEADER_BYTES + ipPacket + padding + fcs;
+  const preambleSfd = onWire ? ETH_PREAMBLE_SFD_BYTES : 0;
+  const interFrameGap = onWire ? ETH_INTERFRAME_GAP_BYTES : 0;
   return {
+    countAs,
     transport,
     transportHeader,
     payload: payloadBytes,
     ipPacket,
     padding,
+    fcs,
     frame,
     preambleSfd,
     interFrameGap,
@@ -111,9 +141,6 @@ export interface PacketField {
   type: string;
   bytes: number;
 }
-
-// "up" = board → backend, "down" = backend → board.
-export type Direction = "up" | "down";
 
 // One periodic stream of identical frames: a UDP data packet, a TCP keep-alive
 // or the ACKs it triggers.
@@ -146,11 +173,11 @@ function makeFlow(
     "key" | "name" | "id" | "transport" | "direction" | "period" | "periodUnit" | "adjPeriod" | "adjPeriodUnit" | "hasPacketId" | "fields"
   >,
   periodSeconds: number,
-  l1Overhead: boolean,
+  countAs: CountAs,
 ): TrafficFlow {
   const payloadBytes = (base.hasPacketId ? PACKET_ID_BYTES : 0) + base.fields.reduce((s, f) => s + f.bytes, 0);
   const rateHz = 1 / periodSeconds;
-  const wire = wireBreakdown(payloadBytes, base.transport, l1Overhead);
+  const wire = wireBreakdown(payloadBytes, base.transport, countAs, base.direction);
   return {
     ...base,
     periodSeconds,
@@ -194,7 +221,7 @@ export function periodSeconds(value: number, unit: string): number | undefined {
 
 export function computeBoardThroughput(
   board: BoardMeta,
-  l1Overhead: boolean,
+  countAs: CountAs,
   periodOverrides?: PeriodOverrides,
 ): BoardThroughput {
   const udpSockets = new Set(
@@ -252,7 +279,7 @@ export function computeBoardThroughput(
           fields,
         },
         seconds,
-        l1Overhead,
+        countAs,
       ),
     );
   }
@@ -276,7 +303,7 @@ export interface KeepAliveIntervals {
 // keep-alive and its ACKs.
 export function keepAliveFlows(
   { backendMs, boardMs }: KeepAliveIntervals,
-  { acks, l1Overhead }: Pick<TrafficOptions, "acks" | "l1Overhead">,
+  { acks, countAs }: Pick<TrafficOptions, "acks" | "countAs">,
 ): TrafficFlow[] {
   const flows: TrafficFlow[] = [];
   const add = (key: string, name: string, direction: Direction, ms: number, hasPacketId: boolean) =>
@@ -294,7 +321,7 @@ export function keepAliveFlows(
           fields: [],
         },
         ms * 1e-3,
-        l1Overhead,
+        countAs,
       ),
     );
 

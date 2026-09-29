@@ -15,8 +15,8 @@ import { ThroughputHelp } from "./ThroughputHelp";
 import {
   boardTotals,
   computeBoardThroughput,
+  COUNTED_LABEL,
   DEFAULT_TRAFFIC_OPTIONS,
-  ETH_FCS_BYTES,
   ETH_HEADER_BYTES,
   ETH_MIN_PAYLOAD_BYTES,
   formatBitrate,
@@ -28,6 +28,7 @@ import {
   type BoardThroughput,
   type PeriodOverride,
   type BoardTotals,
+  type CountAs,
   type Direction,
   type TrafficFlow,
   type TrafficOptions,
@@ -97,7 +98,15 @@ function FlowBreakdown({ f }: { f: TrafficFlow }) {
   const { wire } = f;
   const rate = `${f.rateHz.toFixed(2)} Hz`;
   const efficiency = (f.payloadBytes / f.wireBytes) * 100;
-  const excluded = "not counted";
+  const wireshark = wire.countAs === "wireshark";
+  const excluded = wireshark ? "not in Wireshark" : "not counted";
+  const counted = COUNTED_LABEL[wire.countAs];
+  const paddingNote =
+    wireshark && f.direction === "down"
+      ? "added by the NIC after capture"
+      : wire.padding > 0
+        ? `up to the ${ETH_MIN_PAYLOAD_BYTES} B minimum`
+        : `already ${ETH_MIN_PAYLOAD_BYTES} B or more`;
 
   return (
     <div className="grid grid-cols-1 gap-2 text-xs xl:grid-cols-3">
@@ -125,22 +134,22 @@ function FlowBreakdown({ f }: { f: TrafficFlow }) {
         )}
       </Section>
 
-      <Section n={2} title="Bytes on the wire per frame">
+      <Section n={2} title={wireshark ? "Bytes per frame in Wireshark" : "Bytes on the wire per frame"}>
         <Step label="Payload" value={`${wire.payload} B`} />
         <Step label={`+ ${wire.transport} header`} note={wire.transport === "TCP" ? "no options" : undefined} value={`${wire.transportHeader} B`} />
         <Step label="+ IPv4 header" value={`${IPV4_HEADER_BYTES} B`} />
         <Step total label="= IP packet" value={`${wire.ipPacket} B`} />
         <Step
           label="+ Ethernet padding"
-          note={wire.padding > 0 ? `up to the ${ETH_MIN_PAYLOAD_BYTES} B minimum` : `already ${ETH_MIN_PAYLOAD_BYTES} B or more`}
+          note={paddingNote}
           value={`${wire.padding} B`}
         />
         <Step label="+ Ethernet header" value={`${ETH_HEADER_BYTES} B`} />
-        <Step label="+ FCS (CRC)" value={`${ETH_FCS_BYTES} B`} />
+        <Step label="+ FCS (CRC)" note={wire.fcs === 0 ? excluded : undefined} value={`${wire.fcs} B`} />
         <Step total label="= Ethernet frame" value={`${wire.frame} B`} />
         <Step label="+ Preamble and SFD" note={wire.preambleSfd === 0 ? excluded : undefined} value={`${wire.preambleSfd} B`} />
         <Step label="+ Inter-frame gap" note={wire.interFrameGap === 0 ? excluded : undefined} value={`${wire.interFrameGap} B`} />
-        <Step total label="= On the wire" value={`${wire.total} B`} />
+        <Step total label={`= ${counted}`} value={`${wire.total} B`} />
       </Section>
 
       <Section n={3} title="Rate and throughput">
@@ -154,11 +163,11 @@ function FlowBreakdown({ f }: { f: TrafficFlow }) {
         <div className="text-muted-foreground pb-1 text-right tabular-nums">
           {f.payloadBytes} B × 8 bit × {rate}
         </div>
-        <Step total label="On the wire" value={formatBitrate(f.wireBps)} />
+        <Step total label={counted} value={formatBitrate(f.wireBps)} />
         <div className="text-muted-foreground pb-1 text-right tabular-nums">
           {f.wireBytes} B × 8 bit × {rate}
         </div>
-        <Step label="Efficiency" note="payload ÷ on the wire" value={`${efficiency.toFixed(1)}%`} />
+        <Step label="Efficiency" note={`payload ÷ ${counted.toLowerCase()}`} value={`${efficiency.toFixed(1)}%`} />
       </Section>
     </div>
   );
@@ -290,7 +299,7 @@ function FlowTable({
             <th className="px-3 py-1.5 text-right font-medium">Period</th>
             <th className="px-3 py-1.5 text-right font-medium">Rate</th>
             <th className="px-3 py-1.5 text-right font-medium">Payload</th>
-            <th className="px-3 py-1.5 text-right font-medium">On the wire</th>
+            <th className="px-3 py-1.5 text-right font-medium">{COUNTED_LABEL[flows[0]?.wire.countAs ?? "wire"]}</th>
             <th className="px-3 py-1.5 text-right font-medium">Throughput</th>
           </tr>
         </thead>
@@ -489,6 +498,35 @@ const CAPACITY_PRESETS = ["1", "10", "100", "1000"];
 
 type View = "direction" | "combined";
 
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: [T, string][];
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-md border text-xs">
+      {options.map(([v, label]) => (
+        <button
+          key={v}
+          type="button"
+          aria-pressed={value === v}
+          onClick={() => onChange(v)}
+          className={cn(
+            "flex-1 py-1.5 transition-colors",
+            value === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── tab ─────────────────────────────────────────────────────────────────────
 
 export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
@@ -505,11 +543,11 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
       boards.map((b) =>
         computeBoardThroughput(
           b,
-          options.l1Overhead,
+          options.countAs,
           new Map(Object.entries(periodOverrides[b.name] ?? {}).map(([id, o]) => [Number(id), o])),
         ),
       ),
-    [boards, options.l1Overhead, periodOverrides],
+    [boards, options.countAs, periodOverrides],
   );
   const [connected, setConnected] = useState<Set<string>>(() => new Set(rows.filter((r) => r.hasTcp).map((r) => r.board)));
 
@@ -566,7 +604,8 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
 
   const linkUse = (t: BoardTotals) => (view === "direction" ? t.up : t.up + t.down);
 
-  const setOption = (key: keyof TrafficOptions) => (v: boolean) => setOptions((o) => ({ ...o, [key]: v }));
+  const setOption = (key: "udp" | "keepAlive" | "acks") => (v: boolean) => setOptions((o) => ({ ...o, [key]: v }));
+  const setCountAs = (countAs: CountAs) => setOptions((o) => ({ ...o, countAs }));
   const toggleConnected = (board: string, v: boolean) =>
     setConnected((s) => {
       const n = new Set(s);
@@ -606,26 +645,30 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
           </Group>
 
           <Group title="View">
-            <div className="flex overflow-hidden rounded-md border text-xs">
-              {(
-                [
-                  ["direction", "Per direction"],
-                  ["combined", "Both ways"],
-                ] as const
-              ).map(([v, label]) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setView(v)}
-                  className={cn(
-                    "flex-1 py-1.5 transition-colors",
-                    view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              value={view}
+              onChange={setView}
+              options={[
+                ["direction", "Per direction"],
+                ["combined", "Both ways"],
+              ]}
+            />
+          </Group>
+
+          <Group title="Count bytes as">
+            <Segmented
+              value={options.countAs}
+              onChange={setCountAs}
+              options={[
+                ["wire", "On the wire"],
+                ["wireshark", "Wireshark"],
+              ]}
+            />
+            <p className="text-muted-foreground text-[11px] leading-snug">
+              {options.countAs === "wire"
+                ? "Everything that occupies the link: preamble, the frame with its FCS, and the inter-frame gap."
+                : "Frame length as a capture on the backend shows it: no preamble, gap or FCS, and frames the backend sends aren't padded yet."}
+            </p>
           </Group>
 
           <Group title="Keep-alive interval">
@@ -669,12 +712,6 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
                 checked={options.acks}
                 onChange={setOption("acks")}
               />
-              <Option
-                label="Preamble and inter-frame gap"
-                hint="20 B of line time around every frame"
-                checked={options.l1Overhead}
-                onChange={setOption("l1Overhead")}
-              />
             </div>
             <p className="text-muted-foreground text-[11px] leading-snug">
               Assumes IPv4 and TCP without options, and Ethernet II without a VLAN tag.
@@ -691,6 +728,12 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
         {/* Results */}
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <div className="space-y-5">
+            {options.countAs === "wireshark" && (
+              <p className="text-muted-foreground text-xs">
+                Counting bytes as Wireshark shows them. The link itself carries more: preamble, inter-frame gap and FCS,
+                and padding on frames the backend sends.
+              </p>
+            )}
             {capacityBps === null ? (
               <p className="text-muted-foreground text-sm">Set a link capacity above 0 to draw the bars.</p>
             ) : view === "direction" ? (
