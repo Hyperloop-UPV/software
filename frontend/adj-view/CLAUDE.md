@@ -98,4 +98,5 @@ The layout must work down to phone width (check 390 / 768 / 1440 px) without the
 
 - **Kit spacing tokens hijack named sizes**: `frontend-kit`'s `--spacing-sm/md/…` make `max-w-sm` etc. resolve to a few px (the kit's own `SheetContent` ships `sm:max-w-sm`). Always use arbitrary values like `max-w-[42rem]`.
 - **SWC drops a leading space in multi-line JSX text**: in `<span>Label:</span> text that wraps onto\n more lines`, the space after `</span>` disappears. Write `</span>{" "}text`.
+- **Number inputs**: native spinners ignore the theme and overlap right-aligned values, so the Throughput tab's number fields use `StepperInput` (hidden native spinner + themed ▲/▼ buttons, ±1, never below 0; arrow keys still work). Reuse it for new numeric fields.
 - **Sticky needs no clipping ancestor**: the Throughput `TabsContent` deliberately has no `overflow-hidden` (unlike the other tabs); adding it back breaks the sticky Scenario panel. Page scrolling happens on `App.tsx`'s root `overflow-auto` div, since the tab content isn't height-constrained.

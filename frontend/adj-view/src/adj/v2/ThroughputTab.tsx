@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components";
-import { AlertTriangle, ChevronDown, ChevronRight, Pencil } from "@workspace/ui/icons";
+import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Pencil } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { BoardMeta } from "./AdjViewerTabs";
@@ -39,6 +39,67 @@ import {
 type PeriodOverridesByBoard = Record<string, Record<number, PeriodOverride>>;
 
 type OnPeriodChange = (f: TrafficFlow, override: PeriodOverride | null) => void;
+
+// Native number spinners ignore the theme and overlap right-aligned values in
+// these narrow inputs, so StepperInput hides them and draws its own.
+const NO_SPINNER =
+  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+// Steps by 1, never below 0; rounds away float noise (0.1 + 1 = 1.1, not 1.1000000000000001).
+const stepValue = (value: string, delta: number) => String(+Math.max(0, (Number(value) || 0) + delta).toPrecision(12));
+
+function StepperInput({
+  value,
+  onValueChange,
+  className,
+  disabled,
+  ...props
+}: Omit<React.ComponentProps<typeof Input>, "value" | "onChange" | "type"> & {
+  value: string;
+  onValueChange: (v: string) => void;
+}) {
+  const arrow =
+    "text-muted-foreground hover:bg-muted hover:text-foreground flex h-1/2 w-full items-center justify-center transition-colors disabled:pointer-events-none";
+  return (
+    <div className="relative shrink-0">
+      <Input
+        {...props}
+        type="number"
+        min={0}
+        step="any"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onValueChange(e.target.value)}
+        className={cn("pr-6", NO_SPINNER, className)}
+      />
+      {/* Not tab stops: the input's own arrow keys already step the value. */}
+      <div className="absolute inset-y-px right-px flex w-5 flex-col overflow-hidden rounded-r-[5px] border-l">
+        <button
+          type="button"
+          tabIndex={-1}
+          disabled={disabled}
+          aria-label="Increase"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onValueChange(stepValue(value, 1))}
+          className={arrow}
+        >
+          <ChevronUp className="size-3" />
+        </button>
+        <button
+          type="button"
+          tabIndex={-1}
+          disabled={disabled}
+          aria-label="Decrease"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onValueChange(stepValue(value, -1))}
+          className={cn(arrow, "border-t")}
+        >
+          <ChevronDown className="size-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─── series colors ───────────────────────────────────────────────────────────
 
@@ -211,17 +272,14 @@ function PeriodCell({ f, onChange }: { f: TrafficFlow; onChange: OnPeriodChange 
             if (e.key === "Escape") close(false);
           }}
         >
-          <Input
+          <StepperInput
             autoFocus
-            type="number"
-            min={0}
-            step="any"
             value={draft.value}
             aria-invalid={!valid}
             aria-label={`Period of ${f.name}`}
             onFocus={(e) => e.target.select()}
-            onChange={(e) => setDraft({ ...draft, value: e.target.value })}
-            className="h-7 w-[4.5rem] px-2 text-right text-xs tabular-nums"
+            onValueChange={(v) => setDraft({ ...draft, value: v })}
+            className="h-7 w-[5rem] pl-2 text-right text-xs tabular-nums"
           />
           <select
             value={draft.unit}
@@ -457,15 +515,12 @@ function NumberField({
   return (
     <label className={cn("flex items-center gap-2 text-xs", disabled && "opacity-50")}>
       <span className="text-muted-foreground min-w-0 flex-1">{label}</span>
-      <Input
-        type="number"
-        min={0}
-        step="any"
+      <StepperInput
         value={value}
         disabled={disabled}
         aria-invalid={invalid}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-7 w-[5.5rem] px-2 text-right text-xs tabular-nums"
+        onValueChange={onChange}
+        className="h-7 w-[5.5rem] pl-2 text-right text-xs tabular-nums"
       />
       <span className="text-muted-foreground w-[2.75rem]">{unit}</span>
     </label>
