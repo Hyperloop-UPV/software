@@ -10,7 +10,8 @@
 //! left out rather than guessed — add them once the packet-level JSON
 //! shape is settled.
 
-use super::{AdjId, BoardId, Measurement};
+use super::{AdjId, BoardId, MacAddress, Measurement};
+use std::net::IpAddr;
 
 /// What kind of packet a [`PacketDef`] declares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -45,6 +46,10 @@ pub struct Board {
     pub id: BoardId,
     /// The board's name, e.g. `"BCU"`.
     pub name: String,
+    /// The board's IP address, used to open its TCP/UDP connections.
+    pub ip: IpAddr,
+    /// The board's MAC address (ADJv3 spec, section 5).
+    pub mac: MacAddress,
     /// The packets this board can send or receive.
     pub packets: Vec<PacketDef>,
 }
@@ -84,6 +89,8 @@ mod tests {
         let board = Board {
             id: BoardId(1),
             name: "BCU".to_string(),
+            ip: IpAddr::from([192, 168, 0, 10]),
+            mac: MacAddress([0x00, 0x11, 0x22, 0x33, 0x44, 0x55]),
             packets: vec![PacketDef {
                 id: AdjId(1000),
                 name: "bcu_data".to_string(),
@@ -95,5 +102,6 @@ mod tests {
         assert_eq!(board.packets.len(), 1);
         assert_eq!(board.packets[0].measurements.len(), 1);
         assert_eq!(board.packets[0].kind, PacketKind::Data);
+        assert_eq!(board.mac.to_string(), "00:11:22:33:44:55");
     }
 }

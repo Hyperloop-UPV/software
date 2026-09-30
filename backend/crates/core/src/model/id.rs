@@ -16,6 +16,29 @@ pub struct AdjId(pub u16);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BoardId(pub u16);
 
+/// A board's physical MAC address, as 6 raw bytes.
+///
+/// Kept as a fixed-size byte array instead of a `String` on purpose: a
+/// malformed or miswritten address (the ADJv3 meeting notes mention a real
+/// `67:67:67:67:67:67` that caused hours of debugging) should not be able
+/// to reach this type at all. Parsing the usual `"aa:bb:cc:dd:ee:ff"` text
+/// form is `adj`'s job, not this type's.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MacAddress(pub [u8; 6]);
+
+impl std::fmt::Debug for MacAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MacAddress({self})")
+    }
+}
+
+impl std::fmt::Display for MacAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let [a, b, c, d, e, g] = self.0;
+        write!(f, "{a:02x}:{b:02x}:{c:02x}:{d:02x}:{e:02x}:{g:02x}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -23,6 +46,12 @@ mod tests {
     #[test]
     fn two_packet_ids_with_the_same_number_are_equal() {
         assert_eq!(AdjId(1000), AdjId(1000));
+    }
+
+    #[test]
+    fn a_mac_address_displays_as_colon_separated_lowercase_hex() {
+        let mac = MacAddress([0xaa, 0xbb, 0xcc, 0x0d, 0x0e, 0xff]);
+        assert_eq!(mac.to_string(), "aa:bb:cc:0d:0e:ff");
     }
 
     #[test]

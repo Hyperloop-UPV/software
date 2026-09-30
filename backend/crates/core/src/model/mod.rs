@@ -2,7 +2,7 @@
 //! protections and boards. No I/O and no networking here, just data and
 //! the operations performed on it.
 //!
-//! - `id`          — `AdjId`, `BoardId`.
+//! - `id`          — `AdjId`, `BoardId`, `MacAddress`.
 //! - `value`       — `Value`, the result of decoding a measurement.
 //! - `measurement` — `Measurement`: what a field of a packet looks like.
 //! - `protections` — `Protection`: bounds declared for a measurement.
@@ -18,7 +18,7 @@ mod protections;
 mod value;
 
 pub use board::{Board, PacketDef, PacketKind, PodData};
-pub use id::{AdjId, BoardId};
+pub use id::{AdjId, BoardId, MacAddress};
 pub use measurement::{Measurement, MeasurementKind, NumericKind, Range};
 pub use packet::{
     DataPacket, MessageLevel, MessagePacket, OrderPacket, Packet, ProtectionPacket, ShortTimestamp,
