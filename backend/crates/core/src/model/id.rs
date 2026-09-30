@@ -5,6 +5,10 @@
 //! [`BoardId`] by mistake, even though both are just numbers underneath.
 
 /// Unique identifier of a packet, order or protection, defined by the ADJ.
+/// Ranges
+/// - `[0, 511]` | `[0x0000, 0x01FF]` for special range
+/// - `[512, 8191]` | `[0x0200, 0x1FFF]` for packets, orders and measurements
+/// - `[8192, 65535]` | `[0x2000, 0xFFFF]` for protections: each protection is associated with a measurement, so the low 13 bits of the compound id are the measurement id, and the high 3 bits are the protection's position for that measurement (1-7; 0 is reserved for a normal, non-protection id)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AdjId(pub u16);
 

@@ -6,6 +6,7 @@
 //! warning ranges. This is a *description*, not a decoded value — see
 //! [`super::Value`] for the value itself, once decoded.
 
+use super::protections::Protection;
 use crate::model::AdjId;
 
 /// The wire type of a numeric measurement: how many bytes it takes on the
@@ -72,19 +73,90 @@ pub enum MeasurementKind {
 /// The description of a single field of a packet, as defined by the ADJ.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Measurement {
-    /// The measurement's ADJid, e.g. `3000`.
+    /// The measurement's numeric ADJ id, e.g. `3000`.
     pub id: AdjId,
-    /// The alias used to identify it
+
+    /// The legacy textual identifier, used by code generation.
     pub alias: String,
+
     /// The human-readable name shown to the user.
     pub name: String,
 
-    /// The units of the measurement to be shown at tefronend
+    /// The name of the unit to display at the frontend, e.g. `"ºC"`.
     pub display_units: String,
 
     /// What kind of data this measurement holds.
     pub kind: MeasurementKind,
 
-    /// The protectionst that are checked for this messurement.
-    pub protections: Protections,
+    /// The protections that are checked for this measurement, in ADJ
+    /// order. The ADJ limits this list to 7 entries per measurement, but
+    /// that limit is enforced by the ADJ validator, not by this type.
+    pub protections: Vec<Protection>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base(kind: MeasurementKind) -> Measurement {
+        Measurement {
+            id: AdjId(3000),
+            alias: "temperature_1".to_string(),
+            name: "Temperature 1".to_string(),
+            display_units: "ºC".to_string(),
+            kind,
+            protections: vec![],
+        }
+    }
+
+    #[test]
+    fn a_numeric_measurement_carries_its_wire_type() {
+        let measurement = base(MeasurementKind::Numeric {
+            wire_type: NumericKind::F32,
+        });
+
+        let MeasurementKind::Numeric { wire_type } = measurement.kind else {
+            unreachable!("measurement was just constructed as Numeric above");
+        };
+
+        assert_eq!(wire_type, NumericKind::F32);
+    }
+
+    #[test]
+    fn an_enum_measurement_lists_its_options_in_adj_order() {
+        let measurement = base(MeasurementKind::Enum {
+            options: vec![
+                "Idle".to_string(),
+                "Operational".to_string(),
+                "Fault".to_string(),
+            ],
+        });
+
+        let MeasurementKind::Enum { options } = measurement.kind else {
+            unreachable!("measurement was just constructed as Enum above");
+        };
+
+        assert_eq!(options, vec!["Idle", "Operational", "Fault"]);
+    }
+
+    #[test]
+    fn two_measurements_with_the_same_data_are_equal() {
+        let a = base(MeasurementKind::Boolean);
+        let b = a.clone();
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn measurements_with_different_protections_are_not_equal() {
+        let a = base(MeasurementKind::Boolean);
+        let mut b = a.clone();
+        b.protections.push(Protection {
+            id: AdjId(1),
+            kind: crate::model::ProtectionKind::Above { limit: 100.0 },
+            severity: crate::model::Severity::Fault,
+            time: std::time::Duration::ZERO,
+        });
+
+        assert_ne!(a, b);
+    }
 }
