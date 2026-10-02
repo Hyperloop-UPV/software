@@ -5,7 +5,7 @@ default-members = ["crates/station"]
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.98"
 license = "MIT"
 authors = [
     "Hyperloop UPV Software Subsystem",
@@ -26,7 +26,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync",
 toml = "0.9"
 tracing = "0.1"
 tracing-appender = "0.2"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
