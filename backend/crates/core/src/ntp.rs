@@ -8,22 +8,24 @@ use tracing::{debug, info, instrument};
 const NTP_DEFAULT_PORT: u16 = 8123;
 
 /// Starts the NTP server with an interface and a port.  
-/// 
+///
 /// Arguments:
 /// - `interface`: IPv4 interface to bind to. If `None`, the default interface (`0.0.0.0`) is used.
 /// - `port`: Port to listen on. If `None`, the default NTP port (`8123`) is used.
+#[instrument(level = "info")]
 pub async fn start_ntp(interface: Option<Ipv4Addr>, port: Option<u16>) -> io::Result<()> {
     start_ntp_server(interface, port).await
 }
 
 /// Starts the NTP server with a socket.  
-/// 
+///
 /// Arguments:
 /// - `socket`: Complete IPv4 socket address. If `None` the default `SocketAddrV4` is used (`0.0.0.0:8123`).
+#[instrument(level = "info")]
 pub async fn start_ntp_with_socket(socket: Option<SocketAddrV4>) -> io::Result<()> {
     let (interface, port) = match socket {
         Some(socket) => (Some(*socket.ip()), Some(socket.port())),
-        None => (None, None)
+        None => (None, None),
     };
 
     start_ntp_server(interface, port).await
