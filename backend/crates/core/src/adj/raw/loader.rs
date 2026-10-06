@@ -293,5 +293,8 @@ mod tests {
                 text_time: None,
             }
         );
+
+        let protection_packet = pcu.packets.iter().find(|p| p.name.contains("_protection_")).unwrap();
+        assert_eq!(protection_packet.id, AdjId(protected.id.0 + 1));
     }
 }

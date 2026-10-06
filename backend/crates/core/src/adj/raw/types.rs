@@ -472,4 +472,27 @@ mod tests {
         assert_eq!(info.message_ids["fault"], 2);
         assert!(info.protection_types["Range"].is_range);
     }
+
+    #[test]
+    fn measurement_with_too_many_protections() {
+        let mut raw = RawMeasurement{
+            id: 100,
+            alias: "too_many".to_string(),
+            name: "Too Many Protections".to_string(),
+            kind: "float32".to_string(),
+            display_units: "V".to_string(),
+            enum_values: vec![],
+            protections: vec![],
+        };
+
+        for _ in 0..8{
+            raw.protections.push(raw_protection("Equal", vec![1.0], true, None));
+        }
+
+        assert!(matches!(
+            Measurement::try_from(raw),
+            Err(MeasurementError::TooManyProtections{count:8})
+        ))
+    }
+
 }
