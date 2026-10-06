@@ -447,6 +447,16 @@ interface Segment {
   highlight?: { offset: number; bps: number; label: string };
 }
 
+function packetHighlight(board: BoardThroughput, key?: string): Segment["highlight"] {
+  const index = board.packets.findIndex((p) => p.key === key);
+  const packet = board.packets[index];
+  return packet ? {
+    offset: board.packets.slice(0, index).reduce((sum, p) => sum + p.wireBps, 0),
+    bps: packet.wireBps,
+    label: `${board.board} / ${packet.name} #${packet.id}`,
+  } : undefined;
+}
+
 function StackedBar({ title, segments, capacityBps }: { title: string; segments: Segment[]; capacityBps: number }) {
   const total = segments.reduce((s, x) => s + x.udp + x.keepAlive, 0);
   const over = total > capacityBps;
@@ -522,6 +532,79 @@ function StackedBar({ title, segments, capacityBps }: { title: string; segments:
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Each row is normalized to the board's traffic, rather than link capacity.
+function PacketShareBar({ title, flows, colors, selectedKey, onSelectFlow }: {
+  title: string;
+  flows: TrafficFlow[];
+  colors: ReadonlyMap<string, string>;
+  selectedKey?: string;
+  onSelectFlow: (flow: TrafficFlow | null) => void;
+}) {
+  const total = flows.reduce((sum, f) => sum + f.wireBps, 0);
+  const highlighted = flows.some((f) => f.key === selectedKey);
+  const label = (f: TrafficFlow) => `${f.name}${f.id == null ? "" : ` #${f.id}`}`;
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h4 className="text-sm font-semibold">{title}</h4>
+        <span className="text-xs tabular-nums">{formatBitrate(total)}{total > 0 && " · 100% of this traffic"}</span>
+      </div>
+      {total > 0 ? (
+        <>
+          <div className="flex h-10 w-full overflow-hidden rounded-md" aria-label={`${title} packet shares`}>
+            {flows.filter((f) => f.wireBps > 0).map((f) => {
+              const selected = selectedKey === f.key;
+              const color = colors.get(f.key)!;
+              return (
+                <Tooltip key={f.key}>
+                  <TooltipTrigger asChild>
+                    <div
+                      role="group"
+                      aria-label={`${label(f)}: ${formatBitrate(f.wireBps)}, ${pctOf(f.wireBps, total)} of board traffic`}
+                      className={cn("h-full min-w-0 shrink-0 border-r border-background/60 last:border-r-0 transition-opacity", selected && "ring-2 ring-inset ring-foreground")}
+                      style={{
+                        width: `${f.wireBps / total * 100}%`,
+                        backgroundColor: color,
+                        ...(f.transport === "TCP" ? keepAliveFill(color) : {}),
+                        opacity: highlighted && !selected ? 0.25 : 1,
+                      }}
+                    >
+                      {f.transport === "UDP" && (
+                        <button
+                          type="button"
+                          className="block h-full w-full focus-visible:outline-2 focus-visible:-outline-offset-2"
+                          aria-label={`Highlight ${label(f)}`}
+                          aria-pressed={selected}
+                          onClick={() => onSelectFlow(selected ? null : f)}
+                        />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {label(f)} · {formatBitrate(f.wireBps)} · {pctOf(f.wireBps, total)}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs tabular-nums">
+            {flows.map((f) => (
+              <span key={f.key} className="inline-flex min-w-0 items-center gap-1.5">
+                <span className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: colors.get(f.key), ...(f.transport === "TCP" ? keepAliveFill(colors.get(f.key)!) : {}) }} />
+                {f.transport === "UDP" ? (
+                  <button type="button" aria-pressed={selectedKey === f.key} onClick={() => onSelectFlow(selectedKey === f.key ? null : f)} className="text-left hover:underline">
+                    {label(f)} · {pctOf(f.wireBps, total)}
+                  </button>
+                ) : <span>{label(f)} · {pctOf(f.wireBps, total)}</span>}
+              </span>
+            ))}
+          </div>
+        </>
+      ) : <p className="text-muted-foreground text-xs">No traffic included in this direction.</p>}
     </div>
   );
 }
@@ -686,15 +769,9 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
     const other: Segment = { key: "__other", label: "Other boards", color: seriesColor(SERIES_SLOTS), udp: 0, keepAlive: 0 };
     rows.forEach((r, i) => {
       const t = totals.get(r.board)!;
-      const packetIndex = selectedPacket?.board === r.board
-        ? r.packets.findIndex((p) => p.key === selectedPacket.key)
-        : -1;
-      const packet = r.packets[packetIndex];
-      const highlight = packet && udp(t) > 0 ? {
-        offset: r.packets.slice(0, packetIndex).reduce((s, p) => s + p.wireBps, 0),
-        bps: packet.wireBps,
-        label: `${r.board} / ${packet.name} #${packet.id}`,
-      } : undefined;
+      const highlight = selectedPacket?.board === r.board && udp(t) > 0
+        ? packetHighlight(r, selectedPacket.key)
+        : undefined;
       if (i < SERIES_SLOTS) {
         segments.push({ key: r.board, label: r.board, color: seriesColor(i), udp: udp(t), keepAlive: keepAlive(t), highlight });
       } else {
@@ -968,6 +1045,7 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
                               kaFlows={kaFlows}
                               totals={t}
                               capacityBps={capacityBps}
+                              view={view}
                               onPeriodChange={(f, o) => setPeriod(r.board, f, o)}
                               selectedKey={selectedPacket?.board === r.board ? selectedPacket.key : undefined}
                               onSelectFlow={(f) => setSelectedPacket(f ? { board: r.board, key: f.key } : null)}
@@ -1005,6 +1083,7 @@ function BoardDetail({
   kaFlows,
   totals,
   capacityBps,
+  view,
   onPeriodChange,
   selectedKey,
   onSelectFlow,
@@ -1015,6 +1094,7 @@ function BoardDetail({
   kaFlows: TrafficFlow[];
   totals: BoardTotals;
   capacityBps: number | null;
+  view: View;
   onPeriodChange: OnPeriodChange;
   selectedKey?: string;
   onSelectFlow: (flow: TrafficFlow | null) => void;
@@ -1022,6 +1102,14 @@ function BoardDetail({
   const note = (text: string) => (
     <p className="text-muted-foreground bg-background rounded-md border px-3 py-2 text-xs">{text}</p>
   );
+  const udpFlows = [...board.packets].sort((a, b) => a.id! - b.id!);
+  const flows = [
+    ...(options.udp ? udpFlows : []),
+    ...(options.keepAlive && connected ? kaFlows : []),
+  ];
+  // Keep packet colors stable when traffic options are toggled.
+  const colors = new Map(udpFlows.map((f, i) => [f.key, seriesColor(i % SERIES_SLOTS)]));
+  for (const f of kaFlows) colors.set(f.key, "var(--series-other)");
 
   return (
     <div className="space-y-3 text-sm">
@@ -1080,6 +1168,25 @@ function BoardDetail({
           ))}
         </div>
       )}
+      <section aria-label={`${board.board} bandwidth`} className="bg-background space-y-4 rounded-md border p-3">
+        <p className="text-muted-foreground text-xs">Packet share of {board.board} traffic. Each row represents 100% of its total.</p>
+        <PacketShareBar
+          title={`${board.board} · ${view === "direction" ? "To backend" : "Both directions"}`}
+          flows={view === "direction" ? flows.filter((f) => f.direction === "up") : flows}
+          colors={colors}
+          selectedKey={selectedKey}
+          onSelectFlow={onSelectFlow}
+        />
+        {view === "direction" && (
+          <PacketShareBar
+            title={`${board.board} · From backend`}
+            flows={flows.filter((f) => f.direction === "down")}
+            colors={colors}
+            selectedKey={selectedKey}
+            onSelectFlow={onSelectFlow}
+          />
+        )}
+      </section>
     </div>
   );
 }
