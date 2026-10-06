@@ -710,6 +710,7 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
   const [options, setOptions] = useState<TrafficOptions>(DEFAULT_TRAFFIC_OPTIONS);
   const [view, setView] = useState<View>("direction");
   const [capacityMbps, setCapacityMbps] = useState("100");
+  const [maxCapacity, setMaxCapacity] = useState(false);
   const [backendMs, setBackendMs] = useState("50");
   const [boardMs, setBoardMs] = useState("50");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -742,7 +743,15 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
   );
   const sum = (pick: (t: BoardTotals) => number) => rows.reduce((s, r) => s + pick(totals.get(r.board)!), 0);
 
-  const capacityBps = Number(capacityMbps) > 0 ? Number(capacityMbps) * 1e6 : null;
+  const maxCapacityBps = view === "direction"
+    ? Math.max(sum((t) => t.up), sum((t) => t.down))
+    : sum((t) => t.up + t.down);
+  const capacityBps = maxCapacity
+    ? Math.max(maxCapacityBps, 1)
+    : Number(capacityMbps) > 0 ? Number(capacityMbps) * 1e6 : null;
+  const displayedCapacityMbps = maxCapacity
+    ? (maxCapacityBps / 1e6).toPrecision(4)
+    : capacityMbps;
 
   const modifiedCount = (board: string) => Object.keys(periodOverrides[board] ?? {}).length;
   const totalModified = Object.values(periodOverrides).reduce((s, m) => s + Object.keys(m).length, 0);
@@ -806,16 +815,22 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
           <ThroughputHelp backendMs={Number(backendMs) || 0} boardMs={Number(boardMs) || 0} />
 
           <Group title="Link">
-            <NumberField label="Capacity" unit="Mbit/s" value={capacityMbps} onChange={setCapacityMbps} />
+            <NumberField
+              label="Capacity"
+              unit="Mbit/s"
+              value={displayedCapacityMbps}
+              disabled={maxCapacity}
+              onChange={(value) => { setCapacityMbps(value); setMaxCapacity(false); }}
+            />
             <div className="flex gap-1">
               {CAPACITY_PRESETS.map((p) => (
                 <button
                   key={p}
                   type="button"
-                  onClick={() => setCapacityMbps(p)}
+                  onClick={() => { setCapacityMbps(p); setMaxCapacity(false); }}
                   className={cn(
                     "flex-1 rounded-md border py-1 text-[11px] tabular-nums transition-colors",
-                    capacityMbps === p
+                    !maxCapacity && capacityMbps === p
                       ? "border-primary bg-primary/10 text-primary font-semibold"
                       : "text-muted-foreground hover:bg-muted",
                   )}
@@ -823,7 +838,23 @@ export function ThroughputTab({ boards }: { boards: BoardMeta[] }) {
                   {Number(p) >= 1000 ? `${Number(p) / 1000} G` : `${p} M`}
                 </button>
               ))}
+              <button
+                type="button"
+                aria-pressed={maxCapacity}
+                onClick={() => setMaxCapacity(true)}
+                className={cn(
+                  "flex-1 rounded-md border py-1 text-[11px] transition-colors",
+                  maxCapacity ? "border-primary bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                Max
+              </button>
             </div>
+            {maxCapacity && (
+              <p className="text-muted-foreground text-[11px] leading-snug">
+                Scales to the highest current chart total and updates with the scenario.
+              </p>
+            )}
           </Group>
 
           <Group title="View">
