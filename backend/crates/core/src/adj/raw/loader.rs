@@ -57,6 +57,8 @@ fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadErro
         .unwrap_or_else(|| root.to_path_buf());
 
     let mut measurements: HashMap<String, Measurement> = HashMap::new();
+    let mut protection_packets: Vec<PacketDef> = Vec::new();
+
     for measurements_path in &raw_board.measurements {
         let raws: Vec<RawMeasurement> = read_json(&board_dir.join(measurements_path))?;
         for raw in raws {
@@ -67,6 +69,18 @@ fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadErro
                     alias: alias.clone(),
                     source,
                 })?;
+
+            for (idx,protection) in measurement.protections.iter().enumerate() {
+                let protection_packet_id = measurement.id.0 + (idx as u16 + 1);
+
+                protection_packets.push(PacketDef {
+                    id: AdjId(protection_packet_id),
+                    name: format!("{}_{}_protection_{}", name, measurement.alias, idx+1),
+                    kind: PacketKind::Data,
+                    measurements: vec![measurement.clone()],
+                });
+
+            }
             measurements.insert(alias, measurement);
         }
     }
@@ -78,6 +92,8 @@ fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadErro
             packets.push(build_packet_def(name, raw, &measurements)?);
         }
     }
+
+    packets.extend(protection_packets);
 
     let ip: IpAddr = raw_board
         .board_ip

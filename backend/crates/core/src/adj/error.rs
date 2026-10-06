@@ -100,6 +100,11 @@ pub enum LoadError {
 /// An error converting a raw measurement into [`crate::model::Measurement`].
 #[derive(Debug, thiserror::Error)]
 pub enum MeasurementError {
+
+    /// The measurement has more than 7 protections
+    #[error("measurement has {count} protections, maximum allowed is 7")]
+    TooManyProtections {count: usize},
+
     /// The measurement's `type` isn't a recognized wire type, `"bool"` or
     /// `"enum"`.
     #[error("unknown measurement type {0:?}")]

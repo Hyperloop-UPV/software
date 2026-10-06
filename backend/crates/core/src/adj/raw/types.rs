@@ -112,6 +112,11 @@ impl TryFrom<RawMeasurement> for Measurement {
     type Error = MeasurementError;
 
     fn try_from(raw: RawMeasurement) -> Result<Self, Self::Error> {
+
+        if raw.protections.len() > 7 {
+            return Err(MeasurementError::TooManyProtections{count: raw.protections.len()});
+        }
+
         let kind = parse_measurement_kind(&raw.kind, raw.enum_values)?;
 
         let mut protections = Vec::with_capacity(raw.protections.len());
