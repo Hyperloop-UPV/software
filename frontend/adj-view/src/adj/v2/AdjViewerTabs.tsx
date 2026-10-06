@@ -650,6 +650,13 @@ function GeneralTab({ adjData }: { adjData: AdjArchiveV2 }) {
 
 export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchiveV2 }) => {
   const boards = useMemo(() => extractBoards(adjData), [adjData]);
+  const [archive, setArchive] = useState({ data: adjData, revision: 0 });
+
+  // Reset the scenario for every newly loaded archive, even when board names
+  // are unchanged. Keep the active tab so users can compare commits in place.
+  if (archive.data !== adjData) {
+    setArchive({ data: adjData, revision: archive.revision + 1 });
+  }
 
   // Lifted state for cross-tab navigation
   const [activeTab, setActiveTab] = useState("boards");
@@ -729,8 +736,7 @@ export const AdjViewerTabs = ({ adjData }: { adjData: AdjArchiveV2 }) => {
       </TabsContent>
       {/* No overflow-hidden here: it would trap ThroughputTab's sticky panel. */}
       <TabsContent value="throughput" className="min-h-0 flex-1 pb-4">
-        {/* key resets the TCP-connected defaults when a different board set loads */}
-        <ThroughputTab key={boards.map((b) => b.name).join(",")} boards={boards} />
+        <ThroughputTab key={archive.revision} boards={boards} />
       </TabsContent>
       <TabsContent value="general" className="min-h-0 flex-1 overflow-hidden pb-4">
         <GeneralTab adjData={adjData} />
