@@ -1,0 +1,356 @@
+---
+title: "ADJv3"
+subtitle: Acta de la 1ª Reunión de comunicaciones
+author: "Javier Ribal del Río"
+date: 2026/09/16
+department: "ALL" # "SW" o "FW"
+attendees:
+  - Javier Ribal del Río (SW-FW) (1ª y 2ª)
+  - Jorge Canut (FW) (1ª)
+  - Víctor López (FW) (1ª y 2ª)
+  - Aleksandr Globa (FW) (1ª y 2ª)
+  - Pau Minguet (SW) (2ª)
+  - Gazi Halawali (SW) (2ª)
+  - Pablo Pertusa (FW) (2ª)
+  - Boris Mladenov (2ª)
+  - Javier Lara (2ª)
+---
+
+## Contextualización
+
+El presente documento tiene como objetivo servir como especificación técnica para la implementación del `ADJv3`, partiendo de la base del `ADJv2` definido en el `README.md` del repositorio. El cambio más significativo se corresponde con la separación en forma y concepto de los `messages` y las `protections`. En el pasado, un `message` se correspondía con la información que enviaban las placas al vehículo, y las `protections` eran una implementación de los `messages`; es decir, una `protection` era un `message` con un tipo determinado. Asimismo, el documento también se corresponde con el acta de la primera reunión de comunicaciones. Debido a su larga duración, esta reunión se dividió en dos convocatorias (1ª y 2ª), celebradas los días 10 y 16 de septiembre de 2026, de ahí que el documento recoja las dos fechas y que la asistencia se indique por convocatoria.
+
+En el Drive del equipo hay unas diapositivas de la reunión que quizá arrojen algo de luz sobre el contenido de este texto.
+
+\newpage
+
+## Modificación de la estructura de los `measurements` y modificación de los `id` de los `packets/orders`
+
+Con el objetivo de dar soporte a las `protections` para cada `measurement`, el campo `id` pasa a ser un identificador único numérico común entre `packets` y `orders`. El rango de este identificador común es $[0, 8.191] = [0, 2^{13} - 1]$ ^[Podríamos definirlo como un `int13`]. Sin embargo, los `id` comprendidos en $[0, 511]$ se corresponden con los *ID* especiales: no asignados a `packets`, `orders` ni `protections`, o reservados para otros fines.
+
+Sin embargo, no podemos prescindir del `id` textual previamente definido, puesto que es empleado por la generación de código y no puede ser sustituido por el `id` numérico ^[Esto se debe a que actualmente la generación de código utiliza el `id` del `measurement` para generar su variable asociada]. Por ello, definimos un nuevo campo denominado `alias` que se corresponde con el antiguo campo `id` ^[Esta decisión de mantener un campo legado maximiza la compatibilidad con la `logging-view`]. Además, el campo `alias` se corresponde con el identificador para los archivos tipo `packets` y `orders`.
+
+
+
+## Incorporación de las `protections` al ADJ
+
+Las `protections` se desvinculan de la implementación de los `messages`, por lo que es necesario definir una nueva estructura para el paquete a enviar.
+
+### Estructura del paquete
+
+El paquete de una `protection` tiene longitud casi fija: una cabecera de 64 bits (`id` más
+`timestamp`, con relleno de alineación) seguida del valor que ha disparado la protección,
+cuyo tamaño depende del tipo del `measurement` vigilado.
+
+```{mermaid}
+%%| label: fig-estructura-proteccion
+%%| fig-cap: "Estructura del paquete de una protección. Las casillas van numeradas por su offset en bits. El campo `value` ocupa el mismo tamaño que el `measurement` asociado (de 8 a 64 bits); aquí se dibuja con 64."
+%%| fig-width: 5.2
+%%| fig-pos: 'H'
+%%{init: {"packet": {"bitWidth": 15, "rowHeight": 34, "bitsPerRow": 32, "showBits": true}}}%%
+packet-beta
+0-15: "id"
+16-23: "hora"
+24-31: "min"
+32-39: "seg"
+40-47: "subseg"
+48-63: "resv"
+64-127: "value"
+```
+
+- `id` (bits 0–15): identificador numérico de la protección.
+- `timestamp` (bits 16–47): instante en que salta la protección, con `hora`, `min`, `seg` y
+  `subseg` en 8 bits cada uno.
+- `resv` (bits 48–63): 2 bytes reservados, únicamente para alinear `value` a un offset
+  múltiplo de 8 bytes.
+- `value` (bits 64 en adelante): valor que ha excedido el umbral. Ocupa exactamente el mismo
+  tamaño que el `measurement` que vigila la protección (de 8 a 64 bits según su `type`), de
+  modo que el receptor lo decodifica con el mismo codificador que ese `measurement`.
+
+
+### Tipos de `protection` definidos en `general_info.json`
+
+Los tipos de `protection` que pueden saltar se declaran en `general_info.json`, en un objeto
+`protectionTypes` que asocia el nombre de cada protección a su definición:
+
+```
+{
+  "protectionTypes": {
+    "<protection_name>": {
+      "range":    booleano?,
+      "text":     "<texto>",
+      "textTime": "<texto>?"
+    }
+  }
+}
+```
+
+- `range`: booleano opcional, `false` por defecto. Indica cuántos límites tiene la
+  protección: `false` para las de un solo valor (`Above`, `Below`, `Equal`…) y `true` para
+  las de intervalo (`Range`), en cuyo caso los dos límites se escriben con notación de
+  intervalo, p. ej. `[233, 333]`.
+- `text`: plantilla del mensaje que se muestr aen la control station. Los `{}` se
+  sustituyen por los límites definidos para la protección (un único valor, o el intervalo
+  `[min, max]` si `range` es `true`) y el `%`, por el valor que los ha excedido.
+- `textTime`: plantilla alternativa para las protecciones de acumulación temporal
+  (`time_accumulation`), que saltan cuando el valor se mantiene fuera de rango durante un
+  intervalo dado. Se usa en lugar de `text` y el `%` se sustituye por ese tiempo máximo, no
+  por el valor.
+
+
+#### Ejemplos de tipos de `protection`
+
+- `Above`
+- `Below`
+- `Equal`
+- `NotEqual` ^[La protección se encuentra definida en la `ST-LIB`, por el momento no se nos ha ocurrido su propósito]
+- `Range`
+
+### Definición de `protections` en los `measurements`
+
+Cada `measurement` de `<PLACA>_measurements.json` incorpora los cambios anteriores (el `id`
+pasa a ser numérico, de rango $[0, 8.191]$, y el identificador textual antiguo se conserva
+en `alias`) y, además, una lista opcional `protections` con las protecciones que vigilan esa
+medida:
+
+```
+{
+  "id":           número,
+  "alias":        "<texto>",
+  "name":         "<texto>",
+  "type":         "<tipo>",
+  "podUnits":     "<nombre de unidad>?",
+  "displayUnits": "<nombre de unidad>?",
+  "enumValues":   ["<texto>"]?,
+  "protections": [
+    {
+      "type":  "<tipo de protección>",
+      "value": [número]  |  [número, número],
+      "fault": booleano?,
+      "time":  "<número><unidad>?"
+    }
+  ]?
+}
+```
+
+`protections` *array* limitado a 7 protecciones.
+
+- `type`: uno de los tipos declarados en `protectionTypes` (`Above`, `Below`, `Equal`,
+  `NotEqual`, `Range`).
+- `value`: lista con el o los límites de la protección. Un elemento para las de un solo
+  valor y dos, `[min, max]`, para `Range`.
+- `fault`: booleano opcional, `true` por defecto. Fija la severidad con la que se emite la
+  protección: `true` la envía como *fault* y `false` como *warning*.
+- `time`: opcional, solo para las protecciones de acumulación temporal. Cadena con valor y
+  unidad (`"500ms"`, `"3s"`…) que indica cuánto tiempo debe mantenerse la medida fuera de
+  rango antes de que la protección salte, por defecto `0`.
+
+### Id de las protecciones
+
+\begin{quote}
+\fbox{\parbox{0.92\linewidth}{\raggedright
+\textbf{¿Qué es \textit{bit-packing}?}\\[4pt]
+Es la técnica de meter varios campos independientes dentro de un mismo entero, cada uno
+ocupando solo los bits que necesita, en vez de reservarle un byte o un campo propio. Aquí
+el \texttt{uint16} del \texttt{id} empaqueta dos campos: \texttt{pos} (3 bits) e
+\texttt{id\_measurement} (13 bits). Se construye desplazando y combinando con operadores a
+nivel de bit --- \texttt{(pos << 13) | id\_measurement} --- y se deshace igual, en el otro
+sentido: \texttt{pos = id >> 13} e \texttt{id\_measurement = id \& 0x1FFF}. La ventaja es
+que no se desperdicia ni un bit; el coste es que, si un consumidor no sabe que el campo va
+empaquetado, lo interpreta mal sin que nada se lo avise.
+}}
+\end{quote}
+
+Esta codificación no es exclusiva del paquete de la `protection`: como `packets`, `orders` y
+`protections` comparten el mismo campo `id` de 16 bits, se aplica al `id` de **cualquier**
+paquete del protocolo. Al recibir un `id`, lo primero que se mira son sus 3 bits altos
+(`pos`): si valen `000`, el resto son los 13 bits del `id` normal de un `packet`, `order` o
+`measurement`; si no, indican qué `protection` (`1`–`7`) del `measurement` de esos 13 bits
+ha saltado:
+
+$$\texttt{id} = (\texttt{pos} \ll 13) \mathbin{|} \texttt{id\_measurement}$$
+
+```{mermaid}
+%%| label: fig-id-protection
+%%| fig-cap: "Id de 16 bits compartido por packets, orders y protections: 3 bits de posición (000 = id normal) + 13 bits del id de measurement/packet/order."
+%%| fig-width: 4.6
+%%| fig-pos: 'H'
+%%{init: {"packet": {"bitWidth": 22, "rowHeight": 34, "bitsPerRow": 16, "showBits": true}}}%%
+packet-beta
+0-12: "id measurement"
+13-15: "pos"
+```
+
+| `pos` | Significado |
+|:-----:|-------------------------------------------------|
+| `000` | `id` normal: `packet`, `order` o `measurement`   |
+| `001` | `protections[0]`                                 |
+| `010` | `protections[1]`                                 |
+| `011` | `protections[2]`                                 |
+| `100` | `protections[3]`                                 |
+| `101` | `protections[4]`                                 |
+| `110` | `protections[5]`                                 |
+| `111` | `protections[6]`                                 |
+
+Con `pos` de `1` a `7` caben exactamente las 7 `protections` por `measurement` fijadas
+antes; `pos = 0` deja el `id` libre para su uso normal. Como el resto del protocolo, este
+`id` compuesto viaja como un único `uint16` en *little-endian* ^[`pos` no ocupa un byte
+aparte: son los 3 bits más altos de ese mismo `uint16`, así que quedan repartidos en el
+byte alto junto con los 5 bits más significativos de `id_measurement`.].
+
+
+\newpage
+
+
+## Refactor de los `messages`
+
+### Estructura del `message`
+
+```{mermaid}
+%%| label: fig-estructura-message
+%%| fig-cap: "Estructura del nuevo message. origin (máx. 48 bytes) y message (máx. 320 bytes) son cadenas terminadas en 0, de longitud variable; aquí se dibujan truncadas a 4 bytes."
+%%| fig-width: 5.2
+%%| fig-pos: 'H'
+%%{init: {"packet": {"bitWidth": 40, "rowHeight": 34, "bitsPerRow": 10, "showBits": true}}}%%
+packet-beta
+0-1: "id"
+2-2: "hora"
+3-3: "min"
+4-4: "seg"
+5-5: "subseg"
+6-9: "origin (txt 0)"
+10-13: "message (txt 0)"
+```
+
+- `id` (2 bytes): tipo de mensaje (`uint16`). Reutiliza `message_ids` de `general_info.json`
+  (ver más abajo): `10` = `fault`, `11` = `warning`, `12` = `info` y, como tipo nuevo,
+  `13` = `panic`^[Ya estaba definido en la `ST-LIB` y era enmascarado como un mensaje de `fault`, ahora queda incluido en el `ADJ`].
+- `timestamp` (4 bytes): el mismo formato que en las `protections` — `hora`, `min`, `seg` y
+  `subseg` en un byte cada uno.
+- `origin` (hasta 48 bytes, cadena terminada en `0`): de dónde sale el mensaje. Actualmente
+  es la ruta absoluta del fichero de origen ^[Sería mejor que fuese la ruta relativa desde
+  la raíz del repositorio de la placa, no la ruta absoluta del sistema en el que se
+  compiló.].
+- `message` (hasta 320 bytes, cadena terminada en `0`): contenido del mensaje.
+
+`origin` y `message` llevan tamaño máximo pero longitud variable: al llegar al byte `0` se
+entiende que la cadena ha terminado.
+
+#### Implementación en `general_info.json`
+
+Reutilizamos los `message_ids` definidos en `general_info.json`, que por el momento estaban
+en desuso:
+
+```
+{
+  "message_ids": {
+    "fault":   10,
+    "warning": 11,
+    "info":    12,
+    "panic":   13
+  }
+}
+```
+
+## Adición de la MAC a la información propia de cada placa
+
+En vista de lo acontecido en la EHW en H11^[Hubo MAC *curiosas* como `67:67:67:67:67:67` que causaban problemas y horas de *debugging*], se va a añadir un campo `mac` que se corresponde con la `MAC` de cada placa con el objetivo de que se use en la generación de código y sea validado por el `adj-validator`.
+
+
+## Gestión de tiempos y `SNTP`
+
+Se comenta la posibilidad de realizar un *POC* para mirar la viabilidad de utilizar el protocolo `SNTP` para sincronizar reloj de las placas y el backend. Boris comenta que ya estaba implementado pero que no funcionaba.
+
+Se ocuparán Víctor y Javier Ribal. Mirar el `README` de `SNTP` en la `ST-LIB`.
+
+
+## Módulo `units`
+
+Se abandona la implementación del `ADJv2`, se desimplementa `podUnits` y su contraparte en `general_info.json`. Se debate sobre la utilidad del módulo y su practicidad. 
+
+Se acuerda implementarlo añadiendo a cada `measurement` un factor para cada operación.
+
+## Asignar `id` especiales para la `BLCU`
+
+Se reserva el rango $[20, 29]$ para los paquetes/órdenes asociados a la `BLCU`.
+
+## Verificación del `ADJ` *hash*
+
+Se reserva el `id` 2 para la comparación de commits.
+
+En caso de que estemos utilizando la `VCU` como `master`, durante la conexión `TCP` compararán el *hash* del `ADJ`; si coinciden todos, se pasará al `backend` (si no, se pasará `hash = 0x00...`).
+
+En la comparación en el `backend`, si coinciden todos, estará bien; si no, y únicamente si está marcada una nueva opción del `backend`, *Different ADJ hash Fault*, se irá a `fault`; si no, simplemente imprimiremos un `warning`.
+
+
+### Formato
+
+```{mermaid}
+%%| label: fig-formato-hash-adj
+%%| fig-cap: "Formato del paquete de verificación del hash del `ADJ`: `id` fijo a `2` (uint16) seguido del `commit` (uint64) del `ADJ` vigente."
+%%| fig-width: 5.2
+%%| fig-pos: 'H'
+%%{init: {"packet": {"bitWidth": 15, "rowHeight": 34, "bitsPerRow": 32, "showBits": true}}}%%
+packet-beta
+0-15: "id (=2)"
+16-79: "commit"
+```
+
+- `id` (16 bits): fijo a `2`, identifica este paquete como la comparación de *hash* del `ADJ`.
+- `commit` (64 bits): *hash* del commit del `ADJ` que está usando la placa o el `backend`.
+
+
+
+## *Custom Keep-alive* 
+
+Mantenemos el estilo: será el `backend` quien envíe el *keep-alive* y nos iremos a `fault` si no se recibe el `ack`. `FW` hará lo propio en las placas.
+
+Posibilidad de añadir un botón para desactivar el *keep-alive* del `backend`.
+
+## Propuesta de incorporación del `array`
+
+Autor: *Víctor López*
+
+Añadimos un atributo opcional a los measurements 'arrayLength'.
+
+Este atributo define la longitud de array para el measurement, si el measurement tiene protecciones, se comprobará la protección por cada elemento del array.
+
+Si se necesita envíar una alerta de que la protección ha detectado un fallo en un elemento del array, se envía en el campo `reserved` del mensaje de la protección el índice del array que ha fallado (empezando por el índice 0).
+
+Se vería así el paquete de protección entonces:
+
+```{mermaid}
+%%| label: fig-proteccion-array
+%%| fig-cap: "Estructura del paquete de una protección sobre un measurement de tipo array. El campo `resv` pasa a contener el índice del elemento que ha fallado (empezando por 0). El campo `value` ocupa el mismo tamaño que el elemento del array; aquí se dibuja con 64 bits."
+%%| fig-width: 5.2
+%%| fig-pos: 'H'
+%%{init: {"packet": {"bitWidth": 15, "rowHeight": 34, "bitsPerRow": 32, "showBits": true}}}%%
+packet-beta
+0-15: "id"
+16-23: "hora"
+24-31: "min"
+32-39: "seg"
+40-47: "subseg"
+48-63: "índice"
+64-127: "value"
+```
+
+```{mermaid}
+%%| label: fig-packet-array
+%%| fig-cap: "Estructura de un paquete para un measurement que es un array de `uint16` (aquí, con 3 elementos): el `id` seguido de los elementos consecutivos."
+%%| fig-width: 5.2
+%%| fig-pos: 'H'
+%%{init: {"packet": {"bitWidth": 15, "rowHeight": 34, "bitsPerRow": 32, "showBits": true}}}%%
+packet-beta
+0-15: "id"
+16-31: "value[0]"
+32-47: "value[1]"
+48-63: "value[2]"
+```
+
+## Otros apuntes de la reunión
+
+Por la parte de FW, Víctor y Jorge Canut se muestran conformes con la implementación del refactor en la `ST-LIB`. Por otra parte, Javier Ribal comenta que al rehacerse el `backend` desde cero no ve ningún impedimiento en aplicar estos cambios.
+
+Primera reunión de Aleksandr Globa y Pablo Pertusa que se incorporan al subsistema de Firmware.
+

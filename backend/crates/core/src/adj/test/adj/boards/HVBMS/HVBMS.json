@@ -1,0 +1,15 @@
+{
+  "board_id": 7,
+  "mac": "0:0:0:0:0:0",
+  "board_ip": "192.168.1.7",
+  "measurements": [
+    "HVBMS_measurements.json"
+  ],
+  "packets": [
+    "packets.json",
+    "orders.json"
+  ],
+  "sockets": [
+    "sockets.json"
+  ]
+}
