@@ -15,9 +15,11 @@ import type {
   AdjStatus,
   DroppedFile,
   LoggerSettings,
+  LoggedOrder,
   SeriesKey,
   SessionStatus,
 } from "../../types/session";
+import { parseOrdersCsv } from "../../lib/orders";
 import type { Store } from "../store";
 
 const ADJ_ARCHIVE_URL = (hash: string) =>
@@ -65,6 +67,7 @@ export interface SessionSlice {
   selectedSeries: Record<SeriesKey, boolean>;
   // All session files keyed by webkitRelativePath, for later CSV reading.
   sessionFiles: Map<string, DroppedFile>;
+  orders: LoggedOrder[];
   isLoading: boolean;
   // Persistent — reflects the currently open session, cleared only by clearSession.
   sessionStatus: SessionStatus | null;
@@ -93,6 +96,7 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
   availableSeries: {},
   selectedSeries: {},
   sessionFiles: new Map(),
+  orders: [],
   isLoading: false,
   sessionStatus: null,
   sessionStatusToast: null,
@@ -169,6 +173,19 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
         }
       }
 
+      // Orders are optional session events. Their absence or malformed content
+      // never changes the telemetry session status.
+      let orders: LoggedOrder[] = [];
+      const orderFile = fileArray.find((f) => {
+        const parts = f.webkitRelativePath.split("/");
+        return f.name === "order.csv" && parts.length === 3 && parts[1] === "order";
+      });
+      if (orderFile) {
+        try {
+          orders = parseOrdersCsv(await orderFile.text(), settings?.time_unit ?? "ms", adjData);
+        } catch { /* Leave events empty when an optional order file cannot be read. */ }
+      }
+
       const status = computeSessionStatus(settingsIssue, availableSeries, adjStatus);
 
       set({
@@ -178,6 +195,7 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
         availableSeries,
         selectedSeries: {},
         sessionFiles: new Map(fileArray.map((f) => [f.webkitRelativePath, f])),
+        orders,
         isLoading: false,
         isSessionPanelOpen: true,
         sessionStatus: status,
@@ -226,6 +244,7 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
       availableSeries: {},
       selectedSeries: {},
       sessionFiles: new Map(),
+      orders: [],
       sessionStatus: null,
       sessionStatusToast: null,
       isSessionPanelOpen: true,

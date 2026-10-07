@@ -67,6 +67,8 @@ export interface PlotState {
   // one plot (they'd need incompatible X-axis semantics on the same axis).
   showFFT: boolean;
   nextColorIndex: number; // monotonically increasing; never reused, so colors don't reshuffle on removal
+  /** Order event ids hidden only on this plot. Missing ids remain visible. */
+  hiddenOrderIds?: Record<string, true>;
   // When true, blocks pan/zoom/scroll-zoom, drag-to-resize, inline rename and
   // signal drops onto this plot, so the view can't be changed by accident.
   locked?: boolean;
