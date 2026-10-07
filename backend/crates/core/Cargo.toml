@@ -29,6 +29,7 @@ tracing.workspace = true
 tokio = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true }
 tracing-appender = { workspace = true, optional = true }
+gix = { version = "0.87.1", features = ["blocking-http-transport-reqwest-rust-tls"] }
 
 # `workspace = true` can't be combined with extra lints in the same table,
 # so the workspace list is repeated here with `missing_docs` added: this is
