@@ -8,7 +8,7 @@
 use crate::adj::error::{MeasurementError, ProtectionError};
 use crate::adj::info::{AdjInfo, ProtectionTypeInfo};
 use crate::model::{
-    AdjId, Measurement, MeasurementKind, NumericKind, Protection, ProtectionKind, Severity,
+    AdjId, Measurement, MeasurementKind, NumericKind, Port, Protection, ProtectionKind, Severity,
 };
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -87,7 +87,11 @@ pub(crate) struct RawPacket {
 impl From<RawGeneralInfo> for AdjInfo {
     fn from(raw: RawGeneralInfo) -> Self {
         AdjInfo {
-            ports: raw.ports,
+            ports: raw
+                .ports
+                .into_iter()
+                .map(|(name, port)| (name, Port(port)))
+                .collect(),
             addresses: raw.addresses,
             message_ids: raw.message_ids,
             protection_types: raw
@@ -470,7 +474,7 @@ mod tests {
 
         let info = AdjInfo::from(raw);
 
-        assert_eq!(info.ports["TCP_SERVER"], 50500);
+        assert_eq!(info.ports["TCP_SERVER"], Port(50500));
         assert_eq!(info.addresses["backend"], "192.168.0.9");
         assert_eq!(info.message_ids["fault"], 2);
         assert!(info.protection_types["Range"].is_range);

@@ -16,6 +16,10 @@ pub struct AdjId(pub u16);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BoardId(pub u16);
 
+/// A TCP/UDP port number, as declared in `general_info.json`'s `ports`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Port(pub u16);
+
 /// A board's physical MAC address, as 6 raw bytes.
 ///
 /// Kept as a fixed-size byte array instead of a `String` on purpose: a
@@ -46,6 +50,14 @@ mod tests {
     #[test]
     fn two_packet_ids_with_the_same_number_are_equal() {
         assert_eq!(AdjId(1000), AdjId(1000));
+    }
+
+    #[test]
+    fn a_port_and_a_board_id_cannot_be_compared_to_each_other() {
+        // This wouldn't compile if you tried it: Port(1) == BoardId(1)
+        let port = Port(50500);
+        let board = BoardId(50500);
+        assert_eq!(port.0, board.0); // only the inner numbers can be compared
     }
 
     #[test]

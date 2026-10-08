@@ -188,7 +188,7 @@ fn parse_mac(raw: &str) -> Option<MacAddress> {
 mod tests {
     use super::*;
     use crate::adj::ProtectionTypeInfo;
-    use crate::model::{PacketKind, ProtectionKind, Severity};
+    use crate::model::{PacketKind, Port, ProtectionKind, Severity};
     use std::path::Path;
     use std::time::Duration;
 
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(protection.time, Duration::ZERO);
         assert_eq!(protection.id, AdjId(1));
 
-        assert_eq!(adj.info.ports["TCP_SERVER"], 50500);
+        assert_eq!(adj.info.ports["TCP_SERVER"], Port(50500));
         assert_eq!(adj.info.addresses["backend"], "192.168.0.9");
         assert_eq!(adj.info.message_ids["fault"], 2);
         assert_eq!(

@@ -5,6 +5,7 @@
 //! addresses, message-id conventions, and how to display a triggered
 //! protection.
 
+use crate::model::Port;
 use std::collections::HashMap;
 
 /// A protection type's display text, as declared in `general_info.json`'s
@@ -25,8 +26,8 @@ pub struct ProtectionTypeInfo {
 /// Backend-session metadata parsed from `general_info.json`.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AdjInfo {
-    /// Known port numbers, by name (e.g. `"TCP_SERVER"` -> `50500`).
-    pub ports: HashMap<String, u16>,
+    /// Known port numbers, by name (e.g. `"TCP_SERVER"` -> `Port(50500)`).
+    pub ports: HashMap<String, Port>,
     /// Known addresses, by name (e.g. `"backend"` -> `"192.168.0.9"`), kept
     /// as text: nothing in this crate needs them parsed as an `IpAddr` yet.
     pub addresses: HashMap<String, String>,
