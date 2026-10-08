@@ -61,7 +61,7 @@ pub enum LoadError {
         board: String,
     },
 
-    /// A packet or order declares a `type` other than `"data"` or `"order"`.
+    /// A packet or order declares a `type` other than `"data", `"order"`, `"message"` or `"protection"`.
     #[error("board {board:?}, packet {name:?}: unknown packet type {type_name:?}")]
     UnknownPacketType {
         /// The board the packet belongs to.
@@ -100,10 +100,12 @@ pub enum LoadError {
 /// An error converting a raw measurement into [`crate::model::Measurement`].
 #[derive(Debug, thiserror::Error)]
 pub enum MeasurementError {
-
-    /// The measurement has more than 7 protections
+    /// The measurement has more than 7 protections.
     #[error("measurement has {count} protections, maximum allowed is 7")]
-    TooManyProtections {count: usize},
+    TooManyProtections {
+        /// How many protections were declared.
+        count: usize,
+    },
 
     /// The measurement's `type` isn't a recognized wire type, `"bool"` or
     /// `"enum"`.
