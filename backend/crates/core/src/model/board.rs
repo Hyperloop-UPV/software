@@ -11,6 +11,7 @@
 //! shape is settled.
 
 use super::{AdjId, BoardId, MacAddress, Measurement};
+use std::collections::HashMap;
 use std::net::IpAddr;
 
 /// What kind of packet a [`PacketDef`] declares.
@@ -35,6 +36,12 @@ pub enum PacketKind {
 pub struct PacketDef {
     /// The packet's numeric ADJ id.
     pub id: AdjId,
+    /// The board this packet belongs to. A `PacketDef` is always reached
+    /// through its owning [`Board`] already, but carrying the id here too
+    /// means anything holding just a `&PacketDef` (e.g. a lookup table
+    /// indexed by [`AdjId`]) knows which board it is without a second,
+    /// separate index back to it.
+    pub board: BoardId,
     /// The human-readable name shown to the user.
     pub name: String,
     /// Whether this is data or an order.
@@ -54,16 +61,20 @@ pub struct Board {
     pub ip: IpAddr,
     /// The board's MAC address (ADJv3 spec, section 5).
     pub mac: MacAddress,
-    /// The packets this board can send or receive.
-    pub packets: Vec<PacketDef>,
+    /// The packets this board can send or receive, keyed by id — same
+    /// reasoning as [`PodData::boards`], the ADJ gives this list no
+    /// meaningful order either.
+    pub packets: HashMap<AdjId, PacketDef>,
 }
 
 /// The whole vehicle, as described by the ADJ: every board and every
 /// packet each one can send or receive.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PodData {
-    /// Every board of the vehicle.
-    pub boards: Vec<Board>,
+    /// Every board of the vehicle, keyed by its id — the ADJ doesn't give
+    /// boards any meaningful order, so iterating this in some particular
+    /// sequence is never something to rely on.
+    pub boards: HashMap<BoardId, Board>,
 }
 
 #[cfg(test)]
@@ -95,17 +106,24 @@ mod tests {
             name: "BCU".to_string(),
             ip: IpAddr::from([192, 168, 0, 10]),
             mac: MacAddress([0x00, 0x11, 0x22, 0x33, 0x44, 0x55]),
-            packets: vec![PacketDef {
-                id: AdjId(1000),
-                name: "bcu_data".to_string(),
-                kind: PacketKind::Data,
-                measurements: vec![sample_measurement()],
-            }],
+            packets: HashMap::from([(
+                AdjId(1000),
+                PacketDef {
+                    id: AdjId(1000),
+                    board: BoardId(1),
+                    name: "bcu_data".to_string(),
+                    kind: PacketKind::Data,
+                    measurements: vec![sample_measurement()],
+                },
+            )]),
         };
 
         assert_eq!(board.packets.len(), 1);
-        assert_eq!(board.packets[0].measurements.len(), 1);
-        assert_eq!(board.packets[0].kind, PacketKind::Data);
+        let Some(packet) = board.packets.get(&AdjId(1000)) else {
+            unreachable!("the packet we just inserted should be there");
+        };
+        assert_eq!(packet.measurements.len(), 1);
+        assert_eq!(packet.kind, PacketKind::Data);
         assert_eq!(board.mac.to_string(), "00:11:22:33:44:55");
     }
 }
