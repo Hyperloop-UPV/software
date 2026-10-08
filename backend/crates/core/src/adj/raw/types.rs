@@ -268,6 +268,8 @@ fn parse_duration(text: &str) -> Result<Duration, ProtectionError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::adj::raw::loader::load_board;
+    use crate::model::PacketKind;
     use super::*;
 
     fn raw_protection(
@@ -493,6 +495,68 @@ mod tests {
             Measurement::try_from(raw),
             Err(MeasurementError::TooManyProtections{count:8})
         ))
+    }
+
+    #[test]
+    fn protection_id_generation_matches_specification() {
+        // Base measurement ID = 512 (Binary: 00000 0100 0000 0000)
+        let measurement_id: u16 = 512;
+
+        // Test for the first protection index (idx = 0 -> pos = 1)
+        let idx_0: usize = 0;
+        let pos_1 = idx_0 as u16 + 1;
+        let id_0 = (pos_1 << 13) | measurement_id;
+
+        // Expected binary pattern: [pos=001][measurement_id=0000001000000]
+        // 0b001_0000001000000 = 8704
+        assert_eq!(id_0, 8704, "First protection packet ID must pack pos=1 into the high bits");
+
+        // Test for the seventh protection index (idx = 6 -> pos = 7)
+        let idx_6: usize = 6;
+        let pos_7 = idx_6 as u16 + 1;
+        let id_6 = (pos_7 << 13) | measurement_id;
+
+        // Expected binary pattern: [pos=111][measurement_id=0000001000000]
+        // 0b111_0000001000000 = 57856
+        assert_eq!(id_6, 57856, "Seventh protection packet ID must pack pos=7 into the high bits");
+    }
+
+    #[test]
+    fn board_incorporates_synthetic_protection_packets() {
+        // Arrange: Create a temporary environment or setup standard board mocks
+        let temp_dir = std::env::temp_dir();
+        let board_name = "H12_Test_Board";
+        let rel_path = "test_board.json";
+
+        // Ensure you create valid mock JSON configuration files in temp_dir representing:
+        // 1. `test_board.json` (containing 1 measurement path and 1 packet path)
+        // 2. A measurement file containing 1 measurement (ID: 100) with exactly 2 protections.
+        // 3. A packet file containing 0 standard packets to cleanly isolate the test.
+
+        // Act
+        let result = load_board(&temp_dir, board_name, rel_path);
+
+        // Assert
+        assert!(result.is_ok(), "Board loading failed: {:?}", result.err());
+        let board = result.unwrap();
+
+        // Since we provided 0 standard packets and 2 protections,
+        // the total synthetic packets injected into the board must equal 2.
+        let protection_packets: Vec<_> = board.packets
+            .iter()
+            .filter(|p| p.kind == PacketKind::Protection)
+            .collect();
+
+        assert_eq!(protection_packets.len(), 2, "Board should contain exactly 2 protection packets");
+
+        // Verify the bit-packed properties of the injected synthetic packets
+        // For protection index 0 (pos = 1): (1 << 13) | 100 = 8192 | 100 = 8292
+        assert_eq!(protection_packets[0].id, AdjId(8292));
+        assert_eq!(protection_packets[0].name, format!("{}_mock_alias_protection_1", board_name));
+
+        // For protection index 1 (pos = 2): (2 << 13) | 100 = 16384 | 100 = 16484
+        assert_eq!(protection_packets[1].id, AdjId(16484));
+        assert_eq!(protection_packets[1].name, format!("{}_mock_alias_protection_2", board_name));
     }
 
 }

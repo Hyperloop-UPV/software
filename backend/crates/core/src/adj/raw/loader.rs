@@ -48,7 +48,7 @@ fn read_json<T: DeserializeOwned>(path: &Path) -> Result<T, LoadError> {
     })
 }
 
-fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadError> {
+pub fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadError> {
     let board_file = root.join(rel_path);
     let raw_board: RawBoard = read_json(&board_file)?;
     let board_dir = board_file
@@ -71,12 +71,16 @@ fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadErro
                 })?;
 
             for (idx,protection) in measurement.protections.iter().enumerate() {
-                let protection_packet_id = measurement.id.0 + (idx as u16 + 1);
+                // protection number into bits 13-15, and the measurement ID into bits 0-12.
+                let pos = idx as u16 + 1; //Change to u16 to match ADJ ID size. We start at one because 0 is not a protection by ADJ definition.
+                let protection_packet_id = (pos << 13) | measurement.id.0; // Push Protection number 13 bits into specified region of the ID. Perform OR with the ID.
+
+
 
                 protection_packets.push(PacketDef {
                     id: AdjId(protection_packet_id),
                     name: format!("{}_{}_protection_{}", name, measurement.alias, idx+1),
-                    kind: PacketKind::Data,
+                    kind: PacketKind::Protection,
                     measurements: vec![measurement.clone()],
                 });
 

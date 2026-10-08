@@ -18,6 +18,8 @@ use std::net::IpAddr;
 pub enum PacketKind {
     /// Measurements sent by a board.
     Data,
+    /// Measurement with a protection.
+    Protection,
     /// An order sent to a board.
     Order,
 }
