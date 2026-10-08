@@ -5,7 +5,7 @@
 //! addresses, message-id conventions, and how to display a triggered
 //! protection.
 
-use crate::model::Port;
+use crate::model::{AdjId, Port};
 use std::collections::HashMap;
 
 /// A protection type's display text, as declared in `general_info.json`'s
@@ -31,8 +31,10 @@ pub struct AdjInfo {
     /// Known addresses, by name (e.g. `"backend"` -> `"192.168.0.9"`), kept
     /// as text: nothing in this crate needs them parsed as an `IpAddr` yet.
     pub addresses: HashMap<String, String>,
-    /// Known message ids, by name (e.g. `"fault"` -> `2`).
-    pub message_ids: HashMap<String, u16>,
+    /// Known message ids, by name (e.g. `"fault"` -> `AdjId(2)`) — these
+    /// live in the ADJ's own special reserved id range (`[0, 511]`, see
+    /// [`AdjId`]'s own docs), not a separate numbering of their own.
+    pub message_ids: HashMap<String, AdjId>,
     /// Declared protection types, by name (e.g. `"Range"`).
     pub protection_types: HashMap<String, ProtectionTypeInfo>,
 }

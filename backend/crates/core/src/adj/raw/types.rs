@@ -93,7 +93,11 @@ impl From<RawGeneralInfo> for AdjInfo {
                 .map(|(name, port)| (name, Port(port)))
                 .collect(),
             addresses: raw.addresses,
-            message_ids: raw.message_ids,
+            message_ids: raw
+                .message_ids
+                .into_iter()
+                .map(|(name, id)| (name, AdjId(id)))
+                .collect(),
             protection_types: raw
                 .protection_types
                 .into_iter()
@@ -476,7 +480,7 @@ mod tests {
 
         assert_eq!(info.ports["TCP_SERVER"], Port(50500));
         assert_eq!(info.addresses["backend"], "192.168.0.9");
-        assert_eq!(info.message_ids["fault"], 2);
+        assert_eq!(info.message_ids["fault"], AdjId(2));
         assert!(info.protection_types["Range"].is_range);
     }
 

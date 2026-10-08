@@ -296,7 +296,7 @@ mod tests {
 
         assert_eq!(adj.info.ports["TCP_SERVER"], Port(50500));
         assert_eq!(adj.info.addresses["backend"], "192.168.0.9");
-        assert_eq!(adj.info.message_ids["fault"], 2);
+        assert_eq!(adj.info.message_ids["fault"], AdjId(2));
         assert_eq!(
             adj.info.protection_types["Range"],
             ProtectionTypeInfo {
