@@ -2,8 +2,7 @@
 //! [`crate::model::PodData`], plus backend-session metadata not modeled as
 //! vehicle data ([`crate::adj::AdjInfo`]).
 //!
-//! Loading (not downloading — see `core::git` for that, a sibling module
-//! this one is a client of) is not specific to `station`: a sniffer, a
+//! Loading (and if `git` feature is enabled also downloading) is not specific to `station`: a sniffer, a
 //! simulator, or any other tool that reads an ADJ needs exactly the same
 //! parsing. Scope for this iteration: no `sockets.json`, no
 //! `period`/`period_type`/`socket` packet fields (matches
