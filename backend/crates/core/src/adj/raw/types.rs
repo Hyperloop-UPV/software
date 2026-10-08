@@ -112,9 +112,10 @@ impl TryFrom<RawMeasurement> for Measurement {
     type Error = MeasurementError;
 
     fn try_from(raw: RawMeasurement) -> Result<Self, Self::Error> {
-
         if raw.protections.len() > 7 {
-            return Err(MeasurementError::TooManyProtections{count: raw.protections.len()});
+            return Err(MeasurementError::TooManyProtections {
+                count: raw.protections.len(),
+            });
         }
 
         let kind = parse_measurement_kind(&raw.kind, raw.enum_values)?;
@@ -268,9 +269,9 @@ fn parse_duration(text: &str) -> Result<Duration, ProtectionError> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::adj::raw::loader::load_board;
     use crate::model::PacketKind;
-    use super::*;
 
     fn raw_protection(
         kind: &str,
@@ -477,7 +478,7 @@ mod tests {
 
     #[test]
     fn measurement_with_too_many_protections() {
-        let mut raw = RawMeasurement{
+        let mut raw = RawMeasurement {
             id: 100,
             alias: "too_many".to_string(),
             name: "Too Many Protections".to_string(),
@@ -487,76 +488,95 @@ mod tests {
             protections: vec![],
         };
 
-        for _ in 0..8{
-            raw.protections.push(raw_protection("Equal", vec![1.0], true, None));
+        for _ in 0..8 {
+            raw.protections
+                .push(raw_protection("Equal", vec![1.0], true, None));
         }
 
         assert!(matches!(
             Measurement::try_from(raw),
-            Err(MeasurementError::TooManyProtections{count:8})
+            Err(MeasurementError::TooManyProtections { count: 8 })
         ))
     }
 
     #[test]
-    fn protection_id_generation_matches_specification() {
-        // Base measurement ID = 512 (Binary: 00000 0100 0000 0000)
-        let measurement_id: u16 = 512;
-
-        // Test for the first protection index (idx = 0 -> pos = 1)
-        let idx_0: usize = 0;
-        let pos_1 = idx_0 as u16 + 1;
-        let id_0 = (pos_1 << 13) | measurement_id;
-
-        // Expected binary pattern: [pos=001][measurement_id=0000001000000]
-        // 0b001_0000001000000 = 8704
-        assert_eq!(id_0, 8704, "First protection packet ID must pack pos=1 into the high bits");
-
-        // Test for the seventh protection index (idx = 6 -> pos = 7)
-        let idx_6: usize = 6;
-        let pos_7 = idx_6 as u16 + 1;
-        let id_6 = (pos_7 << 13) | measurement_id;
-
-        // Expected binary pattern: [pos=111][measurement_id=0000001000000]
-        // 0b111_0000001000000 = 57856
-        assert_eq!(id_6, 57856, "Seventh protection packet ID must pack pos=7 into the high bits");
-    }
-
-    #[test]
     fn board_incorporates_synthetic_protection_packets() {
-        // Arrange: Create a temporary environment or setup standard board mocks
-        let temp_dir = std::env::temp_dir();
+        // A scratch directory, unique per test invocation (pid + a counter)
+        // so parallel test runs never collide on the same path.
+        use std::sync::atomic::{AtomicU32, Ordering};
+        static COUNTER: AtomicU32 = AtomicU32::new(0);
+        let unique = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!(
+            "software_core_adj_test_{}_{unique}",
+            std::process::id()
+        ));
+
+        if std::fs::create_dir_all(&dir).is_err() {
+            unreachable!("should be able to create a scratch test directory");
+        }
+
+        let board_json = r#"{
+            "board_id": 99,
+            "mac": "aa:bb:cc:dd:ee:ff",
+            "board_ip": "127.0.0.1",
+            "measurements": ["measurements.json"],
+            "packets": ["packets.json"]
+        }"#;
+        let measurements_json = r#"[
+            {
+                "id": 100,
+                "alias": "mock_alias",
+                "name": "Mock Measurement",
+                "type": "float32",
+                "protections": [
+                    { "type": "Equal", "value": [1.0], "fault": true },
+                    { "type": "Equal", "value": [2.0], "fault": true }
+                ]
+            }
+        ]"#;
+
+        if std::fs::write(dir.join("test_board.json"), board_json).is_err() {
+            unreachable!("should be able to write the mock board file");
+        }
+        if std::fs::write(dir.join("measurements.json"), measurements_json).is_err() {
+            unreachable!("should be able to write the mock measurements file");
+        }
+        if std::fs::write(dir.join("packets.json"), "[]").is_err() {
+            unreachable!("should be able to write the mock packets file");
+        }
+
         let board_name = "H12_Test_Board";
-        let rel_path = "test_board.json";
+        let result = load_board(&dir, board_name, "test_board.json");
+        let _ = std::fs::remove_dir_all(&dir);
 
-        // Ensure you create valid mock JSON configuration files in temp_dir representing:
-        // 1. `test_board.json` (containing 1 measurement path and 1 packet path)
-        // 2. A measurement file containing 1 measurement (ID: 100) with exactly 2 protections.
-        // 3. A packet file containing 0 standard packets to cleanly isolate the test.
+        let board = match result {
+            Ok(board) => board,
+            Err(err) => unreachable!("board loading should succeed: {err}"),
+        };
 
-        // Act
-        let result = load_board(&temp_dir, board_name, rel_path);
-
-        // Assert
-        assert!(result.is_ok(), "Board loading failed: {:?}", result.err());
-        let board = result.unwrap();
-
-        // Since we provided 0 standard packets and 2 protections,
-        // the total synthetic packets injected into the board must equal 2.
-        let protection_packets: Vec<_> = board.packets
-            .iter()
+        // We provided 0 standard packets and 2 protections, so the total
+        // synthetic packets injected into the board must equal 2.
+        let protection_count = board
+            .packets
+            .values()
             .filter(|p| p.kind == PacketKind::Protection)
-            .collect();
+            .count();
+        assert_eq!(
+            protection_count, 2,
+            "board should contain exactly 2 protection packets"
+        );
 
-        assert_eq!(protection_packets.len(), 2, "Board should contain exactly 2 protection packets");
-
-        // Verify the bit-packed properties of the injected synthetic packets
         // For protection index 0 (pos = 1): (1 << 13) | 100 = 8192 | 100 = 8292
-        assert_eq!(protection_packets[0].id, AdjId(8292));
-        assert_eq!(protection_packets[0].name, format!("{}_mock_alias_protection_1", board_name));
+        let Some(first) = board.packets.get(&AdjId(8292)) else {
+            unreachable!("first synthetic protection packet should be at id 8292");
+        };
+        assert_eq!(first.board, board.id);
+        assert_eq!(first.name, format!("{board_name}_mock_alias_protection_1"));
 
         // For protection index 1 (pos = 2): (2 << 13) | 100 = 16384 | 100 = 16484
-        assert_eq!(protection_packets[1].id, AdjId(16484));
-        assert_eq!(protection_packets[1].name, format!("{}_mock_alias_protection_2", board_name));
+        let Some(second) = board.packets.get(&AdjId(16484)) else {
+            unreachable!("second synthetic protection packet should be at id 16484");
+        };
+        assert_eq!(second.name, format!("{board_name}_mock_alias_protection_2"));
     }
-
 }

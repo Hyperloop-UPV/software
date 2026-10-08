@@ -15,20 +15,16 @@ use std::path::Path;
 /// Loads an ADJ directory rooted at `path` (containing `general_info.json`
 /// and `boards.json`) into an [`Adj`].
 ///
-/// Boards are read in alphabetical order by name — not `boards.json`'s own
-/// unordered map order — so [`PodData::boards`] is deterministic. A board
-/// present on disk but absent from `boards.json` is never read; that isn't
-/// an error.
+/// A board present on disk but absent from `boards.json` is never read;
+/// that isn't an error.
 pub fn load_from_dir(path: &Path) -> Result<Adj, LoadError> {
     let general_info: RawGeneralInfo = read_json(&path.join("general_info.json"))?;
     let board_paths: HashMap<String, String> = read_json(&path.join("boards.json"))?;
 
-    let mut entries: Vec<(&String, &String)> = board_paths.iter().collect();
-    entries.sort_by_key(|(name, _)| *name);
-
-    let mut boards = Vec::with_capacity(entries.len());
-    for (name, rel_path) in entries {
-        boards.push(load_board(path, name, rel_path)?);
+    let mut boards = HashMap::new();
+    for (name, rel_path) in &board_paths {
+        let board = load_board(path, name, rel_path)?;
+        boards.insert(board.id, board);
     }
 
     Ok(Adj {
@@ -37,6 +33,8 @@ pub fn load_from_dir(path: &Path) -> Result<Adj, LoadError> {
     })
 }
 
+/// Reads a JSON file at `path` and deserializes it into `T`, returning a
+/// [`LoadError`] on failure.
 fn read_json<T: DeserializeOwned>(path: &Path) -> Result<T, LoadError> {
     let text = fs::read_to_string(path).map_err(|source| LoadError::ReadFile {
         path: path.to_path_buf(),
@@ -48,16 +46,18 @@ fn read_json<T: DeserializeOwned>(path: &Path) -> Result<T, LoadError> {
     })
 }
 
-pub fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadError> {
+pub(crate) fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, LoadError> {
+    // Read the board's JSON, then its measurements and packets, and build a `Board` from it
     let board_file = root.join(rel_path);
     let raw_board: RawBoard = read_json(&board_file)?;
+    let board_id = BoardId(raw_board.board_id);
     let board_dir = board_file
         .parent()
         .map(Path::to_path_buf)
         .unwrap_or_else(|| root.to_path_buf());
 
     let mut measurements: HashMap<String, Measurement> = HashMap::new();
-    let mut protection_packets: Vec<PacketDef> = Vec::new();
+    let mut packets: HashMap<AdjId, PacketDef> = HashMap::new();
 
     for measurements_path in &raw_board.measurements {
         let raws: Vec<RawMeasurement> = read_json(&board_dir.join(measurements_path))?;
@@ -70,34 +70,31 @@ pub fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, Load
                     source,
                 })?;
 
-            for (idx,protection) in measurement.protections.iter().enumerate() {
+            for (idx, _protection) in measurement.protections.iter().enumerate() {
                 // protection number into bits 13-15, and the measurement ID into bits 0-12.
-                let pos = idx as u16 + 1; //Change to u16 to match ADJ ID size. We start at one because 0 is not a protection by ADJ definition.
+                let pos = idx as u16 + 1; //Change to u16 to match ADJ ID size. We start at one because 0 is the measurement id not a protection by ADJ definition.
                 let protection_packet_id = (pos << 13) | measurement.id.0; // Push Protection number 13 bits into specified region of the ID. Perform OR with the ID.
 
-
-
-                protection_packets.push(PacketDef {
+                let packet = PacketDef {
                     id: AdjId(protection_packet_id),
-                    name: format!("{}_{}_protection_{}", name, measurement.alias, idx+1),
+                    board: board_id,
+                    name: format!("{}_{}_protection_{}", name, measurement.alias, idx + 1),
                     kind: PacketKind::Protection,
                     measurements: vec![measurement.clone()],
-                });
-
+                };
+                packets.insert(packet.id, packet);
             }
             measurements.insert(alias, measurement);
         }
     }
 
-    let mut packets = Vec::new();
     for packets_path in &raw_board.packets {
         let raws: Vec<RawPacket> = read_json(&board_dir.join(packets_path))?;
         for raw in raws {
-            packets.push(build_packet_def(name, raw, &measurements)?);
+            let packet = build_packet_def(name, board_id, raw, &measurements)?;
+            packets.insert(packet.id, packet);
         }
     }
-
-    packets.extend(protection_packets);
 
     let ip: IpAddr = raw_board
         .board_ip
@@ -117,7 +114,7 @@ pub fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, Load
     })?;
 
     Ok(Board {
-        id: BoardId(raw_board.board_id),
+        id: board_id,
         name: name.to_string(),
         ip,
         mac,
@@ -127,12 +124,15 @@ pub fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Board, Load
 
 fn build_packet_def(
     board: &str,
+    board_id: BoardId,
     raw: RawPacket,
     measurements: &HashMap<String, Measurement>,
 ) -> Result<PacketDef, LoadError> {
     let kind = match raw.kind.as_str() {
         "data" => PacketKind::Data,
         "order" => PacketKind::Order,
+        "protection" => PacketKind::Protection,
+        "message" => PacketKind::Message,
         other => {
             return Err(LoadError::UnknownPacketType {
                 board: board.to_string(),
@@ -158,6 +158,7 @@ fn build_packet_def(
 
     Ok(PacketDef {
         id: AdjId(raw.id),
+        board: board_id,
         name: raw.name,
         kind,
         measurements: packet_measurements,
@@ -224,7 +225,7 @@ mod tests {
             variables: vec![],
         };
         assert!(matches!(
-            build_packet_def("VCU", raw, &HashMap::new()),
+            build_packet_def("VCU", BoardId(3), raw, &HashMap::new()),
             Err(LoadError::UnknownPacketType { .. })
         ));
     }
@@ -238,7 +239,7 @@ mod tests {
             variables: vec!["missing".to_string()],
         };
         assert!(matches!(
-            build_packet_def("VCU", raw, &HashMap::new()),
+            build_packet_def("VCU", BoardId(3), raw, &HashMap::new()),
             Err(LoadError::UnknownAlias { .. })
         ));
     }
@@ -248,32 +249,39 @@ mod tests {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/adj/test/adj");
         let adj = must_load(&path);
 
-        let board_names: Vec<&str> = adj
+        // `HashMap` iteration order is unspecified, so sort before comparing.
+        let mut board_names: Vec<&str> = adj
             .pod_data
             .boards
-            .iter()
+            .values()
             .map(|b| b.name.as_str())
             .collect();
+        board_names.sort();
         assert_eq!(board_names, vec!["HVBMS", "LCU", "PCU", "VCU"]);
 
-        let Some(vcu) = adj.pod_data.boards.iter().find(|b| b.name == "VCU") else {
+        let Some(vcu) = adj.pod_data.boards.get(&BoardId(3)) else {
             unreachable!("VCU should be among the loaded boards");
         };
         assert_eq!(vcu.id, BoardId(3));
         assert_eq!(vcu.ip, IpAddr::from([192, 168, 1, 3]));
         assert_eq!(vcu.mac, MacAddress([0; 6]));
         assert_eq!(vcu.packets.len(), 18);
-        assert_eq!(vcu.packets[0].kind, PacketKind::Order);
-        assert_eq!(vcu.packets[0].id, AdjId(600));
-        assert_eq!(vcu.packets[13].kind, PacketKind::Data);
-        assert_eq!(vcu.packets[13].id, AdjId(625));
+        let Some(order) = vcu.packets.get(&AdjId(600)) else {
+            unreachable!("VCU should have order 600");
+        };
+        assert_eq!(order.kind, PacketKind::Order);
+        assert_eq!(order.board, BoardId(3));
+        let Some(data) = vcu.packets.get(&AdjId(625)) else {
+            unreachable!("VCU should have data packet 625");
+        };
+        assert_eq!(data.kind, PacketKind::Data);
 
-        let Some(pcu) = adj.pod_data.boards.iter().find(|b| b.name == "PCU") else {
+        let Some(pcu) = adj.pod_data.boards.get(&BoardId(5)) else {
             unreachable!("PCU should be among the loaded boards");
         };
         let Some(protected) = pcu
             .packets
-            .iter()
+            .values()
             .flat_map(|p| &p.measurements)
             .find(|m| !m.protections.is_empty())
         else {
@@ -298,7 +306,12 @@ mod tests {
             }
         );
 
-        let protection_packet = pcu.packets.iter().find(|p| p.name.contains("_protection_")).unwrap();
-        assert_eq!(protection_packet.id, AdjId(protected.id.0 + 1));
+        // `protected` has exactly one protection (asserted above), at position 1,
+        // so its compound wire id is `(1 << 13) | protected.id.0`.
+        let Some(protection_packet) = pcu.packets.get(&AdjId((1u16 << 13) | protected.id.0)) else {
+            unreachable!("PCU should have a synthetic protection packet");
+        };
+        assert_eq!(protection_packet.kind, PacketKind::Protection);
+        assert_eq!(protection_packet.board, pcu.id);
     }
 }
