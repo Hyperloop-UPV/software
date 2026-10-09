@@ -45,6 +45,19 @@ pub enum LoadError {
         source: AddrParseError,
     },
 
+    /// An address in `general_info.json`'s `addresses` isn't a valid IP
+    /// address.
+    #[error("address {name:?}: invalid IP address {raw:?}")]
+    InvalidAddress {
+        /// The address's name (e.g. `"backend"`).
+        name: String,
+        /// The text that failed to parse.
+        raw: String,
+        /// The underlying parse error.
+        #[source]
+        source: AddrParseError,
+    },
+
     /// A board's `mac` isn't a valid MAC address.
     #[error("board {board:?}: invalid MAC address {raw:?}")]
     InvalidMac {

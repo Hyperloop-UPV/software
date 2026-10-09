@@ -7,6 +7,7 @@
 
 use crate::model::{AdjId, Port};
 use std::collections::HashMap;
+use std::net::IpAddr;
 
 /// A protection type's display text, as declared in `general_info.json`'s
 /// `protectionTypes`.
@@ -28,9 +29,8 @@ pub struct ProtectionTypeInfo {
 pub struct AdjInfo {
     /// Known port numbers, by name (e.g. `"TCP_SERVER"` -> `Port(50500)`).
     pub ports: HashMap<String, Port>,
-    /// Known addresses, by name (e.g. `"backend"` -> `"192.168.0.9"`), kept
-    /// as text: nothing in this crate needs them parsed as an `IpAddr` yet.
-    pub addresses: HashMap<String, String>,
+    /// Known addresses, by name (e.g. `"backend"` -> `192.168.0.9`).
+    pub addresses: HashMap<String, IpAddr>,
     /// Known message ids, by name (e.g. `"fault"` -> `AdjId(2)`) — these
     /// live in the ADJ's own special reserved id range (`[0, 511]`, see
     /// [`AdjId`]'s own docs), not a separate numbering of their own.

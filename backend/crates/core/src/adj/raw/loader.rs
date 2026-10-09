@@ -29,7 +29,7 @@ pub fn load_from_dir(path: &Path) -> Result<Adj, LoadError> {
 
     Ok(Adj {
         pod_data: PodData { boards },
-        info: AdjInfo::from(general_info),
+        info: AdjInfo::try_from(general_info)?,
     })
 }
 
@@ -295,7 +295,10 @@ mod tests {
         assert_eq!(protection.id, AdjId(1));
 
         assert_eq!(adj.info.ports["TCP_SERVER"], Port(50500));
-        assert_eq!(adj.info.addresses["backend"], "192.168.0.9");
+        assert_eq!(
+            adj.info.addresses["backend"],
+            IpAddr::from([192, 168, 0, 9])
+        );
         assert_eq!(adj.info.message_ids["fault"], AdjId(2));
         assert_eq!(
             adj.info.protection_types["Range"],

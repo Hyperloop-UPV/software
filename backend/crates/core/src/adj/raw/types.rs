@@ -5,7 +5,7 @@
 //! `socket`, `units`, `podUnits`), which are simply absent from these
 //! structs and therefore ignored by serde, not rejected.
 
-use crate::adj::error::{MeasurementError, ProtectionError};
+use crate::adj::error::{LoadError, MeasurementError, ProtectionError};
 use crate::adj::info::{AdjInfo, ProtectionTypeInfo};
 use crate::model::{
     AdjId, Measurement, MeasurementKind, NumericKind, Port, Protection, ProtectionKind, Severity,
@@ -84,15 +84,29 @@ pub(crate) struct RawPacket {
     pub(crate) variables: Vec<String>,
 }
 
-impl From<RawGeneralInfo> for AdjInfo {
-    fn from(raw: RawGeneralInfo) -> Self {
-        AdjInfo {
+impl TryFrom<RawGeneralInfo> for AdjInfo {
+    type Error = LoadError;
+
+    fn try_from(raw: RawGeneralInfo) -> Result<Self, Self::Error> {
+        let mut addresses = HashMap::with_capacity(raw.addresses.len());
+        for (name, raw_addr) in raw.addresses {
+            let addr = raw_addr
+                .parse()
+                .map_err(|source| LoadError::InvalidAddress {
+                    name: name.clone(),
+                    raw: raw_addr,
+                    source,
+                })?;
+            addresses.insert(name, addr);
+        }
+
+        Ok(AdjInfo {
             ports: raw
                 .ports
                 .into_iter()
                 .map(|(name, port)| (name, Port(port)))
                 .collect(),
-            addresses: raw.addresses,
+            addresses,
             message_ids: raw
                 .message_ids
                 .into_iter()
@@ -112,7 +126,7 @@ impl From<RawGeneralInfo> for AdjInfo {
                     )
                 })
                 .collect(),
-        }
+        })
     }
 }
 
@@ -280,6 +294,7 @@ mod tests {
     use super::*;
     use crate::adj::raw::loader::load_board;
     use crate::model::PacketKind;
+    use std::net::IpAddr;
 
     fn raw_protection(
         kind: &str,
@@ -476,12 +491,29 @@ mod tests {
             message_ids: HashMap::from([("fault".to_string(), 2u16)]),
         };
 
-        let info = AdjInfo::from(raw);
+        let Ok(info) = AdjInfo::try_from(raw) else {
+            unreachable!("a well-formed RawGeneralInfo should convert cleanly");
+        };
 
         assert_eq!(info.ports["TCP_SERVER"], Port(50500));
-        assert_eq!(info.addresses["backend"], "192.168.0.9");
+        assert_eq!(info.addresses["backend"], IpAddr::from([192, 168, 0, 9]));
         assert_eq!(info.message_ids["fault"], AdjId(2));
         assert!(info.protection_types["Range"].is_range);
+    }
+
+    #[test]
+    fn general_info_rejects_an_invalid_address() {
+        let raw = RawGeneralInfo {
+            ports: HashMap::new(),
+            addresses: HashMap::from([("backend".to_string(), "not-an-ip".to_string())]),
+            protection_types: HashMap::new(),
+            message_ids: HashMap::new(),
+        };
+
+        assert!(matches!(
+            AdjInfo::try_from(raw),
+            Err(LoadError::InvalidAddress { .. })
+        ));
     }
 
     #[test]
