@@ -3,9 +3,9 @@
 // in ./csv.ts — do not import this file directly elsewhere.
 import { parseCSV } from "./csv";
 
-self.onmessage = (e: MessageEvent<{ text: string; timeUnit: string; enumValues?: string[] }>) => {
-  const { text, timeUnit, enumValues } = e.data;
-  const { time, value } = parseCSV(text, timeUnit, enumValues);
+self.onmessage = (e: MessageEvent<{ text: string; timeUnit: string; enumValues?: string[]; normalizeTime?: boolean }>) => {
+  const { text, timeUnit, enumValues, normalizeTime = true } = e.data;
+  const { time, value } = parseCSV(text, timeUnit, enumValues, normalizeTime);
   const timeBuffer = time.buffer;
   const valueBuffer = value.buffer;
   (self as unknown as Worker).postMessage(

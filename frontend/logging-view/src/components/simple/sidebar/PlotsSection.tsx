@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components";
-import { Activity, ChevronDown, Eye, EyeOff, GripVertical, Plus, Send, Trash2, X } from "@workspace/ui/icons";
+import { ChevronDown, Eye, EyeOff, GripVertical, Plus, Send, Trash2, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -70,6 +70,7 @@ export default function PlotsSection() {
   const [assigning, setAssigning] = useState<Set<string>>(new Set());
   // Drag-to-reorder: id of the plot currently being dragged
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [collapsedPlots, setCollapsedPlots] = useState<Set<string>>(new Set());
   // Order lists can be long, so let each plot keep its own collapsed state.
   const [collapsedOrderSections, setCollapsedOrderSections] = useState<Set<string>>(new Set());
 
@@ -132,12 +133,27 @@ export default function PlotsSection() {
             draggable
             onDragStart={() => setDraggingId(plot.id)}
             onDragEnd={() => setDraggingId(null)}
-            className="from-primary/5 flex cursor-grab items-center gap-2 border-b bg-gradient-to-r to-transparent px-3 py-2 active:cursor-grabbing"
+            className={cn(
+              "from-primary/5 flex cursor-grab items-center gap-2 bg-gradient-to-r to-transparent px-3 py-2 active:cursor-grabbing",
+              !collapsedPlots.has(plot.id) && "border-b",
+            )}
           >
             <GripVertical className="text-muted-foreground/50 size-3.5 shrink-0" />
-            <div className="bg-primary/20 flex size-4 shrink-0 items-center justify-center rounded-sm">
-              <Activity className="text-primary size-3" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setCollapsedPlots((previous) => {
+                const next = new Set(previous);
+                if (next.has(plot.id)) next.delete(plot.id);
+                else next.add(plot.id);
+                return next;
+              })}
+              aria-label={`${collapsedPlots.has(plot.id) ? "Expand" : "Collapse"} settings for ${plot.name}`}
+              title={collapsedPlots.has(plot.id) ? "Expand plot settings" : "Collapse plot settings"}
+              aria-expanded={!collapsedPlots.has(plot.id)}
+              className="text-muted-foreground hover:bg-muted/60 hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+            >
+              <ChevronDown className={cn("size-3.5 transition-transform", collapsedPlots.has(plot.id) && "-rotate-90")} />
+            </button>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -190,6 +206,8 @@ export default function PlotsSection() {
             </Tooltip>
           </div>
 
+          {!collapsedPlots.has(plot.id) && (
+            <div>
           {/* Assigned signals — grouped by axis so left/right membership is
               obvious from list position, not just a small per-row dropdown. */}
           {plot.signals.length > 0 && (
@@ -393,6 +411,8 @@ export default function PlotsSection() {
               triggerClassName="text-muted-foreground h-7 w-full border-dashed text-[11px] shadow-none"
             />
           </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

@@ -9,6 +9,7 @@ import {
   SidebarHeader,
   SidebarSeparator,
 } from "@workspace/ui/components";
+import { useLocation } from "react-router";
 import { useStore } from "../../store/store";
 import FolderPickerGroup from "./FolderPickerGroup";
 import OrdersTimelineControl from "./OrdersTimelineControl";
@@ -19,13 +20,14 @@ import ThemeToggleItem from "./ThemeToggleItem";
 
 const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
   const hasLoadedSession = useStore((s) => s.folderName !== null);
+  const isSimpleMode = useLocation().pathname.startsWith("/simple");
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       {/* Fixed — always visible regardless of scroll position */}
       <SidebarHeader className="p-0">
         <FolderPickerGroup />
-        <SeriesSelectionBar />
+        {isSimpleMode && <SeriesSelectionBar />}
         <SidebarSeparator />
       </SidebarHeader>
 
