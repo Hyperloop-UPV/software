@@ -11,13 +11,6 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   Input,
   Separator,
   Tooltip,
@@ -31,7 +24,6 @@ import {
   Lock,
   Pencil,
   RefreshCw,
-  Send,
   Trash2,
   Unlock,
 } from "@workspace/ui/icons";
@@ -43,7 +35,7 @@ import { useShallow } from "zustand/react/shallow";
 import { decimateLTTB } from "../../../lib/plotStudio/decimate";
 import { computeFFT } from "../../../lib/plotStudio/fft";
 import { exportTimestamp } from "../../../lib/plotStudio/format";
-import { formatOrderAnnotation, formatOrderParameters } from "../../../lib/orders";
+import { formatOrderAnnotation } from "../../../lib/orders";
 import { traceColor, resolveSignalColor } from "../../../lib/plotStudio/palette";
 import { buildPlotLayout, buildTimelineLayout, getPlotlyTheme } from "../../../lib/plotStudio/plotlyTheme";
 import { lowerBound, upperBound } from "../../../lib/plotStudio/range";
@@ -193,8 +185,6 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
   const isDarkMode = useStore((s) => s.isDarkMode);
   const toggleStudioPlotFFT = useStore((s) => s.toggleStudioPlotFFT);
   const toggleStudioPlotLocked = useStore((s) => s.toggleStudioPlotLocked);
-  const toggleStudioPlotOrder = useStore((s) => s.toggleStudioPlotOrder);
-  const setStudioPlotOrdersVisible = useStore((s) => s.setStudioPlotOrdersVisible);
   const locked = !!plot.locked;
 
   const chartRef     = useRef<PlotlyChartHandle>(null);
@@ -749,63 +739,6 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
-          {orders.length > 0 && (
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      disabled={locked}
-                      aria-label="Configure orders for this plot"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Send className="size-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Orders shown on this plot</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="end" className="max-h-80 w-80 overflow-y-auto">
-                <DropdownMenuLabel>Orders for {plot.name}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="flex gap-1 px-2 py-1.5">
-                  <DropdownMenuItem
-                    className="flex-1 justify-center text-xs"
-                    onSelect={(event) => { event.preventDefault(); setStudioPlotOrdersVisible(plot.id, orders.map((order) => order.id), true); }}
-                  >
-                    Show all
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="flex-1 justify-center text-xs"
-                    onSelect={(event) => { event.preventDefault(); setStudioPlotOrdersVisible(plot.id, orders.map((order) => order.id), false); }}
-                  >
-                    Hide all
-                  </DropdownMenuItem>
-                </div>
-                <DropdownMenuSeparator />
-                {orders.map((order) => (
-                  <DropdownMenuCheckboxItem
-                    key={order.id}
-                    checked={!plot.hiddenOrderIds?.[order.id]}
-                    onCheckedChange={() => toggleStudioPlotOrder(plot.id, order.id)}
-                    className="items-start py-2"
-                  >
-                    <span className="min-w-0">
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="truncate text-xs font-medium">{order.name}</span>
-                        <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{order.time.toFixed(0)} ms</span>
-                      </span>
-                      <span className="text-muted-foreground mt-0.5 block break-words text-[10px]">
-                        {formatOrderParameters(order.parameters)}
-                      </span>
-                    </span>
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
           {/* Zoom cluster — only meaningful with traces, and hidden while
               locked since the axes are fixedrange (see `layout` above) and
               these buttons would otherwise bypass that via direct relayout calls. */}
