@@ -447,14 +447,15 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
         ...(baseLayout.annotations ?? []),
         ...orderLabelLanes.map(({ order, placement, lane }) => ({
           x: order.time, xref: "x" as const,
-          // Above margin → below margin → stacked inside plot.
+          // Keep the first lane just inside the plot. Placing it in the top
+          // margin makes it overlap Plotly's editable chart title.
           y: placement === "bottom" ? 0 : 1, yref: "paper" as const,
           text: formatOrderAnnotation(order.name, order.parameters),
           showarrow: false,
           xanchor: "left" as const,
-          yanchor: placement === "top" ? "bottom" as const : "top" as const,
+          yanchor: "top" as const,
           xshift: 3,
-          yshift: placement === "top" ? 5 : placement === "bottom" ? -5 : -6 - lane * 32,
+          yshift: placement === "bottom" ? -5 : -6 - lane * 32,
           font: { size: 10, color: theme.fontColor },
           bgcolor: theme.paperBg,
           bordercolor: ORDER_EVENT_COLOR,
@@ -598,9 +599,9 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
           y: placement === "bottom" ? 0 : 1, yref: "paper" as const,
           text: formatOrderAnnotation(order.name, order.parameters),
           showarrow: false, xanchor: "left" as const,
-          yanchor: placement === "top" ? "bottom" as const : "top" as const,
+          yanchor: "top" as const,
           xshift: 5,
-          yshift: placement === "top" ? 8 : placement === "bottom" ? -8 : -10 - lane * 56,
+          yshift: placement === "bottom" ? -8 : -10 - lane * 56,
           font: { size: 18, color: printTheme.fontColor },
           bgcolor: printTheme.paperBg, bordercolor: ORDER_EVENT_COLOR, borderwidth: 1.5, align: "left" as const,
         }))],
