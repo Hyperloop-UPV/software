@@ -44,7 +44,7 @@ pub struct PacketDef {
     pub board: BoardId,
     /// The human-readable name shown to the user.
     pub name: String,
-    /// Whether this is data or an order.
+    /// Whether this is data, order, protection or message.
     pub kind: PacketKind,
     /// The measurements this packet carries, in ADJ order.
     pub measurements: Vec<Measurement>,
