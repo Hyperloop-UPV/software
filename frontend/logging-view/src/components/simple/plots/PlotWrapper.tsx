@@ -663,6 +663,8 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
     [plot.signals, resolvedSignals, adjData],
   );
 
+  const chartSurface = getPlotlyTheme(isDarkMode).paperBg;
+
   return (
     <ContextMenu>
     <ContextMenuTrigger asChild>
@@ -679,7 +681,7 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
       <div className="from-primary/80 to-primary/20 h-[3px] bg-gradient-to-r" />
 
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5">
+      <div className="border-border/60 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-4 py-2.5" style={{ backgroundColor: chartSurface }}>
         <Button variant="ghost" size="icon-sm" onClick={() => setCollapsed((v) => !v)}
           aria-label={collapsed ? "Expand plot" : "Collapse plot"}
           className="text-muted-foreground hover:text-foreground hover:bg-muted -ml-1.5 shrink-0">
@@ -827,7 +829,7 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
         {hasTraces ? (
           // Chart canvas follows app dark mode; exports stay pinned to the
           // light/academic theme regardless (see buildExportFigure above).
-          <div ref={containerRef} className="relative" style={{ height: plotHeight, backgroundColor: isDarkMode ? "#181818" : "white" }}>
+          <div ref={containerRef} className="relative" style={{ height: plotHeight, backgroundColor: chartSurface }}>
             <PlotlyChart ref={chartRef} traces={traces} layout={layout} config={plotlyConfig} style={{ height: "100%" }} />
             {!locked && (
               <div
