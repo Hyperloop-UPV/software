@@ -14,17 +14,36 @@ use super::{AdjId, BoardId, MacAddress, Measurement};
 use std::collections::HashMap;
 use std::net::IpAddr;
 
-/// What kind of packet a [`PacketDef`] declares.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// What kind of packet a [`PacketDef`] declares, carrying whatever
+/// measurement shape — if any — is specific to that kind. Not every kind
+/// has measurements, so this says so in the type instead of forcing every
+/// [`PacketDef`] through one shared `measurements: Vec<Measurement>` field
+/// regardless of whether that's meaningful for it.
+#[derive(Debug, Clone, PartialEq)]
 pub enum PacketKind {
-    /// Measurements sent by a board.
-    Data,
-    /// Protection associated with a measurement.
-    Protection,
-    /// An order sent to a board.
-    Order,
-    /// A message sent by a board.
+    /// A board's periodic telemetry: one value per measurement, decoded
+    /// positionally in this order.
+    Data(Vec<Measurement>),
+    /// The single measurement one of a board's declared protections
+    /// watches.
+    Protection(Measurement),
+    /// A command sent to a board. Many orders take no parameters at all.
+    Order(Vec<Measurement>),
+    /// A free-text log line. Never carries measurement data.
     Message,
+}
+
+impl PacketKind {
+    /// Every measurement this packet's kind references, flattened — for
+    /// code that doesn't care which kind this is, just what measurements
+    /// it touches.
+    pub fn measurements(&self) -> &[Measurement] {
+        match self {
+            PacketKind::Data(measurements) | PacketKind::Order(measurements) => measurements,
+            PacketKind::Protection(measurement) => std::slice::from_ref(measurement),
+            PacketKind::Message => &[],
+        }
+    }
 }
 
 /// The declaration of a single packet a board can send or receive, as
@@ -44,10 +63,9 @@ pub struct PacketDef {
     pub board: BoardId,
     /// The human-readable name shown to the user.
     pub name: String,
-    /// Whether this is data, order, protection or message.
+    /// Whether this is data, order, protection or message — and the
+    /// measurement shape specific to that kind, if any.
     pub kind: PacketKind,
-    /// The measurements this packet carries, in ADJ order.
-    pub measurements: Vec<Measurement>,
 }
 
 /// A single board of the vehicle, as defined by the ADJ.
@@ -112,8 +130,7 @@ mod tests {
                     id: AdjId(1000),
                     board: BoardId(1),
                     name: "bcu_data".to_string(),
-                    kind: PacketKind::Data,
-                    measurements: vec![sample_measurement()],
+                    kind: PacketKind::Data(vec![sample_measurement()]),
                 },
             )]),
         };
@@ -122,8 +139,10 @@ mod tests {
         let Some(packet) = board.packets.get(&AdjId(1000)) else {
             unreachable!("the packet we just inserted should be there");
         };
-        assert_eq!(packet.measurements.len(), 1);
-        assert_eq!(packet.kind, PacketKind::Data);
+        let PacketKind::Data(measurements) = &packet.kind else {
+            unreachable!("packet should be Data");
+        };
+        assert_eq!(measurements.len(), 1);
         assert_eq!(board.mac.to_string(), "00:11:22:33:44:55");
     }
 }

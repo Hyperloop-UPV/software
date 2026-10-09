@@ -599,7 +599,7 @@ mod tests {
         let protection_count = board
             .packets
             .values()
-            .filter(|p| p.kind == PacketKind::Protection)
+            .filter(|p| matches!(p.kind, PacketKind::Protection(_)))
             .count();
         assert_eq!(
             protection_count, 2,

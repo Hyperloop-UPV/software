@@ -38,8 +38,8 @@ pub struct ShortTimestamp {
 /// The wire protocol is positional: values are not individually tagged
 /// with their measurement's id, just written back to back in the order
 /// their [`super::Measurement`]s appear in this packet's
-/// [`super::PacketDef::measurements`]. `values[i]` is the decoded value of
-/// `measurements[i]` in that definition — matching them up by position is
+/// [`super::PacketKind::Data`] list. `values[i]` is the decoded value of
+/// that list's `i`-th measurement — matching them up by position is
 /// `protocol`'s job, this type just holds the result in that same order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DataPacket {

@@ -79,8 +79,7 @@ pub(crate) fn load_board(root: &Path, name: &str, rel_path: &str) -> Result<Boar
                     id: AdjId(protection_packet_id),
                     board: board_id,
                     name: format!("{}_{}_protection_{}", name, measurement.alias, idx + 1),
-                    kind: PacketKind::Protection,
-                    measurements: vec![measurement.clone()],
+                    kind: PacketKind::Protection(measurement.clone()),
                 };
                 packets.insert(packet.id, packet);
             }
@@ -129,9 +128,18 @@ fn build_packet_def(
     measurements: &HashMap<String, Measurement>,
 ) -> Result<PacketDef, LoadError> {
     let kind = match raw.kind.as_str() {
-        "data" => PacketKind::Data,
-        "order" => PacketKind::Order,
-        "protection" => PacketKind::Protection,
+        "data" => PacketKind::Data(resolve_measurements(
+            board,
+            &raw.name,
+            &raw.variables,
+            measurements,
+        )?),
+        "order" => PacketKind::Order(resolve_measurements(
+            board,
+            &raw.name,
+            &raw.variables,
+            measurements,
+        )?),
         "message" => PacketKind::Message,
         other => {
             return Err(LoadError::UnknownPacketType {
@@ -142,27 +150,36 @@ fn build_packet_def(
         }
     };
 
-    let mut packet_measurements = Vec::with_capacity(raw.variables.len());
-    for alias in &raw.variables {
+    Ok(PacketDef {
+        id: AdjId(raw.id),
+        board: board_id,
+        name: raw.name,
+        kind,
+    })
+}
+
+/// Resolves `variables` (a packet's declared measurement aliases) against
+/// `measurements`, in order.
+fn resolve_measurements(
+    board: &str,
+    packet_name: &str,
+    variables: &[String],
+    measurements: &HashMap<String, Measurement>,
+) -> Result<Vec<Measurement>, LoadError> {
+    let mut resolved = Vec::with_capacity(variables.len());
+    for alias in variables {
         let measurement =
             measurements
                 .get(alias)
                 .cloned()
                 .ok_or_else(|| LoadError::UnknownAlias {
                     board: board.to_string(),
-                    name: raw.name.clone(),
+                    name: packet_name.to_string(),
                     alias: alias.clone(),
                 })?;
-        packet_measurements.push(measurement);
+        resolved.push(measurement);
     }
-
-    Ok(PacketDef {
-        id: AdjId(raw.id),
-        board: board_id,
-        name: raw.name,
-        kind,
-        measurements: packet_measurements,
-    })
+    Ok(resolved)
 }
 
 /// Parses a MAC address text form, e.g. `"aa:bb:cc:dd:ee:ff"` or the
@@ -269,12 +286,16 @@ mod tests {
         let Some(order) = vcu.packets.get(&AdjId(600)) else {
             unreachable!("VCU should have order 600");
         };
-        assert_eq!(order.kind, PacketKind::Order);
+        let PacketKind::Order(_) = &order.kind else {
+            unreachable!("order 600 should be an Order");
+        };
         assert_eq!(order.board, BoardId(3));
         let Some(data) = vcu.packets.get(&AdjId(625)) else {
             unreachable!("VCU should have data packet 625");
         };
-        assert_eq!(data.kind, PacketKind::Data);
+        let PacketKind::Data(_) = &data.kind else {
+            unreachable!("data packet 625 should be Data");
+        };
 
         let Some(pcu) = adj.pod_data.boards.get(&BoardId(5)) else {
             unreachable!("PCU should be among the loaded boards");
@@ -282,7 +303,7 @@ mod tests {
         let Some(protected) = pcu
             .packets
             .values()
-            .flat_map(|p| &p.measurements)
+            .flat_map(|p| p.kind.measurements())
             .find(|m| !m.protections.is_empty())
         else {
             unreachable!("PCU should have a measurement with a protection");
@@ -314,7 +335,10 @@ mod tests {
         let Some(protection_packet) = pcu.packets.get(&AdjId((1u16 << 13) | protected.id.0)) else {
             unreachable!("PCU should have a synthetic protection packet");
         };
-        assert_eq!(protection_packet.kind, PacketKind::Protection);
+        let PacketKind::Protection(measurement) = &protection_packet.kind else {
+            unreachable!("protection_packet should be a Protection");
+        };
+        assert_eq!(measurement, protected);
         assert_eq!(protection_packet.board, pcu.id);
     }
 }

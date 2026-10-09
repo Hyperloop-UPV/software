@@ -7,26 +7,30 @@ This module is meant to store and organize all the different structs, enums and 
 ## 1. `board.rs`
 All structs and enums needed for the Pod can be found defined in this file.
 ### 1.1 `PacketKind`
-Enum used to define the three different types of packets.
+Enum used to define what kind of packet a `PacketDef` declares. Not every kind carries the same shape, so each variant holds whatever measurement data is actually meaningful for it, instead of every packet being forced through one shared field.
 
-#### `Data`
-Measurement sent by a board.
-#### `Protection`
-Measurement with a protection.
-#### `Order`
-An order sent to a board.
+#### `Data(Vec<Measurement>)`
+Telemetry sent by a board: one value per measurement, decoded positionally in this order.
+#### `Protection(Measurement)`
+The single measurement one of a board's declared protections watches. Always exactly one — never a list.
+#### `Order(Vec<Measurement>)`
+An order sent to a board. Many orders take no parameters at all, so this can be empty.
+#### `Message`
+A free-text log line. Never carries measurement data.
+
+`PacketKind` also exposes a `measurements()` method that flattens any variant into a `&[Measurement]` slice, for code that just wants every measurement a packet references regardless of its kind.
 
 ### 1.2 `PacketDef`
 Struct used to define the structure of a packet a board can send or recieve.
 
 #### `id`
 ID of a packet, using the AdjId type which is a u16. Structure of ID is defined by the ADJ documentation.
+#### `board`
+The owning board's `BoardId`. Carried here too (not just reachable through the owning `Board`) so anything holding just a `&PacketDef` — e.g. a lookup table indexed by `AdjId` — knows which board it belongs to without a separate index back to it.
 #### `name`
 Human-readable String shown to the user to identify packet.
 #### `kind`
-PacketKind Enum used to classify each packet.
-#### `measurements`
-Vector list of measurements attached to a packet.
+`PacketKind` enum: both what kind of packet this is, and the measurement shape — if any — specific to that kind.
 
 ### 1.3 `Board`
 Struct used to identify a single board in the vehicle.
@@ -40,12 +44,12 @@ Board's IpAddress used to open TCP/UDP connections.
 #### `mac`
 Board's MAC address
 #### `packets`
-The Vector list of packets this board can send or receive.
+The packets this board can send or receive, as a `HashMap<AdjId, PacketDef>` keyed by id — the ADJ gives packets no meaningful order, so this is a map, not a list.
 
 ### 1.4 `PodData`
 Struct used to package all the structs of a vehicle.
 #### `boards`
-Vector list of boards in the Pod
+Every board of the vehicle, as a `HashMap<BoardId, Board>` keyed by id — the ADJ doesn't give boards any meaningful order either.
 
 
 ## 2. `id.rs`
@@ -116,7 +120,7 @@ Second of Timestamp of values 0–59.
 The sub-second fraction, as the raw byte on the wire. Its exact unit (e.g. milliseconds, or 1/256ths of a second) hasn't been confirmed yet, so it is kept as a raw `u8` here instead of converted to something like a `Duration` — convert it once the unit is settled.
 
 ### 4.2 `DataPacket`
-Struct for the decoded values of the measurements a board just sent. Values are positional: they are not individually tagged with their measurement ID, but written in the order their `Measurement`s appear in `PacketDef::measurements`.
+Struct for the decoded values of the measurements a board just sent. Values are positional: they are not individually tagged with their measurement ID, but written in the order their `Measurement`s appear in this packet's `PacketKind::Data` list.
 
 #### `id`
 Which packet definition this is an instance of (`AdjId`).
