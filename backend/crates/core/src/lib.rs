@@ -10,3 +10,8 @@ pub mod model;
 /// [`model::PodData`], plus backend-session metadata not modeled as
 /// vehicle data. See [`adj::load_from_dir`].
 pub mod adj;
+
+/// Translates bytes into typed packets and back, using the shapes
+/// [`adj`] declares as the schema. See [`protocol::wire`],
+/// [`protocol::tcp`], [`protocol::udp`].
+pub mod protocol;
