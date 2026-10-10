@@ -141,6 +141,28 @@
       },
       "problemMatcher": ["$rustc"],
       "group": "test"
+    },
+    {
+      "label": "Clippy Backend (Rust)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["clippy", "--workspace", "--all-targets", "--", "-D", "warnings"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": ["$rustc"],
+      "group": "test"
+    },
+    {
+      "label": "Format Backend (Rust)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["fmt", "--all"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": [],
+      "group": "none"
     }
   ],
   "inputs": [
