@@ -13,7 +13,7 @@
 
 mod error;
 mod info;
-pub mod raw;
+mod raw;
 
 pub use error::{LoadError, MeasurementError, ProtectionError};
 pub use info::{AdjInfo, ProtectionTypeInfo};
