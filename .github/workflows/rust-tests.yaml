@@ -1,0 +1,35 @@
+name: Rust Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - production
+      - "backend/**"
+    paths:
+      - "backend/**"
+      - ".github/workflows/rust-tests.yaml"
+
+jobs:
+  test:
+    name: Test (${{ matrix.crate }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: [software-core, station]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Run tests
+        working-directory: backend
+        run: cargo test --package ${{ matrix.crate }}
