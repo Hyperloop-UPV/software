@@ -2,11 +2,6 @@ name: Rust Tests
 
 on:
   pull_request:
-    branches:
-      - main
-      - develop
-      - production
-      - "backend/**"
     paths:
       - "backend/**"
       - ".github/workflows/rust-tests.yaml"
