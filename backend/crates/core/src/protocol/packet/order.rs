@@ -26,7 +26,7 @@ pub fn encode(order: &OrderPacket, index: &Index) -> Result<Vec<u8>, EncodeError
 
     let mut bytes = Vec::new();
 
-    bytes.extend_from_slice(&order.id.0.to_be_bytes());//Header prefix of byte stream to 16 bit big-endian
+    bytes.extend_from_slice(&order.id.0.to_le_bytes());//Header prefix of byte stream to 16 bit little-endian
 
     //Encoding to bytes
     for (field,measurement) in order.fields.iter().zip(measurements){ //For each measurement
