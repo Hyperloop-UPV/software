@@ -1,3 +1,4 @@
+use crate::model::Port;
 use ntp_server::{protocol::Stratum, server::NtpServer};
 use std::{
     io,
@@ -5,26 +6,26 @@ use std::{
 };
 use tracing::{debug, info, instrument};
 
-const NTP_DEFAULT_PORT: u16 = 8123;
+const NTP_DEFAULT_PORT: Port = Port(8123);
 
-/// Starts the NTP server with an interface and a port.  
+/// Starts the NTP server with an interface and a port.
 ///
 /// Arguments:
 /// - `interface`: IPv4 interface to bind to. If `None`, the default interface (`0.0.0.0`) is used.
 /// - `port`: Port to listen on. If `None`, the default NTP port (`8123`) is used.
 #[instrument(level = "info")]
-pub async fn start_ntp_server(interface: Option<Ipv4Addr>, port: Option<u16>) -> io::Result<()> {
+pub async fn start_ntp_server(interface: Option<Ipv4Addr>, port: Option<Port>) -> io::Result<()> {
     run_ntp_server(interface, port).await
 }
 
-/// Starts the NTP server with a socket.  
+/// Starts the NTP server with a socket.
 ///
 /// Arguments:
 /// - `socket`: Complete IPv4 socket address. If `None` the default `SocketAddrV4` is used (`0.0.0.0:8123`).
 #[instrument(level = "info")]
 pub async fn start_ntp_server_with_socket(socket: Option<SocketAddrV4>) -> io::Result<()> {
     let (interface, port) = match socket {
-        Some(socket) => (Some(*socket.ip()), Some(socket.port())),
+        Some(socket) => (Some(*socket.ip()), Some(Port(socket.port()))),
         None => (None, None),
     };
 
@@ -32,19 +33,22 @@ pub async fn start_ntp_server_with_socket(socket: Option<SocketAddrV4>) -> io::R
 }
 
 #[instrument(level = "info")]
-async fn run_ntp_server(interface: Option<Ipv4Addr>, port: Option<u16>) -> io::Result<()> {
+async fn run_ntp_server(interface: Option<Ipv4Addr>, port: Option<Port>) -> io::Result<()> {
     let server = build_ntp_server(interface, port).await?;
     info!("Starting NTP server loop");
     // Any internal log of server.run() will be wrapped within this function Span
     server.run().await
 }
 
-async fn build_ntp_server(interface: Option<Ipv4Addr>, port: Option<u16>) -> io::Result<NtpServer> {
+async fn build_ntp_server(
+    interface: Option<Ipv4Addr>,
+    port: Option<Port>,
+) -> io::Result<NtpServer> {
     let interface = interface.unwrap_or(Ipv4Addr::UNSPECIFIED); // Same as Ipv4Addr::new(0,0,0,0);
 
     let port = port.unwrap_or(NTP_DEFAULT_PORT);
 
-    let socket_addr_v4 = SocketAddrV4::new(interface, port);
+    let socket_addr_v4 = SocketAddrV4::new(interface, port.0);
 
     // % -> use structured variables
     debug!(%socket_addr_v4, "Building NTP server");
@@ -87,7 +91,7 @@ mod test {
         init_tracing_for_tests();
 
         // Create the NTP server
-        let server = build_ntp_server(Some(Ipv4Addr::LOCALHOST), Some(0))
+        let server = build_ntp_server(Some(Ipv4Addr::LOCALHOST), Some(Port(0)))
             .await
             .expect("NTP server should bind to an ephemeral local port");
 
