@@ -1,0 +1,32 @@
+[
+  {
+    "type": "order",
+    "name": "FAULT",
+    "variables": [],
+    "id": 2000
+  },
+  {
+    "type": "order",
+    "name": "Open Contactors",
+    "variables": [],
+    "id": 2001
+  },
+  {
+    "type": "order",
+    "name": "Cell Balance",
+    "variables": [],
+    "id": 2002
+  },
+  {
+    "type": "order",
+    "name": "Start Precharge",
+    "variables": [],
+    "id": 2003
+  },
+  {
+    "type": "order",
+    "name": "Check Faults",
+    "variables": [],
+    "id": 2004
+  }
+]

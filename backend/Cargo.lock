@@ -315,6 +315,7 @@ dependencies = [
  "bytes",
  "ntp_usg-server",
  "serde",
+ "serde_json",
  "thiserror",
  "tokio",
  "tracing",

@@ -28,7 +28,6 @@ cargo clippy --workspace --all-targets -- -D warnings
 Abre `target/doc/software_core/hello_world/index.html` para ver la API.
 
 - `crates/core/src/hello_world.rs`: `greet(&str) -> String`, con rustdoc,
-  un doctest y tres tests unitarios. Recorta espacios; un nombre vacío usa `World`.
 - `crates/core/src/lib.rs`: exporta el módulo público.
 - `crates/station/src/main.rs`: inicializa el subscriber una sola vez y llama a `greet`.
 - `#[tracing::instrument]` crea el span `hello_world`; los eventos incluyen

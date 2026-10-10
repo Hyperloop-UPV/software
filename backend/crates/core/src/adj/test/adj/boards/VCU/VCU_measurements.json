@@ -1,0 +1,95 @@
+[
+  {
+    "id": 613,
+    "alias": "state",
+    "name": "State",
+    "type": "enum",
+    "enumValues": [
+      "Idle",
+      "Connected",
+      "Maintenance",
+      "Precharging",
+      "HVActive",
+      "Ready",
+      "Propulsion",
+      "Static Levitation",
+      "Dynamic Levitation",
+      "Fault"
+    ]
+  },
+  {
+    "id": 614,
+    "alias": "sdc_closed",
+    "name": "SDC Closed",
+    "type": "bool"
+  },
+  {
+    "id": 615,
+    "alias": "high_pressure",
+    "name": "High Pressure",
+    "type": "float32",
+    "displayUnits": "bar"
+  },
+  {
+    "id": 616,
+    "alias": "low_pressure",
+    "name": "Low Pressure",
+    "type": "float32",
+    "displayUnits": "bar"
+  },
+  {
+    "id": 617,
+    "alias": "pressure_regulator_feedback",
+    "name": "Pressure Regulator Feedback",
+    "type": "float32",
+    "displayUnits": "bar"
+  },
+  {
+    "id": 618,
+    "alias": "brakes_status",
+    "name": "Brakes Status",
+    "type": "enum",
+    "enumValues": [
+      "BRAKED",
+      "UNBRAKED"
+    ]
+  },
+  {
+    "id": 619,
+    "alias": "electrovalve_enabled",
+    "name": "Electrovalve Enabled",
+    "type": "bool"
+  },
+  {
+    "id": 620,
+    "alias": "hvbms_connected",
+    "name": "HVBMS Connected",
+    "type": "bool"
+  },
+  {
+    "id": 621,
+    "alias": "pcu_connected",
+    "name": "PCU Connected",
+    "type": "bool"
+  },
+  {
+    "id": 622,
+    "alias": "lcu_connected",
+    "name": "LCU Connected",
+    "type": "bool"
+  },
+  {
+    "id": 623,
+    "alias": "propulsion_current_reference",
+    "name": "Propulsion Current Reference",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 624,
+    "alias": "levitation_target_height",
+    "name": "Levitation Target Height",
+    "type": "float32",
+    "displayUnits": "mm"
+  }
+]
