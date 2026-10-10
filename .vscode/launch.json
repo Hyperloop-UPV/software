@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Backend (Rust)",
+      "program": "${workspaceFolder}/backend/target/debug/station",
+      "args": [],
+      "cwd": "${workspaceFolder}/backend/crates/station",
+      "preLaunchTask": "cargo build (station)",
+      "sourceLanguages": ["rust"]
+    }
+  ]
+}
