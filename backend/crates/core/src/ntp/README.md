@@ -11,7 +11,7 @@ The boards in this project use **SNTP**. However, this module implements an **NT
 
 ## Implementation
 
-The server is implemented using the [`ntp_usg-server`](https://crates.io/crates/ntp_usg-server) crate with the **Tokio** runtime.
+The server is implemented using the [`ntp_usg-server`](https://crates.io/crates/ntp_usg-server) crate with the **Tokio** runtime. It also uses [`tracing`](https://crates.io/crates/tracing) crate for logging.
 
 The crate handles the NTP protocol logic, including request parsing and response generation, while this module is responsible for configuring and starting the server.
 
