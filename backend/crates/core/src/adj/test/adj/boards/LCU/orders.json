@@ -1,0 +1,142 @@
+[
+  {
+    "type": "order",
+    "name": "FAULT",
+    "variables": [],
+    "id": 800
+  },
+  {
+    "type": "order",
+    "name": "Stop",
+    "variables": [],
+    "id": 801
+  },
+  {
+    "type": "order",
+    "name": "Set Fixed VBAT",
+    "variables": [
+      "fixed_vbat"
+    ],
+    "id": 802
+  },
+  {
+    "type": "order",
+    "name": "Unset Fixed VBAT",
+    "variables": [],
+    "id": 803
+  },
+  {
+    "type": "order",
+    "name": "Levitate",
+    "variables": [
+      "desired_distance"
+    ],
+    "id": 804
+  },
+  {
+    "type": "order",
+    "name": "Levitate Ramp",
+    "variables": [
+      "desired_distance"
+    ],
+    "id": 805
+  },
+  {
+    "type": "order",
+    "name": "Set Desired Distance",
+    "variables": [
+      "desired_distance"
+    ],
+    "id": 806
+  },
+  {
+    "type": "order",
+    "name": "Set Desired Distance Ramp",
+    "variables": [
+      "desired_distance"
+    ],
+    "id": 807
+  },
+  {
+    "type": "order",
+    "name": "Stop Ramp",
+    "variables": [],
+    "id": 808
+  },
+  {
+    "type": "order",
+    "name": "Current Control",
+    "variables": [
+      "lpu_id",
+      "desired_current"
+    ],
+    "id": 809
+  },
+  {
+    "type": "order",
+    "name": "All Current Control",
+    "variables": [
+      "desired_current"
+    ],
+    "id": 810
+  },
+  {
+    "type": "order",
+    "name": "Stop Current Control",
+    "variables": [
+      "lpu_id"
+    ],
+    "id": 811
+  },
+  {
+    "type": "order",
+    "name": "PWM",
+    "variables": [
+      "lpu_id",
+      "fixed_pwm_duty_cycle"
+    ],
+    "id": 812
+  },
+  {
+    "type": "order",
+    "name": "All PWM",
+    "variables": [
+      "fixed_pwm_duty_cycle"
+    ],
+    "id": 813
+  },
+  {
+    "type": "order",
+    "name": "Stop PWM",
+    "variables": [
+      "lpu_id"
+    ],
+    "id": 814
+  },
+  {
+    "type": "order",
+    "name": "Reset All",
+    "variables": [],
+    "id": 815
+  },
+  {
+    "type": "order",
+    "name": "Reset Slave",
+    "variables": [],
+    "id": 816
+  },
+  {
+    "type": "order",
+    "name": "Cinema",
+    "variables": [
+      "cinema_current"
+    ],
+    "id": 817
+  },
+  {
+    "type": "order",
+    "name": "Stop Cinema",
+    "variables": [],
+    "id": 818
+  }
+]
