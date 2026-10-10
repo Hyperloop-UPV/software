@@ -35,6 +35,7 @@ import { useShallow } from "zustand/react/shallow";
 import { decimateLTTB } from "../../../lib/plotStudio/decimate";
 import { computeFFT } from "../../../lib/plotStudio/fft";
 import { exportTimestamp } from "../../../lib/plotStudio/format";
+import { formatOrderAnnotation } from "../../../lib/orders";
 import { traceColor, resolveSignalColor } from "../../../lib/plotStudio/palette";
 import { buildPlotLayout, buildTimelineLayout, getPlotlyTheme } from "../../../lib/plotStudio/plotlyTheme";
 import { lowerBound, upperBound } from "../../../lib/plotStudio/range";
@@ -70,12 +71,52 @@ const PLOTLY_CONFIG: Partial<Plotly.Config> = {
 // is what actually freezes the tab; ~8k is comfortably smooth to paint/pan
 // and visually indistinguishable at typical screen widths.
 const DECIMATE_THRESHOLD = 8_000;
+const ORDER_EVENT_COLOR = "#ff7f0e";
 
 // Plotly divs expose a Node-style event emitter after newPlot()
 type PlotlyEventDiv = HTMLDivElement & {
   on?: (event: string, cb: () => void) => void;
   removeAllListeners?: (event: string) => void;
 };
+
+/** Assign labels to vertical lanes. Plotly annotations know no collision
+ * avoidance, so nearby events would otherwise all occupy the same title
+ * position. The line itself remains at the exact event timestamp. */
+type OrderLabelPlacement = "top" | "bottom" | "inside";
+
+function assignOrderLabelLanes<T extends { time: number; name: string }>(orders: T[]): Array<{
+  order: T;
+  placement: OrderLabelPlacement;
+  lane: number;
+}> {
+  if (orders.length === 0) return [];
+  const sorted = [...orders].sort((a, b) => a.time - b.time);
+  const range = Math.max(1, sorted[sorted.length - 1].time - sorted[0].time);
+  const zoneEnds: Record<OrderLabelPlacement, number[]> = { top: [], bottom: [], inside: [] };
+  const findOpenLane = (placement: OrderLabelPlacement, time: number, width: number, limit: number) => {
+    const ends = zoneEnds[placement];
+    let lane = ends.findIndex((end) => end < time);
+    if (lane === -1 && ends.length < limit) lane = ends.length;
+    if (lane === -1) return null;
+    ends[lane] = time + width;
+    return lane;
+  };
+
+  return sorted.map((order) => {
+    // Roughly translate label characters to their horizontal share of a
+    // typical chart. Exact browser text measurement is deliberately avoided
+    // here so exports and live charts use the same stable lane assignment.
+    const labelWidth = Math.min(range * 0.32, Math.max(range * 0.055, range * (order.name.length + 24) / 110));
+    // Use the clear margins first. Only densely clustered labels fall back
+    // into the plot body, where they are vertically stacked by lane.
+    const topLane = findOpenLane("top", order.time, labelWidth, 1);
+    if (topLane !== null) return { order, placement: "top", lane: topLane };
+    const bottomLane = findOpenLane("bottom", order.time, labelWidth, 1);
+    if (bottomLane !== null) return { order, placement: "bottom", lane: bottomLane };
+    const insideLane = findOpenLane("inside", order.time, labelWidth, Number.POSITIVE_INFINITY)!;
+    return { order, placement: "inside", lane: insideLane };
+  });
+}
 
 // Defined outside component — no components created during render
 function ZoomGroup({
@@ -138,6 +179,7 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
   );
   const fftSampleRateOverride = useStore((s) => s.fftSampleRateOverride);
   const adjData = useStore((s) => s.adjData);
+  const orders = useStore((s) => s.orders);
   const removeStudioPlot = useStore((s) => s.removeStudioPlot);
   const renameStudioPlot = useStore((s) => s.renameStudioPlot);
   const isDarkMode = useStore((s) => s.isDarkMode);
@@ -366,8 +408,57 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
 
   const hasTraces = traces.length > 0;
 
+  // Orders share the session timebase with telemetry. Render them as paper-
+  // height vertical event lines so they remain meaningful for plots with any
+  // unit (and for the categorical timeline). FFT uses frequency, so order
+  // timestamps intentionally do not appear in that mode.
+  const visibleOrders = useMemo(
+    () => !hasFFT ? orders.filter((order) => !plot.hiddenOrderIds?.[order.id]) : [],
+    [orders, plot.hiddenOrderIds, hasFFT],
+  );
+  const orderLabelLanes = useMemo(() => assignOrderLabelLanes(visibleOrders), [visibleOrders]);
+
+  const addOrderAnnotations = useCallback((baseLayout: Partial<Plotly.Layout>) => {
+    if (orderLabelLanes.length === 0) return baseLayout;
+    const theme = getPlotlyTheme(isDarkMode);
+    return {
+      ...baseLayout,
+      shapes: [
+        ...(baseLayout.shapes ?? []),
+        ...orderLabelLanes.map(({ order }) => ({
+          type: "line" as const,
+          xref: "x" as const, yref: "paper" as const,
+          x0: order.time, x1: order.time, y0: 0, y1: 1,
+          line: { color: ORDER_EVENT_COLOR, width: 1.25, dash: "dot" as const },
+          layer: "above" as const,
+        })),
+      ],
+      annotations: [
+        ...(baseLayout.annotations ?? []),
+        ...orderLabelLanes.map(({ order, placement, lane }) => ({
+          x: order.time, xref: "x" as const,
+          // Keep the first lane just inside the plot. Placing it in the top
+          // margin makes it overlap Plotly's editable chart title.
+          y: placement === "bottom" ? 0 : 1, yref: "paper" as const,
+          text: formatOrderAnnotation(order.name, order.parameters),
+          showarrow: false,
+          xanchor: "left" as const,
+          yanchor: "top" as const,
+          xshift: 3,
+          yshift: placement === "bottom" ? -5 : -6 - lane * 32,
+          font: { size: 10, color: theme.fontColor },
+          bgcolor: theme.paperBg,
+          bordercolor: ORDER_EVENT_COLOR,
+          borderwidth: 1,
+          opacity: 0.94,
+          align: "left" as const,
+        })),
+      ],
+    };
+  }, [orderLabelLanes, isDarkMode]);
+
   const layout = useMemo<Partial<Plotly.Layout>>(
-    () =>
+    () => addOrderAnnotations(
       hasTimeline
         ? buildTimelineLayout({ theme: getPlotlyTheme(isDarkMode), plotId: plot.id, rowLabels: timelineRowLabels, locked })
         : buildPlotLayout({
@@ -376,7 +467,8 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
             leftUnits: axisUnits.left, rightUnits: axisUnits.right,
             locked,
           }),
-    [hasLeftAxis, hasRightAxis, hasFFT, hasTimeline, timelineRowLabels, plot.id, axisUnits, isDarkMode, locked],
+    ),
+    [hasLeftAxis, hasRightAxis, hasFFT, hasTimeline, timelineRowLabels, plot.id, axisUnits, isDarkMode, locked, addOrderAnnotations],
   );
 
   // editable (click-to-rename title/legend) is the one PLOTLY_CONFIG option
@@ -474,7 +566,7 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
     const div = chartRef.current?.getDiv();
     if (!div) return null;
     const gd = div as unknown as Plotly.PlotlyHTMLElement & { _fullLayout: Record<string, { range?: number[] }> };
-    const exportLayout = hasTimeline
+    let exportLayout = hasTimeline
       ? buildTimelineLayout({ theme: getPlotlyTheme(false), plotId: plot.id, rowLabels: timelineRowLabels, fontScale: 1.8, exportHeight })
       : buildPlotLayout({
           theme: getPlotlyTheme(false),
@@ -482,6 +574,29 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
           leftUnits: axisUnits.left, rightUnits: axisUnits.right,
           fontScale: 1.8, exportHeight,
         });
+    // Export is always light, so rebuild annotations with its print theme.
+    if (orderLabelLanes.length > 0) {
+      const printTheme = getPlotlyTheme(false);
+      exportLayout = {
+        ...exportLayout,
+        shapes: [...(exportLayout.shapes ?? []), ...orderLabelLanes.map(({ order }) => ({
+          type: "line" as const, xref: "x" as const, yref: "paper" as const,
+          x0: order.time, x1: order.time, y0: 0, y1: 1,
+          line: { color: ORDER_EVENT_COLOR, width: 2, dash: "dot" as const }, layer: "above" as const,
+        }))],
+        annotations: [...(exportLayout.annotations ?? []), ...orderLabelLanes.map(({ order, placement, lane }) => ({
+          x: order.time, xref: "x" as const,
+          y: placement === "bottom" ? 0 : 1, yref: "paper" as const,
+          text: formatOrderAnnotation(order.name, order.parameters),
+          showarrow: false, xanchor: "left" as const,
+          yanchor: "top" as const,
+          xshift: 5,
+          yshift: placement === "bottom" ? -8 : -10 - lane * 56,
+          font: { size: 18, color: printTheme.fontColor },
+          bgcolor: printTheme.paperBg, bordercolor: ORDER_EVENT_COLOR, borderwidth: 1.5, align: "left" as const,
+        }))],
+      };
+    }
     // Carry over whatever title the user typed via Plotly's click-to-edit —
     // gd.layout is Plotly's live, mutated layout (relayout writes
     // title.text into it), whereas exportLayout is rebuilt fresh from
@@ -548,6 +663,8 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
     [plot.signals, resolvedSignals, adjData],
   );
 
+  const chartSurface = getPlotlyTheme(isDarkMode).paperBg;
+
   return (
     <ContextMenu>
     <ContextMenuTrigger asChild>
@@ -564,7 +681,7 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
       <div className="from-primary/80 to-primary/20 h-[3px] bg-gradient-to-r" />
 
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5">
+      <div className="border-border/60 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-4 py-2.5" style={{ backgroundColor: chartSurface }}>
         <Button variant="ghost" size="icon-sm" onClick={() => setCollapsed((v) => !v)}
           aria-label={collapsed ? "Expand plot" : "Collapse plot"}
           className="text-muted-foreground hover:text-foreground hover:bg-muted -ml-1.5 shrink-0">
@@ -712,7 +829,7 @@ const PlotWrapper = forwardRef<PlotExportHandle, PlotWrapperProps>(({ plot }, re
         {hasTraces ? (
           // Chart canvas follows app dark mode; exports stay pinned to the
           // light/academic theme regardless (see buildExportFigure above).
-          <div ref={containerRef} className="relative" style={{ height: plotHeight, backgroundColor: isDarkMode ? "#181818" : "white" }}>
+          <div ref={containerRef} className="relative" style={{ height: plotHeight, backgroundColor: chartSurface }}>
             <PlotlyChart ref={chartRef} traces={traces} layout={layout} config={plotlyConfig} style={{ height: "100%" }} />
             {!locked && (
               <div

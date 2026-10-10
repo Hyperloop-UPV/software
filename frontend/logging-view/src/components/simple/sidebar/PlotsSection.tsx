@@ -5,6 +5,7 @@
 // chip matches the trace color in the chart (lib/plotStudio/palette).
 import {
   Button,
+  Checkbox,
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -22,12 +23,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components";
-import { Activity, Eye, EyeOff, GripVertical, Plus, Trash2, X } from "@workspace/ui/icons";
+import { ChevronDown, Eye, EyeOff, GripVertical, Plus, Send, Trash2, X } from "@workspace/ui/icons";
 import { cn } from "@workspace/ui/lib";
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { resolveSignalColor } from "../../../lib/plotStudio/palette";
 import { getSignalName } from "../../../lib/plotStudio/units";
+import { formatOrderParameters } from "../../../lib/orders";
 import { getSignal } from "../../../store/slices/plotStudioSlice";
 import { useStore } from "../../../store/store";
 import { useSignalLoader } from "../hooks/useStudioSignals";
@@ -59,12 +61,18 @@ export default function PlotsSection() {
   const updateStudioSignalAxis     = useStore((s) => s.updateStudioSignalAxis);
   const toggleStudioPlotFFT        = useStore((s) => s.toggleStudioPlotFFT);
   const updateStudioSignalColor    = useStore((s) => s.updateStudioSignalColor);
+  const orders                      = useStore((s) => s.orders);
+  const toggleStudioPlotOrder       = useStore((s) => s.toggleStudioPlotOrder);
+  const setStudioPlotOrdersVisible  = useStore((s) => s.setStudioPlotOrdersVisible);
 
   const ensureLoaded = useSignalLoader();
   // Plot ids with a CSV parse in flight (shows "Loading…" in the trigger)
   const [assigning, setAssigning] = useState<Set<string>>(new Set());
   // Drag-to-reorder: id of the plot currently being dragged
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [collapsedPlots, setCollapsedPlots] = useState<Set<string>>(new Set());
+  // Order lists can be long, so let each plot keep its own collapsed state.
+  const [collapsedOrderSections, setCollapsedOrderSections] = useState<Set<string>>(new Set());
 
   const plots = Array.from(studioPlots.values());
 
@@ -125,12 +133,27 @@ export default function PlotsSection() {
             draggable
             onDragStart={() => setDraggingId(plot.id)}
             onDragEnd={() => setDraggingId(null)}
-            className="from-primary/5 flex cursor-grab items-center gap-2 border-b bg-gradient-to-r to-transparent px-3 py-2 active:cursor-grabbing"
+            className={cn(
+              "from-primary/5 flex cursor-grab items-center gap-2 bg-gradient-to-r to-transparent px-3 py-2 active:cursor-grabbing",
+              !collapsedPlots.has(plot.id) && "border-b",
+            )}
           >
             <GripVertical className="text-muted-foreground/50 size-3.5 shrink-0" />
-            <div className="bg-primary/20 flex size-4 shrink-0 items-center justify-center rounded-sm">
-              <Activity className="text-primary size-3" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setCollapsedPlots((previous) => {
+                const next = new Set(previous);
+                if (next.has(plot.id)) next.delete(plot.id);
+                else next.add(plot.id);
+                return next;
+              })}
+              aria-label={`${collapsedPlots.has(plot.id) ? "Expand" : "Collapse"} settings for ${plot.name}`}
+              title={collapsedPlots.has(plot.id) ? "Expand plot settings" : "Collapse plot settings"}
+              aria-expanded={!collapsedPlots.has(plot.id)}
+              className="text-muted-foreground hover:bg-muted/60 hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded"
+            >
+              <ChevronDown className={cn("size-3.5 transition-transform", collapsedPlots.has(plot.id) && "-rotate-90")} />
+            </button>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -183,6 +206,8 @@ export default function PlotsSection() {
             </Tooltip>
           </div>
 
+          {!collapsedPlots.has(plot.id) && (
+            <div>
           {/* Assigned signals — grouped by axis so left/right membership is
               obvious from list position, not just a small per-row dropdown. */}
           {plot.signals.length > 0 && (
@@ -278,6 +303,103 @@ export default function PlotsSection() {
             </div>
           )}
 
+          {orders.length > 0 && (
+            <div className="border-t px-2 py-2">
+              <button
+                type="button"
+                onClick={() => setCollapsedOrderSections((previous) => {
+                  const next = new Set(previous);
+                  if (next.has(plot.id)) next.delete(plot.id);
+                  else next.add(plot.id);
+                  return next;
+                })}
+                aria-expanded={!collapsedOrderSections.has(plot.id)}
+                aria-controls={`${plot.id}-order-markers`}
+                className="hover:bg-muted/60 flex w-full items-start gap-2 rounded-md px-0.5 py-0.5 text-left transition-colors"
+              >
+                <div className="bg-primary/10 text-primary mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-sm">
+                  <Send className="size-3" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-foreground text-[11px] font-semibold">Order markers</span>
+                    <span className="text-muted-foreground shrink-0 text-[10px] tabular-nums">
+                      {orders.filter((order) => !plot.hiddenOrderIds?.[order.id]).length}/{orders.length} shown
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug">
+                    Show command events on this plot
+                    {plot.showFFT && " (hidden in FFT mode)"}.
+                  </p>
+                </div>
+                <ChevronDown className={cn(
+                  "text-muted-foreground mt-1 size-3.5 shrink-0 transition-transform",
+                  collapsedOrderSections.has(plot.id) && "-rotate-90",
+                )} />
+              </button>
+
+              {!collapsedOrderSections.has(plot.id) && (
+                <div id={`${plot.id}-order-markers`}>
+                  <div className="mt-2 flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      disabled={plot.showFFT}
+                      onClick={() => setStudioPlotOrdersVisible(plot.id, orders.map((order) => order.id), true)}
+                      className="h-6 flex-1 text-[10px]"
+                    >
+                      Show all
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      disabled={plot.showFFT}
+                      onClick={() => setStudioPlotOrdersVisible(plot.id, orders.map((order) => order.id), false)}
+                      className="h-6 flex-1 text-[10px]"
+                    >
+                      Hide all
+                    </Button>
+                  </div>
+
+                  <div className="mt-1.5 max-h-40 space-y-1 overflow-y-auto pr-0.5">
+                    {orders.map((order) => {
+                      const checked = !plot.hiddenOrderIds?.[order.id];
+                      return (
+                        <label
+                          key={order.id}
+                          className={cn(
+                            "bg-muted/30 hover:bg-muted/60 flex cursor-pointer items-start gap-2 rounded-md border px-2 py-1.5 transition-colors",
+                            plot.showFFT && "cursor-not-allowed opacity-50",
+                          )}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            disabled={plot.showFFT}
+                            onCheckedChange={() => toggleStudioPlotOrder(plot.id, order.id)}
+                            aria-label={`${checked ? "Hide" : "Show"} ${order.name} order marker`}
+                            className="mt-0.5"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className="truncate text-[11px] font-medium">{order.name}</span>
+                              <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{order.time.toFixed(0)} ms</span>
+                            </span>
+                            <span className="text-muted-foreground mt-0.5 block break-words text-[10px]">
+                              From: <span className="text-foreground font-medium">{order.from}</span>
+                              {" → "}
+                              To: <span className="text-foreground font-medium">{order.to}</span>
+                              {" · "}{formatOrderParameters(order.parameters)}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Assign dropdown — grouped by board, hides already-assigned */}
           <div className={cn("px-2 pb-2", plot.signals.length > 0 ? "border-t pt-1.5" : "pt-2")}>
             <SignalSelect
@@ -289,6 +411,8 @@ export default function PlotsSection() {
               triggerClassName="text-muted-foreground h-7 w-full border-dashed text-[11px] shadow-none"
             />
           </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

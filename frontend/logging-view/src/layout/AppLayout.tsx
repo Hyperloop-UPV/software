@@ -35,7 +35,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="bg-background flex h-full w-full overflow-x-hidden">
             <AppSidebar />
-            <SidebarInset className="flex h-full flex-col">
+            <SidebarInset className="flex h-full min-w-0 flex-col">
               <Header />
               <div className="flex-1 overflow-auto">{children}</div>
             </SidebarInset>

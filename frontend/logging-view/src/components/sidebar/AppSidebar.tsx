@@ -9,33 +9,46 @@ import {
   SidebarHeader,
   SidebarSeparator,
 } from "@workspace/ui/components";
+import { useLocation } from "react-router";
+import { useStore } from "../../store/store";
 import FolderPickerGroup from "./FolderPickerGroup";
+import OrdersTimelineControl from "./OrdersTimelineControl";
 import SeriesGroup from "./SeriesGroup";
 import SeriesSelectionBar from "./SeriesSelectionBar";
 import SidebarToggleHandle from "./SidebarToggleHandle";
 import ThemeToggleItem from "./ThemeToggleItem";
 
-const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => (
-  <Sidebar collapsible="offcanvas" {...props}>
-    {/* Fixed — always visible regardless of scroll position */}
-    <SidebarHeader className="p-0">
-      <FolderPickerGroup />
-      <SeriesSelectionBar />
-      <SidebarSeparator />
-    </SidebarHeader>
+const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
+  const hasLoadedSession = useStore((s) => s.folderName !== null);
+  const isSimpleMode = useLocation().pathname.startsWith("/simple");
 
-    {/* Scrollable area for series selection */}
-    <SidebarContent className="overflow-x-hidden overflow-y-auto">
-      <SeriesGroup />
-    </SidebarContent>
+  return (
+    <Sidebar collapsible="offcanvas" {...props}>
+      {/* Fixed — always visible regardless of scroll position */}
+      <SidebarHeader className="p-0">
+        <FolderPickerGroup />
+        {isSimpleMode && <SeriesSelectionBar />}
+        <SidebarSeparator />
+      </SidebarHeader>
 
-    <SidebarFooter>
-      <div className="my-2" />
-      <ThemeToggleItem />
-    </SidebarFooter>
+      {/* Scrollable area for series selection */}
+      <SidebarContent className="overflow-x-hidden overflow-y-auto">
+        <SeriesGroup />
+      </SidebarContent>
 
-    <SidebarToggleHandle />
-  </Sidebar>
-);
+      <SidebarFooter>
+        {hasLoadedSession && (
+          <>
+            <OrdersTimelineControl />
+            <SidebarSeparator className="my-2" />
+          </>
+        )}
+        <ThemeToggleItem />
+      </SidebarFooter>
+
+      <SidebarToggleHandle />
+    </Sidebar>
+  );
+};
 
 export default AppSidebar;

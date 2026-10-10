@@ -19,6 +19,7 @@
     "@vitejs/plugin-react-swc": "^4.2.3",
     "@workspace/core": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "echarts": "^6.1.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.563.0",
