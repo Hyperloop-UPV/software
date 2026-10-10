@@ -10,6 +10,8 @@ repository.workspace = true
 
 [features]
 default = []
+# NTP server
+ntp = ["dep:tokio", "dep:ntp_usg-server", "dep:tracing-subscriber"]
 # TCP/UDP transport (pulls in tokio)
 net = ["dep:tokio"]
 # ADJ download through git (dependency added when the module is written)
@@ -27,9 +29,10 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-tokio = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { workspace = true, optional = true , features = ["env-filter", "fmt"]}
 tracing-appender = { workspace = true, optional = true }
+ntp_usg-server = { version = "5.0.0", optional = true, features = ["ipv4", "tokio"] }
 
 # `workspace = true` can't be combined with extra lints in the same table,
 # so the workspace list is repeated here with `missing_docs` added: this is

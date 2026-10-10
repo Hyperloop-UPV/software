@@ -2,6 +2,9 @@
 
 pub mod hello_world;
 
+/// NTP server
+#[cfg(feature = "ntp")]
+pub mod ntp;
 /// Basic domain types: identifiers, values, measurements, protections,
 /// packets and boards.
 pub mod model;
