@@ -1,0 +1,165 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Testing View",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev", "--filter", "testing-view"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Competition View",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev", "--filter", "competition-view"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Flashing View",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev", "--filter", "flashing-view"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Logging View",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev", "--filter", "logging-view"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run ADJ View",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev", "--filter", "adj-view"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Backend (Rust)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["run", "--package", "station"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": ["$rustc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Python (BLCU Programming)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev", "--filter", "blcu-programming"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Build App",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Build Backend (Rust)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "--package", "station"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": ["$rustc"],
+      "group": "build"
+    },
+    {
+      "label": "Test App",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "test"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Test Backend (Rust)",
+      "type": "shell",
+      "command": "cargo test ${input:rustTestScope} ${input:rustTestFilter}",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": ["$rustc"],
+      "group": "test"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "rustTestScope",
+      "type": "pickString",
+      "description": "¿Qué crate del backend querés testear?",
+      "options": [
+        { "label": "Todo el workspace", "value": "--workspace" },
+        { "label": "software-core", "value": "-p software-core" },
+        { "label": "station", "value": "-p station" }
+      ],
+      "default": "--workspace"
+    },
+    {
+      "id": "rustTestFilter",
+      "type": "promptString",
+      "description": "Filtro de test/módulo dentro del crate elegido (ej. adj::tests, vacío = todos)",
+      "default": ""
+    }
+  ]
+}

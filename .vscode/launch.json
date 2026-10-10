@@ -8,7 +8,7 @@
       "program": "${workspaceFolder}/backend/target/debug/station",
       "args": [],
       "cwd": "${workspaceFolder}/backend/crates/station",
-      "preLaunchTask": "cargo build (station)",
+      "preLaunchTask": "Build Backend (Rust)",
       "sourceLanguages": ["rust"]
     }
   ]
