@@ -58,6 +58,7 @@ function SessionComparison() {
     () => ({
       files: sessionFiles,
       data: new Map<string, SeriesData>(),
+      colors: new Map<string, string>(),
       errors: new Map<string, string>(),
     }),
     [sessionFiles],
@@ -68,6 +69,8 @@ function SessionComparison() {
     const loadVisible = async () => {
       for (const id of selectedIds) {
         if (cancelled) return;
+        if (!cache.colors.has(id))
+          cache.colors.set(id, traceColor(cache.colors.size));
         if (cache.data.has(id) || cache.errors.has(id)) continue;
         try {
           const slash = id.indexOf("/");
@@ -118,7 +121,7 @@ function SessionComparison() {
         units: getSignalUnits(adjData, id),
         enumLabels: getEnumLabels(adjData, id),
         discrete: isDiscreteMeasurement(adjData, id),
-        color: traceColor(selectedIds.indexOf(id)),
+        color: cache.colors.get(id)!,
         data,
       },
     ];

@@ -12,6 +12,9 @@ import {
 import { Columns, Plus, Settings2, X } from "@workspace/ui/icons";
 import * as echarts from "echarts";
 import {
+  ChartNoAxesCombined,
+  Eye,
+  EyeOff,
   Grid2X2,
   Link2,
   Maximize2,
@@ -43,6 +46,8 @@ import {
   type TimeUnit,
 } from "../../types/normal";
 import ComparisonChart from "./ComparisonChart";
+import TimeWindowControls from "./TimeWindowControls";
+import WindowStatistics from "./WindowStatistics";
 
 const MAX_PANES = 8;
 const PRESETS = [
@@ -70,7 +75,9 @@ interface PaneProps {
   onFocus: (id: string) => void;
   onChange: (
     id: string,
-    changes: Partial<Pick<ChartPane, "signalIds" | "normalized">>,
+    changes: Partial<
+      Pick<ChartPane, "signalIds" | "normalized" | "hiddenSignalIds">
+    >,
   ) => void;
   onUnitChange: (id: string, unit: string) => void;
 }
@@ -98,7 +105,18 @@ function ComparisonPane({
     () => allSignals.filter((signal) => node.signalIds.includes(signal.id)),
     [allSignals, node.signalIds],
   );
-  const tooManyUnits = new Set(signals.map(axisKey)).size > 2;
+  const [signalQuery, setSignalQuery] = useState("");
+  const visibleSignals = useMemo(
+    () =>
+      signals.filter((signal) => !node.hiddenSignalIds?.includes(signal.id)),
+    [signals, node.hiddenSignalIds],
+  );
+  const filteredSignals = allSignals.filter((signal) =>
+    `${signal.id} ${signal.name} ${signal.units ?? ""}`
+      .toLowerCase()
+      .includes(signalQuery.trim().toLowerCase()),
+  );
+  const tooManyUnits = new Set(visibleSignals.map(axisKey)).size > 2;
   const normalized = node.normalized || tooManyUnits;
   const title = signals.length === 1 ? signals[0].name : "Comparison";
 
@@ -160,8 +178,22 @@ function ComparisonPane({
                   Choose signals to compare in this panel.
                 </p>
               </div>
+              <div className="px-3 pt-3">
+                <Input
+                  value={signalQuery}
+                  onChange={(event) => setSignalQuery(event.target.value)}
+                  placeholder="Search signals, boards or units…"
+                  aria-label={`Search signals for chart ${index + 1}`}
+                  className="h-8 text-xs"
+                />
+              </div>
               <div className="max-h-[18rem] overflow-y-auto p-2">
-                {allSignals.map((signal) => {
+                {filteredSignals.length === 0 && (
+                  <p className="text-muted-foreground px-2 py-4 text-center text-xs">
+                    No matching signals.
+                  </p>
+                )}
+                {filteredSignals.map((signal) => {
                   const checked = node.signalIds.includes(signal.id);
                   return (
                     <div
@@ -173,6 +205,9 @@ function ComparisonPane({
                           checked={checked}
                           onCheckedChange={(next) =>
                             onChange(node.id, {
+                              hiddenSignalIds: node.hiddenSignalIds?.filter(
+                                (id) => id !== signal.id,
+                              ),
                               signalIds: next
                                 ? [...node.signalIds, signal.id]
                                 : node.signalIds.filter(
@@ -259,10 +294,20 @@ function ComparisonPane({
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-2 text-[10px]">
         {signals.map((signal) => (
-          <span
+          <button
+            type="button"
             key={signal.id}
-            className="inline-flex min-w-0 items-center gap-1.5"
-            title={`${signal.board} / ${signal.name}`}
+            className={`hover:bg-muted/60 focus-visible:ring-ring inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left focus-visible:ring-2 focus-visible:outline-none ${node.hiddenSignalIds?.includes(signal.id) ? "opacity-50" : ""}`}
+            aria-label={`${node.hiddenSignalIds?.includes(signal.id) ? "Show" : "Hide"} ${signal.board} / ${signal.name} in chart ${index + 1}`}
+            aria-pressed={!node.hiddenSignalIds?.includes(signal.id)}
+            title="Click to hide or show this trace"
+            onClick={() =>
+              onChange(node.id, {
+                hiddenSignalIds: node.hiddenSignalIds?.includes(signal.id)
+                  ? node.hiddenSignalIds.filter((id) => id !== signal.id)
+                  : [...(node.hiddenSignalIds ?? []), signal.id],
+              })
+            }
           >
             <span
               className="size-1.5 shrink-0 rounded-full"
@@ -271,21 +316,24 @@ function ComparisonPane({
             <span className="text-muted-foreground max-w-[14rem] truncate">
               {signal.board} / {signal.name}
             </span>
+            {node.hiddenSignalIds?.includes(signal.id) && (
+              <EyeOff className="size-3" />
+            )}
             {signal.units && (
               <span className="bg-muted/70 rounded px-1.5 py-0.5 font-mono">
                 {signal.units}
               </span>
             )}
-          </span>
+          </button>
         ))}
         {normalized && (
           <span className="text-primary ml-auto font-medium">Relative %</span>
         )}
       </div>
       <div className="min-h-0 flex-1">
-        {signals.length > 0 ? (
+        {visibleSignals.length > 0 ? (
           <ComparisonChart
-            signals={signals}
+            signals={visibleSignals}
             domain={domain}
             range={range}
             timeUnit={timeUnit}
@@ -294,6 +342,18 @@ function ComparisonPane({
             syncGroup={syncGroup}
             onRangeChange={onRangeChange}
           />
+        ) : signals.length > 0 ? (
+          <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-xs">
+            <EyeOff className="size-5" />
+            <p>All traces in this panel are hidden.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onChange(node.id, { hiddenSignalIds: [] })}
+            >
+              <Eye className="size-3.5" /> Show all traces
+            </Button>
+          </div>
         ) : (
           <div className="text-muted-foreground flex h-full items-center justify-center px-6 text-center text-xs">
             {node.signalIds.length
@@ -390,6 +450,7 @@ export default function AnalysisWorkspace({
     tree: createLayout(selectedIds, "grid"),
     preset: "grid" as LayoutPreset | null,
   }));
+  const [showStatistics, setShowStatistics] = useState(false);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [units, setUnits] = useState<Record<string, string>>({});
   const [timeUnit, setTimeUnit] = useState<TimeUnit>("s");
@@ -447,7 +508,9 @@ export default function AnalysisWorkspace({
   const changePane = useCallback(
     (
       id: string,
-      changes: Partial<Pick<ChartPane, "signalIds" | "normalized">>,
+      changes: Partial<
+        Pick<ChartPane, "signalIds" | "normalized" | "hiddenSignalIds">
+      >,
     ) => {
       setLayoutState((current) => ({
         ...current,
@@ -530,7 +593,18 @@ export default function AnalysisWorkspace({
             Linked time
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={showStatistics ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            aria-expanded={showStatistics}
+            aria-controls="window-statistics"
+            onClick={() => setShowStatistics((current) => !current)}
+          >
+            <ChartNoAxesCombined className="size-3.5" />
+            Statistics
+          </Button>
           <label className="text-muted-foreground flex items-center gap-2 text-[11px]">
             Time
             <select
@@ -572,6 +646,13 @@ export default function AnalysisWorkspace({
           </Button>
         </div>
       </div>
+      <TimeWindowControls
+        key={`${timeUnit}:${duration}:${range.start}:${range.end}`}
+        duration={duration}
+        range={range}
+        timeUnit={timeUnit}
+        onChange={changeRange}
+      />
       <div className="min-h-0 flex-1 overflow-auto p-3">
         <div
           className="h-full w-full"
@@ -605,6 +686,13 @@ export default function AnalysisWorkspace({
           />
         </div>
       </div>
+      {showStatistics && (
+        <WindowStatistics
+          signals={resolvedSignals}
+          domain={domain}
+          range={range}
+        />
+      )}
       <div className="text-muted-foreground border-border flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-4 py-2 text-[10px]">
         <span>
           Scroll to zoom · Drag charts to pan · Drag dividers to resize

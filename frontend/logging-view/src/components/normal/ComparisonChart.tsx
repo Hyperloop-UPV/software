@@ -1,6 +1,7 @@
 import * as echarts from "echarts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { decimateLTTB } from "../../lib/plotStudio/decimate";
+import { lowerBound, upperBound } from "../../lib/plotStudio/range";
 import { axisKey } from "../../lib/normal/units";
 import {
   TIME_DIVISORS,
@@ -50,7 +51,9 @@ export default function ComparisonChart({
     onRangeChangeRef.current = onRangeChange;
   }, [onRangeChange]);
 
-  const prepared = useMemo(
+  // Keep normalization relative to the whole recording while sampling only
+  // the visible interval so zooming reveals samples omitted at wider scales.
+  const extents = useMemo(
     () =>
       signals.map((signal) => {
         let min = Infinity;
@@ -59,9 +62,34 @@ export default function ComparisonChart({
           min = Math.min(min, value);
           max = Math.max(max, value);
         }
+        return { min, max };
+      }),
+    [signals],
+  );
+
+  const prepared = useMemo(
+    () =>
+      signals.map((signal, signalIndex) => {
+        const { min, max } = extents[signalIndex];
+        const duration = domain.endMs - domain.startMs;
+        // Include neighbours to retain lines crossing either viewport edge.
+        const first = Math.max(
+          0,
+          lowerBound(
+            signal.data.time,
+            domain.startMs + (duration * range.start) / 100,
+          ) - 1,
+        );
+        const last = Math.min(
+          signal.data.time.length,
+          upperBound(
+            signal.data.time,
+            domain.startMs + (duration * range.end) / 100,
+          ) + 1,
+        );
         const sampled = decimateLTTB(
-          signal.data.time,
-          signal.data.value,
+          signal.data.time.subarray(first, last),
+          signal.data.value.subarray(first, last),
           8_000,
         );
         return Array.from(sampled.time, (time, index) => {
@@ -77,7 +105,15 @@ export default function ComparisonChart({
           ];
         });
       }),
-    [signals, domain.startMs, timeUnit, normalized],
+    [
+      signals,
+      extents,
+      domain.startMs,
+      domain.endMs,
+      range,
+      timeUnit,
+      normalized,
+    ],
   );
 
   useEffect(() => {
@@ -111,6 +147,7 @@ export default function ComparisonChart({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || signals.length === 0) return;
+    rangeRef.current = range;
     const text = isDarkMode ? "#d5d8df" : "#374151";
     const muted = isDarkMode ? "#9ba3b2" : "#6b7280";
     const grid = isDarkMode ? "#3a404b" : "#e6e9ef";
@@ -240,7 +277,16 @@ export default function ComparisonChart({
       true,
     );
     chart.resize();
-  }, [signals, prepared, domain, timeUnit, normalized, isDarkMode, width]);
+  }, [
+    signals,
+    prepared,
+    domain,
+    range,
+    timeUnit,
+    normalized,
+    isDarkMode,
+    width,
+  ]);
 
   useEffect(() => {
     rangeRef.current = range;

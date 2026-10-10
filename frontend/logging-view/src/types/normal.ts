@@ -33,6 +33,7 @@ export interface ChartPane {
   id: string;
   signalIds: string[];
   normalized: boolean;
+  hiddenSignalIds?: string[];
 }
 
 export interface ChartSplit {
