@@ -1,7 +1,11 @@
 # Monorepo / IDE
 node_modules/
 .turbo/
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .DS_Store
 *.code-workspace
 
