@@ -3,7 +3,7 @@
  * @description Mode selector window and logic for initial app mode selection.
  */
 
-import { BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, screen } from "electron";
 import fs from "fs";
 import path from "path";
 import { startBackend } from "../processes/backend.js";
@@ -32,15 +32,26 @@ const VALID_MODES = {
 async function showModeSelector(screenWidth, screenHeight) {
   return new Promise(async (resolve, reject) => {
     let mainWindow = null;
+    let modeSelected = false;
+    const { x, y, width, height } = screen.getPrimaryDisplay().bounds;
 
     const selectorWindow = new BrowserWindow({
-      width: 920,
-      height: 680,
-      useContentSize: true,
-      resizable: true,
-      modal: true,
-      parent: mainWindow,
-      show: true,
+      // Cover the desktop without native fullscreen, which can make transparent
+      // windows opaque or move them to a separate desktop space. A 1px inset also
+      // prevents the compositor from treating a screen-sized window as fullscreen.
+      x: x + 1,
+      y: y + 1,
+      width: width - 2,
+      height: height - 2,
+      frame: false,
+      transparent: true,
+      backgroundColor: "#00000000",
+      fullscreen: false,
+      fullscreenable: false,
+      maximizable: false,
+      resizable: false,
+      hasShadow: false,
+      show: false,
       webPreferences: {
         preload: path.join(getAppPath(), "preload.js"),
         contextIsolation: true,
@@ -49,28 +60,46 @@ async function showModeSelector(screenWidth, screenHeight) {
       title: "Select Mode",
     });
 
+    selectorWindow.on("closed", () => {
+      ipcMain.removeListener("mode-selected", onModeSelected);
+      // Closing the selector cancels startup, including return-to-selector flows
+      // where the previous application's windows are still hidden.
+      if (!modeSelected) app.quit();
+    });
+
     const selectorPath = path.join(getAppPath(), "renderer", "mode-selector", "index.html");
 
     if (!fs.existsSync(selectorPath)) {
       logger.electron.warning("Mode selector UI not found, using default testing-view");
+      modeSelected = true;
+      selectorWindow.close();
       resolve({ mode: "default", view: VALID_MODES.default, mainWindow: null });
       return;
     }
 
     logger.electron.info(`Mode selector found: ${selectorPath}`);
 
+    ipcMain.on("mode-selected", onModeSelected);
+
     try {
       await selectorWindow.loadFile(selectorPath);
-      selectorWindow.show();
-      selectorWindow.focus();
+      if (!selectorWindow.isDestroyed()) {
+        selectorWindow.show();
+        selectorWindow.focus();
+      }
     } catch (err) {
       logger.electron.error("Failed to load selector UI:", err);
+      modeSelected = true;
+      selectorWindow.close();
       resolve({ mode: "default", view: VALID_MODES.default, mainWindow: null });
       return;
     }
 
     // Listen for mode selection from renderer
-    ipcMain.once("mode-selected", async (_event, mode) => {
+    async function onModeSelected(event, mode) {
+      if (event.sender !== selectorWindow.webContents || modeSelected) return;
+      modeSelected = true;
+      ipcMain.removeListener("mode-selected", onModeSelected);
       try {
         const view = VALID_MODES[mode] || VALID_MODES.default;
 
@@ -103,7 +132,7 @@ async function showModeSelector(screenWidth, screenHeight) {
           selectorWindow.close();
         } catch (e) {}
       }
-    });
+    }
   });
 }
 
