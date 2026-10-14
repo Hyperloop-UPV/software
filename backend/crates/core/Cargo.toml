@@ -14,8 +14,8 @@ default = []
 ntp = ["dep:tokio", "dep:ntp_usg-server", "dep:tracing-subscriber"]
 # TCP/UDP transport (pulls in tokio)
 net = ["dep:tokio"]
-# ADJ download through git (dependency added when the module is written)
-git = []
+# ADJ download through git
+git = ["dep:tempfile"]
 # Packet sniffing through pcap (dependency added when the module is written)
 pcap = ["net"]
 # CSV data logger (records, sessions, subloggers)
@@ -32,6 +32,9 @@ tracing.workspace = true
 tokio = { workspace = true, optional = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { workspace = true, optional = true , features = ["env-filter", "fmt"]}
 tracing-appender = { workspace = true, optional = true }
+gix = { version = "0.87.1", features = ["blocking-http-transport-reqwest-rust-tls", "blocking-network-client", "worktree-mutation"] }
+dirs = "7.0.0"
+tempfile = { version = "3.27", optional = true }
 ntp_usg-server = { version = "5.0.0", optional = true, features = ["ipv4", "tokio"] }
 
 # `workspace = true` can't be combined with extra lints in the same table,

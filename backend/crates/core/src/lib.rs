@@ -2,9 +2,16 @@
 
 pub mod hello_world;
 
+/// # Git module
+/// Handles updates and changes within the ADJ.  
+/// Checks the ADJ Github repository and 
+#[cfg(feature = "git")]
+pub mod git;
+
 /// NTP server
 #[cfg(feature = "ntp")]
 pub mod ntp;
+
 /// Basic domain types: identifiers, values, measurements, protections,
 /// packets and boards.
 pub mod model;
