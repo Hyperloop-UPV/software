@@ -1,0 +1,62 @@
+[
+    {
+        "type": "data",
+        "name": "VCU State",
+        "variables": [
+            "state"
+        ],
+        "id": 625,
+        "period_type": "ms",
+        "period": 10,
+        "socket": "control_station_udp"
+    },
+    {
+        "type": "data",
+        "name": "Pressures",
+        "variables": [
+            "high_pressure",
+            "low_pressure",
+            "pressure_regulator_feedback"
+        ],
+        "id": 626,
+        "period_type": "ms",
+        "period": 10,
+        "socket": "control_station_udp"
+    },
+    {
+        "type": "data",
+        "name": "Brake Status",
+        "variables": [
+            "brakes_status"
+        ],
+        "id": 627,
+        "period_type": "ms",
+        "period": 10,
+        "socket": "control_station_udp"
+    },
+    {
+        "type": "data",
+        "name": "Outputs",
+        "variables": [
+            "electrovalve_enabled"
+        ],
+        "id": 628,
+        "period_type": "ms",
+        "period": 10,
+        "socket": "control_station_udp"
+    },
+    {
+        "type": "data",
+        "name": "Safety",
+        "variables": [
+            "sdc_closed",
+            "hvbms_connected",
+            "pcu_connected",
+            "lcu_connected"
+        ],
+        "id": 629,
+        "period_type": "ms",
+        "period": 10,
+        "socket": "control_station_udp"
+    }
+]

@@ -1,0 +1,61 @@
+{
+  "ports": {
+    "TCP_CLIENT": 50401,
+    "TCP_SERVER": 50500,
+    "UDP": 50400,
+    "SNTP": 123,
+    "TFTP": 69,
+    "BLCU_UDP": 50420,
+    "BLCU_TCP_CLIENT": 50421
+  },
+  "addresses": {
+    "backend": "192.168.0.9",
+    "hypervisor": "192.168.0.13"
+  },
+  "protectionTypes": {
+    "Equal": {
+      "range": false,
+      "text": "Value is equal to {} (measured: %)"
+    },
+    "Range": {
+      "range": true,
+      "text": "Value out of range {} (measured: %)"
+    },
+    "Below": {
+      "range": false,
+      "text": "Value below {} (measured: %)"
+    }
+  },
+  "units": {
+    "m/ss": "*1",
+    "Hz": "*1",
+    "MOhm": "*1000000",
+    "ºC": "+273.15",
+    "deg": "/57.2957",
+    "km/h": "*3.6",
+    "ns": "*1",
+    "m/s": "*1",
+    "rad": "*1",
+    "A": "*1",
+    "%": "/100",
+    "m": "*1",
+    "mrad": "/1000",
+    "KOhm": "*1000",
+    "V": "*1",
+    "mV": "/1000",
+    "Ohm": "*1",
+    "mm": "/1000",
+    "G": "*9.8",
+    "bar": "*1",
+    "s": "*1"
+  },
+  "message_ids": {
+    "state_space": 7,
+    "fault": 2,
+    "info": 1,
+    "blcu_ack": 4,
+    "remove_state_order": 6,
+    "add_state_order": 5,
+    "warning": 3
+  }
+}

@@ -1,0 +1,22 @@
+[package]
+name = "station"
+version = "0.1.0"
+description = "Hyperloop UPV control station backend, built on software-core"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+software-core = { workspace = true, features = ["net", "git"] }
+
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

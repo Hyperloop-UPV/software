@@ -1,0 +1,87 @@
+[
+    {
+        "id": 600,
+        "name": "FAULT",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 601,
+        "name": "Stop",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 602,
+        "name": "Maintenance",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 603,
+        "name": "Precharge",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 604,
+        "name": "Open Contactors",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 605,
+        "name": "Unbrake",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 606,
+        "name": "Brake",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 607,
+        "name": "Static Levitation",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 608,
+        "name": "Propulsion",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 609,
+        "name": "Dynamic Levitation",
+        "type": "order",
+        "variables": []
+    },
+    {
+        "id": 610,
+        "name": "Propulsion Parameterized",
+        "type": "order",
+        "variables": [
+            "propulsion_current_reference"
+        ]
+    },
+    {
+        "id": 611,
+        "name": "Static Levitation Parameterized",
+        "type": "order",
+        "variables": [
+            "levitation_target_height"
+        ]
+    },
+    {
+        "id": 612,
+        "name": "Dynamic Levitation Parameterized",
+        "type": "order",
+        "variables": [
+            "propulsion_current_reference",
+            "levitation_target_height"
+        ]
+    }
+]

@@ -1,0 +1,1102 @@
+[
+  {
+    "id": 2005,
+    "alias": "battery1_cell1",
+    "name": "Battery 1 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2006,
+    "alias": "battery1_cell2",
+    "name": "Battery 1 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2007,
+    "alias": "battery1_cell3",
+    "name": "Battery 1 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2008,
+    "alias": "battery1_cell4",
+    "name": "Battery 1 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2009,
+    "alias": "battery1_cell5",
+    "name": "Battery 1 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2010,
+    "alias": "battery1_cell6",
+    "name": "Battery 1 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2011,
+    "alias": "battery1_cell7",
+    "name": "Battery 1 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2012,
+    "alias": "battery1_cell8",
+    "name": "Battery 1 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2013,
+    "alias": "battery1_cell9",
+    "name": "Battery 1 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2014,
+    "alias": "battery1_cell10",
+    "name": "Battery 1 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2015,
+    "alias": "battery1_cell11",
+    "name": "Battery 1 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2016,
+    "alias": "battery1_cell12",
+    "name": "Battery 1 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2017,
+    "alias": "battery1_total_voltage",
+    "name": "Battery 1 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2018,
+    "alias": "battery1_temp1",
+    "name": "Battery 1 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2019,
+    "alias": "battery1_temp2",
+    "name": "Battery 1 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2020,
+    "alias": "battery1_temp3",
+    "name": "Battery 1 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2021,
+    "alias": "battery1_temp4",
+    "name": "Battery 1 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2022,
+    "alias": "battery2_cell1",
+    "name": "Battery 2 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2023,
+    "alias": "battery2_cell2",
+    "name": "Battery 2 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2024,
+    "alias": "battery2_cell3",
+    "name": "Battery 2 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2025,
+    "alias": "battery2_cell4",
+    "name": "Battery 2 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2026,
+    "alias": "battery2_cell5",
+    "name": "Battery 2 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2027,
+    "alias": "battery2_cell6",
+    "name": "Battery 2 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2028,
+    "alias": "battery2_cell7",
+    "name": "Battery 2 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2029,
+    "alias": "battery2_cell8",
+    "name": "Battery 2 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2030,
+    "alias": "battery2_cell9",
+    "name": "Battery 2 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2031,
+    "alias": "battery2_cell10",
+    "name": "Battery 2 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2032,
+    "alias": "battery2_cell11",
+    "name": "Battery 2 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2033,
+    "alias": "battery2_cell12",
+    "name": "Battery 2 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2034,
+    "alias": "battery2_total_voltage",
+    "name": "Battery 2 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2035,
+    "alias": "battery2_temp1",
+    "name": "Battery 2 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2036,
+    "alias": "battery2_temp2",
+    "name": "Battery 2 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2037,
+    "alias": "battery2_temp3",
+    "name": "Battery 2 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2038,
+    "alias": "battery2_temp4",
+    "name": "Battery 2 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2039,
+    "alias": "battery3_cell1",
+    "name": "Battery 3 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2040,
+    "alias": "battery3_cell2",
+    "name": "Battery 3 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2041,
+    "alias": "battery3_cell3",
+    "name": "Battery 3 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2042,
+    "alias": "battery3_cell4",
+    "name": "Battery 3 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2043,
+    "alias": "battery3_cell5",
+    "name": "Battery 3 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2044,
+    "alias": "battery3_cell6",
+    "name": "Battery 3 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2045,
+    "alias": "battery3_cell7",
+    "name": "Battery 3 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2046,
+    "alias": "battery3_cell8",
+    "name": "Battery 3 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2047,
+    "alias": "battery3_cell9",
+    "name": "Battery 3 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2048,
+    "alias": "battery3_cell10",
+    "name": "Battery 3 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2049,
+    "alias": "battery3_cell11",
+    "name": "Battery 3 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2050,
+    "alias": "battery3_cell12",
+    "name": "Battery 3 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2051,
+    "alias": "battery3_total_voltage",
+    "name": "Battery 3 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2052,
+    "alias": "battery3_temp1",
+    "name": "Battery 3 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2053,
+    "alias": "battery3_temp2",
+    "name": "Battery 3 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2054,
+    "alias": "battery3_temp3",
+    "name": "Battery 3 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2055,
+    "alias": "battery3_temp4",
+    "name": "Battery 3 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2056,
+    "alias": "battery4_cell1",
+    "name": "Battery 4 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2057,
+    "alias": "battery4_cell2",
+    "name": "Battery 4 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2058,
+    "alias": "battery4_cell3",
+    "name": "Battery 4 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2059,
+    "alias": "battery4_cell4",
+    "name": "Battery 4 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2060,
+    "alias": "battery4_cell5",
+    "name": "Battery 4 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2061,
+    "alias": "battery4_cell6",
+    "name": "Battery 4 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2062,
+    "alias": "battery4_cell7",
+    "name": "Battery 4 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2063,
+    "alias": "battery4_cell8",
+    "name": "Battery 4 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2064,
+    "alias": "battery4_cell9",
+    "name": "Battery 4 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2065,
+    "alias": "battery4_cell10",
+    "name": "Battery 4 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2066,
+    "alias": "battery4_cell11",
+    "name": "Battery 4 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2067,
+    "alias": "battery4_cell12",
+    "name": "Battery 4 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2068,
+    "alias": "battery4_total_voltage",
+    "name": "Battery 4 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2069,
+    "alias": "battery4_temp1",
+    "name": "Battery 4 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2070,
+    "alias": "battery4_temp2",
+    "name": "Battery 4 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2071,
+    "alias": "battery4_temp3",
+    "name": "Battery 4 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2072,
+    "alias": "battery4_temp4",
+    "name": "Battery 4 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2073,
+    "alias": "battery5_cell1",
+    "name": "Battery 5 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2074,
+    "alias": "battery5_cell2",
+    "name": "Battery 5 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2075,
+    "alias": "battery5_cell3",
+    "name": "Battery 5 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2076,
+    "alias": "battery5_cell4",
+    "name": "Battery 5 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2077,
+    "alias": "battery5_cell5",
+    "name": "Battery 5 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2078,
+    "alias": "battery5_cell6",
+    "name": "Battery 5 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2079,
+    "alias": "battery5_cell7",
+    "name": "Battery 5 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2080,
+    "alias": "battery5_cell8",
+    "name": "Battery 5 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2081,
+    "alias": "battery5_cell9",
+    "name": "Battery 5 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2082,
+    "alias": "battery5_cell10",
+    "name": "Battery 5 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2083,
+    "alias": "battery5_cell11",
+    "name": "Battery 5 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2084,
+    "alias": "battery5_cell12",
+    "name": "Battery 5 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2085,
+    "alias": "battery5_total_voltage",
+    "name": "Battery 5 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2086,
+    "alias": "battery5_temp1",
+    "name": "Battery 5 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2087,
+    "alias": "battery5_temp2",
+    "name": "Battery 5 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2088,
+    "alias": "battery5_temp3",
+    "name": "Battery 5 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2089,
+    "alias": "battery5_temp4",
+    "name": "Battery 5 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2090,
+    "alias": "battery6_cell1",
+    "name": "Battery 6 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2091,
+    "alias": "battery6_cell2",
+    "name": "Battery 6 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2092,
+    "alias": "battery6_cell3",
+    "name": "Battery 6 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2093,
+    "alias": "battery6_cell4",
+    "name": "Battery 6 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2094,
+    "alias": "battery6_cell5",
+    "name": "Battery 6 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2095,
+    "alias": "battery6_cell6",
+    "name": "Battery 6 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2096,
+    "alias": "battery6_cell7",
+    "name": "Battery 6 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2097,
+    "alias": "battery6_cell8",
+    "name": "Battery 6 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2098,
+    "alias": "battery6_cell9",
+    "name": "Battery 6 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2099,
+    "alias": "battery6_cell10",
+    "name": "Battery 6 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2100,
+    "alias": "battery6_cell11",
+    "name": "Battery 6 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2101,
+    "alias": "battery6_cell12",
+    "name": "Battery 6 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2102,
+    "alias": "battery6_total_voltage",
+    "name": "Battery 6 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2103,
+    "alias": "battery6_temp1",
+    "name": "Battery 6 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2104,
+    "alias": "battery6_temp2",
+    "name": "Battery 6 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2105,
+    "alias": "battery6_temp3",
+    "name": "Battery 6 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2106,
+    "alias": "battery6_temp4",
+    "name": "Battery 6 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2107,
+    "alias": "battery7_cell1",
+    "name": "Battery 7 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2108,
+    "alias": "battery7_cell2",
+    "name": "Battery 7 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2109,
+    "alias": "battery7_cell3",
+    "name": "Battery 7 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2110,
+    "alias": "battery7_cell4",
+    "name": "Battery 7 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2111,
+    "alias": "battery7_cell5",
+    "name": "Battery 7 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2112,
+    "alias": "battery7_cell6",
+    "name": "Battery 7 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2113,
+    "alias": "battery7_cell7",
+    "name": "Battery 7 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2114,
+    "alias": "battery7_cell8",
+    "name": "Battery 7 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2115,
+    "alias": "battery7_cell9",
+    "name": "Battery 7 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2116,
+    "alias": "battery7_cell10",
+    "name": "Battery 7 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2117,
+    "alias": "battery7_cell11",
+    "name": "Battery 7 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2118,
+    "alias": "battery7_cell12",
+    "name": "Battery 7 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2119,
+    "alias": "battery7_total_voltage",
+    "name": "Battery 7 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2120,
+    "alias": "battery7_temp1",
+    "name": "Battery 7 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2121,
+    "alias": "battery7_temp2",
+    "name": "Battery 7 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2122,
+    "alias": "battery7_temp3",
+    "name": "Battery 7 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2123,
+    "alias": "battery7_temp4",
+    "name": "Battery 7 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2124,
+    "alias": "battery8_cell1",
+    "name": "Battery 8 Cell 1",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2125,
+    "alias": "battery8_cell2",
+    "name": "Battery 8 Cell 2",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2126,
+    "alias": "battery8_cell3",
+    "name": "Battery 8 Cell 3",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2127,
+    "alias": "battery8_cell4",
+    "name": "Battery 8 Cell 4",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2128,
+    "alias": "battery8_cell5",
+    "name": "Battery 8 Cell 5",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2129,
+    "alias": "battery8_cell6",
+    "name": "Battery 8 Cell 6",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2130,
+    "alias": "battery8_cell7",
+    "name": "Battery 8 Cell 7",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2131,
+    "alias": "battery8_cell8",
+    "name": "Battery 8 Cell 8",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2132,
+    "alias": "battery8_cell9",
+    "name": "Battery 8 Cell 9",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2133,
+    "alias": "battery8_cell10",
+    "name": "Battery 8 Cell 10",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2134,
+    "alias": "battery8_cell11",
+    "name": "Battery 8 Cell 11",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2135,
+    "alias": "battery8_cell12",
+    "name": "Battery 8 Cell 12",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2136,
+    "alias": "battery8_total_voltage",
+    "name": "Battery 8 Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2137,
+    "alias": "battery8_temp1",
+    "name": "Battery 8 Temperature 1",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2138,
+    "alias": "battery8_temp2",
+    "name": "Battery 8 Temperature 2",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2139,
+    "alias": "battery8_temp3",
+    "name": "Battery 8 Temperature 3",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2140,
+    "alias": "battery8_temp4",
+    "name": "Battery 8 Temperature 4",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2141,
+    "alias": "batteries_voltage_reading",
+    "name": "Batteries Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2142,
+    "alias": "voltage_reading",
+    "name": "Voltage Sensor",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2143,
+    "alias": "current_reading",
+    "name": "Current Sensor",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 2144,
+    "alias": "sdc_status",
+    "name": "SDC Status",
+    "type": "enum",
+    "enumValues": [
+      "ENGAGED",
+      "DISENGAGED"
+    ]
+  },
+  {
+    "id": 2145,
+    "alias": "voltage_min",
+    "name": "Minimum Cell Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2146,
+    "alias": "voltage_max",
+    "name": "Maximum Cell Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 2147,
+    "alias": "temp_min",
+    "name": "Minimum Temperature",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2148,
+    "alias": "temp_max",
+    "name": "Maximum Temperature",
+    "type": "float32",
+    "displayUnits": "ºC"
+  },
+  {
+    "id": 2149,
+    "alias": "imd_status",
+    "name": "IMD Status",
+    "type": "enum",
+    "enumValues": [
+      "SHORTCIRCUIT",
+      "NORMAL",
+      "UNDERVOLTAGE",
+      "FAST_EVAL",
+      "EQUIPMENT_FAULT",
+      "GROUNDING_FAULT"
+    ]
+  },
+  {
+    "id": 2150,
+    "alias": "imd_resistance",
+    "name": "IMD Resistance",
+    "type": "float32",
+    "displayUnits": "MOhm"
+  },
+  {
+    "id": 2151,
+    "alias": "imd_is_ok",
+    "name": "IMD OK",
+    "type": "bool"
+  },
+  {
+    "id": 2152,
+    "alias": "imd_duty",
+    "name": "IMD Duty",
+    "type": "float32"
+  },
+  {
+    "id": 2153,
+    "alias": "imd_freq",
+    "name": "IMD Frequency",
+    "type": "float32"
+  },
+  {
+    "id": 2154,
+    "alias": "contactor_precharge",
+    "name": "Contactor Precharge",
+    "type": "bool"
+  },
+  {
+    "id": 2155,
+    "alias": "contactor_discharge",
+    "name": "Contactor Discharge",
+    "type": "bool"
+  },
+  {
+    "id": 2156,
+    "alias": "contactor_high",
+    "name": "Contactor High",
+    "type": "bool"
+  },
+  {
+    "id": 2157,
+    "alias": "contactor_low",
+    "name": "Contactor Low",
+    "type": "bool"
+  },
+  {
+    "id": 2158,
+    "alias": "contactor_common_high",
+    "name": "Contactor Common High",
+    "type": "bool"
+  },
+  {
+    "id": 2159,
+    "alias": "soc",
+    "name": "SOC",
+    "type": "float32"
+  },
+  {
+    "id": 2160,
+    "alias": "sm_status",
+    "name": "State Machine Status",
+    "type": "enum",
+    "enumValues": [
+      "Connecting",
+      "Idle",
+      "Ready To Precharge",
+      "Precharging",
+      "Energized",
+      "FAULT"
+    ]
+  }
+]

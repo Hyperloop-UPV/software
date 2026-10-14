@@ -1,0 +1,53 @@
+[
+  {
+    "type": "order",
+    "name": "FAULT",
+    "variables": [],
+    "id": 512
+  },
+  {
+    "type": "order",
+    "name": "Start SVPWM",
+    "variables": [
+      "frequency_to_send_svpwm",
+      "frequency_to_send_pwm",
+      "v_ref",
+      "vmax"
+    ],
+    "id": 513
+  },
+  {
+    "type": "order",
+    "name": "Stop Motor",
+    "variables": [],
+    "id": 514
+  },
+  {
+    "type": "order",
+    "name": "Send Reference Current",
+    "variables": [
+      "freq_to_send_svpwm",
+      "freq_to_send_pwm",
+      "current_ref",
+      "vmax",
+      "vf_control"
+    ],
+    "id": 515
+  },
+  {
+    "type": "order",
+    "name": "Zeroing",
+    "variables": [],
+    "id": 516
+  },
+  {
+    "type": "order",
+    "name": "Send Reference Speed",
+    "variables": [
+      "speed_ref",
+      "freq_to_send_pwm",
+      "vmax"
+    ],
+    "id": 517
+  }
+]

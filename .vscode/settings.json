@@ -50,5 +50,33 @@
     "editor.codeActionsOnSave": {
       "source.fixAll.rust-analyzer": "explicit"
     }
+  },
+  "rust-analyzer.linkedProjects": ["backend/Cargo.toml"],
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.extraArgs": ["--all-targets"],
+
+  // ESLint: each frontend/* package has its own flat eslint.config.js
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+
+  // Python: blcu-programming is the only Python project, venv created by
+  // its postinstall script (blcu-programming/scripts/setup.mjs)
+  "python.defaultInterpreterPath": "${workspaceFolder}/blcu-programming/.venv/bin/python",
+
+  // Keep VS Code from indexing/watching generated and vendored trees
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/target/**": true,
+    "**/dist/**": true,
+    "**/.venv/**": true,
+    "**/.venv-build/**": true,
+    "**/.turbo/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/dist": true,
+    "**/.venv": true,
+    "**/.venv-build": true,
+    "**/.turbo": true
   }
 }
