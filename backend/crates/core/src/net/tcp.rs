@@ -1,9 +1,9 @@
 //! The TCP client: one connection per board, one task each.
 //!
-//! **Socket I/O not written yet.** Handles support board lookup, routing
-//! orders by ID and queueing through bounded channels. In-memory framing is
-//! implemented, but connecting, writing to sockets and receiving from sockets
-//! remain unimplemented. This module exposes the error type [`super::Error`]
+//! **Session supervision not written yet.** Handles support board lookup,
+//! routing and queueing. In-memory framing and individual socket connection
+//! attempts are implemented, but task startup, socket reads and writes, and
+//! reconnection remain unimplemented. This module exposes the error type [`super::Error`]
 //! aggregates and defines the transport contract.
 //! See [`super`] and `net/README.md`.
 //!
@@ -84,6 +84,7 @@ use crate::{model::BoardId, protocol::Index};
 use std::{cmp::min, net::SocketAddr, sync::Arc, time::Duration};
 
 mod board_handle;
+mod connection;
 mod error;
 mod framing;
 mod handles;
@@ -103,6 +104,7 @@ pub struct BoardLink {
     /// The fixed local port to bind the client side to (`TCP_CLIENT + i`
     /// in the Go backend). Being fixed is why `linger = 0` matters: a
     /// dropped connection must not leave this port in `TIME_WAIT`.
+    /// Zero requests an OS-assigned port, useful for isolated local tests.
     pub local_port: u16,
 }
 
@@ -156,9 +158,9 @@ pub struct Config {
     pub connect_timeout: Duration,
     /// What to wait between attempts.
     pub backoff: Backoff,
-    /// Period of the application-level keep-alive this module sends on
-    /// its own. The OS-level keep-alive is
-    /// disabled precisely because this one exists.
+    /// Period of the application-level keep-alive: an empty order with ID 1.
+    /// Its periodic writer is not implemented yet. The OS-level keep-alive is
+    /// disabled precisely because this application-level one will exist.
     pub keep_alive: Duration,
     /// Bound on each write, so that a peer that stops reading cannot park
     /// a writer task for good (1 s in the Go backend).
