@@ -18,7 +18,40 @@ import {
 import { webSocket, WebSocketSubject } from "rxjs/webSocket";
 import { logger } from "./logger";
 import { minMaxDownsample } from "./minMaxDownsample";
-import { type TopicOptions } from "./types";
+import { type SocketConfig, type TopicOptions } from "./types";
+
+/**
+ * Values used for every field a caller leaves out.
+ */
+const DEFAULT_CONFIG = {
+  host: "127.0.0.1",
+  port: 4000,
+  path: "/backend",
+  secure: false,
+  heartbeatIntervalMs: 1000,
+} as const;
+
+/**
+ * Builds the URL `connect` would use for a given config.
+ * @param config - the connection settings. `url` wins over every other field.
+ * @returns the resolved WebSocket URL.
+ */
+export const resolveSocketUrl = (config: SocketConfig = {}): string => {
+  if (config.url) return config.url;
+
+  const host = config.host ?? DEFAULT_CONFIG.host;
+  const port = config.port ?? DEFAULT_CONFIG.port;
+  const path = config.path ?? DEFAULT_CONFIG.path;
+  const scheme = (config.secure ?? DEFAULT_CONFIG.secure) ? "wss" : "ws";
+
+  return `${scheme}://${host}:${port}${path}`;
+};
+
+/**
+ * Normalizes the backward-compatible `connect(port)` form into a config object.
+ */
+const toConfig = (options: number | SocketConfig = {}): SocketConfig =>
+  typeof options === "number" ? { port: options } : options;
 
 /**
  * Service for connecting to the WebSocket server and subscribing to topics
@@ -70,17 +103,46 @@ class SocketService {
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
   /**
-   * Connects to the WebSocket server by creating a new connection object and pushing it to `socketSource$`.
-   * @param port - the port to connect to. Defaults to 4000.
+   * Connection settings applied by the last `configure` or `connect` call.
    */
-  connect(port: number = 4000) {
+  private config: SocketConfig = {};
+
+  /**
+   * The URL the current or next connection targets.
+   */
+  get url(): string {
+    return resolveSocketUrl(this.config);
+  }
+
+  /**
+   * Sets the connection defaults, merging with whatever was configured before.
+   * Call it once when the app boots, before anything calls `connect`.
+   *
+   * It does not affect an already open socket: use `reconnect` for that.
+   * @param config - the connection settings to merge in.
+   */
+  configure(config: SocketConfig) {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * Connects to the WebSocket server by creating a new connection object and pushing it to `socketSource$`.
+   * Does nothing when a connection is already open.
+   * @param options - the connection settings, or a bare port number. The number
+   * form is kept for backward compatibility: `connect(4000)` is exactly
+   * `connect({ port: 4000 })`. Whatever is passed is merged into the stored config.
+   */
+  connect(options: number | SocketConfig = {}) {
     if (this.ws) return;
 
-    logger.core.log("Connecting to WebSocket...");
+    this.config = { ...this.config, ...toConfig(options) };
+    const url = resolveSocketUrl(this.config);
+
+    logger.core.log(`Connecting to WebSocket at ${url}...`);
     this.status$.next("connecting");
 
     this.ws = webSocket({
-      url: `ws://127.0.0.1:${port}/backend`,
+      url,
       deserializer: (e) => JSON.parse(e.data),
       openObserver: {
         next: () => {
@@ -109,15 +171,45 @@ class SocketService {
   }
 
   /**
+   * Closes the connection, stops the heartbeat and reports "disconnected".
+   * Does nothing when there is no open connection.
+   */
+  disconnect() {
+    if (!this.ws) return;
+
+    logger.core.log("Closing WebSocket...");
+    this.ws.complete();
+    this.cleanup();
+  }
+
+  /**
+   * Closes the current connection and opens a new one.
+   *
+   * `connect` alone cannot do this: it returns early while a socket is open.
+   * @param options - the connection settings to use, as in `connect`. Omit them to reuse the stored config.
+   */
+  reconnect(options?: number | SocketConfig) {
+    this.disconnect();
+    this.connect(options);
+  }
+
+  /**
    * Starts the periodic heartbeat that lets the backend detect a dead or
    * frozen GUI. The backend expects one at least every 3 seconds and treats
    * a missing heartbeat as a disconnection.
+   *
+   * A `heartbeatIntervalMs` of 0 disables it.
    */
   private startHeartbeat() {
     this.stopHeartbeat();
+
+    const interval =
+      this.config.heartbeatIntervalMs ?? DEFAULT_CONFIG.heartbeatIntervalMs;
+    if (interval <= 0) return;
+
     this.heartbeatInterval = setInterval(() => {
       this.ws?.next({ topic: "connection/heartbeat", payload: {} });
-    }, 1000);
+    }, interval);
   }
 
   private stopHeartbeat() {
@@ -202,3 +294,10 @@ class SocketService {
 }
 
 export const socketService = new SocketService();
+
+/**
+ * Sets the connection defaults on the shared `socketService`.
+ * Convenience wrapper so an app can configure the socket in one line at boot.
+ */
+export const configureSocket = (config: SocketConfig) =>
+  socketService.configure(config);
