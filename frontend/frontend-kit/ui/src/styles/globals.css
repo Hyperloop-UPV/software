@@ -1,9 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Archivo:wght@100;200;300;400;500;600;700;800;900&display=swap");
 
 @import "tailwindcss";
-@source "../../../../testing-view/**/*.{ts,tsx}";
-@source "../../../../competition-view/**/*.{ts,tsx}";
-/* @source "../../src/components*.{ts,tsx}"; */
+/* Scan only this package's own sources. Each app declares its own @source glob
+   in its index.css, because paths resolved from here go through the
+   @workspace/ui symlink and don't reach the app's source tree. */
 @source "../**/*.{ts,tsx}";
 
 @import "tw-animate-css";
