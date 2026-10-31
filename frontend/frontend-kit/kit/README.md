@@ -88,17 +88,46 @@ with no build-time transform.
 
 ## Using it from another repository
 
-> The registry setup is not in place yet. Until it is, build a tarball with
-> `pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack` and install that
-> file directly.
+The kit is published to **GitHub Packages**, not npmjs.com. That registry
+requires a token for every request, **including downloading a public package**,
+so there is a one-time setup per contributor and per CI job.
 
-Install the package and the peer dependencies it expects you to own:
+`.npmrc` in the consuming repository:
+
+```
+@hyperloop-upv:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+Each contributor exports `NODE_AUTH_TOKEN` with a **classic** personal access
+token carrying the `read:packages` scope, from
+<https://github.com/settings/tokens>. Use a classic token: fine-grained ones
+still have patchy support for this registry. Without the variable, the install
+fails with `ERR_PNPM_FETCH_401`.
+
+In CI, use the job's own token and grant it read access to packages:
+
+```yaml
+permissions:
+  contents: read
+  packages: read # required even for a public package
+steps:
+  - run: pnpm install --frozen-lockfile
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Then install the package and the peer dependencies it expects you to own:
 
 ```bash
 pnpm add @hyperloop-upv/frontend-kit
 pnpm add react react-dom lucide-react tw-animate-css
 pnpm add -D tailwindcss @tailwindcss/vite
 ```
+
+> To try a change before it is published, build a tarball with
+> `pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack` and
+> `pnpm add` that file directly. No registry and no token involved.
 
 `src/index.css`:
 
@@ -156,3 +185,23 @@ import { ansi, createLogger, registerLoggerColor } from "@hyperloop-upv/frontend
 registerLoggerColor("pod-dashboard", ansi.cyan);
 export const log = createLogger("pod-dashboard");
 ```
+
+---
+
+## Releasing
+
+1. Bump `version` in this `package.json` and commit it.
+2. Actions -> **Publish Frontend Kit** -> enter the version, leave **dry-run
+   on**. Read the tarball listing in the log; the tarball is attached as an
+   artifact if you want to install it somewhere first.
+3. Run it again with **dry-run off**.
+4. First release only: check the package is public under Organisation ->
+   Packages -> Package settings, and that this repository has write access.
+
+**A published version can never be reused.** Deleting a version does not free
+the number. If `0.1.0` is wrong, publish `0.1.1`.
+
+The five apps in this monorepo stay on `workspace:*` and are unaffected by what
+is published: pnpm always prefers the local link. Only an external consumer
+pins a published range such as `^0.1.0`, which on `0.x` picks up patches but
+requires a deliberate edit to move to `0.2.0`.
