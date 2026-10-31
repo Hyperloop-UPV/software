@@ -1,15 +1,38 @@
-# UI Package - Frontend Kit
+# `@hyperloop-upv/frontend-kit`
 
-This package is the main UI and React shared component library for the Hyperloop Control Station. It provides reusable, styled components and hooks built on top of **React**, **Shadcn/UI**, and **Tailwind CSS**.
+The shared frontend package for the Hyperloop Control Station: reusable styled
+components and hooks built on **React**, **Shadcn/UI** and **Tailwind CSS**,
+plus the framework-agnostic WebSocket and logging layer.
+
+It is built for publication, so a frontend living in another repository can use
+it too. See [Using it from another repository](#using-it-from-another-repository).
 
 ## Project Guidelines
 
-### React-Only Logic
+### Where code goes
 
-> This package is specifically for **UI and React-related components**.
->
-> - If your logic requires React hooks (`useState`, `useEffect`, etc.) or TSX, it belongs here.
-> - **If your logic does NOT need React** (e.g., websocket connections), it should be implemented in the `@hyperloop-upv/frontend-kit/core` package. This keeps the codebase clean and allows for better reuse across different environments.
+> - Logic that needs React hooks (`useState`, `useEffect`, ...) or TSX belongs
+>   in `src/components`, `src/hooks` or `src/lib`.
+> - **Logic that does NOT need React** (websocket connections, for example)
+>   belongs in `src/core`, published as the `./core` subpath. That boundary is
+>   enforced by a lint rule, not just convention: `src/core` may not import
+>   React. It keeps `./core` usable from a plain Node script or an Electron main
+>   process.
+
+### Import paths
+
+```ts
+import { Button } from "@hyperloop-upv/frontend-kit/components";
+import { useTopic } from "@hyperloop-upv/frontend-kit/hooks";
+import { ChevronDown } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import { socketService } from "@hyperloop-upv/frontend-kit/core";
+import logo from "@hyperloop-upv/frontend-kit/outreach/main/logo_icon.svg";
+```
+
+Inside this package, always use **relative** imports. Referring to the package
+by its own name makes the published build depend on self-reference resolution,
+which bundlers support unevenly.
 
 ---
 
@@ -33,4 +56,103 @@ pnpm icon:add <icon-name> src/icons
 
 # Remove an existing icon export (Example: pnpm icon:remove arrow-up src/icons)
 pnpm icon:remove <icon-name> src/icons
+```
+
+---
+
+## Build
+
+```bash
+pnpm --filter @hyperloop-upv/frontend-kit build
+```
+
+Vite in library mode with Rollup's `preserveModules`, which mirrors `src/` into
+`dist/`. That is what keeps the wildcard subpath exports (`./components/*`)
+resolving as components are added, with no entry list to maintain. Rollup is
+used rather than `tsc` or `tsup` because it rewrites relative specifiers with
+real `.js` extensions; the other two emit extensionless imports, which are not
+valid ESM.
+
+`exports` points at `src/`, so the five apps in this monorepo keep compiling
+kit source directly and keep their HMR. `publishConfig.exports` points at
+`dist/` and is what an external consumer sees. **Publish with `pnpm publish`:**
+`npm publish` ignores that override and would ship a package whose exports
+point at `.tsx`, with no error at publish time.
+
+The tarball ships `src/` as well as `dist/`. That is deliberate: the published
+`globals.css` lives in `src/styles/` and its own `@source` directive resolves
+relative to itself, so Tailwind finds the kit's classes inside `node_modules`
+with no build-time transform.
+
+---
+
+## Using it from another repository
+
+> The registry setup is not in place yet. Until it is, build a tarball with
+> `pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack` and install that
+> file directly.
+
+Install the package and the peer dependencies it expects you to own:
+
+```bash
+pnpm add @hyperloop-upv/frontend-kit
+pnpm add react react-dom lucide-react tw-animate-css
+pnpm add -D tailwindcss @tailwindcss/vite
+```
+
+`src/index.css`:
+
+```css
+@import "@hyperloop-upv/frontend-kit/globals.css";
+
+/* Add your own sources. The kit's stylesheet can only register files inside
+   the kit, because its directive resolves relative to node_modules. */
+@source "./**/*.{ts,tsx}";
+```
+
+That single import brings the theme variables, the four themes, the dark and
+pink variants, the `@theme inline` map, the base layer, scrollbars,
+`tw-animate-css` and the Archivo font.
+
+`vite.config.ts`:
+
+```ts
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react-swc";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  // The kit declares react/react-dom as peers; dedupe guarantees one copy,
+  // since two copies of React break hooks.
+  resolve: { dedupe: ["react", "react-dom"] },
+});
+```
+
+Do not add `@radix-ui/*` to your own dependencies. The kit owns those, and two
+copies of the same Radix package cause real focus-trap and scroll-lock bugs.
+
+Your `tsconfig` needs **no `paths` entry** for the kit, and must use
+`"moduleResolution": "bundler"` (or `"nodenext"`) so TypeScript honours the
+package's `exports` map.
+
+### Pointing it at a backend
+
+The socket defaults to `ws://127.0.0.1:4000/backend`. For anything else, set it
+once when the app boots:
+
+```ts
+import { configureSocket } from "@hyperloop-upv/frontend-kit/core";
+
+configureSocket({ url: import.meta.env.VITE_WS_URL });
+// or: configureSocket({ host: "pod.local", port: 8080, secure: true });
+```
+
+### Registering your own logger module
+
+```ts
+import { ansi, createLogger, registerLoggerColor } from "@hyperloop-upv/frontend-kit/core";
+
+registerLoggerColor("pod-dashboard", ansi.cyan);
+export const log = createLogger("pod-dashboard");
 ```

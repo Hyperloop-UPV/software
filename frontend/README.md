@@ -15,8 +15,7 @@ The frontend is organized as 7 workspaces out of 10 in the whole monorepo, divid
 | `testing-view`                                                     | Primary telemetry testing and debugging interface     |
 | `competition-view`                                                 | Competition-focused UI (simplified view)              |
 | `flashing-view`                                                    | UI for flashing firmware to the BLCU board            |
-| `frontend-kit/kit` or `@hyperloop-upv/frontend-kit`                               | Component library built on shadcn/ui and Radix UI     |
-| `frontend-kit/kit/src/core` or `@hyperloop-upv/frontend-kit/core`                           | Shared business logic, WebSocket utilities, and types |
+| `frontend-kit/kit` or `@hyperloop-upv/frontend-kit`                 | Component library built on shadcn/ui and Radix UI, plus the framework-agnostic `./core` subpath (WebSocket, logging, types) |
 | `frontend-kit/eslint-config` or `@hyperloop-upv/eslint-config`         | Common ESLint configurations                          |
 | `frontend-kit/typescript-config` or `@hyperloop-upv/typescript-config` | Common TypeScript configurations                      |
 
