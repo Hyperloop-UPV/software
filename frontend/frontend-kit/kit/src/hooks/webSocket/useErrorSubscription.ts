@@ -1,4 +1,4 @@
-import { socketService } from "@workspace/core";
+import { socketService } from "../../core";
 import { useEffect } from "react";
 
 const useErrorSubscription = (callback: (err: Error) => void) => {

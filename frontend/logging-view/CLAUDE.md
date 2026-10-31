@@ -19,7 +19,7 @@ There is no test suite; verify with `pnpm build` and `pnpm lint`. Lint currently
 
 ## What this app is
 
-An **offline analysis tool for backend log sessions**. The user opens a session folder written by the backend logger; the app reads its CSVs and the session's ADJ, and plots them. It has **no WebSocket or live backend connection**: the `telemetry`, `messages`, `catalog` and `connections` store slices and the `@workspace/core` dependency are leftovers from the `competition-view` scaffold and nothing reads them.
+An **offline analysis tool for backend log sessions**. The user opens a session folder written by the backend logger; the app reads its CSVs and the session's ADJ, and plots them. It has **no WebSocket or live backend connection**: the `telemetry`, `messages`, `catalog` and `connections` store slices and the `@hyperloop-upv/frontend-kit/core` dependency are leftovers from the `competition-view` scaffold and nothing reads them.
 
 Routing is a `HashRouter` (`src/main.tsx`, needed when served from the Electron app). `/` redirects to `/simple`; `/normal` is a placeholder page ("still under development").
 
@@ -57,14 +57,14 @@ A single Zustand store (`src/store/store.ts`) composed of slices. The ones in us
 
 ## Workspace dependencies
 
-Components, icons and utilities come from `@workspace/ui` (`frontend-kit/ui`):
+Components, icons and utilities come from `@hyperloop-upv/frontend-kit` (`frontend-kit/kit`):
 
 ```tsx
-import { Button, Sidebar } from "@workspace/ui/components";
-import { Plus } from "@workspace/ui/icons";
+import { Button, Sidebar } from "@hyperloop-upv/frontend-kit/components";
+import { Plus } from "@hyperloop-upv/frontend-kit/icons";
 ```
 
-To add an icon: find it on lucide.dev, add its export to the file in `frontend-kit/ui/src/icons/` named after its **first** category, and re-export from `index.ts` if that file is new.
+To add an icon: find it on lucide.dev, add its export to the file in `frontend-kit/kit/src/icons/` named after its **first** category, and re-export from `index.ts` if that file is new.
 
 ## Gotchas
 

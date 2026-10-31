@@ -1,4 +1,4 @@
-import { logger } from "@workspace/core";
+import { logger } from "../../core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useFetchConfig<T>(baseUrl: string, endpoint: string) {

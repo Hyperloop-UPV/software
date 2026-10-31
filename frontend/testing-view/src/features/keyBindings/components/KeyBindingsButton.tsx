@@ -1,5 +1,5 @@
-import { Button } from "@workspace/ui";
-import { Keyboard } from "@workspace/ui/icons";
+import { Button } from "@hyperloop-upv/frontend-kit";
+import { Keyboard } from "@hyperloop-upv/frontend-kit/icons";
 import { useState } from "react";
 import { KeyBindingsDialog } from "./KeyBindingsDialog";
 

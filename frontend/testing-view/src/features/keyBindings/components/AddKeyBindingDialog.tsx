@@ -14,8 +14,8 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui";
-import { X } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit";
+import { X } from "@hyperloop-upv/frontend-kit/icons";
 import { useEffect, useRef, useState } from "react";
 import { getDefaultParameterValues } from "../../../lib/commandUtils";
 import { useStore } from "../../../store/store";

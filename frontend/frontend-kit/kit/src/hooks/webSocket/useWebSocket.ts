@@ -1,4 +1,4 @@
-import { socketService, type SocketConfig } from "@workspace/core";
+import { socketService, type SocketConfig } from "../../core";
 import { useEffect, useState } from "react";
 
 /**

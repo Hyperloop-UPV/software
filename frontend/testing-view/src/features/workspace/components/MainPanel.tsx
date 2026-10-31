@@ -1,5 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
-import { cn } from "@workspace/ui/lib";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { useStore } from "../../../store/store";
 import { ChartsGrid } from "../../charts/components/ChartsGrid";
 import type { DndActiveData } from "../types/dndData";

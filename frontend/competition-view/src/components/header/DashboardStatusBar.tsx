@@ -1,4 +1,4 @@
-import { Separator } from "@workspace/ui/components";
+import { Separator } from "@hyperloop-upv/frontend-kit/components";
 import { formatAxisValue } from "../../constants/chartConfig";
 import { BOARDS, HVAL_THRESHOLD_V, HVBMS, VCU } from "../../constants/measurements";
 import { useIsStale } from "../../hooks/useIsStale";

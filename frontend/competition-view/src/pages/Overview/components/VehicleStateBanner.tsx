@@ -1,4 +1,4 @@
-import { Badge } from "@workspace/ui/components";
+import { Badge } from "@hyperloop-upv/frontend-kit/components";
 import { BOARDS, VCU } from "../../../constants/measurements";
 import useMeasurement from "../../../hooks/useMeasurement";
 

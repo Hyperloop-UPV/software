@@ -1,5 +1,5 @@
 import { DragOverlay } from "@dnd-kit/core";
-import { Badge } from "@workspace/ui";
+import { Badge } from "@hyperloop-upv/frontend-kit";
 import { TelemetryChart } from "../../charts/components/TelemetryChart";
 import type { WorkspaceChartConfig } from "../../charts/types/charts";
 import type { DndActiveData } from "../types/dndData";

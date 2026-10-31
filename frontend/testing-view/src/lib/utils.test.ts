@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { typeBadgeClasses, getTypeBadgeClass } from "@workspace/ui/lib";
+import { typeBadgeClasses, getTypeBadgeClass } from "@hyperloop-upv/frontend-kit/lib";
 import type { FilterScope } from "../features/filtering/types/filters";
 import type { MessageTimestamp } from "../types/data/message";
 import {

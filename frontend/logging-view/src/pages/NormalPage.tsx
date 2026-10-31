@@ -1,7 +1,7 @@
 // Normal mode: full-featured log analysis view.
 // Placeholder — UI to be implemented.
-import swLogoBlack from "@workspace/ui/outreach/main/software_black.png?inline";
-import swLogoWhite from "@workspace/ui/outreach/main/software_white.png?inline";
+import swLogoBlack from "@hyperloop-upv/frontend-kit/outreach/main/software_black.png?inline";
+import swLogoWhite from "@hyperloop-upv/frontend-kit/outreach/main/software_white.png?inline";
 import { useStore } from "../store/store";
 
 const NormalPage = () => {

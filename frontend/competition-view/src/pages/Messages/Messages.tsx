@@ -1,5 +1,5 @@
-import { Button, Separator, Slider } from "@workspace/ui/components";
-import { ChevronDown } from "@workspace/ui/icons";
+import { Button, Separator, Slider } from "@hyperloop-upv/frontend-kit/components";
+import { ChevronDown } from "@hyperloop-upv/frontend-kit/icons";
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../store/store";
 import type { MessageKind } from "../../types/message";

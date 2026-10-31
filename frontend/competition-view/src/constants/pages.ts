@@ -1,4 +1,4 @@
-import { Battery, Layout, MessageSquare } from "@workspace/ui/icons";
+import { Battery, Layout, MessageSquare } from "@hyperloop-upv/frontend-kit/icons";
 
 export const PAGES = {
   "/":          { title: "Competition View",  icon: Layout },

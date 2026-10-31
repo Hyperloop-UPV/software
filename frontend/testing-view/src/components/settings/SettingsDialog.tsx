@@ -1,7 +1,7 @@
 import { Dialog } from "@base-ui/react";
-import { socketService } from "@workspace/core";
-import { Badge, Button } from "@workspace/ui";
-import { AlertTriangle, CheckCircle2, Loader2, X } from "@workspace/ui/icons";
+import { socketService } from "@hyperloop-upv/frontend-kit/core";
+import { Badge, Button } from "@hyperloop-upv/frontend-kit";
+import { AlertTriangle, CheckCircle2, Loader2, X } from "@hyperloop-upv/frontend-kit/icons";
 import { useEffect, useState, useTransition } from "react";
 import { config } from "../../../config";
 import { DEFAULT_CONFIG } from "../../constants/defaultConfig";

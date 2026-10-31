@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@workspace/ui/components";
+import { Card, CardContent } from "@hyperloop-upv/frontend-kit/components";
 import { MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import podIconDark from "../../../assets/pod-dark.svg";

@@ -8,7 +8,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarSeparator,
-} from "@workspace/ui/components";
+} from "@hyperloop-upv/frontend-kit/components";
 import FolderPickerGroup from "./FolderPickerGroup";
 import SeriesGroup from "./SeriesGroup";
 import SeriesSelectionBar from "./SeriesSelectionBar";

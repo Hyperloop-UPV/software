@@ -6,8 +6,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@workspace/ui";
-import { Plus } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit";
+import { Plus } from "@hyperloop-upv/frontend-kit/icons";
 import type { WorkspaceChartConfig } from "../../../../../charts/types/charts";
 
 interface ChartPickerProps {

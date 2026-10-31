@@ -1,9 +1,9 @@
 // Sockets tab: every socket declared in the ADJ, one row each, with the board
 // side, where it points, the general_info port name, and the packets that use it.
 // All socket interpretation comes from sockets.ts, shared with the Network tab.
-import { Badge } from "@workspace/ui/components";
-import { AlertTriangle, ChevronDown, ExternalLink } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { Badge } from "@hyperloop-upv/frontend-kit/components";
+import { AlertTriangle, ChevronDown, ExternalLink } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { Fragment, useMemo, useRef, useState } from "react";
 import type { BoardMeta } from "./AdjViewerTabs";
 import {

@@ -1,4 +1,4 @@
-import { logger, socketService } from "@workspace/core";
+import { logger, socketService } from "@hyperloop-upv/frontend-kit/core";
 import { useEffect } from "react";
 import { useLogger } from "../../../hooks/useLogger";
 import { getDefaultParameterValues } from "../../../lib/commandUtils";

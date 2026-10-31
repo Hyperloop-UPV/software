@@ -2,8 +2,8 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenuButton,
-} from "@workspace/ui";
-import { Eye, EyeOff } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit";
+import { Eye, EyeOff } from "@hyperloop-upv/frontend-kit/icons";
 import { useStore } from "../../store/store";
 
 const DevToolsItem = () => {

@@ -15,7 +15,7 @@ import {
   Label,
   SegmentedControl,
   Spinner,
-} from "@workspace/ui/components";
+} from "@hyperloop-upv/frontend-kit/components";
 import { useState } from "react";
 import type { PdfExportOptions, PdfExportResult } from "../../../lib/pdfExport/types";
 

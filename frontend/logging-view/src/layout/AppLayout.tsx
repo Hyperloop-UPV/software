@@ -1,5 +1,5 @@
 import { DndContext } from "@dnd-kit/core";
-import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
+import { SidebarInset, SidebarProvider } from "@hyperloop-upv/frontend-kit/components";
 import { useEffect, type ReactNode } from "react";
 import Header from "../components/header/Header";
 import PlotAddedToast from "../components/PlotAddedToast";

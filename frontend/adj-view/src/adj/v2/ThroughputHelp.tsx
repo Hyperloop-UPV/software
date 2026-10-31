@@ -9,8 +9,8 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@workspace/ui/components";
-import { BookOpen } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit/components";
+import { BookOpen } from "@hyperloop-upv/frontend-kit/icons";
 import type { ReactNode } from "react";
 import {
   ETH_FCS_BYTES,

@@ -1,6 +1,6 @@
-import { Badge, Separator } from "@workspace/ui";
-import { Activity, ChevronDown } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { Badge, Separator } from "@hyperloop-upv/frontend-kit";
+import { Activity, ChevronDown } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { memo, useEffect, useRef, useState } from "react";
 import { useStore } from "../../../../../../store/store";
 import type { TelemetryCatalogItem } from "../../../../../../types/data/telemetryCatalogItem";

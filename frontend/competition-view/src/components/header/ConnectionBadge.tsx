@@ -1,4 +1,4 @@
-import { Badge } from "@workspace/ui/components";
+import { Badge } from "@hyperloop-upv/frontend-kit/components";
 
 interface ConnectionBadgeProps {
   /** Clear label identifying what this badge reports on, e.g. "Backend" or "VCU". */

@@ -1,6 +1,6 @@
 // Shared green/yellow/red styling for SessionStatus, used by both the persistent
 // sidebar badge and the transient toast so the two stay visually consistent.
-import { AlertTriangle, CheckCircle2, XCircle } from "@workspace/ui/icons";
+import { AlertTriangle, CheckCircle2, XCircle } from "@hyperloop-upv/frontend-kit/icons";
 import type { SessionStatusLevel } from "../../types/session";
 
 export const sessionStatusStyles: Record<

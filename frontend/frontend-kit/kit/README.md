@@ -9,7 +9,7 @@ This package is the main UI and React shared component library for the Hyperloop
 > This package is specifically for **UI and React-related components**.
 >
 > - If your logic requires React hooks (`useState`, `useEffect`, etc.) or TSX, it belongs here.
-> - **If your logic does NOT need React** (e.g., websocket connections), it should be implemented in the `@workspace/core` package. This keeps the codebase clean and allows for better reuse across different environments.
+> - **If your logic does NOT need React** (e.g., websocket connections), it should be implemented in the `@hyperloop-upv/frontend-kit/core` package. This keeps the codebase clean and allows for better reuse across different environments.
 
 ---
 

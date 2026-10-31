@@ -1,6 +1,6 @@
 // EmptyTabState.tsx
-import { Button } from "@workspace/ui";
-import { Filter, ListFilterPlus } from "@workspace/ui/icons";
+import { Button } from "@hyperloop-upv/frontend-kit";
+import { Filter, ListFilterPlus } from "@hyperloop-upv/frontend-kit/icons";
 
 interface EmptyTabProps {
   title: string;

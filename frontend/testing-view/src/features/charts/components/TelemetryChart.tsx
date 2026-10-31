@@ -1,7 +1,7 @@
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
-import { GripVertical, Trash2 } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib/utils";
+import { GripVertical, Trash2 } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib/utils";
 import { useRef, useState } from "react";
 import "uplot/dist/uPlot.min.css";
 import { useStore } from "../../../store/store";

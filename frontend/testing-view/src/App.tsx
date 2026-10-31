@@ -1,4 +1,4 @@
-import { useTopic, useWebSocket } from "@workspace/ui/hooks";
+import { useTopic, useWebSocket } from "@hyperloop-upv/frontend-kit/hooks";
 import { Route, Routes } from "react-router";
 import { AppModeRouter } from "./components/AppModeRouter";
 import { ModeSwitcher } from "./components/devTools/ModeSwitcher";

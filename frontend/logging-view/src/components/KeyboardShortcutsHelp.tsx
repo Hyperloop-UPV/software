@@ -4,8 +4,8 @@ import {
   DialogHeader,
   DialogTitle,
   Separator,
-} from "@workspace/ui/components";
-import { Keyboard } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit/components";
+import { Keyboard } from "@hyperloop-upv/frontend-kit/icons";
 // NOTE: the original hooks module was not available at this path in some
 // environments. Define a local fallback for SHORTCUT_DEFS here so this
 // component compiles and still shows useful keyboard shortcuts. Keep the

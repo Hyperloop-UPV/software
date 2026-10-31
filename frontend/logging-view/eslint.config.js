@@ -1,3 +1,3 @@
-import { config } from "@workspace/eslint-config/vite";
+import { config } from "@hyperloop-upv/eslint-config/vite";
 
 export default config;

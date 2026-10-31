@@ -1,5 +1,5 @@
-import { Badge } from "@workspace/ui/components";
-import { cn } from "@workspace/ui/lib/utils";
+import { Badge } from "@hyperloop-upv/frontend-kit/components";
+import { cn } from "@hyperloop-upv/frontend-kit/lib/utils";
 import type { Board } from "../types";
 
 type Props = {

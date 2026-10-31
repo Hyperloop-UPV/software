@@ -1,5 +1,5 @@
-import { Button } from "@workspace/ui";
-import { LayoutGrid, Plus } from "@workspace/ui/icons";
+import { Button } from "@hyperloop-upv/frontend-kit";
+import { LayoutGrid, Plus } from "@hyperloop-upv/frontend-kit/icons";
 
 interface EmptyWorkspaceProps {
   onAddChart: () => void;

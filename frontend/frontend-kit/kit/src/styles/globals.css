@@ -3,7 +3,7 @@
 @import "tailwindcss";
 /* Scan only this package's own sources. Each app declares its own @source glob
    in its index.css, because paths resolved from here go through the
-   @workspace/ui symlink and don't reach the app's source tree. */
+   @hyperloop-upv/frontend-kit symlink and don't reach the app's source tree. */
 @source "../**/*.{ts,tsx}";
 
 @import "tw-animate-css";

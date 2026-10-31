@@ -5,8 +5,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@workspace/ui";
-import { Plus } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit";
+import { Plus } from "@hyperloop-upv/frontend-kit/icons";
 import { useState } from "react";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../store/store";

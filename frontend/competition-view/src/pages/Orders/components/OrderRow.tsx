@@ -7,8 +7,8 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@workspace/ui/components";
-import { Check, ChevronDown, Send } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit/components";
+import { Check, ChevronDown, Send } from "@hyperloop-upv/frontend-kit/icons";
 import { useMemo, useState } from "react";
 import useSendOrder from "../../../hooks/useSendOrder";
 import useMeasurement from "../../../hooks/useMeasurement";
