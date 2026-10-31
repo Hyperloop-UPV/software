@@ -1,4 +1,4 @@
-import { Button } from "@workspace/ui";
+import { Button } from "@hyperloop-upv/frontend-kit";
 import {
   Activity,
   MessageSquare,
@@ -6,7 +6,7 @@ import {
   PanelRight,
   Terminal,
   X,
-} from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit/icons";
 import { useStore } from "../../../../store/store";
 import { RightSidebarToggle } from "./RightSidebarToggle";
 

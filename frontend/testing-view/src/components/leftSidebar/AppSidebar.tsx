@@ -4,7 +4,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@workspace/ui/components";
+} from "@hyperloop-upv/frontend-kit/components";
 import { PAGES_ARRAY } from "../../constants/pages";
 import ColorSchemeToggle from "./ColorSchemeToggle";
 import ConnectionStatusGroup from "./ConnectionStatusGroup";

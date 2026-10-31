@@ -1,9 +1,9 @@
 // Statistics panel shown under a plot. Metrics are computed over the visible
 // X range only (live — the parent tracks the current Plotly viewport,
 // debounced, and passes it down as `visibleRange`).
-import { Button, Separator } from "@workspace/ui/components";
-import { X } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { Button, Separator } from "@hyperloop-upv/frontend-kit/components";
+import { X } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { useMemo } from "react";
 import { fmt } from "../../lib/plotStudio/format";
 import { computeRangeStats } from "../../lib/plotStudio/stats";

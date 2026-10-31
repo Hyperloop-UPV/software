@@ -1,4 +1,4 @@
-import { useFetchConfig } from "@workspace/ui/hooks";
+import { useFetchConfig } from "@hyperloop-upv/frontend-kit/hooks";
 import { useEffect } from "react";
 import { useStore } from "../store/store";
 import type { OrdersData, PacketsData } from "../types/data/board";

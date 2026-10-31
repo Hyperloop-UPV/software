@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components";
+} from "@hyperloop-upv/frontend-kit/components";
 import type { CommandParameter, NumericParameter, ParameterValues } from "../../../types/catalog";
 
 /** True when the field holds a number outside the parameter's safeRange (empty/NaN doesn't count). */

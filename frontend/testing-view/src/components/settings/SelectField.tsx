@@ -1,11 +1,11 @@
-import { Label } from "@workspace/ui/components/shadcn/label";
+import { Label } from "@hyperloop-upv/frontend-kit/components/shadcn/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@workspace/ui/components/shadcn/select";
+} from "@hyperloop-upv/frontend-kit/components/shadcn/select";
 import type { FieldProps } from "../../types/common/settings";
 
 export const SelectField = ({ field, value, onChange }: FieldProps<string>) => (

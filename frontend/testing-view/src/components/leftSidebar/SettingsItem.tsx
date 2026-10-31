@@ -1,5 +1,5 @@
-import { SidebarMenuButton } from "@workspace/ui";
-import { Settings } from "@workspace/ui/icons";
+import { SidebarMenuButton } from "@hyperloop-upv/frontend-kit";
+import { Settings } from "@hyperloop-upv/frontend-kit/icons";
 import { useStore } from "../../store/store";
 
 const SettingsItem = () => {

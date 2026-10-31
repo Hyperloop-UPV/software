@@ -1,7 +1,7 @@
 // Registry of the studio panel sections, VS Code-style: the activity bar
 // shows one icon per section and the panel displays a single section at a time.
-import { Activity, Layers, Timer } from "@workspace/ui/icons";
-import type { LucideIcon } from "@workspace/ui/icons";
+import { Activity, Layers, Timer } from "@hyperloop-upv/frontend-kit/icons";
+import type { LucideIcon } from "@hyperloop-upv/frontend-kit/icons";
 import ComposedSection from "./ComposedSection";
 import FFTSection from "./FFTSection";
 import PlotsSection from "./PlotsSection";

@@ -1,4 +1,4 @@
-import { logger, socketService } from "@workspace/core";
+import { logger, socketService } from "@hyperloop-upv/frontend-kit/core";
 import { useCallback } from "react";
 import type { Order } from "../constants/orders";
 

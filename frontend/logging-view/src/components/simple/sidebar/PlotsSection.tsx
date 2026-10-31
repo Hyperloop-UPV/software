@@ -21,9 +21,9 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@workspace/ui/components";
-import { Activity, Eye, EyeOff, GripVertical, Plus, Trash2, X } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+} from "@hyperloop-upv/frontend-kit/components";
+import { Activity, Eye, EyeOff, GripVertical, Plus, Trash2, X } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { resolveSignalColor } from "../../../lib/plotStudio/palette";

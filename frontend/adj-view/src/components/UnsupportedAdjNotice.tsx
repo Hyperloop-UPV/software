@@ -1,4 +1,4 @@
-import { AlertTriangle } from "@workspace/ui/icons";
+import { AlertTriangle } from "@hyperloop-upv/frontend-kit/icons";
 import { SUPPORTED_ADJ_VERSIONS } from "../adj";
 
 export function UnsupportedAdjNotice({ version }: { version: number }) {

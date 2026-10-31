@@ -1,5 +1,5 @@
-import { Checkbox } from "@workspace/ui/components/shadcn/checkbox";
-import { Label } from "@workspace/ui/components/shadcn/label";
+import { Checkbox } from "@hyperloop-upv/frontend-kit/components/shadcn/checkbox";
+import { Label } from "@hyperloop-upv/frontend-kit/components/shadcn/label";
 import type { FieldProps } from "../../types/common/settings";
 
 export const BooleanField = ({

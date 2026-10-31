@@ -2,8 +2,8 @@
 // checked, letting the user add them all to an existing plot or spin up a
 // new plot containing them — turns the (previously decorative) checkbox
 // selection into a real bulk-assign action.
-import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components";
-import { Layers, Plus, X } from "@workspace/ui/icons";
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@hyperloop-upv/frontend-kit/components";
+import { Layers, Plus, X } from "@hyperloop-upv/frontend-kit/icons";
 import { useMemo, useState } from "react";
 import { useAssignSignalsToPlot } from "../simple/hooks/useStudioSignals";
 import { useStore } from "../../store/store";

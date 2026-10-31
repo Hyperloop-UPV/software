@@ -15,10 +15,9 @@ The frontend is organized as 7 workspaces out of 10 in the whole monorepo, divid
 | `testing-view`                                                     | Primary telemetry testing and debugging interface     |
 | `competition-view`                                                 | Competition-focused UI (simplified view)              |
 | `flashing-view`                                                    | UI for flashing firmware to the BLCU board            |
-| `frontend-kit/ui` or `@workspace/ui`                               | Component library built on shadcn/ui and Radix UI     |
-| `frontend-kit/core` or `@workspace/core`                           | Shared business logic, WebSocket utilities, and types |
-| `frontend-kit/eslint-config` or `@workspace/eslint-config`         | Common ESLint configurations                          |
-| `frontend-kit/typescript-config` or `@workspace/typescript-config` | Common TypeScript configurations                      |
+| `frontend-kit/kit` or `@hyperloop-upv/frontend-kit`                 | Component library built on shadcn/ui and Radix UI, plus the framework-agnostic `./core` subpath (WebSocket, logging, types) |
+| `frontend-kit/eslint-config` or `@hyperloop-upv/eslint-config`         | Common ESLint configurations                          |
+| `frontend-kit/typescript-config` or `@hyperloop-upv/typescript-config` | Common TypeScript configurations                      |
 
 ## Key Technologies
 
@@ -66,7 +65,7 @@ Testing View supports multiple workspaces to organize different testing scenario
 
 The frontend connects to the Go backend via WebSocket for real-time communication:
 
-- **Connection**: `useWebSocket` hook from `@workspace/core`
+- **Connection**: `useWebSocket` hook from `@hyperloop-upv/frontend-kit/core`
 - **Topics**: Subscribe to specific data streams using `useTopic`
   - `podData/update` - Telemetry data
   - `connection/update` - Backend connection status
@@ -76,8 +75,8 @@ The frontend connects to the Go backend via WebSocket for real-time communicatio
 Example:
 
 ```tsx
-import { useTopic, useWebSocket } from "@workspace/ui/hooks";
-import { socketService } from "@workspace/core";
+import { useTopic, useWebSocket } from "@hyperloop-upv/frontend-kit/hooks";
+import { socketService } from "@hyperloop-upv/frontend-kit/core";
 
 const { isConnected } = useWebSocket();
 
@@ -88,7 +87,7 @@ useTopic<TelemetryData>("podData/update", (data) => {
 socketService.post("order/send", <payload>);
 ```
 
-## Component Library (@workspace/ui)
+## Component Library (@hyperloop-upv/frontend-kit)
 
 The shared UI package provides:
 
@@ -97,11 +96,11 @@ The shared UI package provides:
 - Hooks (useWebSocket, useTopic, useLogger)
 - Icons from Lucide React
 
-Import components from `@workspace/ui`:
+Import components from `@hyperloop-upv/frontend-kit`:
 
 ```tsx
-import { Button, Dialog } from "@workspace/ui";
-import { Plus, Settings } from "@workspace/ui/icons";
+import { Button, Dialog } from "@hyperloop-upv/frontend-kit";
+import { Plus, Settings } from "@hyperloop-upv/frontend-kit/icons";
 ```
 
 ## Development Patterns
@@ -119,14 +118,14 @@ To add a new Lucide icon to the shared UI library:
 
 1. Look up the icon on [Lucide Icons](https://lucide.dev/icons)
 2. Find the **first category** listed for that icon
-3. Add the import to the corresponding category file in `frontend-kit/ui/src/icons/`
+3. Add the import to the corresponding category file in `frontend-kit/kit/src/icons/`
 4. If the category file doesn't exist, create it and add its export to `index.ts`
 5. Keep the same alphabetical order as the icon categories
 
 **Example:** The `Axe` icon's first category is `Tools`, so you would add its import to `tools.ts`:
 
 ```js
-// frontend-kit/ui/src/icons/tools.ts
+// frontend-kit/kit/src/icons/tools.ts
 export { Axe, Hammer } from "lucide-react";
 ```
 

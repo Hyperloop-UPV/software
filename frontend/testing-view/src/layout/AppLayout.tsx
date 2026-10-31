@@ -1,4 +1,4 @@
-import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
+import { SidebarInset, SidebarProvider } from "@hyperloop-upv/frontend-kit/components";
 import React, { useEffect } from "react";
 import Header from "../components/header/Header";
 import AppSidebar from "../components/leftSidebar/AppSidebar";

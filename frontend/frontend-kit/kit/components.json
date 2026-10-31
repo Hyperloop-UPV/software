@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "./src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@hyperloop-upv/frontend-kit/components",
+    "hooks": "@hyperloop-upv/frontend-kit/hooks/shadcn",
+    "lib": "@hyperloop-upv/frontend-kit/lib",
+    "utils": "@hyperloop-upv/frontend-kit/lib/utils",
+    "ui": "@hyperloop-upv/frontend-kit/components/shadcn"
+  }
+}

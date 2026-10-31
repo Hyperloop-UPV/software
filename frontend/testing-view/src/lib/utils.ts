@@ -1,6 +1,6 @@
-import type { VariableValue } from "@workspace/core";
+import type { VariableValue } from "@hyperloop-upv/frontend-kit/core";
 import { ACRONYMS } from "../constants/acronyms";
-export { getTypeBadgeClass } from "@workspace/ui/lib";
+export { getTypeBadgeClass } from "@hyperloop-upv/frontend-kit/lib";
 import type {
   FilterScope,
   TabFilter,

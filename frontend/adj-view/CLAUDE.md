@@ -76,21 +76,21 @@ A what-if estimate of each board's link usage, computed only from the ADJ and th
 
 ### Workspace dependency
 
-Only shared package used is `@workspace/ui` (from `frontend-kit/ui`), for shadcn/Radix components, Lucide icons, and small utilities (`cn`, `getTypeBadgeClass`/`typeBadgeClasses` from `@workspace/ui/lib`):
+Only shared package used is `@hyperloop-upv/frontend-kit` (from `frontend-kit/kit`), for shadcn/Radix components, Lucide icons, and small utilities (`cn`, `getTypeBadgeClass`/`typeBadgeClasses` from `@hyperloop-upv/frontend-kit/lib`):
 
 ```tsx
-import { Button, Combobox } from "@workspace/ui/components";
-import { BookOpen, GitCommit } from "@workspace/ui/icons";
-import { cn, getTypeBadgeClass, typeBadgeClasses } from "@workspace/ui/lib";
+import { Button, Combobox } from "@hyperloop-upv/frontend-kit/components";
+import { BookOpen, GitCommit } from "@hyperloop-upv/frontend-kit/icons";
+import { cn, getTypeBadgeClass, typeBadgeClasses } from "@hyperloop-upv/frontend-kit/lib";
 ```
 
-No `@workspace/core` dependency (no WebSocket/backend integration here).
+No `@hyperloop-upv/frontend-kit/core` dependency (no WebSocket/backend integration here).
 
 ### Styling
 
 Tailwind v4 with CSS-variable theming, dark mode via `.dark` class on `<html>` (toggled in `App.tsx`, persisted to `localStorage["adj-view-dark-mode"]`). `NetworkTab`'s SVG reads the same CSS variables (`var(--primary)`, `var(--foreground)`, etc.) directly in inline styles so the diagram adapts automatically between themes. UI copy is English (sentence case, no all-caps labels); numbers use `tabular-nums` rather than a monospace font.
 
-Branding: the header and empty state use the team mark `@workspace/ui/outreach/main/logo_icon.svg` (not the H11 isotype the other views use), via `TeamLogo` in `AdjViewerPage.tsx`. The header pairs it with the software-team logo (`outreach/main/software_black.png` + `dark:invert`; don't use `software_white.png`, which is 8000 px / 430 KB). That SVG draws the mark in only the middle ~49% of its 900×900 viewBox, so `TeamLogo` scales the image up inside a clipped box; a plain `<img className="size-9">` renders it tiny.
+Branding: the header and empty state use the team mark `@hyperloop-upv/frontend-kit/outreach/main/logo_icon.svg` (not the H11 isotype the other views use), via `TeamLogo` in `AdjViewerPage.tsx`. The header pairs it with the software-team logo (`outreach/main/software_black.png` + `dark:invert`; don't use `software_white.png`, which is 8000 px / 430 KB). That SVG draws the mark in only the middle ~49% of its 900×900 viewBox, so `TeamLogo` scales the image up inside a clipped box; a plain `<img className="size-9">` renders it tiny.
 
 The layout must work down to phone width (check 390 / 768 / 1440 px) without the page scrolling sideways. The header wraps into title + theme toggle, then a full-width row of load controls below `lg`. The tab bar scrolls inside itself, and wide tables and the Network SVG scroll inside their own containers.
 

@@ -1,4 +1,4 @@
-import { logger } from "@workspace/core";
+import { logger } from "@hyperloop-upv/frontend-kit/core";
 import React, { Component, type ReactNode } from "react";
 import { Error } from "./Error";
 

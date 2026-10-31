@@ -3,7 +3,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@workspace/ui/components";
+} from "@hyperloop-upv/frontend-kit/components";
 
 interface MetricCardProps {
   label: string;

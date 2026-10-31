@@ -1,6 +1,6 @@
-import { Badge } from "@workspace/ui";
-import { Check, X } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { Badge } from "@hyperloop-upv/frontend-kit";
+import { Check, X } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { useCallback } from "react";
 import { useStore } from "../../../../../../store/store";
 

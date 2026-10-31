@@ -1,10 +1,10 @@
-export type { TelemetryPacket, VariableValue, Variables } from "@workspace/core";
+export type { TelemetryPacket, VariableValue, Variables } from "@hyperloop-upv/frontend-kit/core";
 
 /**
  * The backend sends a batch of packets keyed by numeric packet ID.
  * Each packet carries its own `measurementUpdates` map.
  */
-export type TelemetryData = Record<number, import("@workspace/core").TelemetryPacket>;
+export type TelemetryData = Record<number, import("@hyperloop-upv/frontend-kit/core").TelemetryPacket>;
 
 /**
  * Telemetry keyed first by board name then by measurement ID.

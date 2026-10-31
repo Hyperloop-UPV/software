@@ -1,5 +1,5 @@
-import { SidebarMenuButton } from "@workspace/ui/components";
-import { cn } from "@workspace/ui/lib";
+import { SidebarMenuButton } from "@hyperloop-upv/frontend-kit/components";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { LOGGER_CONTROL_CONFIG } from "../../constants/loggerControlConfig";
 import { useLogger } from "../../hooks/useLogger";
 

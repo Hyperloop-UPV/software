@@ -1,4 +1,4 @@
-import { Button } from "@workspace/ui";
+import { Button } from "@hyperloop-upv/frontend-kit";
 import {
   Dialog,
   DialogContent,
@@ -6,10 +6,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@workspace/ui/components/shadcn/dialog";
-import { Input } from "@workspace/ui/components/shadcn/input";
-import { Label } from "@workspace/ui/components/shadcn/label";
-import { Textarea } from "@workspace/ui/components/shadcn/textarea";
+} from "@hyperloop-upv/frontend-kit/components/shadcn/dialog";
+import { Input } from "@hyperloop-upv/frontend-kit/components/shadcn/input";
+import { Label } from "@hyperloop-upv/frontend-kit/components/shadcn/label";
+import { Textarea } from "@hyperloop-upv/frontend-kit/components/shadcn/textarea";
 import { useEffect, useState } from "react";
 
 interface WorkspaceDialogProps {

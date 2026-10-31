@@ -1,5 +1,5 @@
-import { logger } from "@workspace/core";
-import useErrorSubscription from "@workspace/ui/hooks/webSocket/useErrorSubscription";
+import { logger } from "@hyperloop-upv/frontend-kit/core";
+import useErrorSubscription from "@hyperloop-upv/frontend-kit/hooks/webSocket/useErrorSubscription";
 import { useEffect } from "react";
 import { useStore } from "../store/store";
 

@@ -1,7 +1,7 @@
-@import "@workspace/ui/globals.css";
+@import "@hyperloop-upv/frontend-kit/globals.css";
 
 /* Ensure Tailwind v4 scans adj-view source files directly.
-   The @source paths in globals.css resolve via the @workspace/ui symlink
+   The @source paths in globals.css resolve via the @hyperloop-upv/frontend-kit symlink
    and don't correctly reach this project's source tree. */
 @source "./**/*.{ts,tsx}";
 

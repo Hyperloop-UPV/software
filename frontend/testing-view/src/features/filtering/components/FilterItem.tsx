@@ -1,4 +1,4 @@
-import { Badge, Checkbox } from "@workspace/ui";
+import { Badge, Checkbox } from "@hyperloop-upv/frontend-kit";
 import type { CatalogItem } from "../../../types/common/item";
 
 interface FilterItemProps {

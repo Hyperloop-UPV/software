@@ -1,4 +1,4 @@
-import { useTopic, useWebSocket } from "@workspace/ui/hooks";
+import { useTopic, useWebSocket } from "@hyperloop-upv/frontend-kit/hooks";
 import { useState } from "react";
 import { Route, Routes } from "react-router";
 import ErrorBoundary from "./components/ErrorBoundary";

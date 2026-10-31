@@ -11,6 +11,9 @@ node_modules/
 # Global binaries
 *.exe
 
+# Build output
+dist/
+
 # electron modules
 electron-app/python
 electron-app/logger

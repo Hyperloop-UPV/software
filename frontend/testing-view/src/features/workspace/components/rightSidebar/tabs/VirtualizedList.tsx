@@ -1,6 +1,6 @@
 // frontend/testing-view/src/components/common/VirtualizedList.tsx
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { cn } from "@workspace/ui/lib";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { useCallback, useRef } from "react";
 import type { BoardName } from "../../../../../types/data/board";
 import type { VirtualRow } from "../../../../../types/data/virtualization";

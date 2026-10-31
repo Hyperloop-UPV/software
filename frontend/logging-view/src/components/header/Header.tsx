@@ -1,9 +1,9 @@
 // Top bar with the page title and a Normal / Simple mode segmented control.
 // Mode switching navigates between routes (/normal, /simple) rather than
 // store state, since each mode has a distinct UI.
-import { SegmentedControl } from "@workspace/ui/components";
+import { SegmentedControl } from "@hyperloop-upv/frontend-kit/components";
 import { useLocation, useNavigate } from "react-router";
-import logo from "@workspace/ui/outreach/h11/h11-isotipo_black.svg";
+import logo from "@hyperloop-upv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
 
 type ViewMode = "normal" | "simple";
 

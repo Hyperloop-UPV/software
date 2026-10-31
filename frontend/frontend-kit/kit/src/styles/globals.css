@@ -1,0 +1,327 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+@import "tailwindcss";
+/* Scan only this package's own sources. Each app declares its own @source glob
+   in its index.css, because paths resolved from here go through the
+   @hyperloop-upv/frontend-kit symlink and don't reach the app's source tree. */
+@source "../**/*.{ts,tsx}";
+
+@import "tw-animate-css";
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant pink (&:is(.pink *));
+
+:root {
+  --background: #f9fafb;
+  --foreground: #181818;
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #ff7f24;
+  --primary-foreground: #f9fafb;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Status colors */
+  --success: #16a34a;
+  --error: #dc2626;
+}
+
+:root {
+  --radius: 0.625rem;
+  --spacing-xs: 0.25rem; /* 4px - equivalent to m-1 / p-1 */
+  --spacing-sm: 0.5rem; /* 8px - equivalent to m-2 / p-2 */
+  --spacing-md: 1rem; /* 16px - equivalent to m-4 / p-4 */
+  --spacing-lg: 1.5rem; /* 24px - equivalent to m-6 / p-6 */
+  --spacing-xl: 2rem; /* 32px - equivalent to m-8 / p-8 */
+  --spacing-2xl: 4rem; /* 64px - equivalent to m-16 / p-16 */
+}
+
+.dark {
+  --background: #181818;
+  --foreground: #f9fafb;
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: #ff7f24;
+  --primary-foreground: #f9fafb;
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+
+  /* Status colors */
+  --success: #4ade80;
+  --error: #f87171;
+}
+
+/* Pink theme (light) */
+.pink {
+  --background: #fff5f7; /* Very light pink, almost white */
+  --foreground: #9f1239; /* Stronger dark pink for better contrast */
+  --card: #ffffff; /* Pure white cards */
+  --card-foreground: #9f1239;
+  --popover: #ffffff;
+  --popover-foreground: #9f1239;
+  --primary: #db2777; /* Stronger, more vibrant pink */
+  --primary-foreground: #ffffff;
+  --secondary: #fce7f3; /* Light pink */
+  --secondary-foreground: #9f1239;
+  --muted: #fce7f3;
+  --muted-foreground: #be185d; /* Medium pink */
+  --accent: #fce7f3;
+  --accent-foreground: #9f1239;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: #f9a8d4; /* Light pink border */
+  --input: #ffffff; /* White inputs */
+  --ring: #db2777; /* Strong pink ring */
+  --sidebar: #ffffff; /* White sidebar */
+  --sidebar-foreground: #9f1239;
+  --sidebar-primary: #db2777;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fce7f3;
+  --sidebar-accent-foreground: #9f1239;
+  --sidebar-border: #f9a8d4;
+  --sidebar-ring: #db2777;
+
+  /* Status colors */
+  --success: #10b981; /* Keep green for success */
+  --error: #ef4444; /* Keep red for error */
+}
+
+/* Pink theme (dark) */
+.pink.dark {
+  --background: #1f0a14; /* Very dark pink-tinted background */
+  --foreground: #fce7f3; /* Light pink text */
+  --card: oklch(0.15 0.05 340); /* Dark pink-tinted card */
+  --card-foreground: #fce7f3;
+  --popover: oklch(0.15 0.05 340);
+  --popover-foreground: #fce7f3;
+  --primary: #f472b6; /* Strong vibrant pink */
+  --primary-foreground: #1f0a14;
+  --secondary: oklch(0.2 0.08 340);
+  --secondary-foreground: #fce7f3;
+  --muted: oklch(0.2 0.08 340);
+  --muted-foreground: #f9a8d4;
+  --accent: oklch(0.2 0.08 340);
+  --accent-foreground: #fce7f3;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.25 0.1 340);
+  --input: oklch(0.15 0.05 340);
+  --ring: #f472b6;
+  --sidebar: oklch(0.18 0.06 340);
+  --sidebar-foreground: #fce7f3;
+  --sidebar-primary: #f472b6;
+  --sidebar-primary-foreground: #1f0a14;
+  --sidebar-accent: oklch(0.2 0.08 340);
+  --sidebar-accent-foreground: #fce7f3;
+  --sidebar-border: oklch(0.25 0.1 340);
+  --sidebar-ring: #f472b6;
+
+  /* Status colors */
+  --success: #34d399;
+  --error: #f87171;
+}
+
+/* Twight uses the mode selector's navy blue (#20274c). */
+.twight {
+  --background: #f4f6fb;
+  --foreground: #20274c;
+  --card: #ffffff;
+  --card-foreground: #20274c;
+  --popover: #ffffff;
+  --popover-foreground: #20274c;
+  --primary: #20274c;
+  --primary-foreground: #ffffff;
+  --secondary: #e6ebf7;
+  --secondary-foreground: #20274c;
+  --muted: #e6ebf7;
+  --muted-foreground: #526184;
+  --accent: #dce4f5;
+  --accent-foreground: #20274c;
+  --border: #c8d2e8;
+  --input: #c8d2e8;
+  --ring: #526fba;
+  --sidebar: #edf1f9;
+  --sidebar-foreground: #20274c;
+  --sidebar-primary: #20274c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dce4f5;
+  --sidebar-accent-foreground: #20274c;
+  --sidebar-border: #c8d2e8;
+  --sidebar-ring: #526fba;
+}
+
+.twight.dark {
+  --background: #11162d;
+  --foreground: #edeef0;
+  --card: #1a203d;
+  --card-foreground: #edeef0;
+  --popover: #20274c;
+  --popover-foreground: #edeef0;
+  --primary: #a6bcff;
+  --primary-foreground: #20274c;
+  --secondary: #20274c;
+  --secondary-foreground: #edeef0;
+  --muted: #20274c;
+  --muted-foreground: #aab8d8;
+  --accent: #2c3863;
+  --accent-foreground: #edf2ff;
+  --border: #36436b;
+  --input: #36436b;
+  --ring: #a6bcff;
+  --sidebar: #20274c;
+  --sidebar-foreground: #edeef0;
+  --sidebar-primary: #a6bcff;
+  --sidebar-primary-foreground: #20274c;
+  --sidebar-accent: #2c3863;
+  --sidebar-accent-foreground: #edf2ff;
+  --sidebar-border: #36436b;
+  --sidebar-ring: #a6bcff;
+}
+
+@theme inline {
+  /* Main colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Colors for sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Spacing */
+  --spacing-xs: var(--spacing-xs); /* 4px */
+  --spacing-sm: var(--spacing-sm); /* 8px */
+  --spacing-md: var(--spacing-md); /* 16px */
+  --spacing-lg: var(--spacing-lg); /* 24px */
+  --spacing-xl: var(--spacing-xl); /* 32px */
+  --spacing-2xl: var(--spacing-2xl); /* 64px */
+
+  /* Fonts */
+  --font-archivo:
+    "Archivo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-archivo;
+  }
+
+  /* Custom scrollbar (Chrome/Safari/Edge) */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full border-2 border-transparent bg-clip-content;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+
+  /* Firefox has no ::-webkit-scrollbar support — without this it falls back
+     to the OS's raw native scrollbar (wide, flat, no rounding). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-muted-foreground) 30%, transparent) transparent;
+  }
+}

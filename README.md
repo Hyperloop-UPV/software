@@ -32,10 +32,9 @@ Our `pnpm-workspace.yaml` defines the following workspaces:
 | `blcu-programming`             | Python   | FastAPI service that flashes firmware to the BLCU board via TFTP |
 | `hyperloop-control-station`    | JS       | The main Control Station electron desktop application |
 | `e2e`                          | TS       | End-to-end tests for the whole app (Playwright)       |
-| `@workspace/ui`                | TS/React | Shared UI component library (frontend-kit)            |
-| `@workspace/core`              | TS       | Shared business logic and types (frontend-kit)        |
-| `@workspace/eslint-config`     | ESLint   | Common ESLint configuration (frontend-kit)            |
-| `@workspace/typescript-config` | TS       | Common TypeScript configuration (frontend-kit)        |
+| `@hyperloop-upv/frontend-kit`  | TS/React | Shared UI components, hooks, icons and the WebSocket layer (its `./core` subpath) |
+| `@hyperloop-upv/eslint-config`     | ESLint   | Common ESLint configuration (frontend-kit)            |
+| `@hyperloop-upv/typescript-config` | TS       | Common TypeScript configuration (frontend-kit)        |
 
 ---
 
@@ -82,4 +81,4 @@ All Turbo scripts support filtering to target specific workspaces:
 
 - `pnpm ui:add <component-name>` - To add shadcn/ui components
 
-  > Note: don't forget to also include it in frontend-kit/ui/src/components/shadcn/index.ts to be able to access it from @workspace/ui
+  > Note: don't forget to also include it in frontend-kit/kit/src/components/shadcn/index.ts to be able to access it from @hyperloop-upv/frontend-kit

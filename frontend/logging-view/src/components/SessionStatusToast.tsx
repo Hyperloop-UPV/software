@@ -4,8 +4,8 @@
 // + manual-dismiss pattern used by the signalLoadWarning banner in PlotStudio.tsx.
 // Bottom-right, same corner as PlotAddedToast, so every transient notification
 // in the app reads as one consistent toast stack.
-import { AlertTriangle, X } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { AlertTriangle, X } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { useEffect } from "react";
 import { useStore } from "../store/store";
 import { adjWarningClass, sessionStatusStyles } from "./sidebar/sessionStatusStyles";

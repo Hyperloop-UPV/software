@@ -1,4 +1,4 @@
-import { useFetchConfig, useWebSocket } from "@workspace/ui/hooks";
+import { useFetchConfig, useWebSocket } from "@hyperloop-upv/frontend-kit/hooks";
 import { useEffect } from "react";
 import { useStore } from "../store/store";
 

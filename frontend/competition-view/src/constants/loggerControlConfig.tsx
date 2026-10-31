@@ -1,4 +1,4 @@
-import { AlertCircle, Loader2, Play, Square } from "@workspace/ui/icons";
+import { AlertCircle, Loader2, Play, Square } from "@hyperloop-upv/frontend-kit/icons";
 import type { LoggerStatus } from "../types/logger";
 
 interface LoggerControlOption {

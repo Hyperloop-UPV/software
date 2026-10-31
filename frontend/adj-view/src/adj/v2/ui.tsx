@@ -1,8 +1,8 @@
 // Small presentational pieces shared by the v2 list tabs (Boards, Measurements,
 // Packets, Sockets).
-import { Input } from "@workspace/ui/components";
-import { ChevronDown, ChevronUp, Search } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { Input } from "@hyperloop-upv/frontend-kit/components";
+import { ChevronDown, ChevronUp, Search } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 
 export type SortDir = "asc" | "desc";
 

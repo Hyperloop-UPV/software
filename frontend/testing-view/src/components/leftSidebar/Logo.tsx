@@ -1,6 +1,6 @@
-import { SidebarMenuButton } from "@workspace/ui";
+import { SidebarMenuButton } from "@hyperloop-upv/frontend-kit";
 import { Link } from "react-router";
-import logo from "@workspace/ui/outreach/h11/h11-isotipo_black.svg";
+import logo from "@hyperloop-upv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
 
 const Logo = () => {
   return (

@@ -1,5 +1,5 @@
-import { Button } from "@workspace/ui";
-import { ChevronLeft, Plus } from "@workspace/ui/icons";
+import { Button } from "@hyperloop-upv/frontend-kit";
+import { ChevronLeft, Plus } from "@hyperloop-upv/frontend-kit/icons";
 import { useStore } from "../../../store/store";
 
 interface TestingToolbarProps {

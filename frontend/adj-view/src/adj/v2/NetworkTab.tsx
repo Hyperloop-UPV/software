@@ -11,7 +11,7 @@ import { boardPort, protocolFromSocketType, resolveTarget, type Protocol } from 
 // Hyperloop UPV's actual brand palette (no separate secondary brand color
 // documented anywhere in the repo) — --primary is the brand orange, and
 // --foreground pairs it with black/white, matching the logo assets under
-// frontend-kit/ui/src/outreach. Both adapt automatically in light/dark mode.
+// frontend-kit/kit/src/outreach. Both adapt automatically in light/dark mode.
 const PROTOCOL_COLOR: Record<Protocol, string> = {
   TCP: "var(--foreground)", // bidirectional
   UDP: "var(--primary)", // unidirectional: board → backend

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
+import { ChevronDown, ChevronLeft } from "@hyperloop-upv/frontend-kit/icons";
 
 interface CategoryHeaderProps {
   name: string;

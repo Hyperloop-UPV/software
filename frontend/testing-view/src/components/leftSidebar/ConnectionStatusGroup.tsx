@@ -4,8 +4,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui";
-import { Plug, Unplug } from "@workspace/ui/icons";
+} from "@hyperloop-upv/frontend-kit";
+import { Plug, Unplug } from "@hyperloop-upv/frontend-kit/icons";
 import useConnections from "../../hooks/useConnections";
 
 interface ConnectionStatusGroupProps {

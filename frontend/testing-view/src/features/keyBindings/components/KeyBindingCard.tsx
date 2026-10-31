@@ -1,6 +1,6 @@
-import { Badge, Button } from "@workspace/ui";
-import { ChevronDown, X } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { Badge, Button } from "@hyperloop-upv/frontend-kit";
+import { ChevronDown, X } from "@hyperloop-upv/frontend-kit/icons";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { useState } from "react";
 import { useStore } from "../../../store/store";
 import type { KeyBinding } from "../types/keyBinding";

@@ -1,0 +1,202 @@
+name: Publish Frontend Kit
+
+# Publishes @hyperloop-upv/frontend-kit to GitHub Packages so a frontend in
+# another repository can install it.
+#
+# Normally runs as part of release.yaml, at the same version as the Control
+# Station, so the two always ship together. Can also be dispatched on its own
+# to cut a kit-only release.
+#
+# As with electron-app, the version is injected here and is not committed: the
+# number in package.json is a placeholder, and the git tag created by
+# release.yaml is the record of what was published from which commit.
+#
+# A published version can never be reused. Deleting it does not free the
+# number: if 11.3.2 is wrong, publish 11.3.3.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to publish, without a leading v"
+        required: true
+        type: string
+      dry-run:
+        description: "Pack and check only, do not publish"
+        type: boolean
+        default: true
+      tag:
+        description: "npm dist-tag. Derived from the version when empty"
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 11.3.2)"
+        required: true
+      dry-run:
+        description: "Pack and check only, do not publish"
+        type: boolean
+        default: true
+      tag:
+        description: "npm dist-tag. Leave empty to derive it from the version"
+        default: ""
+
+jobs:
+  publish:
+    name: Publish @hyperloop-upv/frontend-kit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Not the default. Without it, publishing fails with a bare 403.
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          # Writes an auth-ready npmrc outside the working tree, so the git
+          # tree stays clean.
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@hyperloop-upv"
+
+      - name: Resolve version and dist-tag
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # release.yaml tags as v<version>, so accept either spelling.
+          version="${{ inputs.version }}"
+          version="${version#v}"
+
+          if [ -z "$version" ]; then
+            echo "::error::version is empty"
+            exit 1
+          fi
+
+          requested="${{ inputs.tag }}"
+          if [ -n "$requested" ]; then
+            tag="$requested"
+          elif [ "${version#*-}" != "$version" ]; then
+            # A prerelease such as 11.3.2-beta-2 must not land on "latest", or
+            # it becomes the default install for every consumer.
+            tag="next"
+          else
+            tag="latest"
+          fi
+
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "publishing $version under dist-tag $tag"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same approach as electron-app in release.yaml: set it here, do not
+      # expect it committed.
+      - name: Set the version
+        working-directory: frontend/frontend-kit/kit
+        run: pnpm version ${{ steps.resolve.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Build
+        run: pnpm build --filter=@hyperloop-upv/frontend-kit
+
+      - name: Pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kit
+          pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack --pack-destination /tmp/kit
+          echo "::group::Tarball contents"
+          tar -tzf /tmp/kit/hyperloop-upv-frontend-kit-${{ steps.resolve.outputs.version }}.tgz | sort
+          echo "::endgroup::"
+
+      # Catches the failures that are cheap to prevent and impossible to undo
+      # once a version is published.
+      - name: Check the tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          T=/tmp/kit/hyperloop-upv-frontend-kit-${{ steps.resolve.outputs.version }}.tgz
+
+          # Via a file, not a pipe: a heredoc would occupy stdin and the
+          # script would read nothing.
+          tar -xzOf "$T" package/package.json > /tmp/kit/packed.json
+
+          EXPECTED_VERSION="${{ steps.resolve.outputs.version }}" python3 - <<'PY'
+          import json, os, sys
+
+          p = json.load(open("/tmp/kit/packed.json"))
+          failures = []
+
+          def check(cond, msg):
+              print(("  ok   " if cond else "  FAIL ") + msg)
+              if not cond:
+                  failures.append(msg)
+
+          check(
+              p["version"] == os.environ["EXPECTED_VERSION"],
+              f"version is {os.environ['EXPECTED_VERSION']}, got {p['version']}",
+          )
+          check(not p.get("private"), "private:true does not survive")
+          check("preinstall" not in p.get("scripts", {}), "the preinstall hook does not survive")
+          check(
+              p["exports"]["."]["default"].startswith("./dist"),
+              "publishConfig.exports was applied (npm publish would skip it)",
+          )
+          check(p["exports"]["./core"]["default"] == "./dist/core/index.js", "./core points at dist")
+          check(
+              p["exports"]["./globals.css"] == "./src/styles/globals.css",
+              "globals.css is served from the shipped src, so Tailwind can scan it",
+          )
+          check(
+              set(p.get("peerDependencies", {}))
+              >= {"react", "react-dom", "lucide-react", "tailwindcss", "tw-animate-css"},
+              "the five peer dependencies are declared",
+          )
+          check(
+              not any(str(v).startswith("workspace:") for v in p.get("dependencies", {}).values()),
+              "no literal workspace: range leaked into the tarball",
+          )
+
+          if failures:
+              sys.exit("\nRefusing to publish: " + "; ".join(failures))
+          print("\ntarball ok")
+          PY
+
+          # Tailwind needs the kit's sources to find its classes in node_modules.
+          tar -tzf "$T" | grep -qx 'package/src/components/shadcn/sidebar.tsx' \
+            || { echo "::error::src/ is missing from the tarball"; exit 1; }
+          echo "  ok   src/ ships alongside dist/"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-kit-${{ steps.resolve.outputs.version }}
+          path: /tmp/kit/*.tgz
+          retention-days: 7
+
+      # Fails closed: anything other than an explicit boolean false skips this.
+      - name: Publish
+        if: ${{ inputs.dry-run == false }}
+        run: pnpm publish --filter=@hyperloop-upv/frontend-kit --no-git-checks --tag ${{ steps.resolve.outputs.tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        shell: bash
+        run: |
+          V='${{ steps.resolve.outputs.version }}'
+          if [ '${{ inputs.dry-run }}' = 'true' ]; then
+            echo "### Dry run: nothing was published" >> $GITHUB_STEP_SUMMARY
+            echo "Tarball for \`$V\` is attached as an artifact. Re-run with dry-run off to publish." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Published \`@hyperloop-upv/frontend-kit@$V\`" >> $GITHUB_STEP_SUMMARY
+            echo "dist-tag: \`${{ steps.resolve.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          fi

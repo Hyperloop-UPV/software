@@ -1,5 +1,5 @@
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components";
-import { AlertTriangle, Check, Send } from "@workspace/ui/icons";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@hyperloop-upv/frontend-kit/components";
+import { AlertTriangle, Check, Send } from "@hyperloop-upv/frontend-kit/icons";
 import { useState } from "react";
 import useSendOrder from "../../../hooks/useSendOrder";
 import { orderButtonColorClass, type OrderColorLevel } from "../../../constants/orderColors";

@@ -1,8 +1,8 @@
 // VS Code-style studio panel: a persistent activity bar (icon strip) on the
 // right edge; clicking an icon opens that section in a panel next to it,
 // clicking the active icon again closes the panel.
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components";
-import { cn } from "@workspace/ui/lib";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@hyperloop-upv/frontend-kit/components";
+import { cn } from "@hyperloop-upv/frontend-kit/lib";
 import { STUDIO_SECTIONS } from "./studioSections";
 
 interface StudioSidebarProps {
