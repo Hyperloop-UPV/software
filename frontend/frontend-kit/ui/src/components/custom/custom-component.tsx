@@ -1,4 +1,4 @@
-import { cn } from "@workspace/ui/lib/utils";
+import { cn } from "../../lib/utils";
 import React from "react";
 
 interface CustomComponentProps extends React.HTMLAttributes<HTMLDivElement> {}
