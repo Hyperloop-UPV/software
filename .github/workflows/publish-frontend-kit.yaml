@@ -1,0 +1,146 @@
+name: Publish Frontend Kit
+
+# Publishes @hyperloop-upv/frontend-kit to GitHub Packages so a frontend in
+# another repository can install it.
+#
+# Manual on purpose, mirroring release.yaml. Run it once with dry-run left on
+# (the default) and read the tarball listing in the log, then run it again with
+# dry-run off. A published version can never be reused: if 0.1.0 is wrong, the
+# fix is to publish 0.1.1.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish. Must already be committed in the package.json, e.g. 0.1.0"
+        required: true
+      dry-run:
+        description: "Pack and check only, do not publish"
+        type: boolean
+        default: true
+      tag:
+        description: "npm dist-tag"
+        default: "latest"
+
+jobs:
+  publish:
+    name: Publish @hyperloop-upv/frontend-kit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Not the default. Without it, publishing fails with a bare 403.
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          # Writes an auth-ready npmrc outside the working tree, so the git
+          # tree stays clean.
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@hyperloop-upv"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check the committed version matches the input
+        run: |
+          set -euo pipefail
+          committed=$(node -p "require('./frontend/frontend-kit/kit/package.json').version")
+          if [ "$committed" != "${{ inputs.version }}" ]; then
+            echo "::error::package.json says $committed but you dispatched ${{ inputs.version }}"
+            exit 1
+          fi
+          echo "version $committed"
+
+      - name: Build
+        run: pnpm build --filter=@hyperloop-upv/frontend-kit
+
+      - name: Pack
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kit
+          pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack --pack-destination /tmp/kit
+          echo "::group::Tarball contents"
+          tar -tzf /tmp/kit/hyperloop-upv-frontend-kit-${{ inputs.version }}.tgz | sort
+          echo "::endgroup::"
+
+      # Catches the failures that are cheap to prevent and impossible to undo
+      # once a version is published.
+      - name: Check the tarball
+        run: |
+          set -euo pipefail
+          T=/tmp/kit/hyperloop-upv-frontend-kit-${{ inputs.version }}.tgz
+
+          # Via a file, not a pipe: a heredoc would occupy stdin and the
+          # script would read nothing.
+          tar -xzOf "$T" package/package.json > /tmp/kit/packed.json
+
+          python3 - <<'PY'
+          import json, sys
+
+          p = json.load(open("/tmp/kit/packed.json"))
+          failures = []
+
+          def check(cond, msg):
+              print(("  ok   " if cond else "  FAIL ") + msg)
+              if not cond:
+                  failures.append(msg)
+
+          check(not p.get("private"), "private:true does not survive")
+          check("preinstall" not in p.get("scripts", {}), "the preinstall hook does not survive")
+          check(
+              p["exports"]["."]["default"].startswith("./dist"),
+              "publishConfig.exports was applied (npm publish would skip it)",
+          )
+          check(p["exports"]["./core"]["default"] == "./dist/core/index.js", "./core points at dist")
+          check(
+              p["exports"]["./globals.css"] == "./src/styles/globals.css",
+              "globals.css is served from the shipped src, so Tailwind can scan it",
+          )
+          check(
+              set(p.get("peerDependencies", {}))
+              >= {"react", "react-dom", "lucide-react", "tailwindcss", "tw-animate-css"},
+              "the five peer dependencies are declared",
+          )
+          check(
+              not any(str(v).startswith("workspace:") for v in p.get("dependencies", {}).values()),
+              "no literal workspace: range leaked into the tarball",
+          )
+
+          if failures:
+              sys.exit("\nRefusing to publish: " + "; ".join(failures))
+          print("\ntarball ok")
+          PY
+
+          # Tailwind needs the kit's sources to find its classes in node_modules.
+          tar -tzf "$T" | grep -qx 'package/src/components/shadcn/sidebar.tsx' \
+            || { echo "::error::src/ is missing from the tarball"; exit 1; }
+          echo "  ok   src/ ships alongside dist/"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-kit-${{ inputs.version }}
+          path: /tmp/kit/*.tgz
+          retention-days: 7
+
+      # Fails closed: anything other than an explicit boolean false skips this.
+      - name: Publish
+        if: ${{ inputs.dry-run == false }}
+        run: pnpm publish --filter=@hyperloop-upv/frontend-kit --no-git-checks --tag ${{ inputs.tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "### Dry run: nothing was published" >> $GITHUB_STEP_SUMMARY
+            echo "Tarball for \`${{ inputs.version }}\` is attached as an artifact. Re-run with dry-run off to publish." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Published \`@hyperloop-upv/frontend-kit@${{ inputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "Check the package visibility under Organisation -> Packages -> Package settings." >> $GITHUB_STEP_SUMMARY
+          fi
