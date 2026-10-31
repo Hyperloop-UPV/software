@@ -30,6 +30,10 @@ on:
         description: "Include ADJ Viewer"
         type: boolean
         default: true
+      publish-kit:
+        description: "Publish @hyperloop-upv/frontend-kit at this same version"
+        type: boolean
+        default: true
 
 
 jobs:
@@ -44,6 +48,7 @@ jobs:
       include_flashing: ${{ steps.get_version.outputs.include_flashing }}
       include_logging: ${{ steps.get_version.outputs.include_logging }}
       include_adj: ${{ steps.get_version.outputs.include_adj }}
+      publish_kit: ${{ steps.get_version.outputs.publish_kit }}
     steps:
       - name: Determine version
         id: get_version
@@ -55,6 +60,7 @@ jobs:
           echo "include_flashing=${{ github.event.inputs.include-flashing }}" >> $GITHUB_OUTPUT
           echo "include_logging=${{ github.event.inputs.include-logging }}" >> $GITHUB_OUTPUT
           echo "include_adj=${{ github.event.inputs.include-adj }}" >> $GITHUB_OUTPUT
+          echo "publish_kit=${{ github.event.inputs.publish-kit }}" >> $GITHUB_OUTPUT
 
   create-draft-release:
     name: Create Draft Release
@@ -380,3 +386,18 @@ jobs:
             | xargs gh release upload v${{ needs.determine-version.outputs.version }} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-frontend-kit:
+    name: Publish Frontend Kit
+    # Last, and only once the Control Station release itself succeeded:
+    # publishing to the registry cannot be undone, so it must not happen for a
+    # release that failed to build.
+    needs: [determine-version, package-and-upload]
+    if: needs.determine-version.outputs.publish_kit == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-frontend-kit.yaml
+    with:
+      version: ${{ needs.determine-version.outputs.version }}
+      dry-run: false

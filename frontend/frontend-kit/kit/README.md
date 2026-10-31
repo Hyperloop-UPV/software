@@ -190,18 +190,59 @@ export const log = createLogger("pod-dashboard");
 
 ## Releasing
 
-1. Bump `version` in this `package.json` and commit it.
-2. Actions -> **Publish Frontend Kit** -> enter the version, leave **dry-run
-   on**. Read the tarball listing in the log; the tarball is attached as an
-   artifact if you want to install it somewhere first.
-3. Run it again with **dry-run off**.
-4. First release only: check the package is public under Organisation ->
-   Packages -> Package settings, and that this repository has write access.
+The kit rides along with the Control Station: **Actions -> Release Electron App**
+publishes the kit at the same version as its last job, so `v11.3.2` of the
+Control Station and `@hyperloop-upv/frontend-kit@11.3.2` always mean the same
+commit. Nothing extra to run. The `publish-kit` input, on by default, turns it
+off for a release that should not move the package.
+
+That job is last and depends on the whole release succeeding, because
+publishing cannot be undone and must not happen for a release that failed to
+build.
+
+**The `version` in this `package.json` is a placeholder**, the same `0.0.0`
+convention `electron-app` uses. CI injects the real number with
+`pnpm version --no-git-tag-version`, and the git tag is the record of what was
+published from which commit. Do not bump it by hand expecting it to mean
+anything.
+
+### The dist-tag
+
+A version with a prerelease part (`11.3.2-beta-2`, `11.3.2-1`) is published
+under the `next` dist-tag instead of `latest`, so `pnpm add
+@hyperloop-upv/frontend-kit` keeps resolving to the last stable release. Taking
+a prerelease is then explicit:
+
+```bash
+pnpm add @hyperloop-upv/frontend-kit@next
+```
+
+### Publishing the kit on its own
+
+For a kit-only release, Actions -> **Publish Frontend Kit** -> enter the
+version, leave **dry-run on**. It packs, prints the tarball contents and
+attaches it as an artifact without publishing. Read that, then run it again
+with dry-run off. Pick a version above the last published one; the Control
+Station numbering is shared, so a kit-only release normally takes the next
+patch.
+
+First release only: check the package is public under Organisation -> Packages
+-> Package settings, and that this repository has write access.
 
 **A published version can never be reused.** Deleting a version does not free
-the number. If `0.1.0` is wrong, publish `0.1.1`.
+the number. If `11.3.2` is wrong, publish `11.3.3`.
+
+### Versioning, and what it means for a consumer
+
+Versions are shared with the Control Station, so the numbers track **releases
+of the station, not the kit's own API**. A minor bump may carry a breaking
+change to a component, and a major bump may change nothing here at all. An
+external consumer should therefore pin the exact version it was tested
+against, or pin a patch range and read the release notes before moving:
+
+```json
+"@hyperloop-upv/frontend-kit": "~11.3.2"
+```
 
 The five apps in this monorepo stay on `workspace:*` and are unaffected by what
-is published: pnpm always prefers the local link. Only an external consumer
-pins a published range such as `^0.1.0`, which on `0.x` picks up patches but
-requires a deliberate edit to move to `0.2.0`.
+is published: pnpm always prefers the local link.
