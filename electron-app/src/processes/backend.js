@@ -16,6 +16,7 @@ import {
   getUserConfigPath,
 } from "../utils/paths.js";
 import { formatBackendError, getHint } from "./backendError.js";
+import { appendBackendLog, clearLogWindow } from "../windows/logWindow.js";
 
 // Create ANSI to HTML converter
 const convert = new AnsiToHtml();
@@ -26,23 +27,8 @@ const appPath = getAppPath();
 // Store the backend process instance
 let backendProcess = null;
 
-// Common log window instance for all backend processes
-let storedLogWindow = null;
-
 // Store error messages accumulated from the current process run
 let lastBackendError = null;
-
-/**
- * Clears the stored log window reference and closes it
- */
-function clearLogWindow() {
-  if (storedLogWindow && !storedLogWindow.isDestroyed()) {
-    try {
-      storedLogWindow.close();
-    } catch (e) {}
-  }
-  storedLogWindow = null;
-}
 
 /**
  * Starts the backend process by spawning the backend binary with the user configuration.
@@ -50,13 +36,7 @@ function clearLogWindow() {
  * @example
  * startBackend();
  */
-async function startBackend(logWindow = null) {
-  if (logWindow) {
-    storedLogWindow = logWindow;
-  }
-
-  const currentLogWindow = logWindow || storedLogWindow;
-
+async function startBackend() {
   return new Promise((resolve, reject) => {
     let resolved = false;
 
@@ -93,15 +73,7 @@ async function startBackend(logWindow = null) {
       const text = data.toString().trim();
       logger.backend.info(text);
 
-      // Send log message to log window
-      if (
-        currentLogWindow &&
-        !currentLogWindow.isDestroyed() &&
-        currentLogWindow.webContents
-      ) {
-        const htmlData = convert.toHtml(text);
-        currentLogWindow.webContents.send("log", htmlData);
-      }
+      appendBackendLog(convert.toHtml(text));
 
       // Resolve as soon as the HTTP server confirms it is listening.
       // Matches: "INF ... > http server listening localAddr=..."
@@ -119,11 +91,7 @@ async function startBackend(logWindow = null) {
       logger.backend.error(errorMsg);
       lastBackendError = errorMsg;
 
-      // Send error message to log window
-      if (currentLogWindow && !currentLogWindow.isDestroyed()) {
-        const htmlError = convert.toHtml(errorMsg);
-        currentLogWindow.webContents.send("log", htmlError);
-      }
+      appendBackendLog(convert.toHtml(errorMsg));
     });
 
     // Handle spawn errors
@@ -165,7 +133,8 @@ async function startBackend(logWindow = null) {
         }
 
         if (code === null || code === 0) {
-          let errorMessage = "Backend process closed before initialization completed";
+          let errorMessage =
+            "Backend process closed before initialization completed";
           if (lastBackendError) {
             const stripped = lastBackendError.replace(/\x1b\[[0-9;]*m/g, "");
             errorMessage += `\n\n${stripped}`;
@@ -267,4 +236,10 @@ function getBackendWorkingDir() {
     : path.dirname(getUserConfigPath());
 }
 
-export { clearLogWindow, getBackendWorkingDir, restartBackend, startBackend, stopBackend };
+export {
+  clearLogWindow,
+  getBackendWorkingDir,
+  restartBackend,
+  startBackend,
+  stopBackend,
+};

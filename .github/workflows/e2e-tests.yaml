@@ -12,6 +12,11 @@ on:
       - "e2e/**"
     paths:
       - "frontend/testing-view/**"
+      - "frontend/competition-view/**"
+      - "frontend/logging-view/**"
+      - "frontend/adj-view/**"
+      - "frontend/frontend-kit/**"
+      - "backend/**"
       - "electron-app/**"
       - "e2e/**"
       - "pnpm-lock.yaml"
@@ -38,7 +43,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter "testing-view..." --filter "e2e..." --filter "hyperloop-control-station..."
+        run: pnpm install --frozen-lockfile --filter "testing-view..." --filter "competition-view..." --filter "logging-view..." --filter "adj-view..." --filter "e2e..." --filter "hyperloop-control-station..."
 
       - name: Build backend binary
         run: |
@@ -47,14 +52,6 @@ jobs:
 
       - name: Patch backend config
         run: sed -i 's/validate = true/validate = false/' backend/cmd/dev-config.toml
-
-      - name: Debug - test backend binary
-        run: |
-          ./electron-app/binaries/backend-windows-amd64.exe --config backend/cmd/dev-config.toml 2>&1 &
-          PID=$!
-          sleep 5
-          kill $PID 2>/dev/null || true
-        continue-on-error: true
 
       - name: Install Electron binary
         run: node node_modules/electron/install.js
@@ -66,11 +63,10 @@ jobs:
           ls -la "$(node -e "process.stdout.write(require('electron'))")"
         working-directory: e2e
 
-      - name: Build testing-view (e2e mode)
-        run: |
-          pnpm --filter testing-view build:e2e
-          mkdir -p electron-app/renderer/testing-view
-          cp -r frontend/testing-view/dist/. electron-app/renderer/testing-view/
+      - name: Build E2E renderers
+        run: pnpm --dir e2e build
 
-      - name: Run UI tests
-        run: pnpm --filter e2e exec playwright test tests/ui/
+      - name: Run UI and integration tests
+        run: pnpm --dir e2e test:fast
+        env:
+          E2E_REQUIRED_VIEWS: testing,competition,logging,adj

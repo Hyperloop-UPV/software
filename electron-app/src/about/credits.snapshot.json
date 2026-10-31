@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 3,
+  "repository": "Hyperloop-UPV/software",
+  "counting": "non-merge",
+  "headSha": "7f6deb7fc751c782a05175f9d25f162145122999",
+  "fetchedAt": "2026-10-22T21:19:51.503Z",
+  "contributors": [
+    {
+      "id": "114561048",
+      "login": "jmaralo",
+      "name": "jmaralo",
+      "contributions": 774,
+      "avatarUrl": "./avatars/114561048.jpg",
+      "type": "User"
+    },
+    {
+      "id": "114338434",
+      "login": "smorsua",
+      "name": "smorsua",
+      "contributions": 588,
+      "avatarUrl": "./avatars/114338434.jpg",
+      "type": "User"
+    },
+    {
+      "id": "47422871",
+      "login": "msanlli",
+      "name": "msanlli",
+      "contributions": 557,
+      "avatarUrl": "./avatars/47422871.png",
+      "type": "User"
+    },
+    {
+      "id": "74974283",
+      "login": "maximka76667",
+      "name": "maximka76667",
+      "contributions": 537,
+      "avatarUrl": "./avatars/74974283.jpg",
+      "type": "User"
+    },
+    {
+      "id": "70332045",
+      "login": "JavierRibaldelRio",
+      "name": "JavierRibaldelRio",
+      "contributions": 311,
+      "avatarUrl": "./avatars/70332045.png",
+      "type": "User"
+    },
+    {
+      "id": "130096040",
+      "login": "JFisica",
+      "name": "JFisica",
+      "contributions": 188,
+      "avatarUrl": "./avatars/130096040.png",
+      "type": "User"
+    },
+    {
+      "id": "60979852",
+      "login": "lipezaballa",
+      "name": "lipezaballa",
+      "contributions": 169,
+      "avatarUrl": "./avatars/60979852.png",
+      "type": "User"
+    },
+    {
+      "id": "76229993",
+      "login": "andresdlt03",
+      "name": "andresdlt03",
+      "contributions": 164,
+      "avatarUrl": "./avatars/76229993.png",
+      "type": "User"
+    },
+    {
+      "id": "71978109",
+      "login": "l-castel",
+      "name": "l-castel",
+      "contributions": 55,
+      "avatarUrl": "./avatars/71978109.jpg",
+      "type": "User"
+    },
+    {
+      "id": "183129863",
+      "login": "JESUSJH18",
+      "name": "JESUSJH18",
+      "contributions": 44,
+      "avatarUrl": "./avatars/183129863.png",
+      "type": "User"
+    },
+    {
+      "id": "228559793",
+      "login": "vasyl-ks",
+      "name": "vasyl-ks",
+      "contributions": 25,
+      "avatarUrl": "./avatars/228559793.png",
+      "type": "User"
+    },
+    {
+      "id": "99354212",
+      "login": "ariadnatp",
+      "name": "ariadnatp",
+      "contributions": 22,
+      "avatarUrl": "./avatars/99354212.png",
+      "type": "User"
+    },
+    {
+      "id": "58850783",
+      "login": "g0nz4I0",
+      "name": "g0nz4I0",
+      "contributions": 10,
+      "avatarUrl": "./avatars/58850783.jpg",
+      "type": "User"
+    },
+    {
+      "id": "anonymous-14",
+      "login": null,
+      "name": "Nomad",
+      "contributions": 8,
+      "avatarUrl": null,
+      "type": "Anonymous"
+    },
+    {
+      "id": "anonymous-15",
+      "login": null,
+      "name": "[Marc Sanchis]",
+      "contributions": 6,
+      "avatarUrl": null,
+      "type": "Anonymous"
+    },
+    {
+      "id": "60261013",
+      "login": "Losina24",
+      "name": "Losina24",
+      "contributions": 5,
+      "avatarUrl": "./avatars/60261013.jpg",
+      "type": "User"
+    },
+    {
+      "id": "80858832",
+      "login": "Humanoidear",
+      "name": "Humanoidear",
+      "contributions": 4,
+      "avatarUrl": "./avatars/80858832.png",
+      "type": "User"
+    },
+    {
+      "id": "152909605",
+      "login": "davidpascual05",
+      "name": "davidpascual05",
+      "contributions": 1,
+      "avatarUrl": "./avatars/152909605.jpg",
+      "type": "User"
+    },
+    {
+      "id": "152517350",
+      "login": "Saulsantos25",
+      "name": "Saulsantos25",
+      "contributions": 1,
+      "avatarUrl": "./avatars/152517350.jpg",
+      "type": "User"
+    },
+    {
+      "id": "anonymous-19",
+      "login": null,
+      "name": "sms",
+      "contributions": 1,
+      "avatarUrl": null,
+      "type": "Anonymous"
+    }
+  ]
+}

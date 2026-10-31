@@ -9,11 +9,23 @@
     "email": "partners@hyperloopupv.com"
   },
   "contributors": [
-    { "name": "Maxim Grivennyy", "email": "max766667@gmail.com" },
-    { "name": "Javier Ribal del Río", "email": "javierribaldelrio@gmail.com" },
-    { "name": "Lola Castello" },
-    { "name": "Alejandro González" },
-    { "name": "Vasyl Klymenko" }
+    {
+      "name": "Maxim Grivennyy",
+      "email": "max766667@gmail.com"
+    },
+    {
+      "name": "Javier Ribal del Río",
+      "email": "javierribaldelrio@gmail.com"
+    },
+    {
+      "name": "Lola Castello"
+    },
+    {
+      "name": "Alejandro González"
+    },
+    {
+      "name": "Vasyl Klymenko"
+    }
   ],
   "license": "MIT",
   "repository": {
@@ -28,6 +40,7 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "test": "vitest run",
+    "build:credits": "node src/about/generateCredits.js",
     "build-icons": "electron-icon-builder --input=./icon.png --output=./ --flatten",
     "build": "node build.mjs",
     "build:win": "node build.mjs --win",
@@ -65,6 +78,7 @@
     "vitest": "^4.0.18"
   },
   "build": {
+    "beforePack": "./src/about/generateCredits.js",
     "appId": "com.hyperloop.controlstation",
     "publish": {
       "provider": "github",

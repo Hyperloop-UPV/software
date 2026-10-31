@@ -10,6 +10,9 @@ Manages the primary and logs Electron `BrowserWindow` instances and provides fun
 
 - `logWindow.js` - Backend logs and messages
 - `mainWindow.js` - Main window creation and management
+- `additionalViewWindow.js` - Additional Testing and Competition windows sharing the existing backend
+
+In Testing and Competition modes, **Window > New Testing Window** opens an additional Testing renderer. Competition mode also offers **Window > New Competition Window** to open another Competition renderer. Both use the existing backend without replacing the main window or restarting services. Each entry is hidden if its renderer is not packaged. Secondary windows close independently; mode changes close them along with the other previous windows.
 
 ## Window Configuration
 

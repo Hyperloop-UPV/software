@@ -12,6 +12,7 @@ import { logger } from "../utils/logger.js";
 import { getAppPath } from "../utils/paths.js";
 import { createLogWindow, createWindow } from "../windows/index.js";
 import { loadView } from "../windows/mainWindow.js";
+import { setWindowMenu } from "../menu/menu.js";
 
 const VALID_MODES = {
   testing: "testing-view",
@@ -31,7 +32,6 @@ const VALID_MODES = {
  */
 async function showModeSelector(screenWidth, screenHeight) {
   return new Promise(async (resolve, reject) => {
-    let mainWindow = null;
     let modeSelected = false;
     const { x, y, width, height } = screen.getPrimaryDisplay().bounds;
 
@@ -60,6 +60,8 @@ async function showModeSelector(screenWidth, screenHeight) {
       title: "Select Mode",
     });
 
+    setWindowMenu(selectorWindow, { isSelector: true });
+
     selectorWindow.on("closed", () => {
       ipcMain.removeListener("mode-selected", onModeSelected);
       // Closing the selector cancels startup, including return-to-selector flows
@@ -67,13 +69,20 @@ async function showModeSelector(screenWidth, screenHeight) {
       if (!modeSelected) app.quit();
     });
 
-    const selectorPath = path.join(getAppPath(), "renderer", "mode-selector", "index.html");
+    const selectorPath = path.join(
+      getAppPath(),
+      "renderer",
+      "mode-selector",
+      "index.html",
+    );
 
     if (!fs.existsSync(selectorPath)) {
-      logger.electron.warning("Mode selector UI not found, using default testing-view");
+      logger.electron.warning(
+        "Mode selector UI not found, using default testing-view",
+      );
       modeSelected = true;
+      resolve(handleSelectorFallback(screenWidth, screenHeight));
       selectorWindow.close();
-      resolve({ mode: "default", view: VALID_MODES.default, mainWindow: null });
       return;
     }
 
@@ -90,8 +99,8 @@ async function showModeSelector(screenWidth, screenHeight) {
     } catch (err) {
       logger.electron.error("Failed to load selector UI:", err);
       modeSelected = true;
+      resolve(handleSelectorFallback(screenWidth, screenHeight));
       selectorWindow.close();
-      resolve({ mode: "default", view: VALID_MODES.default, mainWindow: null });
       return;
     }
 
@@ -101,29 +110,7 @@ async function showModeSelector(screenWidth, screenHeight) {
       modeSelected = true;
       ipcMain.removeListener("mode-selected", onModeSelected);
       try {
-        const view = VALID_MODES[mode] || VALID_MODES.default;
-
-        // Create the main window without loading the view yet.
-        mainWindow = createWindow(screenWidth, screenHeight, null);
-        try {
-          mainWindow.maximize();
-        } catch (e) {}
-        logger.electron.header("Main application window created");
-
-        // Start services and only then load the selected view.
-        if (view === "testing-view" || view === "flashing-view" || view === "competition-view") {
-          await startServices(screenWidth, screenHeight, view);
-        }
-
-        loadView(view);
-
-        // Show and focus main window
-        try {
-          mainWindow.show();
-          mainWindow.focus();
-        } catch (e) {}
-
-        resolve({ mode, view, mainWindow });
+        resolve(await openMode(screenWidth, screenHeight, mode));
       } catch (error) {
         logger.electron.error("Error handling mode selection:", error);
         reject(error);
@@ -134,6 +121,21 @@ async function showModeSelector(screenWidth, screenHeight) {
       }
     }
   });
+}
+
+/** Open a mode using the same service startup sequence as the selector. */
+async function openMode(screenWidth, screenHeight, mode) {
+  const view = VALID_MODES[mode] || VALID_MODES.default;
+  const mainWindow = createWindow(screenWidth, screenHeight, null);
+  mainWindow.maximize();
+  logger.electron.header("Main application window created");
+
+  await startServices(screenWidth, screenHeight, view);
+  loadView(view);
+  mainWindow.show();
+  mainWindow.focus();
+
+  return { mode, view, mainWindow };
 }
 
 /**
@@ -152,7 +154,7 @@ async function startServices(screenWidth, screenHeight, view) {
     logWindow.show(); // Show the log window
 
     try {
-      await startBackend(logWindow);
+      await startBackend();
       logger.electron.header("Backend process spawned");
     } catch (err) {
       logger.electron.error("Failed to start backend:", err);
@@ -182,24 +184,7 @@ async function startServices(screenWidth, screenHeight, view) {
  * @returns {Promise<{mode: string, view: string, mainWindow: BrowserWindow}>}
  */
 async function handleSelectorFallback(screenWidth, screenHeight) {
-  const view = VALID_MODES.default;
-  const mainWindow = createWindow(screenWidth, screenHeight, view);
-
-  try {
-    mainWindow.maximize();
-  } catch (e) {}
-
-  logger.electron.header("Main application window created");
-
-  try {
-    mainWindow.show();
-  } catch (e) {}
-
-  // Start services by default (testing view)
-  await startServices(screenWidth, screenHeight, view);
-
-  return { mode: "default", view, mainWindow };
+  return openMode(screenWidth, screenHeight, "default");
 }
 
-export { handleSelectorFallback, showModeSelector };
-
+export { handleSelectorFallback, openMode, showModeSelector };

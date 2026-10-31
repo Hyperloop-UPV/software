@@ -9,6 +9,7 @@ import { cpSync, existsSync, mkdirSync, rmSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { logger } from "./src/utils/logger.js";
+import { generateAboutCredits } from "./src/about/generateCredits.js";
 
 // --- Configuration ---
 
@@ -272,7 +273,9 @@ const buildPython = (name, config, requestedPlatforms) => {
       `--paths "${config.path}"`,
       addDataFlags,
       `"${config.entry}"`,
-    ].filter(Boolean).join(" "),
+    ]
+      .filter(Boolean)
+      .join(" "),
     config.path,
   );
 };
@@ -353,6 +356,10 @@ _  __  / _  /_/ /__  /_/ /  __/  /   _  / / /_/ / /_/ /_  /_/ /     / /_/ / _  _
 logger.header("Hyperloop Control Station Build");
 
 (async () => {
+  if (targetsToBuild.some((key) => CONFIG[key].type === "frontend")) {
+    logger.info("Generating About contributors and avatars...");
+    await generateAboutCredits();
+  }
   let frontendBuilt = false;
   let allSuccess = true;
 

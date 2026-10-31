@@ -19,7 +19,7 @@ Manages the Go backend binary that handles data ingestion and pod communication.
 
 ### Functions
 
-- `startBackend(logWindow)` - Spawns the backend binary, piping stdout/stderr to the log window
+- `startBackend()` - Spawns the backend binary, buffering stdout/stderr for the log window so it can be closed and reopened without restarting the process
 - `stopBackend()` - Stops the backend process gracefully (SIGTERM)
 - `restartBackend()` - Stops and restarts the backend process
 

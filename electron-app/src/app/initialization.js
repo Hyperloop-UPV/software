@@ -3,7 +3,7 @@
  * @description Application initialization: config setup and cleanup.
  */
 
-import { Menu } from "electron";
+import { app, Menu } from "electron";
 import { getConfigManager } from "../config/configInstance.js";
 import { setupIpcHandlers } from "../ipc/handlers.js";
 import { createMenu } from "../menu/menu.js";
@@ -12,14 +12,15 @@ import { cleanupLeftoverBackendProcesses } from "./cleanup.js";
 
 /**
  * Initializes the application:
- * - Sets the application menu shared by all windows
+ * - Sets the default application menu (windows can override it)
  * - Sets up IPC handlers
  * - Initializes configuration
  * - Cleans up leftover processes
  * @returns {Promise<void>}
  */
 async function initializeApp() {
-  // Application-wide menu so shortcuts (F11 fullscreen, F12 DevTools, ...) work in every window
+  // macOS uses the application name for the leftmost menu's label.
+  if (process.platform === "darwin") app.setName("Control Station");
   Menu.setApplicationMenu(createMenu());
 
   // Setup IPC handlers for renderer process communication

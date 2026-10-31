@@ -6,6 +6,8 @@ import {
   type Page,
 } from "@playwright/test";
 import path from "path";
+import os from "node:os";
+import { access, mkdtemp, rm } from "node:fs/promises";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,14 +35,35 @@ type ElectronFixtures = {
 
 export const test = base.extend<ElectronFixtures>({
   app: async ({}, use) => {
-    const app = await electron.launch({
-      args: ["--no-sandbox", path.join(ELECTRON_APP_PATH, "main.js")],
-      cwd: ELECTRON_APP_PATH,
-      env: {
-        ...process.env,
-        NODE_ENV: "test",
-      },
-    });
+    for (const mode of (process.env.E2E_REQUIRED_VIEWS ?? "testing").split(
+      ",",
+    )) {
+      await access(
+        path.join(
+          ELECTRON_APP_PATH,
+          "renderer",
+          `${mode.trim()}-view`,
+          "index.html",
+        ),
+      );
+    }
+    const profile = await mkdtemp(
+      path.join(os.tmpdir(), "control-station-e2e-"),
+    );
+    const app = await electron
+      .launch({
+        args: ["--no-sandbox", path.join(__dirname, "electron-main.cjs")],
+        cwd: ELECTRON_APP_PATH,
+        env: {
+          ...process.env,
+          NODE_ENV: "test",
+          CONTROL_STATION_E2E_PROFILE: profile,
+        },
+      })
+      .catch(async (error) => {
+        await rm(profile, { recursive: true, force: true, maxRetries: 5 });
+        throw error;
+      });
 
     try {
       // A build containing only Testing View selects it automatically. Otherwise
@@ -75,7 +98,11 @@ export const test = base.extend<ElectronFixtures>({
       await waitForWindow(app, "/log-viewer/index.html");
       await use(app);
     } finally {
-      await app.close();
+      try {
+        await app.close();
+      } finally {
+        await rm(profile, { recursive: true, force: true, maxRetries: 5 });
+      }
     }
   },
 
@@ -86,13 +113,14 @@ export const test = base.extend<ElectronFixtures>({
     await use(page);
   },
 
-  // Wait for Testing View to leave its loading state before yielding.
+  // Interactive tests require the real backend, not a terminal error/mock state.
   page: async ({ app }, use) => {
     const page = await waitForWindow(app, "/testing-view/index.html");
     await page.waitForLoadState("domcontentloaded");
-    await page.waitForSelector(
-      '[data-testid="mode-badge"]:not([data-mode="loading"])',
-      { timeout: 15000 },
+    await expect(page.getByTestId("mode-badge")).toHaveAttribute(
+      "data-mode",
+      "active",
+      { timeout: 15_000 },
     );
     await use(page);
   },
