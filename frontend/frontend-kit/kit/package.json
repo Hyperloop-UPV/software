@@ -1,13 +1,40 @@
 {
   "name": "@hyperloop-upv/frontend-kit",
   "version": "0.1.0",
+  "description": "Shared React + Tailwind component kit and WebSocket layer for Hyperloop UPV frontends",
+  "license": "MIT",
   "type": "module",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hyperloop-UPV/software.git",
+    "directory": "frontend/frontend-kit/kit"
+  },
+  "homepage": "https://github.com/Hyperloop-UPV/software/tree/develop/frontend/frontend-kit/kit",
+  "bugs": {
+    "url": "https://github.com/Hyperloop-UPV/software/issues"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist",
+    "src",
+    "postcss.config.mjs",
+    "components.json",
+    "README.md"
+  ],
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
+    "build": "vite build",
     "lint": "eslint .",
     "icon:add": "icons-master add",
     "icon:remove": "icons-master remove"
+  },
+  "peerDependencies": {
+    "lucide-react": ">=0.500.0 <1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.1.0",
+    "tw-animate-css": "^1.4.0"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -25,30 +52,31 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.563.0",
-    "next-themes": "^0.4.6",
     "radix-ui": "^1.4.3",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
     "react-resizable-panels": "^4.6.0",
     "rxjs": "^7.8.2",
-    "tailwind-merge": "^3.4.0",
-    "tw-animate-css": "^1.4.0",
-    "zod": "^4.3.6",
-    "zustand": "^5.0.11"
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@hyperloop-upv/eslint-config": "workspace:*",
+    "@hyperloop-upv/typescript-config": "workspace:*",
     "@maximka76667/icons-master": "^1.0.3",
     "@tailwindcss/postcss": "^4.1.18",
     "@turbo/gen": "^2.8.3",
     "@types/node": "^25.2.0",
     "@types/react": "^19.2.11",
     "@types/react-dom": "^19.2.3",
-    "@hyperloop-upv/eslint-config": "workspace:*",
-    "@hyperloop-upv/typescript-config": "workspace:*",
+    "@vitejs/plugin-react-swc": "^4.2.3",
     "eslint": "^9.39.2",
+    "lucide-react": "^0.563.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3"
+    "tinyglobby": "^0.2.17",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^5.1.2"
   },
   "exports": {
     ".": "./src/index.ts",
@@ -63,7 +91,54 @@
     "./hooks/*": "./src/hooks/*.ts",
     "./store": "./src/store/index.ts",
     "./icons": "./src/icons/index.ts",
-    "./outreach/*": "./src/outreach/*"
+    "./outreach/*": "./src/outreach/*",
+    "./package.json": "./package.json"
   },
-  "description": "Shared React + Tailwind component kit and WebSocket layer for Hyperloop UPV frontends"
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./core": {
+        "types": "./dist/core/index.d.ts",
+        "default": "./dist/core/index.js"
+      },
+      "./globals.css": "./src/styles/globals.css",
+      "./postcss.config": "./postcss.config.mjs",
+      "./lib": {
+        "types": "./dist/lib/index.d.ts",
+        "default": "./dist/lib/index.js"
+      },
+      "./components": {
+        "types": "./dist/components/index.d.ts",
+        "default": "./dist/components/index.js"
+      },
+      "./hooks": {
+        "types": "./dist/hooks/index.d.ts",
+        "default": "./dist/hooks/index.js"
+      },
+      "./icons": {
+        "types": "./dist/icons/index.d.ts",
+        "default": "./dist/icons/index.js"
+      },
+      "./lib/*": {
+        "types": "./dist/lib/*.d.ts",
+        "default": "./dist/lib/*.js"
+      },
+      "./components/*": {
+        "types": "./dist/components/*.d.ts",
+        "default": "./dist/components/*.js"
+      },
+      "./hooks/*": {
+        "types": "./dist/hooks/*.d.ts",
+        "default": "./dist/hooks/*.js"
+      },
+      "./outreach/*": "./src/outreach/*",
+      "./package.json": "./package.json"
+    }
+  }
 }
