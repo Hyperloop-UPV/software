@@ -278,13 +278,15 @@ body,
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Spacing */
-  --spacing-xs: var(--spacing-xs); /* 4px */
-  --spacing-sm: var(--spacing-sm); /* 8px */
-  --spacing-md: var(--spacing-md); /* 16px */
-  --spacing-lg: var(--spacing-lg); /* 24px */
-  --spacing-xl: var(--spacing-xl); /* 32px */
-  --spacing-2xl: var(--spacing-2xl); /* 64px */
+  /* Spacing: deliberately NOT registered here.
+     The --spacing-* namespace does not only feed p-*, m-* and gap-*: it also
+     feeds w-*, h-*, min-w-* and max-w-*. Registering --spacing-lg generated a
+     max-w-lg of 24px that shadowed Tailwind's own 32rem, which collapsed every
+     Dialog (sm:max-w-lg) and Sheet (max-w-sm) to the width of their padding.
+     The values still exist on :root above, for the plain CSS that reads them
+     with var(--spacing-md); they just must not become theme tokens. If you
+     ever want p-lg style utilities, pick names that cannot collide with
+     Tailwind's size scale. */
 
   /* Fonts */
   --font-archivo:
