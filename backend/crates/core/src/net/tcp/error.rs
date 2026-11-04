@@ -48,9 +48,19 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    /// A frame could not be decoded, which means the loaded ADJ does not
-    /// describe what the board is sending. Fatal: see
-    /// [`Error::is_fatal`].
+    /// A socket read failed, or the peer closed in the middle of a frame.
+    #[error("board {board:?}: could not read")]
+    Read {
+        /// The board whose connection could not be read.
+        board: BoardId,
+        /// The underlying I/O failure, including an incomplete-frame EOF.
+        #[source]
+        source: std::io::Error,
+    },
+
+    /// The pending frame could not be decoded after exceeding the framing
+    /// limit. Under the protocol assumptions this indicates an ADJ mismatch.
+    /// Fatal: see [`Error::is_fatal`].
     #[error("board {board:?}: could not decode a frame")]
     Decode {
         /// The board whose frame failed.
@@ -91,15 +101,16 @@ impl Error {
     /// closed and reopened anyway; what changes is that the pod is also
     /// sent to fault instead of carrying on as if a retry would help.
     ///
-    /// [`Error::Connect`] and [`Error::Write`] are not fatal: a board
+    /// [`Error::Connect`], [`Error::Read`] and [`Error::Write`] are not fatal: a board
     /// that is not up yet, or a write that failed on a connection that
     /// just dropped, is exactly what the reconnection loop with its
     /// backoff is for. Losing a board for good is reported through
     /// [`crate::net::Event::Disconnected`], not through this.
+    /// EOF within a partial frame is a read failure, not proof of an ADJ mismatch.
     pub fn is_fatal(&self) -> bool {
         match self {
             Error::Decode { .. } => true,
-            Error::Connect { .. } | Error::Write { .. } => false,
+            Error::Connect { .. } | Error::Read { .. } | Error::Write { .. } => false,
         }
     }
 }

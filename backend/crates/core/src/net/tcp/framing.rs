@@ -23,12 +23,11 @@ use std::io::Cursor;
 /// Returns the decoder's error if no frame can be extracted and more than 374
 /// bytes remain. The buffer stays unchanged; the socket owner must discard the
 /// session and reconnect rather than try to resynchronise within the stream.
-// The socket reader will use this once its implementation is added.
-#[cfg_attr(not(test), allow(dead_code))]
 pub(super) fn next_frame(
     pending: &mut BytesMut,
     index: &Index,
 ) -> Result<Option<TcpFrame>, DecodeError> {
+    // Max length of a message frame
     const MAX_FRAME_LEN: usize = 374;
 
     if pending.is_empty() {
