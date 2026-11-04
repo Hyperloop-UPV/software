@@ -1,10 +1,10 @@
 //! The TCP client: one connection per board, one task each.
 //!
 //! **Session supervision not written yet.** Handles support board lookup,
-//! routing and queueing. In-memory framing and individual socket connection
-//! attempts are implemented, but task startup, socket reads and writes, and
-//! reconnection remain unimplemented. This module exposes the error type [`super::Error`]
-//! aggregates and defines the transport contract.
+//! routing and queueing. In-memory framing, individual connection attempts and
+//! session reading with reporting are implemented. Task startup, socket writes
+//! and reconnection remain unimplemented. This module exposes the error type
+//! [`super::Error`] aggregates and defines the transport contract.
 //! See [`super`] and `net/README.md`.
 //!
 //! # What this module is
@@ -88,6 +88,7 @@ mod connection;
 mod error;
 mod framing;
 mod handles;
+mod reader;
 
 pub use board_handle::BoardHandle;
 pub use error::{Error, SendError, Unreachable};
@@ -190,6 +191,7 @@ pub fn spawn(config: Config, adj: Arc<Index>, reporter: Reporter) -> Handles {
 mod tests {
     use super::*;
     use crate::protocol::DecodeError;
+    use std::path::Path;
 
     fn io_error() -> std::io::Error {
         std::io::Error::from(std::io::ErrorKind::ConnectionRefused)
@@ -233,5 +235,70 @@ mod tests {
         // The identity survives being formatted, which is what reaches
         // the operator.
         assert!(error.to_string().contains("BoardId(3)"));
+    }
+
+    #[tokio::test]
+    #[ignore = "manual test: start the documented nc listener on 127.0.0.1:50500 first"]
+    // THIS TEST IS SPECIAL:
+    //
+    // To try it, you need two terminals. Run these commands in this order,
+    // one in each terminal:
+    // 1. `{
+    //        printf '\x03\x00\x0c\x1e\x00\x00nc\x00One\x00'
+    //        printf '\x03\x00\x0c\x1e\x00\x00nc\x00Two\x00'
+    //        printf '\x03\x00\x0c\x1e\x00\x00n'
+    //        sleep 3
+    //        printf 'c\x00Three\x00'
+    //      } | nc -lN 127.0.0.1 50500`
+    // 2. `cargo test -p software-core -F net manual_tcp_receive -- --ignored --nocapture`
+    //
+    // The first two frames are sent whole. The third frame is split across two
+    // writes with a three-second delay. TCP may split or combine reads differently;
+    // the framing code must not depend on write/read boundaries matching.
+    // The test prints each complete frame, then finishes when nc closes the connection.
+    //
+    // This test checks connection, framing and reporting by displaying notifications.
+    async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
+        // Load the fixture ADJ so the real protocol decoder can resolve message ID 3.
+        let adj_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/adj/test/adj");
+        let adj = crate::adj::load_from_dir(&adj_path)?;
+        let index = Arc::new(Index::new(&adj.pod_data, Some(&adj.info.message_levels)));
+        let addr = "127.0.0.1:50500".parse()?;
+        let link = BoardLink {
+            board: BoardId(1),
+            addr,
+            local_port: 0,
+        };
+
+        // Connect to netcat; this test is ignored by the normal automated suite.
+        let stream = connection::connect(&link, Duration::from_secs(5)).await?;
+        let (read_half, _write_half) = stream.into_split();
+        let (reporter, mut sinks) = Reporter::channels(1, 1);
+        let receiving = async {
+            let result = reader::receive(read_half, link.board, &index, &reporter).await;
+            // Close the notification channel after either success or failure so printing ends.
+            drop(reporter);
+            result
+        };
+        let displaying = async {
+            let mut frames = 0;
+            while let Some(notification) = sinks.notifications.recv().await {
+                println!("Received notification: {notification:?}");
+                frames += 1;
+            }
+            frames
+        };
+
+        // Drain concurrently to respect backpressure; only the manual test has a deadline.
+        let (end, frames) = tokio::time::timeout(Duration::from_secs(30), async {
+            tokio::join!(receiving, displaying)
+        })
+        .await?;
+        assert_eq!(end?, reader::ReceiveEnd::PeerClosed);
+        assert!(
+            frames > 0,
+            "the peer closed without sending a complete frame"
+        );
+        Ok(())
     }
 }
