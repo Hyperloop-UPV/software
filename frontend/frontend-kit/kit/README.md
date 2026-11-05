@@ -88,36 +88,12 @@ with no build-time transform.
 
 ## Using it from another repository
 
-The kit is published to **GitHub Packages**, not npmjs.com. That registry
-requires a token for every request, **including downloading a public package**,
-so there is a one-time setup per contributor and per CI job.
+The kit is published to **npmjs.com** as a public package, so there is nothing
+to set up: no `.npmrc`, no token, no registry configuration, in your machine or
+in CI. That is why it is published there rather than to GitHub Packages, whose
+npm registry demands a personal access token even to download a public package.
 
-`.npmrc` in the consuming repository:
-
-```
-@hyperloop-upv:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
-```
-
-Each contributor exports `NODE_AUTH_TOKEN` with a **classic** personal access
-token carrying the `read:packages` scope, from
-<https://github.com/settings/tokens>. Use a classic token: fine-grained ones
-still have patchy support for this registry. Without the variable, the install
-fails with `ERR_PNPM_FETCH_401`.
-
-In CI, use the job's own token and grant it read access to packages:
-
-```yaml
-permissions:
-  contents: read
-  packages: read # required even for a public package
-steps:
-  - run: pnpm install --frozen-lockfile
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-Then install the package and the peer dependencies it expects you to own:
+Install it and the peer dependencies it expects you to own:
 
 ```bash
 pnpm add @hyperloop-upv/frontend-kit
@@ -126,8 +102,9 @@ pnpm add -D tailwindcss @tailwindcss/vite
 ```
 
 > To try a change before it is published, build a tarball with
-> `pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack` and
-> `pnpm add` that file directly. No registry and no token involved.
+> `pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack` and `pnpm add`
+> that file directly, or point at a local checkout with
+> `pnpm add file:../software/frontend/frontend-kit/kit` while you iterate.
 
 `src/index.css`:
 
@@ -217,8 +194,13 @@ release as the latest.
 number with `pnpm version --no-git-tag-version`, and the tag is the record of
 what was published from which commit.
 
-First release only: check the package is public under Organisation -> Packages
--> Package settings, and that this repository has write access.
+Before the first release, two one-time steps: create the `hyperloop-upv`
+organisation on npmjs.com (free for public packages), and add an **automation**
+token from Access Tokens as the `NPM_TOKEN` repository secret. It must be an
+automation token: any other kind fails when the organisation enforces 2FA. The
+run checks the secret exists before it builds anything, and `publishConfig`
+carries `access: public`, without which npm would try to publish a scoped
+package privately and fail.
 
 **A published version can never be reused.** Deleting a version does not free
 the number. If `0.2.0` is wrong, publish `0.2.1`.

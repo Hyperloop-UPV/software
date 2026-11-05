@@ -1,7 +1,7 @@
 name: Publish Frontend Kit
 
-# Publishes @hyperloop-upv/frontend-kit to GitHub Packages so a frontend in
-# another repository can install it.
+# Publishes @hyperloop-upv/frontend-kit to npmjs.com so a frontend in another
+# repository can install it with no token and no .npmrc.
 #
 # The kit versions independently of the Control Station: its number describes
 # its own API, so a consumer can read it and judge the risk of upgrading.
@@ -34,10 +34,9 @@ jobs:
     name: Publish @hyperloop-upv/frontend-kit
     runs-on: ubuntu-latest
     permissions:
-      # write, not read: the release step below creates a tag.
+      # write, not read: the release step below creates a tag. Publishing goes
+      # to npmjs.com with NPM_TOKEN, so no packages permission is needed.
       contents: write
-      # Not the default. Without it, publishing fails with a bare 403.
-      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -51,7 +50,7 @@ jobs:
           cache: "pnpm"
           # Writes an auth-ready npmrc outside the working tree, so the git
           # tree stays clean.
-          registry-url: "https://npm.pkg.github.com"
+          registry-url: "https://registry.npmjs.org"
           scope: "@hyperloop-upv"
 
       - name: Resolve version and dist-tag
@@ -83,6 +82,20 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "tag=$tag" >> $GITHUB_OUTPUT
           echo "publishing $version under dist-tag $tag"
+
+      # A missing secret should fail now, not after the build, and with a
+      # message that says what to do.
+      - name: Check the publish token is set
+        if: ${{ inputs.dry-run == false }}
+        shell: bash
+        run: |
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN is not set. Create an automation token on npmjs.com (Access Tokens -> Generate -> Automation) and add it as a repository secret."
+            exit 1
+          fi
+          echo "NPM_TOKEN present"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # With independent numbering nobody remembers the last version, so check
       # it rather than trust the person who filled the form.
@@ -204,7 +217,7 @@ jobs:
         if: ${{ inputs.dry-run == false }}
         run: pnpm publish --filter=@hyperloop-upv/frontend-kit --no-git-checks --tag ${{ steps.resolve.outputs.tag }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # The kit gets its own tag and release, so a standalone publish leaves a
       # record in git too, and so the package has a changelog of its own that
