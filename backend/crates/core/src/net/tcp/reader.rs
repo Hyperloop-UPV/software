@@ -48,14 +48,20 @@ pub(super) async fn receive(
     index: &Index,
     reporter: &Reporter,
 ) -> Result<ReceiveEnd, Error> {
+    // pending bytes to be processed by framing function
     let mut pending = BytesMut::new();
+    // Chunk of the maximus size of a TCP stream (of bytes)
     let mut chunk = [0; 1024];
 
     loop {
+        // returns the number of bytes read
         let read = reader
+            // modifies the chunk with the readed data
             .read(&mut chunk)
             .await
             .map_err(|source| Error::Read { board, source })?;
+
+        // if no bytes are readed
         if read == 0 {
             return if pending.is_empty() {
                 Ok(ReceiveEnd::PeerClosed)
@@ -70,6 +76,7 @@ pub(super) async fn receive(
             };
         }
 
+        // adds only the bytes readed (modified) of the chunk to the pending ones
         pending.extend_from_slice(&chunk[..read]);
         while let Some(frame) = framing::next_frame(&mut pending, index)
             .map_err(|source| Error::Decode { board, source })?
@@ -78,6 +85,8 @@ pub(super) async fn receive(
                 TcpFrame::Message(message) => Packet::Message(message),
                 TcpFrame::Protection(protection) => Packet::Protection(protection),
             };
+
+            // if the reporter succeeds notifying the event
             if reporter
                 .notify(board, Event::Received(packet))
                 .await

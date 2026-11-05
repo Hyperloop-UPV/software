@@ -39,8 +39,11 @@ pub(super) fn next_frame(
         Ok(frame) => {
             let consumed = cursor.position() as usize;
             pending.advance(consumed);
+            // Everything ok, returns the frame
             Ok(Some(frame))
         }
+        // if the function returns an error and the pending bytes
+        // are greater than the max frame sneds an error
         Err(error) if pending.len() > MAX_FRAME_LEN => Err(error),
         Err(_) => Ok(None),
     }

@@ -1,6 +1,6 @@
 use crate::{
     model::{AdjId, BoardId},
-    protocol::DecodeError,
+    protocol::{DecodeError, EncodeError},
 };
 
 /// Why an order could not be handed to a writer.
@@ -9,16 +9,27 @@ use crate::{
 /// says something about the order that was asked for, not about the state
 /// of a connection. [`Error`] is the one that travels on the error
 /// channel.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum SendError {
     /// No order with this id is declared in the loaded ADJ: the id is absent
-    /// or belongs to another packet type.
+    /// or belongs to another packet type. Returned by [`super::Handles::send`]
+    /// during routing; direct board sends retain the encoder's error in `Encode`.
     #[error("no order is declared with id {0:?}")]
     UnknownId(AdjId),
     /// The order resolves to a board the config did not list, so no
     /// client was ever opened for it.
     #[error("board {0:?} has no TCP client: the config does not list it")]
     NoClient(BoardId),
+    /// The order could not be encoded against the shared index.
+    /// No bytes were queued; this is not a connection failure.
+    #[error("board {board:?}: could not encode order")]
+    Encode {
+        /// The board selected for this send.
+        board: BoardId,
+        /// The original protocol validation or encoding error.
+        #[source]
+        source: EncodeError,
+    },
     /// The order channel's receiver has been closed or dropped.
     /// This is not the same as a disconnected TCP socket.
     #[error("board {0:?}: its connection task is gone")]
@@ -75,7 +86,7 @@ pub enum Error {
     Write {
         /// The board that was being written to.
         board: BoardId,
-        /// The underlying I/O failure.
+        /// The underlying I/O failure, including `TimedOut` for an elapsed frame deadline.
         #[source]
         source: std::io::Error,
     },
