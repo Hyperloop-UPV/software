@@ -190,67 +190,60 @@ export const log = createLogger("pod-dashboard");
 
 ## Releasing
 
-The kit rides along with the Control Station: **Actions -> Release Electron App**
-publishes the kit at the same version as its last job, so `v11.3.2` of the
-Control Station and `@hyperloop-upv/frontend-kit@11.3.2` always mean the same
-commit. Nothing extra to run. The `publish-kit` input, on by default, turns it
-off for a release that should not move the package.
+The kit versions **independently of the Control Station**. Two separate
+workflows: *Release Electron App* ships the station and does not touch the kit,
+*Publish Frontend Kit* publishes the package and does not touch the station.
 
-That job is last and depends on the whole release succeeding, because
-publishing cannot be undone and must not happen for a release that failed to
-build.
+That is deliberate. The kit's number describes the kit's own API, so a frontend
+in another repository can read it and judge an upgrade: `^0.2.0` means what it
+says. Sharing the station's numbering would have made the number describe
+release cadence instead, and a consumer could not tell a breaking change from a
+release that did not touch the kit at all.
 
-Each publish also creates the kit's own tag and GitHub release,
-`frontend-kit-v11.3.2`, carrying the tarball and notes covering only what
-changed since the previous kit release. So a publish always leaves a record in
-git, including a standalone one, and the package has a changelog that does not
-have to be read out of the Control Station's notes. It is marked
-`--latest=false`, so the repository page keeps showing the Control Station's
-release as the latest one.
+To publish: Actions -> **Publish Frontend Kit** -> enter the version, leave
+**dry-run on**. It packs, prints the tarball contents and attaches it as an
+artifact without publishing. Read that, then run it again with dry-run off.
 
-**The `version` in this `package.json` is a placeholder**, the same `0.0.0`
-convention `electron-app` uses. CI injects the real number with
-`pnpm version --no-git-tag-version`, and the git tag is the record of what was
-published from which commit. Do not bump it by hand expecting it to mean
-anything.
+Before anything irreversible it refuses a version that is already released or
+below the latest one, so a wrong number in the form fails instead of burning
+it.
 
-### The dist-tag
+Each publish creates `frontend-kit-v<version>` with the tarball attached and
+notes covering only what changed since the previous kit release, marked
+`--latest=false` so the repository page keeps showing the Control Station's
+release as the latest.
 
-A version with a prerelease part (`11.3.2-beta-2`, `11.3.2-1`) is published
-under the `next` dist-tag instead of `latest`, so `pnpm add
-@hyperloop-upv/frontend-kit` keeps resolving to the last stable release. Taking
-a prerelease is then explicit:
-
-```bash
-pnpm add @hyperloop-upv/frontend-kit@next
-```
-
-### Publishing the kit on its own
-
-For a kit-only release, Actions -> **Publish Frontend Kit** -> enter the
-version, leave **dry-run on**. It packs, prints the tarball contents and
-attaches it as an artifact without publishing. Read that, then run it again
-with dry-run off. Pick a version above the last published one; the Control
-Station numbering is shared, so a kit-only release normally takes the next
-patch.
+**The `version` in this `package.json` is a placeholder.** CI injects the real
+number with `pnpm version --no-git-tag-version`, and the tag is the record of
+what was published from which commit.
 
 First release only: check the package is public under Organisation -> Packages
 -> Package settings, and that this repository has write access.
 
 **A published version can never be reused.** Deleting a version does not free
-the number. If `11.3.2` is wrong, publish `11.3.3`.
+the number. If `0.2.0` is wrong, publish `0.2.1`.
 
-### Versioning, and what it means for a consumer
+### The dist-tag
 
-Versions are shared with the Control Station, so the numbers track **releases
-of the station, not the kit's own API**. A minor bump may carry a breaking
-change to a component, and a major bump may change nothing here at all. An
-external consumer should therefore pin the exact version it was tested
-against, or pin a patch range and read the release notes before moving:
+A version with a prerelease part (`0.3.0-beta.1`) is published under the `next`
+dist-tag instead of `latest`, so `pnpm add @hyperloop-upv/frontend-kit` keeps
+resolving to the last stable release. Taking a prerelease is then explicit:
+
+```bash
+pnpm add @hyperloop-upv/frontend-kit@next
+```
+
+### What a consumer should pin
+
+Ordinary semver applies, so a caret range is safe on a stable line:
 
 ```json
-"@hyperloop-upv/frontend-kit": "~11.3.2"
+"@hyperloop-upv/frontend-kit": "^0.2.0"
 ```
+
+On `0.x` that anchors the minor: it picks up `0.2.x` patches but needs a
+deliberate edit to move to `0.3.0`, which is the right default while the API
+is still settling.
 
 The five apps in this monorepo stay on `workspace:*` and are unaffected by what
 is published: pnpm always prefers the local link.

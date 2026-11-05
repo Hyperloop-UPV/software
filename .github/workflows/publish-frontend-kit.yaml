@@ -3,36 +3,23 @@ name: Publish Frontend Kit
 # Publishes @hyperloop-upv/frontend-kit to GitHub Packages so a frontend in
 # another repository can install it.
 #
-# Normally runs as part of release.yaml, at the same version as the Control
-# Station, so the two always ship together. Can also be dispatched on its own
-# to cut a kit-only release.
+# The kit versions independently of the Control Station: its number describes
+# its own API, so a consumer can read it and judge the risk of upgrading.
+# Releasing the station does not publish the kit, and this workflow does not
+# touch the station.
 #
-# As with electron-app, the version is injected here and is not committed: the
-# number in package.json is a placeholder, and the git tag created by
-# release.yaml is the record of what was published from which commit.
+# The version is injected here and is not committed: the number in package.json
+# is a placeholder, and the frontend-kit-v<version> tag this workflow creates is
+# the record of what was published from which commit.
 #
 # A published version can never be reused. Deleting it does not free the
-# number: if 11.3.2 is wrong, publish 11.3.3.
+# number: if 0.2.0 is wrong, publish 0.2.1.
 
 on:
-  workflow_call:
-    inputs:
-      version:
-        description: "Version to publish, without a leading v"
-        required: true
-        type: string
-      dry-run:
-        description: "Pack and check only, do not publish"
-        type: boolean
-        default: true
-      tag:
-        description: "npm dist-tag. Derived from the version when empty"
-        type: string
-        default: ""
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (e.g., 11.3.2)"
+        description: "Version to publish (e.g., 0.2.0). The kit has its own numbering"
         required: true
       dry-run:
         description: "Pack and check only, do not publish"
@@ -96,6 +83,35 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "tag=$tag" >> $GITHUB_OUTPUT
           echo "publishing $version under dist-tag $tag"
+
+      # With independent numbering nobody remembers the last version, so check
+      # it rather than trust the person who filled the form.
+      - name: Check the version moves forward
+        shell: bash
+        run: |
+          set -uo pipefail
+          V='${{ steps.resolve.outputs.version }}'
+          TAGS=$(gh release list --limit 100 --json tagName -q \
+            '.[].tagName | select(startswith("frontend-kit-v"))' | sed 's/^frontend-kit-v//')
+
+          if [ -z "$TAGS" ]; then
+            echo "no kit release yet; $V is the first"
+            exit 0
+          fi
+
+          if printf '%s\n' "$TAGS" | grep -qx "$V"; then
+            echo "::error::$V is already released. A version can never be reused; pick a higher one."
+            exit 1
+          fi
+
+          LATEST=$(printf '%s\n' "$TAGS" | sort -V | tail -1)
+          if [ "$(printf '%s\n%s\n' "$LATEST" "$V" | sort -V | tail -1)" != "$V" ]; then
+            echo "::error::$V is below the latest release $LATEST."
+            exit 1
+          fi
+          echo "$LATEST -> $V"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
