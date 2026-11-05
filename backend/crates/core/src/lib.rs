@@ -2,6 +2,12 @@
 
 pub mod hello_world;
 
+/// # Git module
+/// Handles updates and changes within the ADJ.  
+/// Checks the ADJ Github repository and 
+#[cfg(feature = "git")]
+pub mod git;
+
 /// Basic domain types: identifiers, values, measurements, protections,
 /// packets and boards.
 pub mod model;
