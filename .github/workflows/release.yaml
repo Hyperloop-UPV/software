@@ -395,7 +395,9 @@ jobs:
     needs: [determine-version, package-and-upload]
     if: needs.determine-version.outputs.publish_kit == 'true'
     permissions:
-      contents: read
+      # A caller's permissions cap the called workflow's, and that workflow
+      # creates the kit's own tag, so read is not enough here.
+      contents: write
       packages: write
     uses: ./.github/workflows/publish-frontend-kit.yaml
     with:

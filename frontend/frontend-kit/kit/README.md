@@ -200,6 +200,14 @@ That job is last and depends on the whole release succeeding, because
 publishing cannot be undone and must not happen for a release that failed to
 build.
 
+Each publish also creates the kit's own tag and GitHub release,
+`frontend-kit-v11.3.2`, carrying the tarball and notes covering only what
+changed since the previous kit release. So a publish always leaves a record in
+git, including a standalone one, and the package has a changelog that does not
+have to be read out of the Control Station's notes. It is marked
+`--latest=false`, so the repository page keeps showing the Control Station's
+release as the latest one.
+
 **The `version` in this `package.json` is a placeholder**, the same `0.0.0`
 convention `electron-app` uses. CI injects the real number with
 `pnpm version --no-git-tag-version`, and the git tag is the record of what was

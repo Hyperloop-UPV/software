@@ -47,7 +47,8 @@ jobs:
     name: Publish @hyperloop-upv/frontend-kit
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # write, not read: the release step below creates a tag.
+      contents: write
       # Not the default. Without it, publishing fails with a bare 403.
       packages: write
     steps:
@@ -189,6 +190,41 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The kit gets its own tag and release, so a standalone publish leaves a
+      # record in git too, and so the package has a changelog of its own that
+      # does not have to be read out of the Control Station's notes.
+      - name: Release
+        if: ${{ inputs.dry-run == false }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          V='${{ steps.resolve.outputs.version }}'
+          TAG="frontend-kit-v$V"
+
+          # Notes since the previous kit release, not since the Control
+          # Station's, which would list everything in the repo.
+          PREV=$(gh release list --limit 100 --json tagName -q \
+            '.[].tagName | select(startswith("frontend-kit-v"))' | head -1)
+          NOTES_FROM=""
+          if [ -n "$PREV" ]; then NOTES_FROM="--notes-start-tag $PREV"; fi
+
+          # --latest=false keeps the Control Station's release as the one the
+          # repository page shows.
+          if gh release create "$TAG" \
+              --title "Frontend Kit v$V" \
+              --target "$GITHUB_SHA" \
+              --latest=false \
+              --generate-notes $NOTES_FROM \
+              /tmp/kit/hyperloop-upv-frontend-kit-"$V".tgz; then
+            echo "created $TAG"
+          else
+            # The package is already published by this point, so a failure here
+            # is cosmetic and must not turn the run red.
+            echo "::warning::could not create $TAG; the package is published regardless"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Summary
         shell: bash
         run: |
@@ -199,4 +235,5 @@ jobs:
           else
             echo "### Published \`@hyperloop-upv/frontend-kit@$V\`" >> $GITHUB_STEP_SUMMARY
             echo "dist-tag: \`${{ steps.resolve.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "Tagged \`frontend-kit-v$V\`." >> $GITHUB_STEP_SUMMARY
           fi
