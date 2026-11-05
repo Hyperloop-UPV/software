@@ -8,13 +8,12 @@ pub mod hello_world;
 #[cfg(feature = "git")]
 pub mod git;
 
-/// NTP server
-#[cfg(feature = "ntp")]
-pub mod ntp;
-
 /// Basic domain types: identifiers, values, measurements, protections,
 /// packets and boards.
 pub mod model;
+/// NTP server
+#[cfg(feature = "ntp")]
+pub mod ntp;
 
 /// Parses an ADJ (Architecture Description JSON) directory into
 /// [`model::PodData`], plus backend-session metadata not modeled as
@@ -25,3 +24,8 @@ pub mod adj;
 /// [`adj`] declares as the schema. See [`protocol::wire`],
 /// [`protocol::tcp`], [`protocol::udp`].
 pub mod protocol;
+
+/// Owns the real tokio sockets and reports what arrives on them, calling
+/// into [`protocol`] to decode. See [`net::tcp`], [`net::udp`].
+#[cfg(feature = "net")]
+pub mod net;
