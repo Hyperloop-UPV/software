@@ -41,6 +41,10 @@ tracing-subscriber = { workspace = true, optional = true , features = ["env-filt
 tracing-appender = { workspace = true, optional = true }
 ntp_usg-server = { version = "5.0.0", optional = true, features = ["ipv4", "tokio"] }
 
+[dev-dependencies]
+# Virtual time makes the writer's per-frame deadlines deterministic in tests.
+tokio = { workspace = true, features = ["test-util"] }
+
 # `workspace = true` can't be combined with extra lints in the same table,
 # so the workspace list is repeated here with `missing_docs` added: this is
 # the crate meant to be reused by other projects, so its public API must be

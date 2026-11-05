@@ -2,7 +2,7 @@
 //!
 //! **Session supervision not written yet.** Handles support board lookup,
 //! routing, order encoding and byte queueing. In-memory framing, connection
-//! attempts, session reading with reporting and queued frame writing are
+//! attempts, session reading with reporting and queued frame/keep-alive writing are
 //! implemented. Task startup and reconnection remain unimplemented. This module
 //! exposes the error type [`super::Error`] aggregates and defines the transport contract.
 //! See [`super`] and `net/README.md`.
@@ -161,8 +161,11 @@ pub struct Config {
     /// What to wait between attempts.
     pub backoff: Backoff,
     /// Period of the application-level keep-alive: an empty order with ID 1.
-    /// Its periodic writer is not implemented yet. The OS-level keep-alive is
-    /// disabled precisely because this application-level one will exist.
+    /// Zero disables it. The first send waits one period; subsequent periods
+    /// start when the previous keep-alive finishes. Ordinary orders do not reset
+    /// the timer, and overdue sends never accumulate into a catch-up burst.
+    /// The session writer implements this; startup through `spawn` is still pending.
+    /// OS-level keep-alive remains disabled in favor of this application packet.
     pub keep_alive: Duration,
     /// Bound on each write, so that a peer that stops reading cannot park
     /// a writer task for good (1 s in the Go backend).
