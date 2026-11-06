@@ -30,6 +30,8 @@ pub(super) enum ReceiveEnd {
 /// A full notification channel applies backpressure instead of dropping frames.
 /// Consumer closure is detected when publishing, not while an idle socket read
 /// is pending. There is no read timeout: silence is not a protocol violation.
+/// Cancelling this future discards its buffered bytes and any packet still
+/// waiting for notification capacity; already queued notifications are retained.
 ///
 /// Only `Received` notifications are emitted. The session owner handles logging,
 /// error reporting, connection events and disposal of both socket halves. This
@@ -40,8 +42,6 @@ pub(super) enum ReceiveEnd {
 /// Returns [`Error::Read`] for socket failures or EOF in a partial frame, and
 /// [`Error::Decode`] for a terminal framing error. Completed preceding frames
 /// have already been published. The read half is dropped when the function ends.
-// The session supervisor will use this once it is implemented.
-#[cfg_attr(not(test), allow(dead_code))]
 pub(super) async fn receive(
     mut reader: OwnedReadHalf,
     board: BoardId,

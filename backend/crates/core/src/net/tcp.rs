@@ -1,10 +1,11 @@
 //! The TCP client: one connection per board, one task each.
 //!
-//! **Session supervision not written yet.** Handles support board lookup,
+//! **Connection supervision not written yet.** Handles support board lookup,
 //! routing, order encoding and byte queueing. In-memory framing, connection
-//! attempts, session reading with reporting and queued frame/keep-alive writing are
-//! implemented. Task startup and reconnection remain unimplemented. This module
-//! exposes the error type [`super::Error`] aggregates and defines the transport contract.
+//! attempts, session reading with reporting, queued frame/keep-alive writing and
+//! coordinated session teardown are implemented. Task startup and reconnection
+//! remain unimplemented. This module exposes the error type [`super::Error`]
+//! aggregates and defines the transport contract.
 //! See [`super`] and `net/README.md`.
 //!
 //! # What this module is
@@ -89,6 +90,7 @@ mod error;
 mod framing;
 mod handles;
 mod reader;
+mod session;
 mod writer;
 
 pub use board_handle::BoardHandle;

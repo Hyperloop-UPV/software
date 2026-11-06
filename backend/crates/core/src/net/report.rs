@@ -150,14 +150,14 @@ impl Reporter {
 
     /// Stamps the instant and queues `event`.
     ///
-    /// **Waits** if the channel is full, rather than dropping anything:
-    /// a packet that has already been decoded always reaches the
-    /// consumer. What that costs is backpressure — the wait reaches back
-    /// to the read loop, which stops reading, and the kernel's own
-    /// receive buffer becomes the only place anything can be lost. That
-    /// is deliberate: whatever is dropped there is dropped *before* being
-    /// decoded, so "everything decoded gets through" stays literally
-    /// true.
+    /// **Waits** if the channel is full, rather than dropping on congestion.
+    /// The backpressure reaches the read loop, which stops reading until
+    /// capacity is available. Success means queued, not yet consumed.
+    ///
+    /// Cancelling this future while it waits discards the not-yet-queued
+    /// notification. Immediate TCP session teardown can do this even for an
+    /// already decoded packet. Notifications already queued are unaffected
+    /// by cancelling the producer; consumer closure returns [`Closed`].
     ///
     /// The instant is taken before the wait, not after, so a full queue
     /// delays the notification without distorting its timestamp.

@@ -44,8 +44,6 @@ const KEEP_ALIVE: [u8; 2] = [0x01, 0x00];
 ///
 /// Returns non-fatal [`Error::Write`] with the original I/O error, or an I/O
 /// error of kind [`io::ErrorKind::TimedOut`] when a frame deadline elapses.
-// The session supervisor will use this once it is implemented.
-#[cfg_attr(not(test), allow(dead_code))]
 pub(super) async fn send(
     writer: OwnedWriteHalf,
     board: BoardId,
