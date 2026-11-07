@@ -194,14 +194,29 @@ notes covering only what changed since the previous kit release, marked
 `--latest=false` so the repository page keeps showing the Control Station's
 release as the latest.
 
+The run publishes the tarball it just packed and checked, with `npm publish`
+rather than `pnpm publish`. That is safe only because `pnpm pack` has already
+applied `publishConfig` to the manifest inside it: running `npm publish` on the
+package directory would ignore `publishConfig` and ship exports pointing at
+`.tsx`, with no error.
+
 **The `version` in this `package.json` is a placeholder.** CI injects the real
 number with `pnpm version --no-git-tag-version`, and the tag is the record of
 what was published from which commit.
 
-Before the first release, one step: add an **automation** token from the
-`hyperloopupv` account's Access Tokens as the `NPM_TOKEN` repository secret. It
-must be an automation token, because any other kind asks for a 2FA code that CI
-cannot supply. The
+There is no npm token anywhere. Publishing uses **trusted publishing**: the job
+mints an OIDC token, npm exchanges it for a short-lived credential, and the
+upload carries a provenance attestation for free. That configuration lives on
+the package's npm settings page and names this repository **and this workflow's
+filename**, so renaming `publish-frontend-kit.yaml` breaks publishing with an
+error that does not say so.
+
+Two version floors come with it: npm CLI 11.5.1 and Node 22.14. The job installs
+a current npm rather than trusting the runner image. Note also that pnpm 11
+broke OIDC publishing with a 404 where pnpm 10 works, so do not bump
+`packageManager` without checking that first.
+
+The
 run checks the secret exists before it builds anything, and `publishConfig`
 carries `access: public`, without which npm would try to publish a scoped
 package privately and fail.

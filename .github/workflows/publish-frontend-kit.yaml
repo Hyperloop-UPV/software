@@ -34,9 +34,12 @@ jobs:
     name: Publish @hyperloopupv/frontend-kit
     runs-on: ubuntu-latest
     permissions:
-      # write, not read: the release step below creates a tag. Publishing goes
-      # to npmjs.com with NPM_TOKEN, so no packages permission is needed.
+      # write, not read: the release step below creates a tag.
       contents: write
+      # Required for npm trusted publishing: this is what lets the job mint an
+      # OIDC token and exchange it for a short-lived publish credential, so
+      # there is no long-lived npm token anywhere.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -48,10 +51,18 @@ jobs:
         with:
           node-version: "24"
           cache: "pnpm"
-          # Writes an auth-ready npmrc outside the working tree, so the git
-          # tree stays clean.
+          # Points the registry at npmjs.com. No token is written: the
+          # credential comes from the OIDC exchange at publish time.
           registry-url: "https://registry.npmjs.org"
           scope: "@hyperloopupv"
+
+      # Trusted publishing needs npm 11.5.1 or newer. Node 24 ships a recent
+      # npm, but pin it rather than depend on what the runner image happens to
+      # carry today.
+      - name: Ensure npm supports trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
 
       - name: Resolve version and dist-tag
         id: resolve
@@ -82,20 +93,6 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "tag=$tag" >> $GITHUB_OUTPUT
           echo "publishing $version under dist-tag $tag"
-
-      # A missing secret should fail now, not after the build, and with a
-      # message that says what to do.
-      - name: Check the publish token is set
-        if: ${{ inputs.dry-run == false }}
-        shell: bash
-        run: |
-          if [ -z "${NPM_TOKEN:-}" ]; then
-            echo "::error::NPM_TOKEN is not set. Create an automation token on npmjs.com (Access Tokens -> Generate -> Automation) and add it as a repository secret."
-            exit 1
-          fi
-          echo "NPM_TOKEN present"
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # With independent numbering nobody remembers the last version, so check
       # it rather than trust the person who filled the form.
@@ -212,12 +209,24 @@ jobs:
           path: /tmp/kit/*.tgz
           retention-days: 7
 
-      # Fails closed: anything other than an explicit boolean false skips this.
+      # Publishes the tarball built above, the exact bytes the checks ran
+      # against, rather than re-resolving the package from the directory.
+      #
+      # npm, not pnpm, and only safe because of that: the manifest inside the
+      # tarball already has publishConfig applied by pnpm pack, so its exports
+      # point at dist. Running `npm publish` on the package directory instead
+      # would ignore publishConfig and ship exports pointing at .tsx, with no
+      # error at publish time.
+      #
+      # Authentication is the OIDC exchange, which also attaches a provenance
+      # attestation. Fails closed: anything other than an explicit boolean
+      # false skips this.
       - name: Publish
         if: ${{ inputs.dry-run == false }}
-        run: pnpm publish --filter=@hyperloopupv/frontend-kit --no-git-checks --tag ${{ steps.resolve.outputs.tag }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish /tmp/kit/hyperloopupv-frontend-kit-${{ steps.resolve.outputs.version }}.tgz \
+            --access public \
+            --tag ${{ steps.resolve.outputs.tag }}
 
       # The kit gets its own tag and release, so a standalone publish leaves a
       # record in git too, and so the package has a changelog of its own that
