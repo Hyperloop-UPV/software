@@ -109,12 +109,16 @@ jobs:
             exit 0
           fi
 
-          if printf '%s\n' "$TAGS" | grep -qx "$V"; then
+          # Here-string, not a pipe: `grep -q` exiting early would SIGPIPE the
+          # writer and pipefail would read that as "no match", silently letting
+          # a duplicate version through.
+          if grep -qx "$V" <<< "$TAGS"; then
             echo "::error::$V is already released. A version can never be reused; pick a higher one."
             exit 1
           fi
 
-          LATEST=$(printf '%s\n' "$TAGS" | sort -V | tail -1)
+          # sort and tail read their input to the end, so these are safe.
+          LATEST=$(sort -V <<< "$TAGS" | tail -1)
           if [ "$(printf '%s\n%s\n' "$LATEST" "$V" | sort -V | tail -1)" != "$V" ]; then
             echo "::error::$V is below the latest release $LATEST."
             exit 1
@@ -136,13 +140,26 @@ jobs:
         run: pnpm build --filter=@hyperloopupv/frontend-kit
 
       - name: Pack
+        id: pack
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/kit
+          rm -rf /tmp/kit && mkdir -p /tmp/kit
           pnpm --filter @hyperloopupv/frontend-kit exec pnpm pack --pack-destination /tmp/kit
+
+          # Read the name off disk instead of spelling it out. It is derived
+          # from the package name, so writing it by hand means every rename
+          # has to remember to update it here too, in several places.
+          mapfile -t FOUND < <(find /tmp/kit -maxdepth 1 -name '*.tgz')
+          if [ "${#FOUND[@]}" -ne 1 ]; then
+            echo "::error::expected exactly one tarball, found ${#FOUND[@]}"
+            exit 1
+          fi
+          echo "tarball=${FOUND[0]}" >> $GITHUB_OUTPUT
+          echo "packed ${FOUND[0]}"
+
           echo "::group::Tarball contents"
-          tar -tzf /tmp/kit/hyperloop-upv-frontend-kit-${{ steps.resolve.outputs.version }}.tgz | sort
+          tar -tzf "${FOUND[0]}" | sort
           echo "::endgroup::"
 
       # Catches the failures that are cheap to prevent and impossible to undo
@@ -151,7 +168,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          T=/tmp/kit/hyperloop-upv-frontend-kit-${{ steps.resolve.outputs.version }}.tgz
+          T='${{ steps.pack.outputs.tarball }}'
 
           # Via a file, not a pipe: a heredoc would occupy stdin and the
           # script would read nothing.
@@ -199,8 +216,16 @@ jobs:
           PY
 
           # Tailwind needs the kit's sources to find its classes in node_modules.
-          tar -tzf "$T" | grep -qx 'package/src/components/shadcn/sidebar.tsx' \
-            || { echo "::error::src/ is missing from the tarball"; exit 1; }
+          #
+          # Listed to a file first, deliberately. Piping tar into `grep -q`
+          # makes grep exit on the first match, tar die of SIGPIPE, and
+          # pipefail fail the step although the file was found. It depends on
+          # whether tar finished writing first, so it fails intermittently.
+          tar -tzf "$T" > /tmp/kit/listing.txt
+          if ! grep -qx 'package/src/components/shadcn/sidebar.tsx' /tmp/kit/listing.txt; then
+            echo "::error::src/ is missing from the tarball"
+            exit 1
+          fi
           echo "  ok   src/ ships alongside dist/"
 
       - uses: actions/upload-artifact@v4
@@ -224,7 +249,7 @@ jobs:
       - name: Publish
         if: ${{ inputs.dry-run == false }}
         run: |
-          npm publish /tmp/kit/hyperloopupv-frontend-kit-${{ steps.resolve.outputs.version }}.tgz \
+          npm publish '${{ steps.pack.outputs.tarball }}' \
             --access public \
             --tag ${{ steps.resolve.outputs.tag }}
 
@@ -253,7 +278,7 @@ jobs:
               --target "$GITHUB_SHA" \
               --latest=false \
               --generate-notes $NOTES_FROM \
-              /tmp/kit/hyperloop-upv-frontend-kit-"$V".tgz; then
+              '${{ steps.pack.outputs.tarball }}'; then
             echo "created $TAG"
           else
             # The package is already published by this point, so a failure here
