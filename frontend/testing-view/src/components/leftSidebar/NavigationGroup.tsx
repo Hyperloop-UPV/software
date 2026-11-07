@@ -4,8 +4,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@hyperloop-upv/frontend-kit/components";
-import { type LucideIcon } from "@hyperloop-upv/frontend-kit/icons";
+} from "@hyperloopupv/frontend-kit/components";
+import { type LucideIcon } from "@hyperloopupv/frontend-kit/icons";
 import { Link } from "react-router";
 
 interface NavigationGroupProps {

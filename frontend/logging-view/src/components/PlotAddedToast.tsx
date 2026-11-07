@@ -2,8 +2,8 @@
 // (issue: adding a plot gave no on-screen feedback). Mirrors SessionStatusToast's
 // auto-dismiss + manual-dismiss pattern, but anchored bottom-right so it never
 // overlaps that top-right session toast.
-import { CheckCircle2, X } from "@hyperloop-upv/frontend-kit/icons";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import { CheckCircle2, X } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useEffect } from "react";
 import { useStore } from "../store/store";
 import { sessionStatusStyles } from "./sidebar/sessionStatusStyles";

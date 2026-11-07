@@ -1,6 +1,6 @@
 name: Publish Frontend Kit
 
-# Publishes @hyperloop-upv/frontend-kit to npmjs.com so a frontend in another
+# Publishes @hyperloopupv/frontend-kit to npmjs.com so a frontend in another
 # repository can install it with no token and no .npmrc.
 #
 # The kit versions independently of the Control Station: its number describes
@@ -31,7 +31,7 @@ on:
 
 jobs:
   publish:
-    name: Publish @hyperloop-upv/frontend-kit
+    name: Publish @hyperloopupv/frontend-kit
     runs-on: ubuntu-latest
     permissions:
       # write, not read: the release step below creates a tag. Publishing goes
@@ -51,7 +51,7 @@ jobs:
           # Writes an auth-ready npmrc outside the working tree, so the git
           # tree stays clean.
           registry-url: "https://registry.npmjs.org"
-          scope: "@hyperloop-upv"
+          scope: "@hyperloopupv"
 
       - name: Resolve version and dist-tag
         id: resolve
@@ -136,14 +136,14 @@ jobs:
         run: pnpm version ${{ steps.resolve.outputs.version }} --no-git-tag-version --allow-same-version
 
       - name: Build
-        run: pnpm build --filter=@hyperloop-upv/frontend-kit
+        run: pnpm build --filter=@hyperloopupv/frontend-kit
 
       - name: Pack
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/kit
-          pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack --pack-destination /tmp/kit
+          pnpm --filter @hyperloopupv/frontend-kit exec pnpm pack --pack-destination /tmp/kit
           echo "::group::Tarball contents"
           tar -tzf /tmp/kit/hyperloop-upv-frontend-kit-${{ steps.resolve.outputs.version }}.tgz | sort
           echo "::endgroup::"
@@ -215,7 +215,7 @@ jobs:
       # Fails closed: anything other than an explicit boolean false skips this.
       - name: Publish
         if: ${{ inputs.dry-run == false }}
-        run: pnpm publish --filter=@hyperloop-upv/frontend-kit --no-git-checks --tag ${{ steps.resolve.outputs.tag }}
+        run: pnpm publish --filter=@hyperloopupv/frontend-kit --no-git-checks --tag ${{ steps.resolve.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -262,7 +262,7 @@ jobs:
             echo "### Dry run: nothing was published" >> $GITHUB_STEP_SUMMARY
             echo "Tarball for \`$V\` is attached as an artifact. Re-run with dry-run off to publish." >> $GITHUB_STEP_SUMMARY
           else
-            echo "### Published \`@hyperloop-upv/frontend-kit@$V\`" >> $GITHUB_STEP_SUMMARY
+            echo "### Published \`@hyperloopupv/frontend-kit@$V\`" >> $GITHUB_STEP_SUMMARY
             echo "dist-tag: \`${{ steps.resolve.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
             echo "Tagged \`frontend-kit-v$V\`." >> $GITHUB_STEP_SUMMARY
           fi

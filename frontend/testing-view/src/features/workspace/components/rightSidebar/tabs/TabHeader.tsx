@@ -1,5 +1,5 @@
-import { Button } from "@hyperloop-upv/frontend-kit";
-import { AlertTriangle, ListFilterPlus } from "@hyperloop-upv/frontend-kit/icons";
+import { Button } from "@hyperloopupv/frontend-kit";
+import { AlertTriangle, ListFilterPlus } from "@hyperloopupv/frontend-kit/icons";
 import { useShallow } from "zustand/shallow";
 import { detectExtraBoards } from "../../../../../lib/utils";
 import { useStore } from "../../../../../store/store";

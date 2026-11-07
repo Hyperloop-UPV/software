@@ -1,6 +1,6 @@
-import { Badge } from "@hyperloop-upv/frontend-kit";
-import { Check, X } from "@hyperloop-upv/frontend-kit/icons";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import { Badge } from "@hyperloopupv/frontend-kit";
+import { Check, X } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useCallback } from "react";
 import { useStore } from "../../../../../../store/store";
 

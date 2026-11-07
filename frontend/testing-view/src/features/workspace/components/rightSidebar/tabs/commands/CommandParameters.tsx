@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@hyperloop-upv/frontend-kit";
+} from "@hyperloopupv/frontend-kit";
 import type {
   CommandParameter,
   EnumCommandParameter,

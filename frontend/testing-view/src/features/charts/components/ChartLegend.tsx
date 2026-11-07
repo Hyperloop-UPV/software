@@ -1,4 +1,4 @@
-import { Eye, EyeOff, X } from "@hyperloop-upv/frontend-kit/icons";
+import { Eye, EyeOff, X } from "@hyperloopupv/frontend-kit/icons";
 import { COLORS } from "../constants/chartsColors";
 import type { WorkspaceChartSeries } from "../types/charts";
 import { ChartSettings } from "./ChartSettings";

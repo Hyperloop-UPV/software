@@ -5,8 +5,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@hyperloop-upv/frontend-kit";
-import { AlertTriangle } from "@hyperloop-upv/frontend-kit/icons";
+} from "@hyperloopupv/frontend-kit";
+import { AlertTriangle } from "@hyperloopupv/frontend-kit/icons";
 import { type ComponentType } from "react";
 import type { BoardName } from "../../../types/data/board";
 

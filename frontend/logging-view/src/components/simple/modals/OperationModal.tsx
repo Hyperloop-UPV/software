@@ -8,8 +8,8 @@ import {
   DialogTitle,
   Input,
   Label,
-} from "@hyperloop-upv/frontend-kit/components";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+} from "@hyperloopupv/frontend-kit/components";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 import { performOperation } from "../../../lib/plotStudio/operations";
 import { useStore } from "../../../store/store";

@@ -1,4 +1,4 @@
-import { FlaskConical, ScrollText } from "@hyperloop-upv/frontend-kit/icons";
+import { FlaskConical, ScrollText } from "@hyperloopupv/frontend-kit/icons";
 
 /** Pages of the application showed in the left sidebar. */
 export const PAGES = {

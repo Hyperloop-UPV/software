@@ -1,4 +1,4 @@
-import { Separator, SidebarTrigger } from "@hyperloop-upv/frontend-kit";
+import { Separator, SidebarTrigger } from "@hyperloopupv/frontend-kit";
 import { useLocation } from "react-router";
 import { PAGES } from "../../constants/pages";
 import { KeyBindingsButton } from "../../features/keyBindings/components/KeyBindingsButton";

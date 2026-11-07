@@ -1,4 +1,4 @@
-import { Badge } from "@hyperloop-upv/frontend-kit/components";
+import { Badge } from "@hyperloopupv/frontend-kit/components";
 import { memo } from "react";
 import { formatMessageTimestamp, messageContent } from "../../../lib/message";
 import type { Message, MessageKind } from "../../../types/message";

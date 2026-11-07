@@ -1,4 +1,4 @@
-import { config } from "@hyperloop-upv/eslint-config/react-internal";
+import { config } from "@hyperloopupv/eslint-config/react-internal";
 
 /** @type {import("eslint").Linter.Config} */
 export default [

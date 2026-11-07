@@ -2,7 +2,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@hyperloop-upv/frontend-kit";
+} from "@hyperloopupv/frontend-kit";
 import { memo } from "react";
 import { useStore } from "../../../../../../store/store";
 import type { TelemetryCatalogItem } from "../../../../../../types/data/telemetryCatalogItem";

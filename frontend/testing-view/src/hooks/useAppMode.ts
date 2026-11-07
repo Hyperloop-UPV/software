@@ -1,4 +1,4 @@
-import { logger } from "@hyperloop-upv/frontend-kit/core";
+import { logger } from "@hyperloopupv/frontend-kit/core";
 import { useCallback, useEffect } from "react";
 import { useStore } from "../store/store";
 import type { OrdersData, PacketsData } from "../types/data/board";

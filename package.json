@@ -20,8 +20,8 @@
     "ui:add": "pnpm dlx shadcn@latest add -c frontend/frontend-kit/kit"
   },
   "devDependencies": {
-    "@hyperloop-upv/eslint-config": "workspace:*",
-    "@hyperloop-upv/typescript-config": "workspace:*",
+    "@hyperloopupv/eslint-config": "workspace:*",
+    "@hyperloopupv/typescript-config": "workspace:*",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.8.3",

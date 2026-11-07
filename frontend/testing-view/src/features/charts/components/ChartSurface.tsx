@@ -1,7 +1,7 @@
-import type { TelemetryPacket } from "@hyperloop-upv/frontend-kit/core";
-import { Button } from "@hyperloop-upv/frontend-kit";
-import { ChevronLeft, ChevronRight, X } from "@hyperloop-upv/frontend-kit/icons";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import type { TelemetryPacket } from "@hyperloopupv/frontend-kit/core";
+import { Button } from "@hyperloopupv/frontend-kit";
+import { ChevronLeft, ChevronRight, X } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { memo, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import { useShallow } from "zustand/shallow";

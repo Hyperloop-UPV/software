@@ -1,4 +1,4 @@
-import { Button } from "@hyperloop-upv/frontend-kit/components";
+import { Button } from "@hyperloopupv/frontend-kit/components";
 import type { BoardOrdersData } from "../../../types/catalog";
 import { BOARDS, VCU } from "../../../constants/measurements";
 import {

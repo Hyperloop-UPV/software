@@ -1,5 +1,5 @@
 {
-  "name": "@hyperloop-upv/frontend-kit",
+  "name": "@hyperloopupv/frontend-kit",
   "version": "0.0.0",
   "description": "Shared React + Tailwind component kit and WebSocket layer for Hyperloop UPV frontends",
   "license": "MIT",
@@ -58,8 +58,8 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
-    "@hyperloop-upv/eslint-config": "workspace:*",
-    "@hyperloop-upv/typescript-config": "workspace:*",
+    "@hyperloopupv/eslint-config": "workspace:*",
+    "@hyperloopupv/typescript-config": "workspace:*",
     "@maximka76667/icons-master": "^1.0.3",
     "@tailwindcss/postcss": "^4.1.18",
     "@turbo/gen": "^2.8.3",

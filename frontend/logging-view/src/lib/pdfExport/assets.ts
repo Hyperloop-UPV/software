@@ -1,7 +1,7 @@
 // Branding assets + page geometry shared by every page builder in this module.
-import fullLogo from "@hyperloop-upv/frontend-kit/outreach/main/full_logo_black.png?inline";
-import swLogo from "@hyperloop-upv/frontend-kit/outreach/main/software_black.png?inline";
-import checkLogo from "@hyperloop-upv/frontend-kit/outreach/main/check_black.png?inline";
+import fullLogo from "@hyperloopupv/frontend-kit/outreach/main/full_logo_black.png?inline";
+import swLogo from "@hyperloopupv/frontend-kit/outreach/main/software_black.png?inline";
+import checkLogo from "@hyperloopupv/frontend-kit/outreach/main/check_black.png?inline";
 
 export const PDF_ASSETS = {
   fullLogo,

@@ -8,7 +8,7 @@ import {
   DialogTitle,
   Input,
   Label,
-} from "@hyperloop-upv/frontend-kit/components";
+} from "@hyperloopupv/frontend-kit/components";
 import { useState } from "react";
 import { applyTransform } from "../../../lib/plotStudio/transforms";
 import { useStore } from "../../../store/store";

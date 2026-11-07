@@ -1,5 +1,5 @@
-import { logger, socketService } from "@hyperloop-upv/frontend-kit/core";
-import { useTopic } from "@hyperloop-upv/frontend-kit/hooks";
+import { logger, socketService } from "@hyperloopupv/frontend-kit/core";
+import { useTopic } from "@hyperloopupv/frontend-kit/hooks";
 import { useEffect, useState } from "react";
 import { config } from "../../config";
 import { useStore } from "../store/store";

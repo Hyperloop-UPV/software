@@ -4,8 +4,8 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@hyperloop-upv/frontend-kit";
-import { Settings2 } from "@hyperloop-upv/frontend-kit/icons";
+} from "@hyperloopupv/frontend-kit";
+import { Settings2 } from "@hyperloopupv/frontend-kit/icons";
 import { config } from "../../../../config";
 import { useStore } from "../../../store/store";
 

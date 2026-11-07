@@ -14,8 +14,8 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@hyperloop-upv/frontend-kit";
-import { X } from "@hyperloop-upv/frontend-kit/icons";
+} from "@hyperloopupv/frontend-kit";
+import { X } from "@hyperloopupv/frontend-kit/icons";
 import { useEffect, useRef, useState } from "react";
 import { getDefaultParameterValues } from "../../../lib/commandUtils";
 import { useStore } from "../../../store/store";

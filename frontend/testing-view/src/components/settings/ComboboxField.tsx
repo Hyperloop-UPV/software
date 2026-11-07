@@ -5,10 +5,10 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-} from "@hyperloop-upv/frontend-kit/components";
-import { Button } from "@hyperloop-upv/frontend-kit/components/shadcn/button";
-import { Label } from "@hyperloop-upv/frontend-kit/components/shadcn/label";
-import { RefreshCw } from "@hyperloop-upv/frontend-kit/icons";
+} from "@hyperloopupv/frontend-kit/components";
+import { Button } from "@hyperloopupv/frontend-kit/components/shadcn/button";
+import { Label } from "@hyperloopupv/frontend-kit/components/shadcn/label";
+import { RefreshCw } from "@hyperloopupv/frontend-kit/icons";
 import { useEffect, useState } from "react";
 import type { BranchesFetchState } from "../../hooks/useBranches";
 import type { FieldProps } from "../../types/common/settings";

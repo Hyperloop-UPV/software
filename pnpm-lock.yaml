@@ -8,10 +8,10 @@ importers:
 
   .:
     devDependencies:
-      '@hyperloop-upv/eslint-config':
+      '@hyperloopupv/eslint-config':
         specifier: workspace:*
         version: link:frontend/frontend-kit/eslint-config
-      '@hyperloop-upv/typescript-config':
+      '@hyperloopupv/typescript-config':
         specifier: workspace:*
         version: link:frontend/frontend-kit/typescript-config
       prettier:
@@ -76,7 +76,7 @@ importers:
 
   frontend/adj-view:
     dependencies:
-      '@hyperloop-upv/frontend-kit':
+      '@hyperloopupv/frontend-kit':
         specifier: workspace:*
         version: link:../frontend-kit/kit
       '@tailwindcss/vite':
@@ -98,10 +98,10 @@ importers:
         specifier: ^4.1.18
         version: 4.3.0
     devDependencies:
-      '@hyperloop-upv/eslint-config':
+      '@hyperloopupv/eslint-config':
         specifier: workspace:^
         version: link:../frontend-kit/eslint-config
-      '@hyperloop-upv/typescript-config':
+      '@hyperloopupv/typescript-config':
         specifier: workspace:*
         version: link:../frontend-kit/typescript-config
       '@types/react':
@@ -122,7 +122,7 @@ importers:
 
   frontend/competition-view:
     dependencies:
-      '@hyperloop-upv/frontend-kit':
+      '@hyperloopupv/frontend-kit':
         specifier: workspace:*
         version: link:../frontend-kit/kit
       '@tailwindcss/vite':
@@ -153,10 +153,10 @@ importers:
         specifier: ^5.0.11
         version: 5.0.11(@types/react@19.2.11)(immer@11.1.0)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
-      '@hyperloop-upv/eslint-config':
+      '@hyperloopupv/eslint-config':
         specifier: workspace:^
         version: link:../frontend-kit/eslint-config
-      '@hyperloop-upv/typescript-config':
+      '@hyperloopupv/typescript-config':
         specifier: workspace:*
         version: link:../frontend-kit/typescript-config
       '@types/react':
@@ -180,7 +180,7 @@ importers:
 
   frontend/flashing-view:
     dependencies:
-      '@hyperloop-upv/frontend-kit':
+      '@hyperloopupv/frontend-kit':
         specifier: workspace:*
         version: link:../frontend-kit/kit
       '@tailwindcss/vite':
@@ -202,10 +202,10 @@ importers:
         specifier: ^4.1.18
         version: 4.3.0
     devDependencies:
-      '@hyperloop-upv/eslint-config':
+      '@hyperloopupv/eslint-config':
         specifier: workspace:^
         version: link:../frontend-kit/eslint-config
-      '@hyperloop-upv/typescript-config':
+      '@hyperloopupv/typescript-config':
         specifier: workspace:*
         version: link:../frontend-kit/typescript-config
       '@types/react':
@@ -326,10 +326,10 @@ importers:
         specifier: ^3.4.0
         version: 3.4.0
     devDependencies:
-      '@hyperloop-upv/eslint-config':
+      '@hyperloopupv/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
-      '@hyperloop-upv/typescript-config':
+      '@hyperloopupv/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@maximka76667/icons-master':
@@ -391,7 +391,7 @@ importers:
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@hyperloop-upv/frontend-kit':
+      '@hyperloopupv/frontend-kit':
         specifier: workspace:*
         version: link:../frontend-kit/kit
       '@tailwindcss/vite':
@@ -434,10 +434,10 @@ importers:
         specifier: ^5.0.11
         version: 5.0.11(@types/react@19.2.11)(immer@11.1.0)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
-      '@hyperloop-upv/eslint-config':
+      '@hyperloopupv/eslint-config':
         specifier: workspace:^
         version: link:../frontend-kit/eslint-config
-      '@hyperloop-upv/typescript-config':
+      '@hyperloopupv/typescript-config':
         specifier: workspace:*
         version: link:../frontend-kit/typescript-config
       '@types/react':
@@ -473,7 +473,7 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.4)
-      '@hyperloop-upv/frontend-kit':
+      '@hyperloopupv/frontend-kit':
         specifier: workspace:*
         version: link:../frontend-kit/kit
       '@radix-ui/react-slot':
@@ -519,10 +519,10 @@ importers:
         specifier: ^5.0.11
         version: 5.0.11(@types/react@19.2.11)(immer@11.1.0)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
-      '@hyperloop-upv/eslint-config':
+      '@hyperloopupv/eslint-config':
         specifier: workspace:^
         version: link:../frontend-kit/eslint-config
-      '@hyperloop-upv/typescript-config':
+      '@hyperloopupv/typescript-config':
         specifier: workspace:*
         version: link:../frontend-kit/typescript-config
       '@types/react':

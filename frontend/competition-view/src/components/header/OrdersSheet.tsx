@@ -8,9 +8,9 @@ import {
   SheetTitle,
   SheetTrigger,
   Skeleton,
-} from "@hyperloop-upv/frontend-kit/components";
-import { Send } from "@hyperloop-upv/frontend-kit/icons";
-import { useWebSocket } from "@hyperloop-upv/frontend-kit/hooks";
+} from "@hyperloopupv/frontend-kit/components";
+import { Send } from "@hyperloopupv/frontend-kit/icons";
+import { useWebSocket } from "@hyperloopupv/frontend-kit/hooks";
 import { useState } from "react";
 import useOrdersCatalog from "../../hooks/useOrdersCatalog";
 import { useStore } from "../../store/store";

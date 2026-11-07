@@ -4,8 +4,8 @@ import {
   DialogHeader,
   DialogTitle,
   Separator,
-} from "@hyperloop-upv/frontend-kit/components";
-import { Keyboard } from "@hyperloop-upv/frontend-kit/icons";
+} from "@hyperloopupv/frontend-kit/components";
+import { Keyboard } from "@hyperloopupv/frontend-kit/icons";
 import { SHORTCUT_DEFS } from "../hooks/useKeyboardShortcuts";
 
 interface KeyboardShortcutsHelpProps {

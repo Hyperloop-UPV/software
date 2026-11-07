@@ -1,5 +1,5 @@
 {
-  "extends": "@hyperloop-upv/typescript-config/react-library.json",
+  "extends": "@hyperloopupv/typescript-config/react-library.json",
   "include": ["."],
   "exclude": ["node_modules", "dist"]
 }

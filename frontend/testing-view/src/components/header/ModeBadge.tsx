@@ -1,4 +1,4 @@
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useStore } from "../../store/store";
 import type { AppMode } from "../../types/app/mode";
 

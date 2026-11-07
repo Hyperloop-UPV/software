@@ -1,5 +1,5 @@
-import { Button } from "@hyperloop-upv/frontend-kit";
-import { Trash2 } from "@hyperloop-upv/frontend-kit/icons";
+import { Button } from "@hyperloopupv/frontend-kit";
+import { Trash2 } from "@hyperloopupv/frontend-kit/icons";
 import { useStore } from "../../../../../store/store";
 import { MessagesList } from "./MessagesList";
 

@@ -1,4 +1,4 @@
-import { logger } from "@hyperloop-upv/frontend-kit/core";
+import { logger } from "@hyperloopupv/frontend-kit/core";
 import { useMemo } from "react";
 import { formatName } from "../lib/utils";
 import { MOCK_COMMANDS_CATALOG } from "../mocks/commands";

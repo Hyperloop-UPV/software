@@ -1,5 +1,5 @@
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@hyperloop-upv/frontend-kit/components";
-import { AlertTriangle } from "@hyperloop-upv/frontend-kit/icons";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@hyperloopupv/frontend-kit/components";
+import { AlertTriangle } from "@hyperloopupv/frontend-kit/icons";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface Props {

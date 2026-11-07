@@ -2,9 +2,9 @@
 // plots and composed series are managed in the right studio panel, laid out
 // VS Code-style: a fixed activity bar with one open section at a time, and
 // only the plots area scrolls.
-import { Button, Separator } from "@hyperloop-upv/frontend-kit/components";
-import { FileDown, PanelRight, Plus, X } from "@hyperloop-upv/frontend-kit/icons";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import { Button, Separator } from "@hyperloopupv/frontend-kit/components";
+import { FileDown, PanelRight, Plus, X } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../store/store";
 import PdfExportModal from "./modals/PdfExportModal";

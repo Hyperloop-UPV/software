@@ -1,4 +1,4 @@
-# `@hyperloop-upv/frontend-kit`
+# `@hyperloopupv/frontend-kit`
 
 The shared frontend package for the Hyperloop Control Station: reusable styled
 components and hooks built on **React**, **Shadcn/UI** and **Tailwind CSS**,
@@ -22,12 +22,12 @@ it too. See [Using it from another repository](#using-it-from-another-repository
 ### Import paths
 
 ```ts
-import { Button } from "@hyperloop-upv/frontend-kit/components";
-import { useTopic } from "@hyperloop-upv/frontend-kit/hooks";
-import { ChevronDown } from "@hyperloop-upv/frontend-kit/icons";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
-import { socketService } from "@hyperloop-upv/frontend-kit/core";
-import logo from "@hyperloop-upv/frontend-kit/outreach/main/logo_icon.svg";
+import { Button } from "@hyperloopupv/frontend-kit/components";
+import { useTopic } from "@hyperloopupv/frontend-kit/hooks";
+import { ChevronDown } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
+import { socketService } from "@hyperloopupv/frontend-kit/core";
+import logo from "@hyperloopupv/frontend-kit/outreach/main/logo_icon.svg";
 ```
 
 Inside this package, always use **relative** imports. Referring to the package
@@ -63,7 +63,7 @@ pnpm icon:remove <icon-name> src/icons
 ## Build
 
 ```bash
-pnpm --filter @hyperloop-upv/frontend-kit build
+pnpm --filter @hyperloopupv/frontend-kit build
 ```
 
 Vite in library mode with Rollup's `preserveModules`, which mirrors `src/` into
@@ -89,27 +89,31 @@ with no build-time transform.
 ## Using it from another repository
 
 The kit is published to **npmjs.com** as a public package, so there is nothing
-to set up: no `.npmrc`, no token, no registry configuration, in your machine or
-in CI. That is why it is published there rather than to GitHub Packages, whose
-npm registry demands a personal access token even to download a public package.
+to set up: no `.npmrc`, no token, no registry configuration, on your machine or
+in CI. That is why it goes there rather than to GitHub Packages, whose npm
+registry demands a personal access token even to download a public package.
+
+Note the scope is `@hyperloopupv`, **without the hyphen**. `@hyperloop-upv` on
+npm belongs to an older account of the team's, used for the 2021 and 2023
+frontends, whose credentials were lost.
 
 Install it and the peer dependencies it expects you to own:
 
 ```bash
-pnpm add @hyperloop-upv/frontend-kit
+pnpm add @hyperloopupv/frontend-kit
 pnpm add react react-dom lucide-react tw-animate-css
 pnpm add -D tailwindcss @tailwindcss/vite
 ```
 
 > To try a change before it is published, build a tarball with
-> `pnpm --filter @hyperloop-upv/frontend-kit exec pnpm pack` and `pnpm add`
+> `pnpm --filter @hyperloopupv/frontend-kit exec pnpm pack` and `pnpm add`
 > that file directly, or point at a local checkout with
 > `pnpm add file:../software/frontend/frontend-kit/kit` while you iterate.
 
 `src/index.css`:
 
 ```css
-@import "@hyperloop-upv/frontend-kit/globals.css";
+@import "@hyperloopupv/frontend-kit/globals.css";
 
 /* Add your own sources. The kit's stylesheet can only register files inside
    the kit, because its directive resolves relative to node_modules. */
@@ -148,7 +152,7 @@ The socket defaults to `ws://127.0.0.1:4000/backend`. For anything else, set it
 once when the app boots:
 
 ```ts
-import { configureSocket } from "@hyperloop-upv/frontend-kit/core";
+import { configureSocket } from "@hyperloopupv/frontend-kit/core";
 
 configureSocket({ url: import.meta.env.VITE_WS_URL });
 // or: configureSocket({ host: "pod.local", port: 8080, secure: true });
@@ -157,7 +161,7 @@ configureSocket({ url: import.meta.env.VITE_WS_URL });
 ### Registering your own logger module
 
 ```ts
-import { ansi, createLogger, registerLoggerColor } from "@hyperloop-upv/frontend-kit/core";
+import { ansi, createLogger, registerLoggerColor } from "@hyperloopupv/frontend-kit/core";
 
 registerLoggerColor("pod-dashboard", ansi.cyan);
 export const log = createLogger("pod-dashboard");
@@ -194,10 +198,10 @@ release as the latest.
 number with `pnpm version --no-git-tag-version`, and the tag is the record of
 what was published from which commit.
 
-Before the first release, two one-time steps: create the `hyperloop-upv`
-organisation on npmjs.com (free for public packages), and add an **automation**
-token from Access Tokens as the `NPM_TOKEN` repository secret. It must be an
-automation token: any other kind fails when the organisation enforces 2FA. The
+Before the first release, one step: add an **automation** token from the
+`hyperloopupv` account's Access Tokens as the `NPM_TOKEN` repository secret. It
+must be an automation token, because any other kind asks for a 2FA code that CI
+cannot supply. The
 run checks the secret exists before it builds anything, and `publishConfig`
 carries `access: public`, without which npm would try to publish a scoped
 package privately and fail.
@@ -208,11 +212,11 @@ the number. If `0.2.0` is wrong, publish `0.2.1`.
 ### The dist-tag
 
 A version with a prerelease part (`0.3.0-beta.1`) is published under the `next`
-dist-tag instead of `latest`, so `pnpm add @hyperloop-upv/frontend-kit` keeps
+dist-tag instead of `latest`, so `pnpm add @hyperloopupv/frontend-kit` keeps
 resolving to the last stable release. Taking a prerelease is then explicit:
 
 ```bash
-pnpm add @hyperloop-upv/frontend-kit@next
+pnpm add @hyperloopupv/frontend-kit@next
 ```
 
 ### What a consumer should pin
@@ -220,7 +224,7 @@ pnpm add @hyperloop-upv/frontend-kit@next
 Ordinary semver applies, so a caret range is safe on a stable line:
 
 ```json
-"@hyperloop-upv/frontend-kit": "^0.2.0"
+"@hyperloopupv/frontend-kit": "^0.2.0"
 ```
 
 On `0.x` that anchors the minor: it picks up `0.2.x` patches but needs a

@@ -1,5 +1,5 @@
-import { SidebarMenuButton } from "@hyperloop-upv/frontend-kit";
-import { Palette } from "@hyperloop-upv/frontend-kit/icons";
+import { SidebarMenuButton } from "@hyperloopupv/frontend-kit";
+import { Palette } from "@hyperloopupv/frontend-kit/icons";
 import { useStore } from "../../store/store";
 import { colorSchemes } from "../../types/app/colorSchema";
 

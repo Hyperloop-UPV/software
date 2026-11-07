@@ -1,4 +1,4 @@
-import { Button } from "@hyperloop-upv/frontend-kit";
+import { Button } from "@hyperloopupv/frontend-kit";
 import { useStore } from "../../store/store";
 import type { AppMode } from "../../types/app/mode";
 

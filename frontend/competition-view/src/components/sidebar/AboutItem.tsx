@@ -5,10 +5,10 @@ import {
   DialogTitle,
   Separator,
   SidebarMenuButton,
-} from "@hyperloop-upv/frontend-kit/components";
+} from "@hyperloopupv/frontend-kit/components";
 import { Info } from "lucide-react";
 import { useState } from "react";
-import logo from "@hyperloop-upv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
+import logo from "@hyperloopupv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
 
 /**
  * Sidebar footer item that opens the About dialog with team credits.

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@hyperloop-upv/frontend-kit/components";
+import { Card, CardContent, CardHeader, CardTitle } from "@hyperloopupv/frontend-kit/components";
 import type { ReactNode } from "react";
 
 type Props = {

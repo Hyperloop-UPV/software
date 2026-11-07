@@ -9,8 +9,8 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@hyperloop-upv/frontend-kit/components";
-import { BookOpen } from "@hyperloop-upv/frontend-kit/icons";
+} from "@hyperloopupv/frontend-kit/components";
+import { BookOpen } from "@hyperloopupv/frontend-kit/icons";
 import type { ReactNode } from "react";
 import {
   ETH_FCS_BYTES,

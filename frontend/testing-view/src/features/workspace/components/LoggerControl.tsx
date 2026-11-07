@@ -1,6 +1,6 @@
-import { Button, Separator } from "@hyperloop-upv/frontend-kit";
-import { FolderOpen, Settings2 } from "@hyperloop-upv/frontend-kit/icons";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import { Button, Separator } from "@hyperloopupv/frontend-kit";
+import { FolderOpen, Settings2 } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { LOGGER_CONTROL_CONFIG } from "../../../constants/loggerControlConfig";
 import { useLogger } from "../../../hooks/useLogger";
 import { useOpenFolder } from "../../../hooks/useOpenFolder";

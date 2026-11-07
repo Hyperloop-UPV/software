@@ -2,9 +2,9 @@
 // "Composed" entry for operations/transforms); choosing a board drills into
 // its series with a filter box and a back button. Built on Popover because
 // Radix Select cannot nest levels.
-import { Input, Popover, PopoverContent, PopoverTrigger } from "@hyperloop-upv/frontend-kit/components";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Search } from "@hyperloop-upv/frontend-kit/icons";
-import { cn } from "@hyperloop-upv/frontend-kit/lib";
+import { Input, Popover, PopoverContent, PopoverTrigger } from "@hyperloopupv/frontend-kit/components";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Search } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 import { useAvailableSignals, type AvailableSignal } from "./hooks/useStudioSignals";
 

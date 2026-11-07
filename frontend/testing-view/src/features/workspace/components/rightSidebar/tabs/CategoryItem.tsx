@@ -1,4 +1,4 @@
-import { Collapsible, CollapsibleContent } from "@hyperloop-upv/frontend-kit";
+import { Collapsible, CollapsibleContent } from "@hyperloopupv/frontend-kit";
 import { type ComponentType } from "react";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../../../store/store";

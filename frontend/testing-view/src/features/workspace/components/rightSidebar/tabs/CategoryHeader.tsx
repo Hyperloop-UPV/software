@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronLeft } from "@hyperloop-upv/frontend-kit/icons";
+import { ChevronDown, ChevronLeft } from "@hyperloopupv/frontend-kit/icons";
 
 interface CategoryHeaderProps {
   name: string;

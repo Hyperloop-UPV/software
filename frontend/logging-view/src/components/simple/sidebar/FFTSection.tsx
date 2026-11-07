@@ -1,7 +1,7 @@
 // FFT sample-rate control. Shows the rate auto-detected from the loaded data
 // (median Δt of the first signal) and lets the user override it manually.
-import { Button, Input, Label } from "@hyperloop-upv/frontend-kit/components";
-import { RefreshCw, Timer } from "@hyperloop-upv/frontend-kit/icons";
+import { Button, Input, Label } from "@hyperloopupv/frontend-kit/components";
+import { RefreshCw, Timer } from "@hyperloopupv/frontend-kit/icons";
 import { useMemo, useState } from "react";
 import { useStore } from "../../../store/store";
 
