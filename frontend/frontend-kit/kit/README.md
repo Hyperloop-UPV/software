@@ -171,58 +171,85 @@ export const log = createLogger("pod-dashboard");
 
 ## Releasing
 
-The kit versions **independently of the Control Station**. Two separate
-workflows: *Release Electron App* ships the station and does not touch the kit,
-*Publish Frontend Kit* publishes the package and does not touch the station.
+### How to cut a release
+
+1. Merge the change into `develop`. The workflow only appears in the Actions
+   tab when it is on the default branch.
+2. Actions -> **Publish Frontend Kit** -> *Run workflow*. Enter the version,
+   **leave dry-run on**.
+3. Read the run. It prints the whole tarball listing and attaches the `.tgz` as
+   an artifact, and it has published nothing.
+4. Run it again with **dry-run off**. That one publishes.
+
+There is nothing to commit first and nothing to bump: the version comes from
+the form. Pick it with ordinary semver, describing what changed in *the kit*.
+
+### Why the kit versions on its own
+
+Two separate workflows that do not touch each other: *Release Electron App*
+ships the Control Station, *Publish Frontend Kit* publishes the package.
 
 That is deliberate. The kit's number describes the kit's own API, so a frontend
 in another repository can read it and judge an upgrade: `^0.2.0` means what it
 says. Sharing the station's numbering would have made the number describe
 release cadence instead, and a consumer could not tell a breaking change from a
-release that did not touch the kit at all.
+release that never touched the kit.
 
-To publish: Actions -> **Publish Frontend Kit** -> enter the version, leave
-**dry-run on**. It packs, prints the tarball contents and attaches it as an
-artifact without publishing. Read that, then run it again with dry-run off.
+### What the run actually does
 
-Before anything irreversible it refuses a version that is already released or
-below the latest one, so a wrong number in the form fails instead of burning
-it.
+In order, and everything before step 6 is reversible:
 
-Each publish creates `frontend-kit-v<version>` with the tarball attached and
-notes covering only what changed since the previous kit release, marked
-`--latest=false` so the repository page keeps showing the Control Station's
-release as the latest.
+1. **Resolves the version and the dist-tag.** Strips a leading `v`. A version
+   with a prerelease part goes to `next` rather than `latest`.
+2. **Refuses to go backwards.** Fails if that version is already released, or
+   if it sorts below the latest one. Compared with `sort -V`, so `0.10.0` ranks
+   above `0.3.0`.
+3. **Injects the version** with `pnpm version --no-git-tag-version`. The number
+   in `package.json` is a placeholder and stays one; the git tag is the record
+   of what shipped from which commit.
+4. **Builds and packs** with pnpm. This is the step that applies
+   `publishConfig`, rewriting `exports` from `src/*.tsx` to `dist/*.js`.
+5. **Checks the tarball**: that `private` and the `preinstall` hook did not
+   survive, that `publishConfig` was applied, that `./core` points at `dist`,
+   that `globals.css` is served from `src`, that the five peers are declared,
+   that no literal `workspace:` range leaked, and that `src/` ships.
+6. **Publishes** the tarball from step 4 — the exact bytes step 5 checked.
+7. **Tags** `frontend-kit-v<version>`, a GitHub release with the tarball
+   attached and notes scoped to the previous kit release.
 
-The run publishes the tarball it just packed and checked, with `npm publish`
-rather than `pnpm publish`. That is safe only because `pnpm pack` has already
-applied `publishConfig` to the manifest inside it: running `npm publish` on the
-package directory would ignore `publishConfig` and ship exports pointing at
-`.tsx`, with no error.
+### The things that will bite you
 
-**The `version` in this `package.json` is a placeholder.** CI injects the real
-number with `pnpm version --no-git-tag-version`, and the tag is the record of
-what was published from which commit.
+**A published version can never be reused.** Deleting one does not free the
+number. If `0.2.0` is wrong, publish `0.2.1`. This is why dry-run is the
+default and why step 5 exists.
 
-There is no npm token anywhere. Publishing uses **trusted publishing**: the job
-mints an OIDC token, npm exchanges it for a short-lived credential, and the
-upload carries a provenance attestation for free. That configuration lives on
-the package's npm settings page and names this repository **and this workflow's
-filename**, so renaming `publish-frontend-kit.yaml` breaks publishing with an
-error that does not say so.
+**Never `npm publish` from the package directory.** `publishConfig.exports` is
+a pnpm feature; npm ignores it and would ship a package whose `exports` point
+at `.tsx`, **with no error at publish time**. It breaks in the consumer, later.
+The workflow runs `npm publish` on a *tarball*, which is safe precisely because
+`pnpm pack` already rewrote the manifest inside it. If you ever publish by
+hand, `pnpm pack` first and publish the `.tgz`.
 
-Two version floors come with it: npm CLI 11.5.1 and Node 22.14. The job installs
-a current npm rather than trusting the runner image. Note also that pnpm 11
-broke OIDC publishing with a 404 where pnpm 10 works, so do not bump
-`packageManager` without checking that first.
+**Do not rename `publish-frontend-kit.yaml`.** npm's trusted publishing config
+names this repository and that exact filename. Renaming it breaks publishing
+with an error that does not say why.
 
-The
-run checks the secret exists before it builds anything, and `publishConfig`
-carries `access: public`, without which npm would try to publish a scoped
-package privately and fail.
+**Do not bump `packageManager` to pnpm 11 without testing a release.** pnpm 11
+broke OIDC publishing with a 404 where pnpm 10 works.
 
-**A published version can never be reused.** Deleting a version does not free
-the number. If `0.2.0` is wrong, publish `0.2.1`.
+### Authentication
+
+There is no npm token anywhere, and no secret to rotate. The job mints an OIDC
+token, npm exchanges it for a short-lived credential, and the upload carries a
+provenance attestation for free. This needs `id-token: write` on the job, npm
+CLI 11.5.1+ and Node 22.14+; the run installs a current npm rather than
+trusting the runner image.
+
+`publishConfig` carries `access: public`, without which npm would try to
+publish a scoped package privately and fail.
+
+Trusted publishing cannot bootstrap a package that does not exist, so `0.1.0`
+was published by hand to create it. Everything after that goes through CI.
 
 ### The dist-tag
 
@@ -243,8 +270,8 @@ Ordinary semver applies, so a caret range is safe on a stable line:
 ```
 
 On `0.x` that anchors the minor: it picks up `0.2.x` patches but needs a
-deliberate edit to move to `0.3.0`, which is the right default while the API
-is still settling.
+deliberate edit to move to `0.3.0`, which is the right default while the API is
+still settling.
 
 The five apps in this monorepo stay on `workspace:*` and are unaffected by what
 is published: pnpm always prefers the local link.

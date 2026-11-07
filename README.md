@@ -82,3 +82,25 @@ All Turbo scripts support filtering to target specific workspaces:
 - `pnpm ui:add <component-name>` - To add shadcn/ui components
 
   > Note: don't forget to also include it in frontend-kit/kit/src/components/shadcn/index.ts to be able to access it from @hyperloopupv/frontend-kit
+---
+
+### Releases
+
+Two independent releases, from two workflows that do not touch each other.
+
+| What | Workflow | Produces |
+| :--- | :--- | :--- |
+| The desktop app | **Release Electron App** | Tag `v<version>` and a GitHub release with the installers |
+| The shared frontend package | **Publish Frontend Kit** | `@hyperloopupv/frontend-kit` on npmjs.com, plus tag `frontend-kit-v<version>` |
+
+Both are manual, from the Actions tab. The kit versions on its own semver
+rather than the Control Station's, so a frontend in another repository can read
+its number and judge an upgrade.
+
+Publishing the kit **defaults to a dry run**: it builds, packs, prints the
+tarball and attaches it, without publishing. Run it that way first. A published
+npm version can never be reused.
+
+The full procedure, what each step of the run does, and the traps worth knowing
+before you touch it, are in
+[`frontend/frontend-kit/kit/README.md`](frontend/frontend-kit/kit/README.md#releasing).
