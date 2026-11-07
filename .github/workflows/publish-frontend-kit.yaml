@@ -51,10 +51,11 @@ jobs:
         with:
           node-version: "24"
           cache: "pnpm"
-          # Points the registry at npmjs.com. No token is written: the
-          # credential comes from the OIDC exchange at publish time.
-          registry-url: "https://registry.npmjs.org"
-          scope: "@hyperloopupv"
+          # Deliberately no registry-url: it makes setup-node write
+          # _authToken=${NODE_AUTH_TOKEN} into an npmrc, and with no such
+          # secret that expands to an empty string. npm then takes the token
+          # path with an empty token instead of the OIDC exchange, and the
+          # publish is refused. npmjs.com is the default registry anyway.
 
       # Trusted publishing needs npm 11.5.1 or newer. Node 24 ships a recent
       # npm, but pin it rather than depend on what the runner image happens to
