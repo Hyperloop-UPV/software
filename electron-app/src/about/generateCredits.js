@@ -15,6 +15,7 @@ export async function generateAboutCredits({
   token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN,
   now = Date.now,
   warn = console.warn,
+  ci = Boolean(process.env.CI),
 } = {}) {
   let previous;
   try {
@@ -166,11 +167,36 @@ export async function generateAboutCredits({
     await rename(temporary, snapshotPath);
     return snapshot;
   } catch (error) {
-    // Offline builds retain the complete bundled credits instead of generating a partial list.
-    if (!previous?.contributors?.length || previous.counting !== "non-merge")
-      throw error;
-    warn(`About: ${error.message}. Using the bundled contributor snapshot.`);
-    return previous;
+    // A snapshot already on disk is the best fallback, because it is complete
+    // where a half-finished fetch would silently drop people.
+    if (previous?.contributors?.length && previous.counting === "non-merge") {
+      warn(`About: ${error.message}. Using the snapshot already on disk.`);
+      return previous;
+    }
+    // Nothing to fall back to. The snapshot holds contributor photos and
+    // per-person commit counts, so it is generated here and deliberately not
+    // committed: being absent is the normal state of a fresh clone. A release
+    // must not ship an empty About screen, so CI still fails loudly; a local
+    // build gets a valid empty snapshot and an About screen listing nobody.
+    if (ci) throw error;
+    warn(
+      `About: ${error.message}. Writing an empty snapshot, so this build's About screen will list nobody.`,
+    );
+    const empty = {
+      schemaVersion: 3,
+      repository: REPOSITORY,
+      counting: "non-merge",
+      headSha: null,
+      fetchedAt: new Date(now()).toISOString(),
+      contributors: [],
+    };
+    await mkdir(path.dirname(snapshotPath), { recursive: true });
+    await writeFile(
+      snapshotPath,
+      `${JSON.stringify(empty, null, 2)}\n`,
+      "utf8",
+    );
+    return empty;
   }
 }
 

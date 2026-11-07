@@ -38,6 +38,7 @@ async function options(fetchImpl) {
     avatarDirectory: path.join(directory, "avatars"),
     token: "test-token",
     warn: vi.fn(),
+    ci: false,
   };
 }
 const apiFor = (commits) =>
@@ -45,28 +46,44 @@ const apiFor = (commits) =>
     url.includes("api.github.com") ? response(commits) : photoResponse(),
   );
 
-it("reads sorted bundled credits without any runtime fetch", () => {
+it("reads sorted credits, without bots, and without any runtime fetch", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "about-read-"));
+  const snapshotPath = path.join(directory, "credits.snapshot.json");
+  await writeFile(
+    snapshotPath,
+    JSON.stringify({
+      counting: "non-merge",
+      fetchedAt: "2026-01-01T00:00:00.000Z",
+      contributors: [
+        { id: "1", name: "few", contributions: 2, type: "User" },
+        { id: "2", name: "a-bot", contributions: 99, type: "Bot" },
+        { id: "3", name: "many", contributions: 7, type: "User" },
+      ],
+    }),
+  );
   const fetchSpy = vi.spyOn(globalThis, "fetch");
   try {
-    const credits = getAboutCredits();
-    expect(credits.contributors.length).toBeGreaterThan(0);
-    expect(credits.contributors.some((person) => person.type === "Bot")).toBe(
-      false,
-    );
-    const counts = credits.contributors.map((person) => person.contributions);
-    expect(counts).toEqual([...counts].sort((a, b) => b - a));
+    const credits = getAboutCredits({ snapshotPath });
+    expect(credits.contributors.map((person) => person.name)).toEqual([
+      "many",
+      "few",
+    ]);
     expect(fetchSpy).not.toHaveBeenCalled();
   } finally {
     fetchSpy.mockRestore();
   }
 });
 
-it("ships a snapshot explicitly generated without merges", async () => {
-  const snapshot = JSON.parse(
-    await readFile(
-      new URL("../credits.snapshot.json", import.meta.url),
-      "utf8",
-    ),
+it("opens About with nobody listed when no snapshot has been generated", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "about-read-"));
+  expect(
+    getAboutCredits({ snapshotPath: path.join(directory, "absent.json") }),
+  ).toEqual({ fetchedAt: null, contributors: [] });
+});
+
+it("generates a snapshot explicitly marked as counted without merges", async () => {
+  const snapshot = await generateAboutCredits(
+    await options(apiFor([commit(1)])),
   );
   expect(snapshot.counting).toBe("non-merge");
   expect(snapshot.schemaVersion).toBe(3);
@@ -204,7 +221,22 @@ it("never silently falls back to legacy merge-inclusive counts", async () => {
     config.snapshotPath,
     JSON.stringify({ contributors: [{ id: "1", contributions: 986 }] }),
   );
-  await expect(generateAboutCredits(config)).rejects.toThrow("Offline");
+  await expect(generateAboutCredits({ ...config, ci: true })).rejects.toThrow(
+    "Offline",
+  );
+});
+
+it("writes an empty snapshot outside CI instead of failing the build", async () => {
+  const config = await options(
+    vi.fn(async () => {
+      throw new Error("Offline");
+    }),
+  );
+  const data = await generateAboutCredits(config);
+  expect(data.contributors).toEqual([]);
+  expect(data.counting).toBe("non-merge");
+  expect(JSON.parse(await readFile(config.snapshotPath, "utf8"))).toEqual(data);
+  expect(config.warn).toHaveBeenCalled();
 });
 
 it("keeps a saved photo on download failure and uses initials for new authors", async () => {
@@ -227,7 +259,9 @@ it("keeps a saved photo on download failure and uses initials for new authors", 
 
 it("fails a first build without data instead of silently generating empty credits", async () => {
   const config = await options(apiFor([]));
-  await expect(generateAboutCredits(config)).rejects.toThrow("no contributors");
+  await expect(generateAboutCredits({ ...config, ci: true })).rejects.toThrow(
+    "no contributors",
+  );
 });
 
 it("wires generation into electron-builder and the local Electron build", async () => {
