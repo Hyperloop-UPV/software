@@ -3,8 +3,8 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@workspace/ui";
-import { ChevronDown, ChevronLeft } from "@workspace/ui/icons";
+} from "@hyperloopupv/frontend-kit";
+import { ChevronDown, ChevronLeft } from "@hyperloopupv/frontend-kit/icons";
 import { useState } from "react";
 import { useShallow } from "zustand/shallow";
 import { useStore } from "../../../store/store";

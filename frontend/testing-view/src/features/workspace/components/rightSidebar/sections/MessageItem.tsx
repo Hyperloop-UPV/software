@@ -3,9 +3,9 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@workspace/ui";
-import { ChevronDown } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit";
+import { ChevronDown } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 import { MESSAGE_KIND_COLORS } from "../../../../../constants/messageKindColors";
 import { formatTimestamp } from "../../../../../lib/utils";

@@ -1,4 +1,4 @@
-import { logger } from "@workspace/core";
+import { logger } from "@hyperloopupv/frontend-kit/core";
 
 export const useOpenFolder = () => {
   const openFolder = (path?: string) => {

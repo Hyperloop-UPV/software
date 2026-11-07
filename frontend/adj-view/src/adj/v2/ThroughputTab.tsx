@@ -6,9 +6,9 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components";
-import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Pencil } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit/components";
+import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Pencil } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { BoardMeta } from "./AdjViewerTabs";
 import { ThroughputHelp } from "./ThroughputHelp";

@@ -1,5 +1,5 @@
-import { Button } from "@workspace/ui/components";
-import { ChevronDown, MessageSquare } from "@workspace/ui/icons";
+import { Button } from "@hyperloopupv/frontend-kit/components";
+import { ChevronDown, MessageSquare } from "@hyperloopupv/frontend-kit/icons";
 import {
   BatteryFull,
   Gauge,

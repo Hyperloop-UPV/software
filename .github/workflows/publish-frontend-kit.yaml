@@ -1,0 +1,302 @@
+name: Publish Frontend Kit
+
+# Publishes @hyperloopupv/frontend-kit to npmjs.com so a frontend in another
+# repository can install it with no token and no .npmrc.
+#
+# The kit versions independently of the Control Station: its number describes
+# its own API, so a consumer can read it and judge the risk of upgrading.
+# Releasing the station does not publish the kit, and this workflow does not
+# touch the station.
+#
+# The version is injected here and is not committed: the number in package.json
+# is a placeholder, and the frontend-kit-v<version> tag this workflow creates is
+# the record of what was published from which commit.
+#
+# A published version can never be reused. Deleting it does not free the
+# number: if 0.2.0 is wrong, publish 0.2.1.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 0.2.0). The kit has its own numbering"
+        required: true
+      dry-run:
+        description: "Pack and check only, do not publish"
+        type: boolean
+        default: true
+      tag:
+        description: "npm dist-tag. Leave empty to derive it from the version"
+        default: ""
+
+jobs:
+  publish:
+    name: Publish @hyperloopupv/frontend-kit
+    runs-on: ubuntu-latest
+    permissions:
+      # write, not read: the release step below creates a tag.
+      contents: write
+      # Required for npm trusted publishing: this is what lets the job mint an
+      # OIDC token and exchange it for a short-lived publish credential, so
+      # there is no long-lived npm token anywhere.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          # Points the registry at npmjs.com. No token is written: the
+          # credential comes from the OIDC exchange at publish time.
+          registry-url: "https://registry.npmjs.org"
+          scope: "@hyperloopupv"
+
+      # Trusted publishing needs npm 11.5.1 or newer. Node 24 ships a recent
+      # npm, but pin it rather than depend on what the runner image happens to
+      # carry today.
+      - name: Ensure npm supports trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - name: Resolve version and dist-tag
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # release.yaml tags as v<version>, so accept either spelling.
+          version="${{ inputs.version }}"
+          version="${version#v}"
+
+          if [ -z "$version" ]; then
+            echo "::error::version is empty"
+            exit 1
+          fi
+
+          requested="${{ inputs.tag }}"
+          if [ -n "$requested" ]; then
+            tag="$requested"
+          elif [ "${version#*-}" != "$version" ]; then
+            # A prerelease such as 11.3.2-beta-2 must not land on "latest", or
+            # it becomes the default install for every consumer.
+            tag="next"
+          else
+            tag="latest"
+          fi
+
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "publishing $version under dist-tag $tag"
+
+      # With independent numbering nobody remembers the last version, so check
+      # it rather than trust the person who filled the form.
+      - name: Check the version moves forward
+        shell: bash
+        run: |
+          set -uo pipefail
+          V='${{ steps.resolve.outputs.version }}'
+          TAGS=$(gh release list --limit 100 --json tagName -q \
+            '.[].tagName | select(startswith("frontend-kit-v"))' | sed 's/^frontend-kit-v//')
+
+          if [ -z "$TAGS" ]; then
+            echo "no kit release yet; $V is the first"
+            exit 0
+          fi
+
+          # Here-string, not a pipe: `grep -q` exiting early would SIGPIPE the
+          # writer and pipefail would read that as "no match", silently letting
+          # a duplicate version through.
+          if grep -qx "$V" <<< "$TAGS"; then
+            echo "::error::$V is already released. A version can never be reused; pick a higher one."
+            exit 1
+          fi
+
+          # sort and tail read their input to the end, so these are safe.
+          LATEST=$(sort -V <<< "$TAGS" | tail -1)
+          if [ "$(printf '%s\n%s\n' "$LATEST" "$V" | sort -V | tail -1)" != "$V" ]; then
+            echo "::error::$V is below the latest release $LATEST."
+            exit 1
+          fi
+          echo "$LATEST -> $V"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same approach as electron-app in release.yaml: set it here, do not
+      # expect it committed.
+      - name: Set the version
+        working-directory: frontend/frontend-kit/kit
+        run: pnpm version ${{ steps.resolve.outputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Build
+        run: pnpm build --filter=@hyperloopupv/frontend-kit
+
+      - name: Pack
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/kit && mkdir -p /tmp/kit
+          pnpm --filter @hyperloopupv/frontend-kit exec pnpm pack --pack-destination /tmp/kit
+
+          # Read the name off disk instead of spelling it out. It is derived
+          # from the package name, so writing it by hand means every rename
+          # has to remember to update it here too, in several places.
+          mapfile -t FOUND < <(find /tmp/kit -maxdepth 1 -name '*.tgz')
+          if [ "${#FOUND[@]}" -ne 1 ]; then
+            echo "::error::expected exactly one tarball, found ${#FOUND[@]}"
+            exit 1
+          fi
+          echo "tarball=${FOUND[0]}" >> $GITHUB_OUTPUT
+          echo "packed ${FOUND[0]}"
+
+          echo "::group::Tarball contents"
+          tar -tzf "${FOUND[0]}" | sort
+          echo "::endgroup::"
+
+      # Catches the failures that are cheap to prevent and impossible to undo
+      # once a version is published.
+      - name: Check the tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          T='${{ steps.pack.outputs.tarball }}'
+
+          # Via a file, not a pipe: a heredoc would occupy stdin and the
+          # script would read nothing.
+          tar -xzOf "$T" package/package.json > /tmp/kit/packed.json
+
+          EXPECTED_VERSION="${{ steps.resolve.outputs.version }}" python3 - <<'PY'
+          import json, os, sys
+
+          p = json.load(open("/tmp/kit/packed.json"))
+          failures = []
+
+          def check(cond, msg):
+              print(("  ok   " if cond else "  FAIL ") + msg)
+              if not cond:
+                  failures.append(msg)
+
+          check(
+              p["version"] == os.environ["EXPECTED_VERSION"],
+              f"version is {os.environ['EXPECTED_VERSION']}, got {p['version']}",
+          )
+          check(not p.get("private"), "private:true does not survive")
+          check("preinstall" not in p.get("scripts", {}), "the preinstall hook does not survive")
+          check(
+              p["exports"]["."]["default"].startswith("./dist"),
+              "publishConfig.exports was applied (npm publish would skip it)",
+          )
+          check(p["exports"]["./core"]["default"] == "./dist/core/index.js", "./core points at dist")
+          check(
+              p["exports"]["./globals.css"] == "./src/styles/globals.css",
+              "globals.css is served from the shipped src, so Tailwind can scan it",
+          )
+          check(
+              set(p.get("peerDependencies", {}))
+              >= {"react", "react-dom", "lucide-react", "tailwindcss", "tw-animate-css"},
+              "the five peer dependencies are declared",
+          )
+          check(
+              not any(str(v).startswith("workspace:") for v in p.get("dependencies", {}).values()),
+              "no literal workspace: range leaked into the tarball",
+          )
+
+          if failures:
+              sys.exit("\nRefusing to publish: " + "; ".join(failures))
+          print("\ntarball ok")
+          PY
+
+          # Tailwind needs the kit's sources to find its classes in node_modules.
+          #
+          # Listed to a file first, deliberately. Piping tar into `grep -q`
+          # makes grep exit on the first match, tar die of SIGPIPE, and
+          # pipefail fail the step although the file was found. It depends on
+          # whether tar finished writing first, so it fails intermittently.
+          tar -tzf "$T" > /tmp/kit/listing.txt
+          if ! grep -qx 'package/src/components/shadcn/sidebar.tsx' /tmp/kit/listing.txt; then
+            echo "::error::src/ is missing from the tarball"
+            exit 1
+          fi
+          echo "  ok   src/ ships alongside dist/"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-kit-${{ steps.resolve.outputs.version }}
+          path: /tmp/kit/*.tgz
+          retention-days: 7
+
+      # Publishes the tarball built above, the exact bytes the checks ran
+      # against, rather than re-resolving the package from the directory.
+      #
+      # npm, not pnpm, and only safe because of that: the manifest inside the
+      # tarball already has publishConfig applied by pnpm pack, so its exports
+      # point at dist. Running `npm publish` on the package directory instead
+      # would ignore publishConfig and ship exports pointing at .tsx, with no
+      # error at publish time.
+      #
+      # Authentication is the OIDC exchange, which also attaches a provenance
+      # attestation. Fails closed: anything other than an explicit boolean
+      # false skips this.
+      - name: Publish
+        if: ${{ inputs.dry-run == false }}
+        run: |
+          npm publish '${{ steps.pack.outputs.tarball }}' \
+            --access public \
+            --tag ${{ steps.resolve.outputs.tag }}
+
+      # The kit gets its own tag and release, so a standalone publish leaves a
+      # record in git too, and so the package has a changelog of its own that
+      # does not have to be read out of the Control Station's notes.
+      - name: Release
+        if: ${{ inputs.dry-run == false }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          V='${{ steps.resolve.outputs.version }}'
+          TAG="frontend-kit-v$V"
+
+          # Notes since the previous kit release, not since the Control
+          # Station's, which would list everything in the repo.
+          PREV=$(gh release list --limit 100 --json tagName -q \
+            '.[].tagName | select(startswith("frontend-kit-v"))' | head -1)
+          NOTES_FROM=""
+          if [ -n "$PREV" ]; then NOTES_FROM="--notes-start-tag $PREV"; fi
+
+          # --latest=false keeps the Control Station's release as the one the
+          # repository page shows.
+          if gh release create "$TAG" \
+              --title "Frontend Kit v$V" \
+              --target "$GITHUB_SHA" \
+              --latest=false \
+              --generate-notes $NOTES_FROM \
+              '${{ steps.pack.outputs.tarball }}'; then
+            echo "created $TAG"
+          else
+            # The package is already published by this point, so a failure here
+            # is cosmetic and must not turn the run red.
+            echo "::warning::could not create $TAG; the package is published regardless"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        shell: bash
+        run: |
+          V='${{ steps.resolve.outputs.version }}'
+          if [ '${{ inputs.dry-run }}' = 'true' ]; then
+            echo "### Dry run: nothing was published" >> $GITHUB_STEP_SUMMARY
+            echo "Tarball for \`$V\` is attached as an artifact. Re-run with dry-run off to publish." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Published \`@hyperloopupv/frontend-kit@$V\`" >> $GITHUB_STEP_SUMMARY
+            echo "dist-tag: \`${{ steps.resolve.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "Tagged \`frontend-kit-v$V\`." >> $GITHUB_STEP_SUMMARY
+          fi

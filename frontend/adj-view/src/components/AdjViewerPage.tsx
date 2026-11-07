@@ -14,12 +14,12 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui/components";
-import { AlertTriangle, GitCommit, Loader2, RefreshCw, SunMoon } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
-import logo from "@workspace/ui/outreach/main/logo_icon.svg";
+} from "@hyperloopupv/frontend-kit/components";
+import { AlertTriangle, GitCommit, Loader2, RefreshCw, SunMoon } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
+import logo from "@hyperloopupv/frontend-kit/outreach/main/logo_icon.svg";
 // Black strokes on transparency; inverted in dark mode (software_white.png is 8000 px / 430 KB).
-import softwareLogo from "@workspace/ui/outreach/main/software_black.png";
+import softwareLogo from "@hyperloopupv/frontend-kit/outreach/main/software_black.png";
 import { useCallback, useEffect, useState } from "react";
 import { config } from "../../config";
 import { parseAdj, summarizeAdj, type ParsedAdj } from "../adj";
