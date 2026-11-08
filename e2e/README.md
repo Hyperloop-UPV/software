@@ -63,12 +63,23 @@ The renderer build does not compile Go or package Electron. It copies each
 frontend once, preserving Testing's E2E build rather than rebuilding it in normal mode.
 Use `:fast` variants when iterating against already-built renderers.
 
+`pnpm build` also seeds the About credits. The About screen reads a snapshot of
+contributor photographs and per-person commit counts that `generateCredits.js`
+fetches from the GitHub API when the app is packaged; it is gitignored, so a
+fresh clone — every CI run — has neither it nor the avatars beside it, and
+`tests/ui/about.test.ts` would find an empty contributor list. The build writes
+a fixed, offline fixture through `scripts/about-credits.mjs` when no usable
+snapshot is on disk, and leaves a generated one untouched, so a developer's own
+build stays what the About tests exercise locally. The suite never calls GitHub:
+the About tests assert that the screen is entirely network-free.
+
 ---
 
 ## Requirements
 
 - A platform-appropriate, prebuilt backend binary must exist in `electron-app/binaries/`. CI builds it before running the suite.
 - `testing-view` must be built in e2e mode (`build:e2e`), also handled automatically.
+- About credits need no network or GitHub token: `pnpm build` seeds an offline fixture when nothing has generated the snapshot.
 - Workers are set to `1` — Electron tests must run serially since only one app instance can run at a time.
 
 CI builds all four tested views and runs both projects. `E2E_REQUIRED_VIEWS=testing,competition,logging,adj` makes missing CI build artifacts a failure instead of silently skipping cross-view tests. Fast local runs may still skip optional-view cases when testing a reduced build.

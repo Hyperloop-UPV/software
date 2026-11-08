@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { seedAboutCredits } from "./about-credits.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const pnpmCli = process.env.npm_execpath;
@@ -32,3 +33,11 @@ for (const view of ["testing", "competition", "logging", "adj"]) {
   mkdirSync(destination, { recursive: true });
   cpSync(source, destination, { recursive: true });
 }
+
+// About reads a build-time snapshot that a fresh clone does not have.
+const credits = await seedAboutCredits();
+console.log(
+  credits === "fixture"
+    ? "About credits: wrote the offline e2e fixture."
+    : "About credits: keeping the generated snapshot already on disk.",
+);
