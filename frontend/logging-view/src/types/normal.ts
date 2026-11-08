@@ -46,3 +46,33 @@ export interface ChartSplit {
 
 export type ChartLayout = ChartPane | ChartSplit;
 export type LayoutPreset = "single" | "columns" | "rows" | "grid";
+
+export interface DashboardSettings {
+  layoutState: {
+    ids: string[];
+    tree: ChartLayout;
+    preset: LayoutPreset | null;
+  };
+  showStatistics: boolean;
+  focusedId: string | null;
+  units: Record<string, string>;
+  timeUnit: TimeUnit;
+  range: TimeRange;
+  panelSizes: Record<string, Record<string, number>>;
+}
+
+export interface NormalDashboard {
+  id: string;
+  name: string;
+  color: string | null;
+  locked: boolean;
+  selectedSeries: Record<string, boolean>;
+  settings: DashboardSettings;
+}
+
+export interface DashboardTabSettings {
+  name: string;
+  color: string | null;
+  locked: boolean;
+  position: number;
+}

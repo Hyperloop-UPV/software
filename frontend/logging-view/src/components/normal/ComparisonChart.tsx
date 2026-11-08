@@ -18,6 +18,7 @@ interface TooltipPoint {
 }
 
 interface Props {
+  locked: boolean;
   signals: ComparisonSignal[];
   domain: TimeDomain;
   range: TimeRange;
@@ -32,6 +33,7 @@ const escapeHtml = (value: string) =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export default function ComparisonChart({
+  locked,
   signals,
   domain,
   range,
@@ -251,11 +253,12 @@ export default function ComparisonChart({
         dataZoom: [
           {
             type: "inside",
+            disabled: locked,
             xAxisIndex: 0,
             ...rangeRef.current,
             filterMode: "none",
-            zoomOnMouseWheel: true,
-            moveOnMouseMove: true,
+            zoomOnMouseWheel: !locked,
+            moveOnMouseMove: !locked,
             moveOnMouseWheel: false,
           },
         ],
@@ -286,6 +289,7 @@ export default function ComparisonChart({
     normalized,
     isDarkMode,
     width,
+    locked,
   ]);
 
   useEffect(() => {

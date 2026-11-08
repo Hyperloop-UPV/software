@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  createNormalDashboardsSlice,
+  type NormalDashboardsSlice,
+} from "./slices/normalDashboardsSlice";
 import { createAppSlice, type AppSlice } from "./slices/appSlice";
 import { createCatalogSlice, type CatalogSlice } from "./slices/catalogSlice";
 import {
@@ -14,10 +18,7 @@ import {
   createPlotStudioSlice,
   type PlotStudioSlice,
 } from "./slices/plotStudioSlice";
-import {
-  createSessionSlice,
-  type SessionSlice,
-} from "./slices/sessionSlice";
+import { createSessionSlice, type SessionSlice } from "./slices/sessionSlice";
 import {
   createTelemetrySlice,
   type TelemetrySlice,
@@ -29,7 +30,8 @@ export type Store = AppSlice &
   MessagesSlice &
   PlotStudioSlice &
   SessionSlice &
-  TelemetrySlice;
+  TelemetrySlice &
+  NormalDashboardsSlice;
 
 export const useStore = create<Store>()(
   persist(
@@ -41,6 +43,7 @@ export const useStore = create<Store>()(
       ...createPlotStudioSlice(...a),
       ...createSessionSlice(...a),
       ...createTelemetrySlice(...a),
+      ...createNormalDashboardsSlice(...a),
     }),
     {
       name: "competition-view-storage",

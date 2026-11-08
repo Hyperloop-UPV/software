@@ -1,8 +1,11 @@
 // Normal mode is the exploration workspace: sidebar selections become linked
 // ECharts views. Simple mode keeps its separate plot studio and PDF workflow.
 import { Activity } from "@hyperloopupv/frontend-kit/icons";
+import { Tabs, TabsContent } from "@hyperloopupv/frontend-kit/components";
 import { useEffect, useMemo, useState } from "react";
 import AnalysisWorkspace from "../components/normal/AnalysisWorkspace";
+import DashboardTabs from "../components/normal/DashboardTabs";
+import DashboardControls from "../components/normal/DashboardControls";
 import { parseCSVInWorker } from "../lib/plotStudio/csv";
 import { traceColor } from "../lib/plotStudio/palette";
 import {
@@ -42,14 +45,19 @@ function SessionComparison() {
   const sessionFiles = useStore((s) => s.sessionFiles);
   const settings = useStore((s) => s.settings);
   const adjData = useStore((s) => s.adjData);
-  const selectedSeries = useStore((s) => s.selectedSeries);
-  const isDarkMode = useStore((s) => s.isDarkMode);
-  const [, refresh] = useState(0);
-
-  const selectedIds = useMemo(
-    () => Object.keys(selectedSeries).filter((id) => selectedSeries[id]),
-    [selectedSeries],
+  const dashboard = useStore(
+    (s) =>
+      s.normalDashboards.find((item) => item.id === s.activeNormalDashboardId)!,
   );
+  const selectDashboard = useStore((s) => s.selectNormalDashboard);
+  const isDarkMode = useStore((s) => s.isDarkMode);
+  const [compactControls, setCompactControls] = useState(true);
+  const [loadedCache, setLoadedCache] = useState<{
+    files: typeof sessionFiles;
+    data: Map<string, SeriesData>;
+  } | null>(null);
+
+  const selectedIds = dashboard.settings.layoutState.ids;
   // Cache belongs to this exact session. Re-selecting a signal keeps its
   // parsed data; opening another session creates an empty cache.
   const cache = useMemo(
@@ -96,7 +104,7 @@ function SessionComparison() {
           );
         } finally {
           if (!cancelled) {
-            refresh((value) => value + 1);
+            setLoadedCache({ files: cache.files, data: new Map(cache.data) });
           }
         }
       }
@@ -107,70 +115,110 @@ function SessionComparison() {
     };
   }, [selectedIds, cache, folderName, settings?.time_unit, adjData]);
 
-  const signals: ComparisonSignal[] = selectedIds.flatMap((id) => {
-    const data = cache.data.get(id);
-    if (!data) return [];
-    const measId = id.slice(id.indexOf("/") + 1);
-    return [
-      {
-        id,
-        name: getSignalName(adjData, id) ?? measId,
-        board: id.slice(0, id.indexOf("/")),
-        units: getSignalUnits(adjData, id),
-        enumLabels: getEnumLabels(adjData, id),
-        discrete: isDiscreteMeasurement(adjData, id),
-        color: cache.colors.get(id)!,
-        data,
-      },
-    ];
-  });
+  const signals: ComparisonSignal[] = useMemo(
+    () =>
+      selectedIds.flatMap((id) => {
+        const data =
+          loadedCache?.files === cache.files
+            ? loadedCache.data.get(id)
+            : undefined;
+        if (!data) return [];
+        const measId = id.slice(id.indexOf("/") + 1);
+        return [
+          {
+            id,
+            name: getSignalName(adjData, id) ?? measId,
+            board: id.slice(0, id.indexOf("/")),
+            units: getSignalUnits(adjData, id),
+            enumLabels: getEnumLabels(adjData, id),
+            discrete: isDiscreteMeasurement(adjData, id),
+            color: cache.colors.get(id)!,
+            data,
+          },
+        ];
+      }),
+    [selectedIds, cache, adjData, loadedCache],
+  );
   const errors = selectedIds.flatMap((id) =>
     cache.errors.has(id) ? [`${id}: ${cache.errors.get(id)}`] : [],
   );
   const pendingCount = selectedIds.length - signals.length - errors.length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      {selectedIds.length === 0 ? (
-        <EmptyView
-          title="Choose signals to compare"
-          description="Check measurements in the left sidebar. Normal mode will display them here with linked time navigation."
-        />
-      ) : (
-        <>
-          {errors.length > 0 && (
-            <div className="max-h-24 shrink-0 overflow-y-auto px-4 py-2">
-              {errors.map((message) => (
-                <p
-                  key={message}
-                  className="text-xs text-amber-600 dark:text-amber-400"
-                >
-                  {message}
-                </p>
-              ))}
-            </div>
-          )}
-          {signals.length > 0 ? (
-            <AnalysisWorkspace
+    <Tabs
+      value={dashboard.id}
+      onValueChange={selectDashboard}
+      className="h-full min-h-0 gap-0 overflow-hidden"
+    >
+      <DashboardTabs
+        compact={compactControls}
+        onToggleCompact={() => setCompactControls((current) => !current)}
+        controls={
+          compactControls ? (
+            <DashboardControls
+              key={dashboard.id}
+              dashboard={dashboard}
               signals={signals}
-              selectedIds={selectedIds}
-              isDarkMode={isDarkMode}
+              compact
             />
-          ) : (
-            <EmptyView
-              title={
-                pendingCount > 0 ? "Loading signals…" : "No samples available"
-              }
-              description={
-                pendingCount > 0
-                  ? "Preparing the selected measurements for comparison."
-                  : "Choose another measurement from the left sidebar."
-              }
-            />
-          )}
-        </>
+          ) : undefined
+        }
+      />
+      {!compactControls && signals.length > 0 && (
+        <DashboardControls
+          key={`controls-${dashboard.id}`}
+          dashboard={dashboard}
+          signals={signals}
+          compact={false}
+        />
       )}
-    </div>
+      <TabsContent
+        value={dashboard.id}
+        key={dashboard.id}
+        className="flex min-h-0 flex-col overflow-hidden"
+      >
+        {selectedIds.length === 0 ? (
+          <EmptyView
+            title="Choose signals to compare"
+            description={`Check measurements in the left sidebar to add them to ${dashboard.name}. Each dashboard keeps its own layout and time window.`}
+          />
+        ) : (
+          <>
+            {errors.length > 0 && (
+              <div className="max-h-24 shrink-0 overflow-y-auto px-4 py-2">
+                {errors.map((message) => (
+                  <p
+                    key={message}
+                    className="text-xs text-amber-600 dark:text-amber-400"
+                  >
+                    {message}
+                  </p>
+                ))}
+              </div>
+            )}
+            {signals.length > 0 ? (
+              <AnalysisWorkspace
+                dashboard={dashboard}
+                signals={signals}
+                selectedIds={selectedIds}
+                isDarkMode={isDarkMode}
+              />
+            ) : (
+              <EmptyView
+                title={
+                  pendingCount > 0 ? "Loading signals…" : "No samples available"
+                }
+                description={
+                  pendingCount > 0
+                    ? "Preparing the selected measurements for comparison."
+                    : "Choose another measurement from the left sidebar."
+                }
+              />
+            )}
+          </>
+        )}
+      </TabsContent>
+    </Tabs>
   );
 }
 

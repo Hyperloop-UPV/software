@@ -21,6 +21,7 @@ import type {
 } from "../../types/session";
 import { parseOrdersCsv } from "../../lib/orders";
 import type { Store } from "../store";
+import { initialNormalDashboards } from "./normalDashboardsSlice";
 
 const ADJ_ARCHIVE_URL = (hash: string) =>
   `https://hyperloop-upv.github.io/ADJ-Archive/storage/commit-${hash}.json`;
@@ -193,6 +194,7 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
         settings,
         adjData,
         availableSeries,
+        ...initialNormalDashboards(),
         selectedSeries: {},
         sessionFiles: new Map(fileArray.map((f) => [f.webkitRelativePath, f])),
         orders,
@@ -239,6 +241,7 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
   clearSession: () =>
     set({
       folderName: null,
+      ...initialNormalDashboards(),
       settings: null,
       adjData: null,
       availableSeries: {},

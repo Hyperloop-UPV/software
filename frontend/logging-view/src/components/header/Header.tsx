@@ -6,6 +6,7 @@ import { X } from "@hyperloopupv/frontend-kit/icons";
 import { useLocation, useNavigate } from "react-router";
 import logo from "@hyperloopupv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
 import { useStore } from "../../store/store";
+import { useSeriesSelection } from "../../hooks/useSeriesSelection";
 
 type ViewMode = "normal" | "simple";
 
@@ -19,8 +20,8 @@ const Header = () => {
   const { pathname } = useLocation();
   const activeMode: ViewMode = pathname.startsWith("/simple") ? "simple" : "normal";
   const folderName = useStore((s) => s.folderName);
-  const selectedCount = useStore((s) => Object.values(s.selectedSeries).filter(Boolean).length);
-  const clearSelectedSeries = useStore((s) => s.clearSelectedSeries);
+  const { selectedSeries, clearSelectedSeries, isSelectionLocked } = useSeriesSelection();
+  const selectedCount = Object.values(selectedSeries).filter(Boolean).length;
   const showWorkspace = activeMode === "normal" && !!folderName;
 
   return (
@@ -43,6 +44,7 @@ const Header = () => {
             variant="ghost"
             size="sm"
             onClick={clearSelectedSeries}
+            disabled={isSelectionLocked}
             className="text-muted-foreground gap-1.5 text-xs"
             aria-label="Clear selection"
           >

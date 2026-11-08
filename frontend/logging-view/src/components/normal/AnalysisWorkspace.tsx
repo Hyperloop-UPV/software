@@ -9,26 +9,14 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@hyperloopupv/frontend-kit/components";
-import { Columns, Plus, Settings2, X } from "@hyperloopupv/frontend-kit/icons";
+import { Columns, Settings2, X } from "@hyperloopupv/frontend-kit/icons";
 import * as echarts from "echarts";
-import {
-  ChartNoAxesCombined,
-  Eye,
-  EyeOff,
-  Grid2X2,
-  Maximize2,
-  Minimize2,
-  Minus,
-  RotateCcw,
-  Rows2,
-  Square,
-} from "lucide-react";
+import { Eye, EyeOff, Maximize2, Minimize2, Rows2 } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useDashboardSetting } from "../../hooks/useDashboardSetting";
 import {
-  createLayout,
   getPanes,
   minimumLayoutSize,
-  reconcileLayout,
   removePane,
   splitPane,
   updatePane,
@@ -39,24 +27,18 @@ import {
   type ChartLayout,
   type ChartPane,
   type ComparisonSignal,
-  type LayoutPreset,
+  type DashboardSettings,
+  type NormalDashboard,
   type TimeDomain,
   type TimeRange,
   type TimeUnit,
 } from "../../types/normal";
 import ComparisonChart from "./ComparisonChart";
-import TimeWindowControls from "./TimeWindowControls";
 import WindowStatistics from "./WindowStatistics";
 
 const MAX_PANES = 8;
-const PRESETS = [
-  { value: "single", label: "Single", Icon: Square },
-  { value: "columns", label: "Columns", Icon: Columns },
-  { value: "rows", label: "Rows", Icon: Rows2 },
-  { value: "grid", label: "Grid", Icon: Grid2X2 },
-] as const;
-
 interface PaneProps {
+  locked: boolean;
   node: ChartPane;
   index: number;
   allSignals: ComparisonSignal[];
@@ -82,6 +64,7 @@ interface PaneProps {
 }
 
 function ComparisonPane({
+  locked,
   node,
   index,
   allSignals,
@@ -135,7 +118,10 @@ function ComparisonPane({
         >
           {title}
         </h2>
-        <div className="flex shrink-0 items-center gap-0.5">
+        <fieldset
+          disabled={locked}
+          className="flex min-w-0 shrink-0 items-center gap-0.5"
+        >
           <Button
             variant="ghost"
             size="icon-xs"
@@ -289,13 +275,14 @@ function ComparisonPane({
               <X className="size-3.5" />
             </Button>
           )}
-        </div>
+        </fieldset>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-2 text-[10px]">
         {signals.map((signal) => (
           <button
             type="button"
             key={signal.id}
+            disabled={locked}
             className={`hover:bg-muted/60 focus-visible:ring-ring inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left focus-visible:ring-2 focus-visible:outline-none ${node.hiddenSignalIds?.includes(signal.id) ? "opacity-50" : ""}`}
             aria-label={`${node.hiddenSignalIds?.includes(signal.id) ? "Show" : "Hide"} ${signal.board} / ${signal.name} in chart ${index + 1}`}
             aria-pressed={!node.hiddenSignalIds?.includes(signal.id)}
@@ -332,6 +319,7 @@ function ComparisonPane({
       <div className="min-h-0 flex-1">
         {visibleSignals.length > 0 ? (
           <ComparisonChart
+            locked={locked}
             signals={visibleSignals}
             domain={domain}
             range={range}
@@ -349,6 +337,7 @@ function ComparisonPane({
               variant="outline"
               size="sm"
               onClick={() => onChange(node.id, { hiddenSignalIds: [] })}
+              disabled={locked}
             >
               <Eye className="size-3.5" /> Show all traces
             </Button>
@@ -373,6 +362,8 @@ interface LayoutNodeProps extends Omit<
   panes: ChartPane[];
   focusedId: string | null;
   onResizeStart: () => void;
+  panelSizes: DashboardSettings["panelSizes"];
+  onPanelResize: (id: string, sizes: Record<string, number>) => void;
 }
 
 function LayoutNode({
@@ -380,6 +371,8 @@ function LayoutNode({
   panes,
   focusedId,
   onResizeStart,
+  panelSizes,
+  onPanelResize,
   ...props
 }: LayoutNodeProps) {
   if (node.type === "pane")
@@ -395,7 +388,13 @@ function LayoutNode({
   const secondSize = minimumLayoutSize(node.second);
   const dimension = node.direction === "horizontal" ? "width" : "height";
   return (
-    <ResizablePanelGroup id={node.id} orientation={node.direction}>
+    <ResizablePanelGroup
+      id={node.id}
+      orientation={node.direction}
+      defaultLayout={panelSizes[node.id]}
+      disabled={props.locked}
+      onLayoutChanged={(sizes) => onPanelResize(node.id, sizes)}
+    >
       <ResizablePanel
         id={`${node.id}-first`}
         defaultSize="50%"
@@ -407,6 +406,8 @@ function LayoutNode({
           panes={panes}
           focusedId={focusedId}
           onResizeStart={onResizeStart}
+          panelSizes={panelSizes}
+          onPanelResize={onPanelResize}
         />
       </ResizablePanel>
       <ResizableHandle
@@ -428,6 +429,8 @@ function LayoutNode({
           panes={panes}
           focusedId={focusedId}
           onResizeStart={onResizeStart}
+          panelSizes={panelSizes}
+          onPanelResize={onPanelResize}
         />
       </ResizablePanel>
     </ResizablePanelGroup>
@@ -435,35 +438,45 @@ function LayoutNode({
 }
 
 export default function AnalysisWorkspace({
+  dashboard,
   signals,
   selectedIds,
   isDarkMode,
 }: {
+  dashboard: NormalDashboard;
   signals: ComparisonSignal[];
   selectedIds: string[];
   isDarkMode: boolean;
 }) {
   const syncGroup = useId();
-  const [layoutState, setLayoutState] = useState(() => ({
-    ids: selectedIds,
-    tree: createLayout(selectedIds, "grid"),
-    preset: "grid" as LayoutPreset | null,
-  }));
-  const [showStatistics, setShowStatistics] = useState(false);
-  const [focusedId, setFocusedId] = useState<string | null>(null);
-  const [units, setUnits] = useState<Record<string, string>>({});
-  const [timeUnit, setTimeUnit] = useState<TimeUnit>("s");
-  const [range, setRange] = useState<TimeRange>({ start: 0, end: 100 });
-
-  if (layoutState.ids !== selectedIds) {
-    setLayoutState({
-      ...layoutState,
-      ids: selectedIds,
-      tree: layoutState.preset
-        ? createLayout(selectedIds, layoutState.preset)
-        : reconcileLayout(layoutState.tree, layoutState.ids, selectedIds),
-    });
-  }
+  const [layoutState, setLayoutState] = useDashboardSetting(
+    dashboard,
+    "layoutState",
+  );
+  const showStatistics = dashboard.settings.showStatistics;
+  const [focusedId, setFocusedId] = useDashboardSetting(dashboard, "focusedId");
+  const [units, setUnits] = useDashboardSetting(dashboard, "units");
+  const timeUnit = dashboard.settings.timeUnit;
+  const [range, setRange] = useDashboardSetting(dashboard, "range");
+  const [panelSizes, setPanelSizes] = useDashboardSetting(
+    dashboard,
+    "panelSizes",
+  );
+  const resizePanel = useCallback(
+    (id: string, sizes: Record<string, number>) => {
+      setPanelSizes((current) => {
+        const previous = current[id];
+        return previous &&
+          Object.keys(previous).length === Object.keys(sizes).length &&
+          Object.entries(sizes).every(
+            ([key, value]) => Math.abs(previous[key] - value) < 0.01,
+          )
+          ? current
+          : { ...current, [id]: sizes };
+      });
+    },
+    [setPanelSizes],
+  );
 
   useEffect(
     () => () => {
@@ -496,14 +509,17 @@ export default function AnalysisWorkspace({
   const visibleLayout = focused ?? layoutState.tree;
   const size = minimumLayoutSize(visibleLayout);
 
-  const changeRange = useCallback((next: TimeRange) => {
-    setRange((current) =>
-      Math.abs(current.start - next.start) < 0.0001 &&
-      Math.abs(current.end - next.end) < 0.0001
-        ? current
-        : next,
-    );
-  }, []);
+  const changeRange = useCallback(
+    (next: TimeRange) => {
+      setRange((current) =>
+        Math.abs(current.start - next.start) < 0.0001 &&
+        Math.abs(current.end - next.end) < 0.0001
+          ? current
+          : next,
+      );
+    },
+    [setRange],
+  );
   const changePane = useCallback(
     (
       id: string,
@@ -517,7 +533,7 @@ export default function AnalysisWorkspace({
         tree: updatePane(current.tree, id, (pane) => ({ ...pane, ...changes })),
       }));
     },
-    [],
+    [setLayoutState],
   );
   const split = (id: string, direction: "horizontal" | "vertical") => {
     setLayoutState((current) => ({
@@ -534,17 +550,6 @@ export default function AnalysisWorkspace({
       tree: removePane(current.tree, id) ?? current.tree,
     }));
   };
-  const zoom = (factor: number) => {
-    const span = Math.min(
-      100,
-      Math.max(0.01, (range.end - range.start) * factor),
-    );
-    const start = Math.max(
-      0,
-      Math.min(100 - span, (range.start + range.end - span) / 2),
-    );
-    changeRange({ start, end: start + span });
-  };
   const duration = (domain.endMs - domain.startMs) / TIME_DIVISORS[timeUnit];
   const formatTime = (percent: number) =>
     ((duration * percent) / 100).toLocaleString(undefined, {
@@ -556,101 +561,15 @@ export default function AnalysisWorkspace({
       className="flex min-h-0 flex-1 flex-col"
       aria-label="Signal analysis workspace"
     >
-      <div
-        role="group"
-        aria-label="Analysis controls"
-        className="border-border bg-muted/15 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2.5"
-      >
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="text-muted-foreground text-[11px] font-medium">
-            Layout
-          </span>
-          <div
-            className="bg-muted/60 flex items-center gap-0.5 rounded-lg p-1"
-            role="group"
-            aria-label="Chart layout"
-          >
-            {PRESETS.map(({ value, label, Icon }) => (
-              <Button
-                key={value}
-                variant={layoutState.preset === value ? "secondary" : "ghost"}
-                size="icon-sm"
-                className="size-7"
-                aria-label={label}
-                title={`${label} layout`}
-                aria-pressed={layoutState.preset === value}
-                onClick={() => {
-                  setFocusedId(null);
-                  setLayoutState({
-                    ids: selectedIds,
-                    tree: createLayout(selectedIds, value),
-                    preset: value,
-                  });
-                }}
-              >
-                <Icon className="size-3.5" />
-              </Button>
-            ))}
-          </div>
-        </div>
-        <div
-          aria-hidden="true"
-          className="border-border hidden h-5 border-l lg:block"
-        />
-        <TimeWindowControls
-          key={`${timeUnit}:${duration}:${range.start}:${range.end}`}
-          duration={duration}
-          range={range}
-          timeUnit={timeUnit}
-          onUnitChange={setTimeUnit}
-          onChange={changeRange}
-        />
-        <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
-          <Button
-            variant={showStatistics ? "secondary" : "ghost"}
-            size="sm"
-            className="h-7 gap-1.5 text-xs"
-            aria-expanded={showStatistics}
-            aria-controls="window-statistics"
-            onClick={() => setShowStatistics((current) => !current)}
-          >
-            <ChartNoAxesCombined className="size-3.5" />
-            Statistics
-          </Button>
-          <div className="border-border mx-1 h-4 border-l" />
-          <Button
-            variant="outline"
-            size="icon-xs"
-            aria-label="Zoom in comparison"
-            onClick={() => zoom(0.5)}
-          >
-            <Plus className="size-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-xs"
-            aria-label="Zoom out comparison"
-            onClick={() => zoom(2)}
-          >
-            <Minus className="size-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1.5 text-xs"
-            onClick={() => changeRange({ start: 0, end: 100 })}
-          >
-            <RotateCcw className="size-3" />
-            Reset zoom
-          </Button>
-        </div>
-      </div>
       <div className="min-h-0 flex-1 overflow-auto p-3">
         <div
           className="h-full w-full"
           style={{ minWidth: size.width, minHeight: size.height }}
         >
           <LayoutNode
+            locked={dashboard.locked}
+            panelSizes={panelSizes}
+            onPanelResize={resizePanel}
             node={visibleLayout}
             panes={panes}
             focusedId={focused ? focusedId : null}
@@ -687,7 +606,9 @@ export default function AnalysisWorkspace({
       )}
       <div className="text-muted-foreground border-border flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-4 py-2 text-[10px]">
         <span>
-          Scroll to zoom · Drag charts to pan · Drag dividers to resize
+          {dashboard.locked
+            ? "Dashboard locked · Unlock in tab settings to edit"
+            : "Scroll to zoom · Drag charts to pan · Drag dividers to resize"}
         </span>
         <span className="font-mono tabular-nums">
           {panes.length} panels · {formatTime(range.start)}–
