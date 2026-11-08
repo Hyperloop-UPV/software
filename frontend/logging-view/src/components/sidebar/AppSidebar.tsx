@@ -8,7 +8,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarSeparator,
-} from "@workspace/ui/components";
+} from "@hyperloopupv/frontend-kit/components";
 import { useLocation } from "react-router";
 import { useStore } from "../../store/store";
 import FolderPickerGroup from "./FolderPickerGroup";

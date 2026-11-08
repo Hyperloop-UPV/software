@@ -4,8 +4,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@workspace/ui/components";
-import { type LucideIcon } from "@workspace/ui/icons";
+} from "@hyperloopupv/frontend-kit/components";
+import { type LucideIcon } from "@hyperloopupv/frontend-kit/icons";
 import { Link, useLocation } from "react-router";
 
 interface NavItem {

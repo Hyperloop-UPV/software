@@ -1,4 +1,4 @@
-import { useTopic, useWebSocket } from "@workspace/ui/hooks";
+import { useTopic, useWebSocket } from "@hyperloopupv/frontend-kit/hooks";
 import { useState } from "react";
 import { Route, Routes } from "react-router";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -13,6 +13,7 @@ import usePodCatalog from "./hooks/usePodCatalog";
 import useSendOrder from "./hooks/useSendOrder";
 import AppLayout from "./layout/AppLayout";
 import Batteries from "./pages/Batteries";
+import Messages from "./pages/Messages";
 import Overview from "./pages/Overview";
 import { useStore } from "./store/store";
 import type { Connection } from "./types/connection";
@@ -68,6 +69,7 @@ const App = () => {
         <Routes>
           <Route path="/"          element={<ErrorBoundary title="Dashboard failed to render">  <Overview />   </ErrorBoundary>} />
           <Route path="/batteries" element={<ErrorBoundary title="Batteries failed to render">  <Batteries />  </ErrorBoundary>} />
+          <Route path="/messages"  element={<ErrorBoundary title="Messages failed to render">   <Messages />   </ErrorBoundary>} />
         </Routes>
       </AppLayout>
 

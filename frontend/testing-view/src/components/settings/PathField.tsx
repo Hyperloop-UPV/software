@@ -1,6 +1,6 @@
-import { Button, Input, Label } from "@workspace/ui";
-import { FolderOpen } from "@workspace/ui/icons";
-import { logger } from "@workspace/core";
+import { Button, Input, Label } from "@hyperloopupv/frontend-kit";
+import { FolderOpen } from "@hyperloopupv/frontend-kit/icons";
+import { logger } from "@hyperloopupv/frontend-kit/core";
 import { useOpenFolder } from "../../hooks/useOpenFolder";
 import type { FieldProps } from "../../types/common/settings";
 

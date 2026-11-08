@@ -7,8 +7,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@workspace/ui/*": ["../frontend-kit/ui/src/*"]
+      "@/*": ["./*"]
     }
   },
   "exclude": ["node_modules"]

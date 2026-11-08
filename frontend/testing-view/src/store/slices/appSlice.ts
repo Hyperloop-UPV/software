@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { ColorScheme } from "../../types/app/colorSchema";
+import { colorSchemes, type ColorScheme } from "../../types/app/colorSchema";
 import type { AppMode } from "../../types/app/mode";
 import type { ConfigData } from "../../types/common/config";
 import type { Store } from "../store";
@@ -73,7 +73,7 @@ export const createAppSlice: StateCreator<Store, [], [], AppSlice> = (set) => ({
   setColorScheme: (scheme) => set({ colorScheme: scheme }),
   toggleColorScheme: () =>
     set((state) => ({
-      colorScheme: state.colorScheme === "default" ? "pink" : "default",
+      colorScheme: colorSchemes[state.colorScheme].next,
     })),
 
   // Dark mode

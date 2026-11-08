@@ -7,7 +7,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@workspace/ui/components";
+} from "@hyperloopupv/frontend-kit/components";
 import {
   Activity,
   ChevronDown,
@@ -19,8 +19,8 @@ import {
   Plug,
   Server,
   TrendingUp,
-} from "@workspace/ui/icons";
-import { cn, getTypeBadgeClass, typeBadgeClasses } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit/icons";
+import { cn, getTypeBadgeClass, typeBadgeClasses } from "@hyperloopupv/frontend-kit/lib";
 import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import type { AdjArchiveV2, AdjMeasurement, AdjPacket, AdjSocket } from "./types";
 import { NetworkTab } from "./NetworkTab";

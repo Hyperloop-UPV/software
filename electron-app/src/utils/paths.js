@@ -90,6 +90,42 @@ function getUserConfigPath() {
   return path.join(configsDir, "config.toml");
 }
 
+/** Working directory passed to the Go backend; relative logging paths use it. */
+function getBackendWorkingDir() {
+  return !app.isPackaged
+    ? path.join(getAppPath(), "..", "backend", "cmd")
+    : path.dirname(getUserConfigPath());
+}
+
+/** Match os.UserCacheDir and filepath.Abs in backend/pkg/adj/adj.go. */
+function getBackendCachePath({
+  platform = process.platform,
+  env = process.env,
+} = {}) {
+  const platformPath = platform === "win32" ? path.win32 : path.posix;
+  let cacheDir;
+  if (platform === "win32") {
+    cacheDir = env.LocalAppData || env.LOCALAPPDATA;
+  } else if (platform === "darwin") {
+    if (env.HOME) cacheDir = platformPath.join(env.HOME, "Library", "Caches");
+  } else {
+    if (env.XDG_CACHE_HOME && !platformPath.isAbsolute(env.XDG_CACHE_HOME)) {
+      throw new Error(
+        "The Go backend requires an absolute XDG_CACHE_HOME path.",
+      );
+    }
+    cacheDir =
+      env.XDG_CACHE_HOME || (env.HOME && platformPath.join(env.HOME, ".cache"));
+  }
+  if (!cacheDir)
+    throw new Error("The Go backend's user cache directory is not configured.");
+  return platformPath.resolve(
+    getBackendWorkingDir(),
+    cacheDir,
+    "hyperloop-control-station",
+  );
+}
+
 /**
  * Gets the path to the user app version file.
  * @returns {string} The absolute path to the user's version.toml file.
@@ -130,6 +166,8 @@ function getTemplatePath() {
 export {
   getAppPath,
   getBinaryPath,
+  getBackendCachePath,
+  getBackendWorkingDir,
   getTemplatePath,
   getUserConfigPath,
   getVersionFilePath,

@@ -4,7 +4,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@workspace/ui";
+} from "@hyperloopupv/frontend-kit";
 import type { ReactNode } from "react";
 
 interface RightSidebarToggleProps {

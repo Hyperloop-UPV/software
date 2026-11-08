@@ -18,9 +18,10 @@ export const createMessagesSlice: StateCreator<
 > = (set) => ({
   messages: [],
 
+  // Terminal order: newest last, so the cap drops the oldest entries.
   addMessage: (message) =>
     set((state) => ({
-      messages: [message, ...state.messages].slice(0, MAX_MESSAGES),
+      messages: [...state.messages, message].slice(-MAX_MESSAGES),
     })),
 
   clearMessages: () => set({ messages: [] }),

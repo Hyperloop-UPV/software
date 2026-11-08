@@ -2,7 +2,7 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@workspace/ui";
+} from "@hyperloopupv/frontend-kit";
 import { useStore } from "../../../../store/store";
 import { CommandsSection } from "./sections/CommandsSection";
 import MessagesSection from "./sections/MessagesSection";

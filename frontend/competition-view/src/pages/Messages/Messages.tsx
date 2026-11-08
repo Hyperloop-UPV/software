@@ -1,5 +1,5 @@
-import { Button, Separator } from "@workspace/ui/components";
-import { ChevronUp } from "@workspace/ui/icons";
+import { Button, Separator, Slider } from "@hyperloopupv/frontend-kit/components";
+import { ChevronDown } from "@hyperloopupv/frontend-kit/icons";
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../store/store";
 import type { MessageKind } from "../../types/message";
@@ -14,13 +14,23 @@ const KIND_LABEL: Record<MessageKind, string> = {
   ok:      "Ok",
 };
 
+const FONT_SIZE_KEY = "messages.fontSize";
+const MIN_FONT_SIZE = 12;
+const MAX_FONT_SIZE = 24;
+const DEFAULT_FONT_SIZE = 16;
+
+const readStoredFontSize = () => {
+  const stored = Number(localStorage.getItem(FONT_SIZE_KEY));
+  return stored >= MIN_FONT_SIZE && stored <= MAX_FONT_SIZE ? stored : DEFAULT_FONT_SIZE;
+};
+
 /**
  * Full message log with per-kind filtering and a clear button.
  *
- * Messages are stored newest-first, so the top of the list is always the
- * latest entry. A floating "Latest" button appears when the user scrolls
- * down into older messages, and new entries auto-scroll to the top only
- * while the user hasn't scrolled away.
+ * Terminal-style log: messages are stored oldest-first, so the latest entry
+ * is at the bottom and the view follows it. A floating "Latest" button
+ * appears once the user scrolls up into history, which also pauses the
+ * auto-scroll until they return to the bottom.
  */
 const Messages = () => {
   const messages      = useStore((s) => s.messages);
@@ -30,6 +40,11 @@ const Messages = () => {
     new Set(ALL_KINDS),
   );
   const [scrolledAway, setScrolledAway] = useState(false);
+  const [fontSize, setFontSize] = useState(readStoredFontSize);
+
+  useEffect(() => {
+    localStorage.setItem(FONT_SIZE_KEY, String(fontSize));
+  }, [fontSize]);
 
   const scrollRef    = useRef<HTMLDivElement>(null);
   const prevLenRef   = useRef(0);
@@ -43,21 +58,24 @@ const Messages = () => {
 
   const filtered = messages.filter((m) => activeKinds.has(m.kind));
 
-  // Auto-scroll to top (latest message) when a new entry arrives,
-  // but only if the user hasn't scrolled down into history.
+  // Jumps instantly: a smooth scroll still in flight when the next message
+  // lands would read as "scrolled away" and stall the follow.
+  const scrollToLatest = (behavior: ScrollBehavior = "auto") => {
+    const el = scrollRef.current;
+    el?.scrollTo({ top: el.scrollHeight, behavior });
+  };
+
+  // Follow the bottom as entries arrive, unless the user scrolled up.
   useEffect(() => {
     if (filtered.length > prevLenRef.current && !scrolledAway) {
-      scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      scrollToLatest();
     }
     prevLenRef.current = filtered.length;
   }, [filtered.length, scrolledAway]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrolledAway(e.currentTarget.scrollTop > 80);
-  };
-
-  const scrollToLatest = () => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    const el = e.currentTarget;
+    setScrolledAway(el.scrollHeight - el.scrollTop - el.clientHeight > 80);
   };
 
   return (
@@ -79,7 +97,21 @@ const Messages = () => {
           </Button>
         ))}
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-xs" aria-hidden>A</span>
+            <Slider
+              value={[fontSize]}
+              onValueChange={([value]) => setFontSize(value)}
+              min={MIN_FONT_SIZE}
+              max={MAX_FONT_SIZE}
+              step={1}
+              className="w-24"
+              aria-label="Message font size"
+            />
+            <span className="text-muted-foreground text-base" aria-hidden>A</span>
+          </div>
+          <Separator orientation="vertical" className="data-[orientation=vertical]:h-4" />
           <span className="text-muted-foreground text-xs">
             {filtered.length} / {messages.length}
           </span>
@@ -106,7 +138,9 @@ const Messages = () => {
             <p className="text-muted-foreground text-sm">No messages</p>
           </div>
         ) : (
-          filtered.map((msg) => <MessageItem key={msg.id} message={msg} />)
+          filtered.map((msg) => (
+            <MessageItem key={msg.id} message={msg} fontSizePx={fontSize} />
+          ))
         )}
 
         {/* Floating "scroll to latest" button */}
@@ -114,10 +148,10 @@ const Messages = () => {
           <Button
             size="sm"
             variant="secondary"
-            onClick={scrollToLatest}
+            onClick={() => scrollToLatest("smooth")}
             className="fixed bottom-6 right-6 z-10 gap-1.5 shadow-md"
           >
-            <ChevronUp className="size-3.5" />
+            <ChevronDown className="size-3.5" />
             Latest
           </Button>
         )}

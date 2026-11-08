@@ -1,6 +1,6 @@
-import { Button } from "@workspace/ui";
-import { useWebSocket } from "@workspace/ui/hooks";
-import { RefreshCw } from "@workspace/ui/icons";
+import { Button } from "@hyperloopupv/frontend-kit";
+import { useWebSocket } from "@hyperloopupv/frontend-kit/hooks";
+import { RefreshCw } from "@hyperloopupv/frontend-kit/icons";
 import { useStore } from "../../store/store";
 
 export const ReconnectButton = () => {

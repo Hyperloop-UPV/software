@@ -1,5 +1,5 @@
-import { Badge, Button } from "@workspace/ui";
-import { AlertTriangle, X } from "@workspace/ui/icons";
+import { Badge, Button } from "@hyperloopupv/frontend-kit";
+import { AlertTriangle, X } from "@hyperloopupv/frontend-kit/icons";
 import { useStore } from "../../../store/store";
 import type { KeyBinding } from "../types/keyBinding";
 

@@ -12,6 +12,10 @@ import {
   getSignalUnits,
   isDiscreteMeasurement,
 } from "../lib/plotStudio/units";
+// Normal mode: full-featured log analysis view.
+// Placeholder — UI to be implemented.
+import swLogoBlack from "@hyperloopupv/frontend-kit/outreach/main/software_black.png?inline";
+import swLogoWhite from "@hyperloopupv/frontend-kit/outreach/main/software_white.png?inline";
 import { useStore } from "../store/store";
 import type { ComparisonSignal } from "../types/normal";
 import type { SeriesData } from "../types/plotStudio";

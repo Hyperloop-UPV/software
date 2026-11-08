@@ -88,6 +88,16 @@ coverage
 # yarn.lock
 # pnpm-lock.yaml
 
+# Generated at build time from the GitHub API: contributor photographs and
+# each person's commit count. Deliberately not committed. It is personal data,
+# the repository is public, and the snapshot carries a timestamp, so every
+# build rewrote it and every build rewrote the images next to it. The build
+# regenerates both before packaging; a build with no network and nothing on
+# disk writes an empty snapshot locally and fails in CI, so a release can
+# never ship an empty About screen silently.
+src/about/credits.snapshot.json
+renderer/about/avatars/
+
 # Config and config backups
 config.toml
 config.toml.backup-*

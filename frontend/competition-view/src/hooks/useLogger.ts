@@ -1,5 +1,5 @@
-import { logger, socketService } from "@workspace/core";
-import { useTopic } from "@workspace/ui/hooks";
+import { logger, socketService } from "@hyperloopupv/frontend-kit/core";
+import { useTopic } from "@hyperloopupv/frontend-kit/hooks";
 import { useEffect, useState } from "react";
 import type { LoggerStatus } from "../types/logger";
 
