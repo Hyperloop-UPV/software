@@ -4,7 +4,7 @@
 import { Button, SegmentedControl } from "@hyperloopupv/frontend-kit/components";
 import { X } from "@hyperloopupv/frontend-kit/icons";
 import { useLocation, useNavigate } from "react-router";
-import logo from "@hyperloopupv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
+import logo from "@hyperloopupv/frontend-kit/outreach/main/logo_icon.svg";
 import { useStore } from "../../store/store";
 import { useSeriesSelection } from "../../hooks/useSeriesSelection";
 
@@ -26,7 +26,9 @@ const Header = () => {
 
   return (
     <header className="h-(--header-height) flex shrink-0 items-center gap-2 overflow-x-hidden border-b px-4">
-      <img src={logo} alt="Hyperloop UPV" className="size-9 shrink-0 dark:invert" />
+      <span className="size-9 shrink-0 overflow-hidden">
+        <img src={logo} alt="Hyperloop UPV" className="size-full scale-[2.045] dark:invert" />
+      </span>
       <div className="min-w-0 flex-1">
         <h1 className="text-foreground truncate text-xl font-bold">
           {showWorkspace ? "Signal workspace" : "Logging View"}
