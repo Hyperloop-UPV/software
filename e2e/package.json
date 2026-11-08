@@ -11,6 +11,7 @@
     "test:fast": "playwright test",
     "test:fast:ui": "playwright test tests/ui",
     "test:fast:integration": "playwright test --project=integration",
+    "test:logging-view": "playwright test --config playwright.logging.config.ts",
     "report": "playwright show-report"
   },
   "devDependencies": {

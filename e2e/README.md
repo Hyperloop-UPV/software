@@ -13,6 +13,16 @@ Tests are split into two Playwright projects:
 | `ui`          | `tests/ui/`          | UI tests — launch the Electron app and interact with the UI                             |
 | `integration` | `tests/integration/` | Real renderer/main IPC, Go HTTP catalogs, WebSocket subscriptions and profile isolation |
 
+Logging View also has a standalone browser suite in `tests/logging-view/`, using
+`playwright.logging.config.ts`. Run `pnpm --dir e2e test:logging-view` from the
+repository root. It starts Vite on port 9007 and verifies dashboard tabs, independent
+signal/layout/time settings, keyboard navigation, and session resets without Electron
+or a backend binary.
+The suite also covers the tab settings popover, colors, drag and keyboard reordering,
+and lock protection for tab metadata, plots, sidebar selection and time controls.
+Compact controls in the tab bar and the expandable full controls are checked for
+state preservation, lock protection and narrow layouts.
+
 ---
 
 ## UI Tests
@@ -57,6 +67,7 @@ vehicle commands. The WebSocket integration test only subscribes to connection s
 | `pnpm test:fast`             | Run all tests without rebuilding (assumes already built)              |
 | `pnpm test:fast:ui`          | Run `tests/ui` without rebuilding                                     |
 | `pnpm test:fast:integration` | Run integration tests without rebuilding                              |
+| `pnpm test:logging-view`     | Run Logging View dashboard tests against a local Vite server          |
 | `pnpm report`                | Open the last Playwright HTML report                                  |
 
 The renderer build does not compile Go or package Electron. It copies each
