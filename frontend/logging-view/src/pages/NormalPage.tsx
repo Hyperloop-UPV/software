@@ -1,7 +1,6 @@
 // Normal mode is the exploration workspace: sidebar selections become linked
 // ECharts views. Simple mode keeps its separate plot studio and PDF workflow.
-import { Button } from "@hyperloopupv/frontend-kit/components";
-import { Activity, X } from "@hyperloopupv/frontend-kit/icons";
+import { Activity } from "@hyperloopupv/frontend-kit/icons";
 import { useEffect, useMemo, useState } from "react";
 import AnalysisWorkspace from "../components/normal/AnalysisWorkspace";
 import { parseCSVInWorker } from "../lib/plotStudio/csv";
@@ -44,7 +43,6 @@ function SessionComparison() {
   const settings = useStore((s) => s.settings);
   const adjData = useStore((s) => s.adjData);
   const selectedSeries = useStore((s) => s.selectedSeries);
-  const clearSelectedSeries = useStore((s) => s.clearSelectedSeries);
   const isDarkMode = useStore((s) => s.isDarkMode);
   const [, refresh] = useState(0);
 
@@ -133,30 +131,6 @@ function SessionComparison() {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="border-border bg-background/95 flex shrink-0 flex-wrap items-center gap-3 border-b px-5 py-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-foreground text-base font-semibold">
-            Signal workspace
-          </h1>
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            {folderName} · {selectedIds.length} selected
-            {pendingCount > 0
-              ? ` · loading ${pendingCount}…`
-              : " · shared session time axis"}
-          </p>
-        </div>
-        {selectedIds.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearSelectedSeries}
-            className="text-muted-foreground gap-1.5 text-xs"
-          >
-            <X className="size-3.5" /> Clear selection
-          </Button>
-        )}
-      </div>
-
       {selectedIds.length === 0 ? (
         <EmptyView
           title="Choose signals to compare"
