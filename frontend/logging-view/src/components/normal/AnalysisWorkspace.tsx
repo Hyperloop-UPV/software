@@ -8,8 +8,8 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@workspace/ui/components";
-import { Columns, Plus, Settings2, X } from "@workspace/ui/icons";
+} from "@hyperloopupv/frontend-kit/components";
+import { Columns, Plus, Settings2, X } from "@hyperloopupv/frontend-kit/icons";
 import * as echarts from "echarts";
 import {
   ChartNoAxesCombined,

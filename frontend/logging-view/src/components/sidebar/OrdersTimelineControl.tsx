@@ -1,7 +1,7 @@
 // A session-wide view of command events. Orders are not telemetry series, so
 // they live in the sidebar footer and open their own time-oriented view.
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem } from "@workspace/ui/components";
-import { Send } from "@workspace/ui/icons";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem } from "@hyperloopupv/frontend-kit/components";
+import { Send } from "@hyperloopupv/frontend-kit/icons";
 import * as echarts from "echarts";
 import { useEffect, useRef, useState } from "react";
 import { formatOrderAnnotation } from "../../lib/orders";

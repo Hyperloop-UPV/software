@@ -1,4 +1,4 @@
-import { Button, Input } from "@workspace/ui/components";
+import { Button, Input } from "@hyperloopupv/frontend-kit/components";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
 import type { TimeRange, TimeUnit } from "../../types/normal";

@@ -406,6 +406,9 @@ importers:
       '@vitejs/plugin-react-swc':
         specifier: ^4.2.3
         version: 4.2.3(vite@7.3.1(@types/node@25.2.0)(jiti@2.6.1)(lightningcss@1.32.0))
+      echarts:
+        specifier: ^6.1.0
+        version: 6.1.0
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1

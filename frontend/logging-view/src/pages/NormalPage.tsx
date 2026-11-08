@@ -1,7 +1,7 @@
 // Normal mode is the exploration workspace: sidebar selections become linked
 // ECharts views. Simple mode keeps its separate plot studio and PDF workflow.
-import { Button } from "@workspace/ui/components";
-import { Activity, X } from "@workspace/ui/icons";
+import { Button } from "@hyperloopupv/frontend-kit/components";
+import { Activity, X } from "@hyperloopupv/frontend-kit/icons";
 import { useEffect, useMemo, useState } from "react";
 import AnalysisWorkspace from "../components/normal/AnalysisWorkspace";
 import { parseCSVInWorker } from "../lib/plotStudio/csv";
@@ -12,10 +12,6 @@ import {
   getSignalUnits,
   isDiscreteMeasurement,
 } from "../lib/plotStudio/units";
-// Normal mode: full-featured log analysis view.
-// Placeholder — UI to be implemented.
-import swLogoBlack from "@hyperloopupv/frontend-kit/outreach/main/software_black.png?inline";
-import swLogoWhite from "@hyperloopupv/frontend-kit/outreach/main/software_white.png?inline";
 import { useStore } from "../store/store";
 import type { ComparisonSignal } from "../types/normal";
 import type { SeriesData } from "../types/plotStudio";

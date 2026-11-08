@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@hyperloopupv/frontend-kit/components";
-import { Activity, Eye, EyeOff, GripVertical, Plus, Trash2, X } from "@hyperloopupv/frontend-kit/icons";
+import { ChevronDown, Eye, EyeOff, GripVertical, Plus, Send, Trash2, X } from "@hyperloopupv/frontend-kit/icons";
 import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
