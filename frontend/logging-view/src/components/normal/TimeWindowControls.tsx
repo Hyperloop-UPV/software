@@ -1,5 +1,5 @@
 import { Button, Input } from "@hyperloopupv/frontend-kit/components";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Link2 } from "lucide-react";
 import { useId, useState } from "react";
 import type { TimeRange, TimeUnit } from "../../types/normal";
 
@@ -7,11 +7,13 @@ export default function TimeWindowControls({
   duration,
   range,
   timeUnit,
+  onUnitChange,
   onChange,
 }: {
   duration: number;
   range: TimeRange;
   timeUnit: TimeUnit;
+  onUnitChange: (unit: TimeUnit) => void;
   onChange: (range: TimeRange) => void;
 }) {
   const errorId = useId();
@@ -34,7 +36,7 @@ export default function TimeWindowControls({
 
   return (
     <form
-      className="border-border flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2"
+      className="flex min-h-9 max-w-full flex-wrap items-center gap-2"
       aria-label="Visible time window"
       onSubmit={(event) => {
         event.preventDefault();
@@ -62,8 +64,12 @@ export default function TimeWindowControls({
         });
       }}
     >
-      <span className="text-muted-foreground mr-1 text-[11px] font-medium">
-        Time window
+      <span
+        className="text-muted-foreground inline-flex items-center"
+        title="Time window shared by all charts"
+      >
+        <Link2 className="size-3.5" />
+        <span className="sr-only">Linked time window</span>
       </span>
       {(["start", "end"] as const).map((field) => (
         <label
@@ -91,11 +97,20 @@ export default function TimeWindowControls({
                 setError("");
               }
             }}
-            className="h-7 w-28 text-xs tabular-nums"
+            className="h-7 w-24 text-xs tabular-nums"
           />
         </label>
       ))}
-      <span className="text-muted-foreground text-xs">{timeUnit}</span>
+      <select
+        value={timeUnit}
+        onChange={(event) => onUnitChange(event.target.value as TimeUnit)}
+        aria-label="Time unit"
+        className="border-input bg-background text-foreground h-7 rounded-md border px-2 text-xs"
+      >
+        <option value="ms">ms</option>
+        <option value="s">s</option>
+        <option value="min">min</option>
+      </select>
       <Button
         type="submit"
         variant="outline"
@@ -105,7 +120,7 @@ export default function TimeWindowControls({
       >
         Apply
       </Button>
-      <div className="ml-auto flex items-center gap-1">
+      <div className="flex items-center gap-1">
         <Button
           type="button"
           variant="ghost"

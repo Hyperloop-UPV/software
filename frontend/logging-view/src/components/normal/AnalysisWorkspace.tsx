@@ -16,7 +16,6 @@ import {
   Eye,
   EyeOff,
   Grid2X2,
-  Link2,
   Maximize2,
   Minimize2,
   Minus,
@@ -557,9 +556,13 @@ export default function AnalysisWorkspace({
       className="flex min-h-0 flex-1 flex-col"
       aria-label="Signal analysis workspace"
     >
-      <div className="border-border bg-muted/15 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground mr-1 text-[11px] font-medium">
+      <div
+        role="group"
+        aria-label="Analysis controls"
+        className="border-border bg-muted/15 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2.5"
+      >
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-muted-foreground text-[11px] font-medium">
             Layout
           </span>
           <div
@@ -571,8 +574,10 @@ export default function AnalysisWorkspace({
               <Button
                 key={value}
                 variant={layoutState.preset === value ? "secondary" : "ghost"}
-                size="sm"
-                className="h-7 gap-1.5 px-2 text-xs"
+                size="icon-sm"
+                className="size-7"
+                aria-label={label}
+                title={`${label} layout`}
                 aria-pressed={layoutState.preset === value}
                 onClick={() => {
                   setFocusedId(null);
@@ -584,16 +589,23 @@ export default function AnalysisWorkspace({
                 }}
               >
                 <Icon className="size-3.5" />
-                {label}
               </Button>
             ))}
           </div>
-          <span className="text-muted-foreground ml-1 inline-flex items-center gap-1.5 text-[11px]">
-            <Link2 className="size-3" />
-            Linked time
-          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          aria-hidden="true"
+          className="border-border hidden h-5 border-l lg:block"
+        />
+        <TimeWindowControls
+          key={`${timeUnit}:${duration}:${range.start}:${range.end}`}
+          duration={duration}
+          range={range}
+          timeUnit={timeUnit}
+          onUnitChange={setTimeUnit}
+          onChange={changeRange}
+        />
+        <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
           <Button
             variant={showStatistics ? "secondary" : "ghost"}
             size="sm"
@@ -605,19 +617,6 @@ export default function AnalysisWorkspace({
             <ChartNoAxesCombined className="size-3.5" />
             Statistics
           </Button>
-          <label className="text-muted-foreground flex items-center gap-2 text-[11px]">
-            Time
-            <select
-              value={timeUnit}
-              onChange={(event) => setTimeUnit(event.target.value as TimeUnit)}
-              aria-label="Time unit"
-              className="border-input bg-background text-foreground h-7 rounded-md border px-2 text-xs"
-            >
-              <option value="ms">ms</option>
-              <option value="s">s</option>
-              <option value="min">min</option>
-            </select>
-          </label>
           <div className="border-border mx-1 h-4 border-l" />
           <Button
             variant="outline"
@@ -646,13 +645,6 @@ export default function AnalysisWorkspace({
           </Button>
         </div>
       </div>
-      <TimeWindowControls
-        key={`${timeUnit}:${duration}:${range.start}:${range.end}`}
-        duration={duration}
-        range={range}
-        timeUnit={timeUnit}
-        onChange={changeRange}
-      />
       <div className="min-h-0 flex-1 overflow-auto p-3">
         <div
           className="h-full w-full"
