@@ -12,8 +12,8 @@ repository.workspace = true
 default = []
 # NTP server
 ntp = ["dep:tokio", "dep:ntp_usg-server", "dep:tracing-subscriber"]
-# TCP/UDP transport (pulls in tokio)
-net = ["dep:tokio"]
+# TCP/UDP transport (pulls in tokio and socket2 for SO_RCVBUF)
+net = ["dep:tokio", "dep:socket2"]
 # ADJ download through git (dependency added when the module is written)
 git = []
 # Packet sniffing through pcap (dependency added when the module is written)
@@ -37,6 +37,7 @@ tokio = { workspace = true, optional = true, features = [
     "rt-multi-thread",
     "io-util",
 ] }
+socket2 = { version = "0.6", optional = true }
 tracing-subscriber = { workspace = true, optional = true , features = ["env-filter", "fmt"]}
 tracing-appender = { workspace = true, optional = true }
 ntp_usg-server = { version = "5.0.0", optional = true, features = ["ipv4", "tokio"] }
