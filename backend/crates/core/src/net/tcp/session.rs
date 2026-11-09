@@ -7,7 +7,7 @@ use tokio::{net::TcpStream, sync::mpsc};
 
 /// Why a session ended without a transport error.
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum SessionEnd {
+pub enum SessionEnd {
     /// The peer closed its write side at a frame boundary.
     PeerClosed,
     /// Publishing a received packet detected a closed notification consumer.
@@ -28,8 +28,8 @@ pub(super) enum SessionEnd {
 /// both are ready. The other future is dropped before returning, releasing its
 /// socket half. Cancelling `run` also drops both halves and releases the borrow
 /// of `orders`. Never resume that connection or automatically replay an order
-/// whose write may have been interrupted. Queue retention across reconnections
-/// remains a policy for the future connection owner.
+/// whose write may have been interrupted. [`super::supervise`] retains this
+/// receiver across reconnections without replaying dequeued orders.
 ///
 /// This is immediate session cancellation, not lossless shutdown: a decoded
 /// packet still waiting for notification capacity may be discarded when the
@@ -42,9 +42,7 @@ pub(super) enum SessionEnd {
 ///
 /// Returns the selected reader or writer error unchanged. The caller can report
 /// that single result once; this function does not collect errors from both sides.
-// The future per-board connection owner will call this after preparing a stream.
-#[cfg_attr(not(test), allow(dead_code))]
-pub(super) async fn run(
+pub async fn run(
     stream: TcpStream,
     board: BoardId,
     index: &Index,

@@ -1,11 +1,10 @@
 //! The TCP client: one connection per board, one task each.
 //!
-//! **Connection supervision not written yet.** Handles support board lookup,
-//! routing, order encoding and byte queueing. In-memory framing, connection
-//! attempts, session reading with reporting, queued frame/keep-alive writing and
-//! coordinated session teardown are implemented. Task startup and reconnection
-//! remain unimplemented. This module exposes the error type [`super::Error`]
-//! aggregates and defines the transport contract.
+//! [`spawn`] starts one independent supervisor and bounded order queue per board.
+//! Handles support board lookup, routing, encoding and queueing; [`supervise`]
+//! reconnects with queued orders preserved and backoff reset on connection success.
+//! Explicit task shutdown/joining and fault broadcast remain pending. This module
+//! exposes the error type [`super::Error`] aggregates and defines the transport contract.
 //! See [`super`] and `net/README.md`.
 //!
 //! # What this module is
@@ -82,7 +81,8 @@
 
 use super::Reporter;
 use crate::{model::BoardId, protocol::Index};
-use std::{cmp::min, net::SocketAddr, sync::Arc, time::Duration};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
+use tokio::sync::mpsc;
 
 mod board_handle;
 mod connection;
@@ -91,11 +91,19 @@ mod framing;
 mod handles;
 mod reader;
 mod session;
+mod supervisor;
 mod writer;
 
+// Queue capacity counts encoded frames, not bytes. Keep it bounded while
+// disconnected; configuration of this limit can be added separately.
+const ORDER_QUEUE_CAPACITY: usize = 64;
+
 pub use board_handle::BoardHandle;
+pub use connection::{connect, connect_with_backoff};
 pub use error::{Error, SendError, Unreachable};
 pub use handles::Handles;
+pub use session::{SessionEnd, run};
+pub use supervisor::supervise;
 
 /// One board to keep a connection to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,10 +123,10 @@ pub struct BoardLink {
 /// How long to wait between reconnection attempts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Backoff {
-    // The first wait after a connection fails or drops.
+    // The bounded initial interval restored after a successful connection.
     initial: u64,
-    // Times tried to backoff
-    count: u64,
+    // The next wait in milliseconds, always bounded by max.
+    next: u64,
     // The ceiling the doubling stops at. Retries are unlimited: a board
     // that is not up yet is the normal state before a test, not an
     // error to give up on.
@@ -126,24 +134,34 @@ pub struct Backoff {
 }
 
 impl Backoff {
-    /// Creates an instance of Backoff
-    /// Arguments:
-    /// - initial: value for first backoff atempt
-    /// - max: max value of backoff
+    /// Creates an exponential backoff with millisecond intervals.
+    ///
+    /// The first interval is `initial.min(max)`. A zero initial interval or
+    /// maximum produces zero intervals throughout; the caller decides when to wait.
     pub fn new(initial: u64, max: u64) -> Self {
         Self {
-            initial,
-            count: 0,
+            initial: initial.min(max),
+            next: initial.min(max),
             max,
         }
     }
 
-    /// Returns the backoff interval for each attempt
+    /// Returns the next interval, doubling subsequent intervals up to the maximum.
+    ///
+    /// Saturating arithmetic allows unlimited attempts without overflow. Once
+    /// reached, the maximum is returned on every subsequent call until [`Self::reset`].
     pub fn get_interval(&mut self) -> Duration {
-        let res = min(self.max, self.initial * 2u64.pow(self.count as u32));
-        // Increments the count for the next get_interval
-        self.count += 1;
-        Duration::from_millis(res)
+        let interval = Duration::from_millis(self.next);
+        self.next = self.next.saturating_mul(2).min(self.max);
+        interval
+    }
+
+    /// Restores the first interval without changing the configured maximum.
+    ///
+    /// Call after a successful connection so a later disconnection starts a new
+    /// retry sequence. Repeated resets are harmless and do not consume an interval.
+    pub fn reset(&mut self) {
+        self.next = self.initial;
     }
 }
 
@@ -166,7 +184,7 @@ pub struct Config {
     /// Zero disables it. The first send waits one period; subsequent periods
     /// start when the previous keep-alive finishes. Ordinary orders do not reset
     /// the timer, and overdue sends never accumulate into a catch-up burst.
-    /// The session writer implements this; startup through `spawn` is still pending.
+    /// Each spawned supervisor supplies this period to its session writer.
     /// OS-level keep-alive remains disabled in favor of this application packet.
     pub keep_alive: Duration,
     /// Bound on each write, so that a peer that stops reading cannot park
@@ -188,19 +206,174 @@ pub struct Config {
 /// Connecting is *not* done before spawning, unlike [`super::udp`]: a
 /// board that is not up yet is normal, so a failed attempt is a report
 /// and a retry, never a startup failure.
+///
+/// Each board gets a queue of 64 encoded frames and a supervisor with independent
+/// backoff state, sharing the immutable index and Reporter channels. Repeated
+/// board IDs keep their first link and log a warning; no duplicate task is started.
+/// An empty board list returns empty handles without opening a connection.
+///
+/// Tasks are detached for now: this API does not return join handles or implement
+/// explicit shutdown. Closing either Reporter consumer stops the supervisors;
+/// consume both channels concurrently while running. Dropping Handles closes the
+/// order senders but does not promise immediate stop during offline retries.
+/// No application handshake, hash exchange or fault broadcast is performed.
+///
+/// # Panics
+///
+/// Starting a nonempty configuration outside a Tokio runtime panics, as does
+/// [`tokio::spawn`].
 pub fn spawn(config: Config, adj: Arc<Index>, reporter: Reporter) -> Handles {
-    let _ = (config, adj, reporter);
-    todo!("the TCP client is not written yet: see this module's contract")
+    let mut boards = HashMap::with_capacity(config.boards.len());
+    let config = Arc::new(config);
+    for &link in &config.boards {
+        if boards.contains_key(&link.board) {
+            tracing::warn!(board = ?link.board, "ignoring duplicate TCP board link");
+            continue;
+        }
+        let (orders, mut receiver) = mpsc::channel(ORDER_QUEUE_CAPACITY);
+        boards.insert(
+            link.board,
+            BoardHandle {
+                board: link.board,
+                index: Arc::clone(&adj),
+                orders,
+            },
+        );
+
+        let index = Arc::clone(&adj);
+        let config = Arc::clone(&config);
+        let reporter = reporter.clone();
+        // Deliberately detached: explicit task ownership/joining is a later step.
+        let _task = tokio::spawn(async move {
+            let _ = supervise(&link, &config, &index, &reporter, &mut receiver).await;
+        });
+    }
+    Handles::new(boards, adj)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::DecodeError;
-    use std::path::Path;
+    use crate::{
+        model::{AdjId, OrderPacket, Value},
+        protocol::DecodeError,
+    };
+    use std::{io, path::Path};
 
     fn io_error() -> std::io::Error {
         std::io::Error::from(std::io::ErrorKind::ConnectionRefused)
+    }
+
+    #[test]
+    fn backoff_doubles_in_milliseconds_and_stays_at_the_cap() {
+        // A non-power-of-two cap must be reached without rounding or wrapping.
+        let mut backoff = Backoff::new(100, 700);
+        for expected in [100, 200, 400, 700] {
+            assert_eq!(backoff.get_interval(), Duration::from_millis(expected));
+        }
+        // Staying capped must not leave an ever-growing exponent or counter.
+        for _ in 0..10_000 {
+            assert_eq!(backoff.get_interval(), Duration::from_millis(700));
+        }
+    }
+
+    #[test]
+    fn backoff_bounds_the_first_interval() {
+        // Equal and excessive initial values both start at the configured cap.
+        for initial in [700, 701, u64::MAX] {
+            let mut backoff = Backoff::new(initial, 700);
+            for _ in 0..100 {
+                assert_eq!(backoff.get_interval(), Duration::from_millis(700));
+            }
+        }
+    }
+
+    #[test]
+    fn backoff_preserves_zero_intervals_without_overflow() {
+        // Preserve zero-valued configuration, including after the old exponent
+        // calculation would overflow even with an initial interval of zero.
+        for (initial, max) in [(0, 0), (0, 700), (0, u64::MAX), (100, 0)] {
+            let mut backoff = Backoff::new(initial, max);
+            for _ in 0..1_000 {
+                assert_eq!(backoff.get_interval(), Duration::ZERO);
+            }
+        }
+    }
+
+    #[test]
+    fn backoff_saturates_before_applying_a_large_cap() {
+        // Doubling the initial interval exceeds u64::MAX, but a lower cap must
+        // still win over saturation. Also cover the largest representable cap.
+        let initial = u64::MAX / 2 + 1;
+        for max in [u64::MAX - 1, u64::MAX] {
+            let mut backoff = Backoff::new(initial, max);
+            assert_eq!(backoff.get_interval(), Duration::from_millis(initial));
+            for _ in 0..100 {
+                assert_eq!(backoff.get_interval(), Duration::from_millis(max));
+            }
+        }
+    }
+
+    #[test]
+    fn backoff_reaches_the_largest_cap_from_one() {
+        // Exercise every representable power of two before saturation; merely
+        // capping the attempt counter would incorrectly stop at 2^63.
+        let mut backoff = Backoff::new(1, u64::MAX);
+        for exponent in 0..64 {
+            assert_eq!(
+                backoff.get_interval(),
+                Duration::from_millis(1u64 << exponent)
+            );
+        }
+        for _ in 0..100 {
+            assert_eq!(backoff.get_interval(), Duration::from_millis(u64::MAX));
+        }
+    }
+
+    #[test]
+    fn backoff_reset_restarts_growth_even_after_reaching_the_cap() {
+        let mut backoff = Backoff::new(100, 700);
+        // Reset before the first wait, during growth and at the cap. None of
+        // these operations should consume the initial interval or change max.
+        for consumed in [0, 2, 20] {
+            backoff.reset();
+            for _ in 0..consumed {
+                backoff.get_interval();
+            }
+            backoff.reset();
+            backoff.reset();
+            for expected in [100, 200, 400, 700, 700] {
+                assert_eq!(backoff.get_interval(), Duration::from_millis(expected));
+            }
+        }
+    }
+
+    #[test]
+    fn backoff_reset_preserves_bounded_zero_and_extreme_initial_intervals() {
+        // Reset retains the constructor's clamping and zero semantics, without
+        // reintroducing overflow when an extreme sequence grows again.
+        for (initial, max) in [
+            (0, 0),
+            (0, u64::MAX),
+            (100, 0),
+            (900, 700),
+            (u64::MAX / 2 + 1, u64::MAX),
+            (u64::MAX, u64::MAX),
+        ] {
+            let mut backoff = Backoff::new(initial, max);
+            for _ in 0..100 {
+                backoff.get_interval();
+            }
+            backoff.reset();
+            assert_eq!(
+                backoff.get_interval(),
+                Duration::from_millis(initial.min(max))
+            );
+            assert_eq!(
+                backoff.get_interval(),
+                Duration::from_millis(initial.min(max).saturating_mul(2).min(max))
+            );
+        }
     }
 
     #[test]
@@ -306,5 +479,114 @@ mod tests {
             "the peer closed without sending a complete frame"
         );
         Ok(())
+    }
+
+    /// Preserves station's original supervised probe, now driven through spawn/Handles.
+    ///
+    /// From backend/, with the ADJ matching the selected firmware:
+    /// ```text
+    /// ADJ_DIR=/path/to/adj TCP_BOARD=TEST \
+    /// cargo test -p software-core --features net manual_tcp_supervisor -- --ignored --nocapture
+    /// ```
+    /// Optional TCP_LOCAL_PORT defaults to 0; TCP_KEEP_ALIVE_MS defaults to 1000
+    /// (zero disables keep-alive). The board IP and TCP_SERVER port come from ADJ.
+    /// For a local simulator, use a private ADJ copy with the board IP 127.0.0.1
+    /// and start `nc -l 50500 | od -An -tx1 -v -w2` if TCP_SERVER is 50500.
+    ///
+    /// WARNING: this test sends order 1001 with numeric parameter 5.0 once. Use only
+    /// the intended TEST board/firmware or simulator, not an arbitrary real board.
+    /// For a float32 parameter, its bytes are e9 03 00 00 a0 40; keep-alive is 01 00.
+    /// Closing and reopening the simulator should reconnect without repeating the
+    /// order. Backoff grows from 500 to 5000 ms on failures and resets on success.
+    ///
+    /// Prints both Reporter channels until Ctrl+C, without a test-only read timeout.
+    /// Ctrl+C closes the consumers; task joining and guaranteed final-event draining
+    /// are not implemented. The existing manual_tcp_receive test remains unchanged.
+    #[tokio::test]
+    #[ignore = "manual probe: requires ADJ_DIR, TCP_BOARD and a real board or simulator; sends order 1001"]
+    async fn manual_tcp_supervisor() -> Result<(), Box<dyn std::error::Error>> {
+        let adj_path = std::env::var_os("ADJ_DIR").ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "set ADJ_DIR to the matching ADJ directory",
+            )
+        })?;
+        let board_name = std::env::var("TCP_BOARD")?;
+        let local_port = match std::env::var("TCP_LOCAL_PORT") {
+            Ok(value) => value.parse::<u16>()?,
+            Err(std::env::VarError::NotPresent) => 0,
+            Err(error) => return Err(error.into()),
+        };
+        let keep_alive_ms = match std::env::var("TCP_KEEP_ALIVE_MS") {
+            Ok(value) => value.parse::<u64>()?,
+            Err(std::env::VarError::NotPresent) => 1000,
+            Err(error) => return Err(error.into()),
+        };
+        let adj = crate::adj::load_from_dir(Path::new(&adj_path))?;
+        let board = adj
+            .pod_data
+            .boards
+            .values()
+            .find(|board| board.name == board_name)
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("board {board_name:?} is not declared in the supplied ADJ"),
+                )
+            })?;
+        let port = adj.info.ports.get("TCP_SERVER").ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "the supplied ADJ has no TCP_SERVER port",
+            )
+        })?;
+        let link = BoardLink {
+            board: board.id,
+            addr: SocketAddr::new(board.ip, port.0),
+            local_port,
+        };
+        let index = Arc::new(Index::new(&adj.pod_data, Some(&adj.info.message_levels)));
+        let config = Config {
+            boards: vec![link],
+            connect_timeout: Duration::from_secs(5),
+            backoff: Backoff::new(500, 5000),
+            write_timeout: Duration::from_secs(2),
+            keep_alive: Duration::from_millis(keep_alive_ms),
+        };
+        println!(
+            "Manual TCP probe: {board_name} at {}; order 1001(5.0) once; press Ctrl+C to stop",
+            link.addr
+        );
+        let (reporter, mut sinks) = Reporter::channels(256, 16);
+        let handles = spawn(config, index, reporter);
+        let running = async {
+            handles
+                .send(OrderPacket::new(AdjId(1001), vec![Value::Number(5.0)]))
+                .await?;
+            tokio::signal::ctrl_c().await?;
+            Ok::<_, Box<dyn std::error::Error>>(())
+        };
+        let display = async {
+            tokio::join!(
+                async {
+                    while let Some(notification) = sinks.notifications.recv().await {
+                        println!("{notification:#?}");
+                    }
+                },
+                async {
+                    while let Some(report) = sinks.errors.recv().await {
+                        eprintln!("{report:#?}");
+                    }
+                },
+            );
+        };
+        let result = tokio::select! {
+            result = running => result,
+            () = display => Err(io::Error::new(io::ErrorKind::BrokenPipe, "TCP reporting stopped before Ctrl+C").into()),
+        };
+        sinks.notifications.close();
+        sinks.errors.close();
+        drop(handles);
+        result
     }
 }

@@ -1,6 +1,7 @@
-//! A single TCP connection attempt, independent of session supervision.
+//! TCP connection attempts and initial retries, independent of session supervision.
 
-use super::{BoardLink, Error};
+use super::{Backoff, BoardLink, Error};
+use crate::net::{Closed, Reporter};
 use std::{
     io,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
@@ -8,7 +9,7 @@ use std::{
 };
 use tokio::{
     net::{TcpSocket, TcpStream},
-    time::timeout,
+    time::{sleep, timeout},
 };
 
 /// Opens one board's connection, binding its local port before connecting.
@@ -28,12 +29,7 @@ use tokio::{
 /// Returns [`Error::Connect`] with the board ID and original I/O error if socket
 /// creation, configuration, binding or connecting fails. An elapsed timeout is
 /// represented by [`io::ErrorKind::TimedOut`]; its pending socket is dropped.
-// The connection supervisor will use this once it is implemented.
-#[cfg_attr(not(test), allow(dead_code))]
-pub(super) async fn connect(
-    link: &BoardLink,
-    connect_timeout: Duration,
-) -> Result<TcpStream, Error> {
+pub async fn connect(link: &BoardLink, connect_timeout: Duration) -> Result<TcpStream, Error> {
     let result = async {
         let (socket, local_ip) = match link.addr {
             SocketAddr::V4(_) => (TcpSocket::new_v4()?, IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
@@ -56,11 +52,66 @@ pub(super) async fn connect(
     })
 }
 
+/// Retries connection attempts until one succeeds or reporting detects consumer loss.
+///
+/// The first attempt is immediate. Each failure is logged and published through
+/// [`Reporter::report`], then this helper waits for the next `backoff` interval.
+/// Reporting applies backpressure: the interval starts after the error is queued,
+/// not when the attempt fails. Consume the error channel concurrently to avoid
+/// parking retries behind a full channel. Each attempt has its own
+/// `connect_timeout`; reporting and backoff are outside that timeout.
+///
+/// Failed attempts advance the caller's backoff state. A successful connection
+/// resets it before returning the stream, so a later disconnection starts at the
+/// initial interval. Retries have no limit. Zero intervals add no deliberate
+/// retry delay and may generate errors rapidly.
+///
+/// Success returns the connected stream immediately without emitting lifecycle
+/// events, exchanging a hash, starting session I/O or reconnecting a later session.
+/// No tasks are spawned. Dropping this future cancels the pending attempt, report
+/// or wait; already queued errors remain available to the consumer.
+///
+/// # Errors
+///
+/// Returns [`Closed`] when publishing a failed attempt detects a closed error
+/// consumer. Transport failures are reported, not returned. Consumer closure is
+/// checked only when reporting, not proactively during a connection or wait.
+pub async fn connect_with_backoff(
+    link: &BoardLink,
+    connect_timeout: Duration,
+    backoff: &mut Backoff,
+    reporter: &Reporter,
+) -> Result<TcpStream, Closed> {
+    loop {
+        match connect(link, connect_timeout).await {
+            Ok(stream) => {
+                backoff.reset();
+                return Ok(stream);
+            }
+            Err(error) => {
+                tracing::warn!(board = ?link.board, addr = %link.addr, %error,
+                    "TCP connection attempt failed");
+                reporter.report(error).await?;
+                sleep(backoff.get_interval()).await;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::model::BoardId;
-    use tokio::net::TcpListener;
+    use std::{
+        future::{Future, poll_fn},
+        pin::Pin,
+        task::Poll,
+    };
+    use tokio::{
+        net::TcpListener,
+        sync::mpsc::error::TryRecvError,
+        time::{Instant, advance},
+    };
 
     const TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -163,6 +214,260 @@ mod tests {
         };
         assert_eq!(board, BoardId(9));
         assert_eq!(source.kind(), io::ErrorKind::ConnectionRefused);
+        Ok(())
+    }
+
+    /// Keeps the client bind port occupied so retry failures are synchronous and
+    /// deterministic, without depending on reactor readiness or remote routing.
+    async fn occupied_link() -> Result<(TcpListener, BoardLink), io::Error> {
+        let occupied = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let link = BoardLink {
+            board: BoardId(7),
+            addr: occupied.local_addr()?,
+            local_port: occupied.local_addr()?.port(),
+        };
+        Ok((occupied, link))
+    }
+
+    /// Polls without letting Tokio automatically advance the paused clock.
+    async fn assert_pending_once<F: Future>(mut future: Pin<&mut F>) {
+        poll_fn(|cx| {
+            assert!(future.as_mut().poll(cx).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn retries_return_an_immediate_success_without_reporting_or_waiting()
+    -> Result<(), Box<dyn std::error::Error>> {
+        // A minute-long backoff must not delay the first attempt. The returned
+        // stream retains connect's real socket configuration, with no I/O startup.
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let link = BoardLink {
+            board: BoardId(3),
+            addr: listener.local_addr()?,
+            local_port: 0,
+        };
+        let (reporter, mut sinks) = Reporter::channels(1, 1);
+        let mut backoff = Backoff::new(60_000, 240_000);
+        assert_eq!(backoff.get_interval(), Duration::from_secs(60));
+        let stream = timeout(
+            TEST_TIMEOUT,
+            connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter),
+        )
+        .await??;
+        assert_eq!(backoff.get_interval(), Duration::from_secs(60));
+        let (_peer, source) = timeout(TEST_TIMEOUT, listener.accept()).await??;
+        assert_eq!(stream.peer_addr()?, link.addr);
+        assert_eq!(stream.local_addr()?, source);
+        assert!(stream.nodelay()?);
+        assert_eq!(stream.linger()?, Some(Duration::ZERO));
+        assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
+        assert!(matches!(
+            sinks.notifications.try_recv(),
+            Err(TryRecvError::Empty)
+        ));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retries_connect_when_a_previously_unavailable_peer_starts_listening()
+    -> Result<(), Box<dyn std::error::Error>> {
+        // Keep the remote port reserved without listening until the first refusal
+        // has been reported, then turn that same socket into the real server.
+        let unavailable = TcpSocket::new_v4()?;
+        unavailable.bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))?;
+        let link = BoardLink {
+            board: BoardId(9),
+            addr: unavailable.local_addr()?,
+            local_port: 0,
+        };
+        let (reporter, mut sinks) = Reporter::channels(1, 16);
+        let mut backoff = Backoff::new(10, 40);
+        let connecting =
+            async { connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter).await };
+        let serving = async {
+            let Some(report) = sinks.errors.recv().await else {
+                unreachable!("the helper reports its initial connection failure");
+            };
+            assert!(
+                matches!(report.error, crate::net::Error::Tcp(Error::Connect { board, source })
+                if board == link.board && source.kind() == io::ErrorKind::ConnectionRefused)
+            );
+            let listener = unavailable.listen(1)?;
+            let (peer, _) = listener.accept().await?;
+            Ok::<_, io::Error>(peer)
+        };
+        let (stream, peer) =
+            timeout(TEST_TIMEOUT, async { tokio::join!(connecting, serving) }).await?;
+        let stream = stream?;
+        let _peer = peer?;
+        // Even after one or more refused attempts, success restores the first wait.
+        assert_eq!(backoff.get_interval(), Duration::from_millis(10));
+        assert_eq!(stream.peer_addr()?, link.addr);
+        assert!(matches!(
+            sinks.notifications.try_recv(),
+            Err(TryRecvError::Empty)
+        ));
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn retries_report_each_failure_and_wait_with_a_capped_backoff()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let (_occupied, link) = occupied_link().await?;
+        let (reporter, mut sinks) = Reporter::channels(1, 1);
+        let mut backoff = Backoff::new(100, 700);
+        let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+        tokio::pin!(connecting);
+        let started = Instant::now();
+        assert_pending_once(connecting.as_mut()).await;
+        assert_eq!(started.elapsed(), Duration::ZERO);
+        let first = sinks.errors.try_recv()?;
+        assert!(
+            matches!(first.error, crate::net::Error::Tcp(Error::Connect { board, source })
+            if board == link.board && source.kind() == io::ErrorKind::AddrInUse)
+        );
+
+        // Check both sides of every deadline, including repeated capped waits.
+        // There must be one report per attempt and no synthetic lifecycle events.
+        for interval in [100, 200, 400, 700, 700, 700] {
+            advance(Duration::from_millis(interval - 1)).await;
+            assert_pending_once(connecting.as_mut()).await;
+            assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
+            advance(Duration::from_millis(1)).await;
+            assert_pending_once(connecting.as_mut()).await;
+            let report = sinks.errors.try_recv()?;
+            assert!(
+                matches!(report.error, crate::net::Error::Tcp(Error::Connect { board, source })
+                if board == link.board && source.kind() == io::ErrorKind::AddrInUse)
+            );
+            assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
+        }
+        assert!(matches!(
+            sinks.notifications.try_recv(),
+            Err(TryRecvError::Empty)
+        ));
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn failed_retries_use_the_supplied_backoff_state_without_resetting_it()
+    -> Result<(), Box<dyn std::error::Error>> {
+        // Passing an already advanced value must start its waits at 200 ms,
+        // rather than silently constructing a fresh sequence at 100 ms.
+        let (_occupied, link) = occupied_link().await?;
+        let (reporter, mut sinks) = Reporter::channels(1, 1);
+        let mut backoff = Backoff::new(100, 700);
+        assert_eq!(backoff.get_interval(), Duration::from_millis(100));
+        {
+            let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+            tokio::pin!(connecting);
+            assert_pending_once(connecting.as_mut()).await;
+            sinks.errors.try_recv()?;
+            advance(Duration::from_millis(199)).await;
+            assert_pending_once(connecting.as_mut()).await;
+            assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
+            advance(Duration::from_millis(1)).await;
+            assert_pending_once(connecting.as_mut()).await;
+            sinks.errors.try_recv()?;
+        }
+        // Both scheduled waits advance the same caller-owned state, even when
+        // this helper is cancelled before completing its second wait.
+        assert_eq!(backoff.get_interval(), Duration::from_millis(700));
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn retries_wait_for_error_capacity_before_starting_the_next_interval()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let (_occupied, link) = occupied_link().await?;
+        let (reporter, mut sinks) = Reporter::channels(1, 1);
+        let mut backoff = Backoff::new(100, 700);
+        let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+        tokio::pin!(connecting);
+        assert_pending_once(connecting.as_mut()).await;
+        // Leave the first report queued. The second failure cannot be published
+        // at 100 ms, and elapsed time must not consume its following 200 ms wait.
+        advance(Duration::from_millis(100)).await;
+        assert_pending_once(connecting.as_mut()).await;
+        advance(Duration::from_secs(1)).await;
+        assert_pending_once(connecting.as_mut()).await;
+        sinks.errors.try_recv()?;
+        assert_pending_once(connecting.as_mut()).await;
+        sinks.errors.try_recv()?;
+        assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
+        advance(Duration::from_millis(199)).await;
+        assert_pending_once(connecting.as_mut()).await;
+        assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
+        advance(Duration::from_millis(1)).await;
+        assert_pending_once(connecting.as_mut()).await;
+        sinks.errors.try_recv()?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retries_stop_when_reporting_detects_a_closed_error_consumer()
+    -> Result<(), Box<dyn std::error::Error>> {
+        // A failed report must return Closed, not enter the minute-long wait.
+        let (_occupied, link) = occupied_link().await?;
+        let (reporter, sinks) = Reporter::channels(1, 1);
+        drop(sinks.errors);
+        let mut backoff = Backoff::new(60_000, 60_000);
+        let result = timeout(
+            TEST_TIMEOUT,
+            connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter),
+        )
+        .await?;
+        assert!(matches!(result, Err(Closed)));
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn retries_stop_if_the_consumer_closes_while_a_report_is_blocked()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let (_occupied, link) = occupied_link().await?;
+        let (reporter, sinks) = Reporter::channels(1, 1);
+        let mut backoff = Backoff::new(100, 700);
+        let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+        tokio::pin!(connecting);
+        assert_pending_once(connecting.as_mut()).await;
+        advance(Duration::from_millis(100)).await;
+        assert_pending_once(connecting.as_mut()).await;
+        // The second error is waiting for capacity behind the first one.
+        // Closing the receiver must release that wait and end the retry loop.
+        drop(sinks.errors);
+        assert!(matches!(
+            timeout(TEST_TIMEOUT, connecting).await?,
+            Err(Closed)
+        ));
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn cancelling_retries_during_backoff_preserves_reports_and_stops_attempts()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let (_occupied, link) = occupied_link().await?;
+        let (reporter, mut sinks) = Reporter::channels(1, 16);
+        let mut backoff = Backoff::new(100, 700);
+        let mut connecting = Box::pin(connect_with_backoff(
+            &link,
+            TEST_TIMEOUT,
+            &mut backoff,
+            &reporter,
+        ));
+        assert_pending_once(connecting.as_mut()).await;
+        drop(connecting);
+        // Cancellation owns no background task: advancing past many retries
+        // leaves exactly the one failure that had already been queued.
+        advance(Duration::from_secs(60)).await;
+        sinks.errors.try_recv()?;
+        assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
+        assert!(matches!(
+            sinks.notifications.try_recv(),
+            Err(TryRecvError::Empty)
+        ));
         Ok(())
     }
 }

@@ -126,6 +126,15 @@ pub struct Reporter {
 pub struct Closed;
 
 impl Reporter {
+    /// Waits for either consumer to close, allowing a supervisor to stop even
+    /// while a connection is idle or waiting for its next retry.
+    pub(super) async fn closed(&self) {
+        tokio::select! {
+            () = self.notifications.closed() => {},
+            () = self.errors.closed() => {},
+        }
+    }
+
     /// Builds both channels with the given capacities, and returns the
     /// sending half to hand to the submodules plus the receiving halves
     /// to hand to the consumer.
