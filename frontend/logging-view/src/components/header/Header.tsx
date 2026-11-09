@@ -20,9 +20,16 @@ const Header = () => {
   const { pathname } = useLocation();
   const activeMode: ViewMode = pathname.startsWith("/simple") ? "simple" : "normal";
   const folderName = useStore((s) => s.folderName);
+  const dashboardName = useStore(
+    (s) =>
+      s.normalDashboards.find((d) => d.id === s.activeNormalDashboardId)?.name,
+  );
   const { selectedSeries, clearSelectedSeries, isSelectionLocked } = useSeriesSelection();
   const selectedCount = Object.values(selectedSeries).filter(Boolean).length;
-  const showWorkspace = activeMode === "normal" && !!folderName;
+  // The title always names the app; the session context lives in the subtitle,
+  // led by the active dashboard so the top bar says which tab you are in.
+  const hasNormalSession = activeMode === "normal" && !!folderName;
+  const sessionLine = [dashboardName, folderName].filter(Boolean).join(" · ");
 
   return (
     <header className="h-(--header-height) flex shrink-0 items-center gap-2 overflow-x-hidden border-b px-4">
@@ -31,17 +38,20 @@ const Header = () => {
       </span>
       <div className="min-w-0 flex-1">
         <h1 className="text-foreground truncate text-xl font-bold">
-          {showWorkspace ? "Signal workspace" : "Logging View"}
+          Logging View
         </h1>
-        {showWorkspace && (
-          <p className="text-muted-foreground truncate text-xs" title={folderName}>
-            {folderName} · {selectedCount} selected · shared session time axis
+        {hasNormalSession && (
+          <p
+            className="text-muted-foreground truncate text-xs"
+            title={`${sessionLine} · ${selectedCount} selected`}
+          >
+            {sessionLine} · {selectedCount} selected · shared session time axis
           </p>
         )}
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        {showWorkspace && selectedCount > 0 && (
+        {hasNormalSession && selectedCount > 0 && (
           <Button
             variant="ghost"
             size="sm"

@@ -9,6 +9,8 @@ import {
   ChevronDown,
   Clock,
   Columns,
+  Eye,
+  EyeOff,
   Grid2X2,
   Minus,
   Plus,
@@ -268,7 +270,7 @@ export default function DashboardControls({
         }
       >
         <Button
-          variant={showStatistics ? "secondary" : "ghost"}
+          variant={showStatistics ? "default" : "outline"}
           size="sm"
           className="h-7 gap-1.5 px-2 text-xs"
           aria-label={`${showStatistics ? "Hide" : "Show"} window statistics`}
@@ -281,6 +283,11 @@ export default function DashboardControls({
         >
           <ChartNoAxesCombined className="size-3.5" />
           <span>Statistics</span>
+          {showStatistics ? (
+            <Eye className="size-3.5" />
+          ) : (
+            <EyeOff className="size-3.5" />
+          )}
         </Button>
         {!compact && (
           <>
