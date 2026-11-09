@@ -9,7 +9,8 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@hyperloopupv/frontend-kit/components";
-import { Columns, Settings2, X } from "@hyperloopupv/frontend-kit/icons";
+import { Columns, Pencil, Settings2, X } from "@hyperloopupv/frontend-kit/icons";
+import { useDroppable } from "@dnd-kit/core";
 import * as echarts from "echarts";
 import { Eye, EyeOff, Maximize2, Minimize2, Rows2 } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
@@ -38,6 +39,7 @@ import WindowStatistics from "./WindowStatistics";
 
 const MAX_PANES = 8;
 interface PaneProps {
+  dashboardId: string;
   locked: boolean;
   node: ChartPane;
   index: number;
@@ -57,13 +59,14 @@ interface PaneProps {
   onChange: (
     id: string,
     changes: Partial<
-      Pick<ChartPane, "signalIds" | "normalized" | "hiddenSignalIds">
+      Pick<ChartPane, "title" | "signalIds" | "normalized" | "hiddenSignalIds">
     >,
   ) => void;
   onUnitChange: (id: string, unit: string) => void;
 }
 
 function ComparisonPane({
+  dashboardId,
   locked,
   node,
   index,
@@ -83,11 +86,18 @@ function ComparisonPane({
   onChange,
   onUnitChange,
 }: PaneProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `normal-plot:${node.id}`,
+    disabled: locked,
+    data: { kind: "normal-plot", dashboardId, plotId: node.id },
+  });
   const signals = useMemo(
     () => allSignals.filter((signal) => node.signalIds.includes(signal.id)),
     [allSignals, node.signalIds],
   );
   const [signalQuery, setSignalQuery] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(node.title ?? `Plot ${index + 1}`);
   const visibleSignals = useMemo(
     () =>
       signals.filter((signal) => !node.hiddenSignalIds?.includes(signal.id)),
@@ -100,11 +110,18 @@ function ComparisonPane({
   );
   const tooManyUnits = new Set(visibleSignals.map(axisKey)).size > 2;
   const normalized = node.normalized || tooManyUnits;
-  const title = signals.length === 1 ? signals[0].name : "Comparison";
+  const title = node.title || `Plot ${index + 1}`;
+  const saveTitle = () => {
+    const next = draftTitle.trim().slice(0, 80);
+    if (next && next !== title) onChange(node.id, { title: next });
+    else setDraftTitle(title);
+    setEditingTitle(false);
+  };
 
   return (
     <section
-      className="border-border/80 flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-[#21252c]"
+      ref={setNodeRef}
+      className={`border-border/80 flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-[border-color,box-shadow] dark:bg-[#21252c] ${isOver ? "border-primary ring-primary/25 ring-2" : ""}`}
       aria-label={`Chart panel ${index + 1}`}
       data-pane-id={node.id}
     >
@@ -112,12 +129,40 @@ function ComparisonPane({
         <span className="text-muted-foreground text-[10px] font-semibold tabular-nums">
           {String(index + 1).padStart(2, "0")}
         </span>
-        <h2
-          className="min-w-0 flex-1 truncate text-xs font-semibold"
-          title={title}
-        >
-          {title}
-        </h2>
+        {editingTitle ? (
+          <Input
+            autoFocus
+            value={draftTitle}
+            maxLength={80}
+            aria-label={`Title for chart ${index + 1}`}
+            className="h-7 min-w-0 flex-1 text-xs font-semibold"
+            onChange={(event) => setDraftTitle(event.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") saveTitle();
+              if (event.key === "Escape") {
+                setDraftTitle(title);
+                setEditingTitle(false);
+              }
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            disabled={locked}
+            className="group/title flex min-w-0 flex-1 items-center gap-1.5 text-left"
+            title={locked ? title : `${title} · double-click to rename`}
+            onDoubleClick={() => {
+              setDraftTitle(title);
+              setEditingTitle(true);
+            }}
+          >
+            <h2 className="truncate text-xs font-semibold">{title}</h2>
+            {!locked && (
+              <Pencil className="text-muted-foreground size-3 shrink-0 opacity-0 transition-opacity group-hover/title:opacity-100" />
+            )}
+          </button>
+        )}
         <fieldset
           disabled={locked}
           className="flex min-w-0 shrink-0 items-center gap-0.5"
@@ -162,6 +207,26 @@ function ComparisonPane({
                 <p className="text-muted-foreground mt-1 text-xs">
                   Choose signals to compare in this panel.
                 </p>
+              </div>
+              <div className="border-b px-3 py-3">
+                <label className="text-muted-foreground flex items-center gap-2 text-xs">
+                  Plot title
+                  <Input
+                    value={draftTitle}
+                    maxLength={80}
+                    onFocus={(event) => {
+                      setDraftTitle(title);
+                      event.currentTarget.select();
+                    }}
+                    onChange={(event) => setDraftTitle(event.target.value)}
+                    onBlur={saveTitle}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveTitle();
+                    }}
+                    aria-label={`Plot title for chart ${index + 1}`}
+                    className="h-8 flex-1 text-xs"
+                  />
+                </label>
               </div>
               <div className="px-3 pt-3">
                 <Input
@@ -343,10 +408,17 @@ function ComparisonPane({
             </Button>
           </div>
         ) : (
-          <div className="text-muted-foreground flex h-full items-center justify-center px-6 text-center text-xs">
-            {node.signalIds.length
-              ? "Loading signal…"
-              : "Use the settings button to add signals to this panel."}
+          <div className={`text-muted-foreground flex h-full items-center justify-center px-6 text-center text-xs ${isOver ? "bg-primary/5 text-primary" : ""}`}>
+            {node.signalIds.length ? (
+              "Loading measurements…"
+            ) : (
+              <div className="space-y-1">
+                <p className="text-foreground font-medium">
+                  {isOver ? "Release to add measurements" : "Empty plot"}
+                </p>
+                <p>Select measurements, then drag them here or use Add to plot.</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -440,12 +512,10 @@ function LayoutNode({
 export default function AnalysisWorkspace({
   dashboard,
   signals,
-  selectedIds,
   isDarkMode,
 }: {
   dashboard: NormalDashboard;
   signals: ComparisonSignal[];
-  selectedIds: string[];
   isDarkMode: boolean;
 }) {
   const syncGroup = useId();
@@ -494,14 +564,17 @@ export default function AnalysisWorkspace({
     [signals, units],
   );
   const domain = useMemo(
-    () => ({
-      startMs: Math.min(...signals.map((signal) => signal.data.time[0])),
-      endMs: Math.max(
-        ...signals.map(
-          (signal) => signal.data.time[signal.data.time.length - 1],
-        ),
-      ),
-    }),
+    () =>
+      signals.length === 0
+        ? { startMs: 0, endMs: 1 }
+        : {
+            startMs: Math.min(...signals.map((signal) => signal.data.time[0])),
+            endMs: Math.max(
+              ...signals.map(
+                (signal) => signal.data.time[signal.data.time.length - 1],
+              ),
+            ),
+          },
     [signals],
   );
   const panes = getPanes(layoutState.tree);
@@ -524,7 +597,7 @@ export default function AnalysisWorkspace({
     (
       id: string,
       changes: Partial<
-        Pick<ChartPane, "signalIds" | "normalized" | "hiddenSignalIds">
+        Pick<ChartPane, "title" | "signalIds" | "normalized" | "hiddenSignalIds">
       >,
     ) => {
       setLayoutState((current) => ({
@@ -539,7 +612,7 @@ export default function AnalysisWorkspace({
     setLayoutState((current) => ({
       ...current,
       preset: null,
-      tree: splitPane(current.tree, id, direction, selectedIds),
+      tree: splitPane(current.tree, id, direction),
     }));
   };
   const close = (id: string) => {
@@ -567,6 +640,7 @@ export default function AnalysisWorkspace({
           style={{ minWidth: size.width, minHeight: size.height }}
         >
           <LayoutNode
+            dashboardId={dashboard.id}
             locked={dashboard.locked}
             panelSizes={panelSizes}
             onPanelResize={resizePanel}
@@ -608,7 +682,7 @@ export default function AnalysisWorkspace({
         <span>
           {dashboard.locked
             ? "Dashboard locked · Unlock in tab settings to edit"
-            : "Scroll to zoom · Drag charts to pan · Drag dividers to resize"}
+            : "Drop selected measurements onto a plot · Scroll to zoom · Drag charts to pan"}
         </span>
         <span className="font-mono tabular-nums">
           {panes.length} panels · {formatTime(range.start)}–

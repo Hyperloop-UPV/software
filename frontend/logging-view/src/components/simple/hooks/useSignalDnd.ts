@@ -13,11 +13,15 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useState } from "react";
+import { useStore } from "../../../store/store";
 import { useAssignSignalsToPlot } from "./useStudioSignals";
 
 export function useSignalDnd() {
   const [activeIds, setActiveIds] = useState<string[] | null>(null);
   const assignSignalsToPlot = useAssignSignalsToPlot();
+  const assignNormalSignalsToPlot = useStore(
+    (state) => state.assignNormalSignalsToPlot,
+  );
 
   // Small movement threshold — lets a plain click on a row still reach its
   // onClick/checkbox toggle; only a deliberate drag activates dnd-kit.
@@ -36,6 +40,11 @@ export function useSignalDnd() {
 
     const ids = active.data.current?.ids as string[] | undefined;
     if (!ids || !over) return;
+    if (over.data.current?.kind === "normal-plot") {
+      const plotId = over.data.current.plotId as string | undefined;
+      if (plotId) assignNormalSignalsToPlot(plotId, ids);
+      return;
+    }
     void assignSignalsToPlot(String(over.id), ids);
   };
 

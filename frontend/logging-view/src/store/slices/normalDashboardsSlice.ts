@@ -1,5 +1,13 @@
 import type { StateCreator } from "zustand";
-import { createLayout, reconcileLayout } from "../../lib/normal/layout";
+import {
+  appendPane,
+  createLayout,
+  createPane,
+  getPanes,
+  nextPaneTitle,
+  signalIdsInLayout,
+  updatePane,
+} from "../../lib/normal/layout";
 import type {
   DashboardSettings,
   DashboardTabSettings,
@@ -37,29 +45,6 @@ export function initialNormalDashboards() {
   };
 }
 
-function withSelection(
-  dashboard: NormalDashboard,
-  selectedSeries: Record<string, boolean>,
-): NormalDashboard {
-  const ids = Object.keys(selectedSeries).filter((id) => selectedSeries[id]);
-  const previous = dashboard.settings.layoutState;
-  return {
-    ...dashboard,
-    selectedSeries,
-    settings: {
-      ...dashboard.settings,
-      focusedId: null,
-      layoutState: {
-        ids,
-        preset: previous.preset,
-        tree: previous.preset
-          ? createLayout(ids, previous.preset)
-          : reconcileLayout(previous.tree, previous.ids, ids),
-      },
-    },
-  };
-}
-
 export interface NormalDashboardsSlice {
   normalDashboards: NormalDashboard[];
   activeNormalDashboardId: string;
@@ -76,6 +61,8 @@ export interface NormalDashboardsSlice {
     id: string,
     update: (settings: DashboardSettings) => DashboardSettings,
   ) => void;
+  addNormalPlot: (signalIds?: string[]) => string;
+  assignNormalSignalsToPlot: (plotId: string, signalIds: string[]) => void;
   toggleNormalSeries: (id: string) => void;
   clearNormalSeries: () => void;
 }
@@ -201,12 +188,106 @@ export const createNormalDashboardsSlice: StateCreator<
       if (!dashboard || dashboard.locked) return state;
       const settings = update(dashboard.settings);
       if (settings === dashboard.settings) return state;
+      const normalizedSettings = {
+        ...settings,
+        layoutState: {
+          ...settings.layoutState,
+          ids: signalIdsInLayout(settings.layoutState.tree),
+        },
+      };
       return {
         normalDashboards: state.normalDashboards.map((item) =>
-          item.id === id ? { ...item, settings } : item,
+          item.id === id ? { ...item, settings: normalizedSettings } : item,
         ),
       };
     }),
+  addNormalPlot: (signalIds = []) => {
+    let plotId = "";
+    set((state) => ({
+      normalDashboards: state.normalDashboards.map((dashboard) => {
+        if (
+          dashboard.id !== state.activeNormalDashboardId ||
+          dashboard.locked ||
+          getPanes(dashboard.settings.layoutState.tree).length >= 8
+        )
+          return dashboard;
+        const current = dashboard.settings.layoutState;
+        const currentPanes = getPanes(current.tree);
+        if (
+          signalIds.length > 0 &&
+          currentPanes.length === 1 &&
+          currentPanes[0].signalIds.length === 0
+        ) {
+          plotId = currentPanes[0].id;
+          const tree = updatePane(current.tree, plotId, (plot) => ({
+            ...plot,
+            signalIds: [...new Set(signalIds)],
+          }));
+          return {
+            ...dashboard,
+            settings: {
+              ...dashboard.settings,
+              layoutState: {
+                ...current,
+                ids: signalIdsInLayout(tree),
+                tree,
+              },
+            },
+          };
+        }
+        const plot = createPane(
+          [...new Set(signalIds)],
+          nextPaneTitle(current.tree),
+        );
+        plotId = plot.id;
+        const tree = appendPane(current.tree, plot, current.preset);
+        return {
+          ...dashboard,
+          settings: {
+            ...dashboard.settings,
+            focusedId: null,
+            layoutState: {
+              ids: signalIdsInLayout(tree),
+              tree,
+              preset: current.preset === "single" ? "grid" : current.preset,
+            },
+          },
+        };
+      }),
+    }));
+    return plotId;
+  },
+  assignNormalSignalsToPlot: (plotId, signalIds) =>
+    set((state) => ({
+      normalDashboards: state.normalDashboards.map((dashboard) => {
+        if (
+          dashboard.id !== state.activeNormalDashboardId ||
+          dashboard.locked
+        )
+          return dashboard;
+        const current = dashboard.settings.layoutState;
+        const tree = updatePane(current.tree, plotId, (plot) => ({
+          ...plot,
+          signalIds: [...new Set([...plot.signalIds, ...signalIds])],
+          hiddenSignalIds: plot.hiddenSignalIds?.filter(
+            (id) => !signalIds.includes(id),
+          ),
+        }));
+        return tree === current.tree
+          ? dashboard
+          : {
+              ...dashboard,
+              settings: {
+                ...dashboard.settings,
+                layoutState: {
+                  ...current,
+                  ids: signalIdsInLayout(tree),
+                  tree,
+                },
+              },
+            };
+      }),
+    })),
   toggleNormalSeries: (id) =>
     set((state) => {
       const active = state.normalDashboards.find(
@@ -219,20 +300,15 @@ export const createNormalDashboardsSlice: StateCreator<
           const selectedSeries = { ...dashboard.selectedSeries };
           if (selectedSeries[id]) delete selectedSeries[id];
           else selectedSeries[id] = true;
-          return withSelection(dashboard, selectedSeries);
+          return { ...dashboard, selectedSeries };
         }),
-        ...(state.normalDashboards.find(
-          (dashboard) => dashboard.id === state.activeNormalDashboardId,
-        )?.settings.layoutState.ids.length === 0
-          ? { isSessionPanelOpen: false }
-          : {}),
       };
     }),
   clearNormalSeries: () =>
     set((state) => ({
       normalDashboards: state.normalDashboards.map((dashboard) =>
         dashboard.id === state.activeNormalDashboardId && !dashboard.locked
-          ? withSelection(dashboard, {})
+          ? { ...dashboard, selectedSeries: {} }
           : dashboard,
       ),
     })),

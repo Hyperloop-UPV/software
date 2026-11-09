@@ -18,7 +18,8 @@ import {
 } from "@hyperloopupv/frontend-kit/icons";
 import { useState } from "react";
 import { useDashboardSetting } from "../../hooks/useDashboardSetting";
-import { createLayout } from "../../lib/normal/layout";
+import { arrangePanes, getPanes } from "../../lib/normal/layout";
+import { useStore } from "../../store/store";
 import {
   TIME_DIVISORS,
   type ComparisonSignal,
@@ -54,7 +55,9 @@ export default function DashboardControls({
   const [timeUnit, setTimeUnit] = useDashboardSetting(dashboard, "timeUnit");
   const [range, setRange] = useDashboardSetting(dashboard, "range");
   const [layoutOpen, setLayoutOpen] = useState(false);
-  const disabled = dashboard.locked || signals.length === 0;
+  const addNormalPlot = useStore((state) => state.addNormalPlot);
+  const panes = getPanes(layoutState.tree);
+  const chartDisabled = dashboard.locked || signals.length === 0;
   const startMs = signals.length
     ? Math.min(...signals.map((signal) => signal.data.time[0]))
     : 0;
@@ -98,12 +101,12 @@ export default function DashboardControls({
           aria-label={label}
           title={`${label} layout`}
           aria-pressed={layoutState.preset === value}
-          disabled={disabled}
+          disabled={value === "single" && panes.length > 1}
           onClick={() => {
             setFocusedId(null);
             setLayoutState({
               ids: layoutState.ids,
-              tree: createLayout(layoutState.ids, value),
+              tree: arrangePanes(panes, value),
               preset: value,
             });
             setLayoutOpen(false);
@@ -131,7 +134,7 @@ export default function DashboardControls({
         size="icon-xs"
         aria-label="Zoom in comparison"
         title="Zoom in"
-        disabled={disabled}
+        disabled={chartDisabled}
         onClick={() => zoom(0.5)}
       >
         <Plus className="size-3.5" />
@@ -141,7 +144,7 @@ export default function DashboardControls({
         size="icon-xs"
         aria-label="Zoom out comparison"
         title="Zoom out"
-        disabled={disabled}
+        disabled={chartDisabled}
         onClick={() => zoom(2)}
       >
         <Minus className="size-3.5" />
@@ -150,7 +153,7 @@ export default function DashboardControls({
         variant="outline"
         size="sm"
         className="h-7 gap-1.5 text-xs"
-        disabled={disabled}
+        disabled={chartDisabled}
         onClick={() => setRange({ start: 0, end: 100 })}
       >
         <RotateCcw className="size-3" />
@@ -161,7 +164,7 @@ export default function DashboardControls({
 
   return (
     <fieldset
-      disabled={disabled}
+      disabled={dashboard.locked}
       role="group"
       aria-label="Analysis controls"
       className={
@@ -172,6 +175,18 @@ export default function DashboardControls({
     >
       {compact ? (
         <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs"
+            disabled={panes.length >= 8}
+            onClick={() => addNormalPlot()}
+            aria-label="Create empty plot"
+            title="Create empty plot"
+          >
+            <Plus className="size-3.5" />
+            <span className="hidden xl:inline">New plot</span>
+          </Button>
           <Popover open={layoutOpen} onOpenChange={setLayoutOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -214,7 +229,7 @@ export default function DashboardControls({
               className="w-[34rem] max-w-[calc(100vw-2rem)] p-3"
             >
               <p className="mb-2 text-xs font-semibold">Time window</p>
-              <fieldset disabled={disabled} className="min-w-0 space-y-3">
+              <fieldset disabled={chartDisabled} className="min-w-0 space-y-3">
                 {timeWindow}
                 {zoomControls}
               </fieldset>
@@ -223,6 +238,15 @@ export default function DashboardControls({
         </>
       ) : (
         <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            disabled={panes.length >= 8}
+            onClick={() => addNormalPlot()}
+          >
+            <Plus className="size-3.5" /> New plot
+          </Button>
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-muted-foreground text-[11px] font-medium">
               Layout
@@ -245,16 +269,18 @@ export default function DashboardControls({
       >
         <Button
           variant={showStatistics ? "secondary" : "ghost"}
-          size={compact ? "icon-sm" : "sm"}
-          className={compact ? "size-7" : "h-7 gap-1.5 text-xs"}
-          aria-label="Statistics"
-          title="Statistics"
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-xs"
+          aria-label={`${showStatistics ? "Hide" : "Show"} window statistics`}
+          title={`${showStatistics ? "Hide" : "Show"} statistics for the visible time window`}
+          aria-pressed={showStatistics}
           aria-expanded={showStatistics}
           aria-controls="window-statistics"
+          disabled={chartDisabled}
           onClick={() => setShowStatistics((current) => !current)}
         >
           <ChartNoAxesCombined className="size-3.5" />
-          {!compact && "Statistics"}
+          <span>Statistics</span>
         </Button>
         {!compact && (
           <>

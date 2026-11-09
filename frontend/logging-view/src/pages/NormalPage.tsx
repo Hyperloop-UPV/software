@@ -57,7 +57,7 @@ function SessionComparison() {
     data: Map<string, SeriesData>;
   } | null>(null);
 
-  const selectedIds = dashboard.settings.layoutState.ids;
+  const assignedIds = dashboard.settings.layoutState.ids;
   // Cache belongs to this exact session. Re-selecting a signal keeps its
   // parsed data; opening another session creates an empty cache.
   const cache = useMemo(
@@ -73,7 +73,7 @@ function SessionComparison() {
   useEffect(() => {
     let cancelled = false;
     const loadVisible = async () => {
-      for (const id of selectedIds) {
+      for (const id of assignedIds) {
         if (cancelled) return;
         if (!cache.colors.has(id))
           cache.colors.set(id, traceColor(cache.colors.size));
@@ -113,11 +113,11 @@ function SessionComparison() {
     return () => {
       cancelled = true;
     };
-  }, [selectedIds, cache, folderName, settings?.time_unit, adjData]);
+  }, [assignedIds, cache, folderName, settings?.time_unit, adjData]);
 
   const signals: ComparisonSignal[] = useMemo(
     () =>
-      selectedIds.flatMap((id) => {
+      assignedIds.flatMap((id) => {
         const data =
           loadedCache?.files === cache.files
             ? loadedCache.data.get(id)
@@ -137,12 +137,11 @@ function SessionComparison() {
           },
         ];
       }),
-    [selectedIds, cache, adjData, loadedCache],
+    [assignedIds, cache, adjData, loadedCache],
   );
-  const errors = selectedIds.flatMap((id) =>
+  const errors = assignedIds.flatMap((id) =>
     cache.errors.has(id) ? [`${id}: ${cache.errors.get(id)}`] : [],
   );
-  const pendingCount = selectedIds.length - signals.length - errors.length;
 
   return (
     <Tabs
@@ -164,7 +163,7 @@ function SessionComparison() {
           ) : undefined
         }
       />
-      {!compactControls && signals.length > 0 && (
+      {!compactControls && (
         <DashboardControls
           key={`controls-${dashboard.id}`}
           dashboard={dashboard}
@@ -177,46 +176,23 @@ function SessionComparison() {
         key={dashboard.id}
         className="flex min-h-0 flex-col overflow-hidden"
       >
-        {selectedIds.length === 0 ? (
-          <EmptyView
-            title="Choose signals to compare"
-            description={`Check measurements in the left sidebar to add them to ${dashboard.name}. Each dashboard keeps its own layout and time window.`}
-          />
-        ) : (
-          <>
-            {errors.length > 0 && (
-              <div className="max-h-24 shrink-0 overflow-y-auto px-4 py-2">
-                {errors.map((message) => (
-                  <p
-                    key={message}
-                    className="text-xs text-amber-600 dark:text-amber-400"
-                  >
-                    {message}
-                  </p>
-                ))}
-              </div>
-            )}
-            {signals.length > 0 ? (
-              <AnalysisWorkspace
-                dashboard={dashboard}
-                signals={signals}
-                selectedIds={selectedIds}
-                isDarkMode={isDarkMode}
-              />
-            ) : (
-              <EmptyView
-                title={
-                  pendingCount > 0 ? "Loading signals…" : "No samples available"
-                }
-                description={
-                  pendingCount > 0
-                    ? "Preparing the selected measurements for comparison."
-                    : "Choose another measurement from the left sidebar."
-                }
-              />
-            )}
-          </>
+        {errors.length > 0 && (
+          <div className="max-h-24 shrink-0 overflow-y-auto px-4 py-2">
+            {errors.map((message) => (
+              <p
+                key={message}
+                className="text-xs text-amber-600 dark:text-amber-400"
+              >
+                {message}
+              </p>
+            ))}
+          </div>
         )}
+        <AnalysisWorkspace
+          dashboard={dashboard}
+          signals={signals}
+          isDarkMode={isDarkMode}
+        />
       </TabsContent>
     </Tabs>
   );

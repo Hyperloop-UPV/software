@@ -1,9 +1,13 @@
 import type { ChartLayout, ChartPane, LayoutPreset } from "../../types/normal";
 
-function pane(signalIds: string[]): ChartPane {
+export function createPane(
+  signalIds: string[] = [],
+  title = "Plot",
+): ChartPane {
   return {
     type: "pane",
     id: crypto.randomUUID(),
+    title,
     signalIds,
     normalized: false,
   };
@@ -29,7 +33,10 @@ export function createLayout(ids: string[], preset: LayoutPreset): ChartLayout {
       ? 1
       : Math.min(preset === "grid" ? 4 : 2, Math.max(1, ids.length));
   const panes = Array.from({ length: count }, (_, index) =>
-    pane(ids.filter((_, i) => i % count === index)),
+    createPane(
+      ids.filter((_, i) => i % count === index),
+      count === 1 ? "Plot" : `Plot ${index + 1}`,
+    ),
   );
   if (count === 1) return panes[0];
   if (preset !== "grid" || count === 2)
@@ -43,6 +50,61 @@ export function createLayout(ids: string[], preset: LayoutPreset): ChartLayout {
     count === 3 ? panes[2] : split(panes[2], panes[3], "horizontal"),
     "vertical",
   );
+}
+
+function combine(
+  nodes: ChartLayout[],
+  direction: "horizontal" | "vertical",
+): ChartLayout {
+  return nodes.slice(1).reduce(
+    (layout, node) => split(layout, node, direction),
+    nodes[0],
+  );
+}
+
+/** Rearrange complete plots while preserving their titles and measurements. */
+export function arrangePanes(
+  panes: ChartPane[],
+  preset: LayoutPreset,
+): ChartLayout {
+  if (panes.length === 0) return createPane();
+  if (panes.length === 1 || preset === "single") return panes[0];
+  if (preset === "columns") return combine(panes, "horizontal");
+  if (preset === "rows") return combine(panes, "vertical");
+
+  const rows: ChartLayout[] = [];
+  for (let index = 0; index < panes.length; index += 2) {
+    rows.push(
+      index + 1 < panes.length
+        ? split(panes[index], panes[index + 1], "horizontal")
+        : panes[index],
+    );
+  }
+  return rows.length === 1 ? rows[0] : combine(rows, "vertical");
+}
+
+export function signalIdsInLayout(layout: ChartLayout): string[] {
+  return [
+    ...new Set(getPanes(layout).flatMap((current) => current.signalIds)),
+  ];
+}
+
+export function nextPaneTitle(layout: ChartLayout): string {
+  const titles = new Set(getPanes(layout).map((current) => current.title));
+  if (!titles.has("Plot")) return "Plot";
+  let number = 2;
+  while (titles.has(`Plot ${number}`)) number += 1;
+  return `Plot ${number}`;
+}
+
+export function appendPane(
+  layout: ChartLayout,
+  next: ChartPane,
+  preset: LayoutPreset | null,
+): ChartLayout {
+  const arrangement =
+    preset === "columns" || preset === "rows" ? preset : "grid";
+  return arrangePanes([...getPanes(layout), next], arrangement);
 }
 
 export function updatePane(
@@ -62,13 +124,9 @@ export function splitPane(
   layout: ChartLayout,
   id: string,
   direction: "horizontal" | "vertical",
-  selectedIds: string[],
 ): ChartLayout {
   return updatePane(layout, id, (current) => {
-    const nextId =
-      selectedIds.find((signalId) => !current.signalIds.includes(signalId)) ??
-      current.signalIds[0];
-    return split(current, pane(nextId ? [nextId] : []), direction);
+    return split(current, createPane([], nextPaneTitle(layout)), direction);
   });
 }
 

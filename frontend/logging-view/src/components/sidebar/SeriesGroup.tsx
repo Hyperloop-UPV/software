@@ -47,11 +47,12 @@ import {
 import { ChevronRight, GripVertical, Layers, Plus } from "@hyperloopupv/frontend-kit/icons";
 import { cn, getTypeBadgeClass } from "@hyperloopupv/frontend-kit/lib";
 import { useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router";
 import { useAssignSignalsToPlot } from "../simple/hooks/useStudioSignals";
-import type { PlotState } from "../../types/plotStudio";
 import type { AdjMeasurement, AdjPacket } from "../../types/session";
 import { useStore } from "../../store/store";
 import { useSeriesSelection } from "../../hooks/useSeriesSelection";
+import { getPanes } from "../../lib/normal/layout";
 
 // Converts a packet period+unit to a compact display string (e.g. "500 µs", "2 ms").
 const formatPeriod = (period?: number, unit?: string): string | null => {
@@ -182,9 +183,10 @@ interface BoardSectionProps {
   measurementMeta: Record<string, AdjMeasurement>;
   measPacket: Record<string, AdjPacket>;
   toggleSeries: (key: string) => void;
-  plots: PlotState[];
-  addStudioPlot: () => string;
-  assignSignalsToPlot: (plotId: string, signalIds: string[]) => Promise<void>;
+  plots: Array<{ id: string; name: string }>;
+  canCreatePlot: boolean;
+  onCreatePlot: (signalIds: string[]) => void;
+  onAddToPlot: (plotId: string, signalIds: string[]) => void;
 }
 
 // One board's collapsible section, with ONE shared ContextMenu covering all
@@ -192,7 +194,7 @@ interface BoardSectionProps {
 function BoardSection({
   selectionLocked,
   boardName, measIds, selectedSeries, totalSelectedCount, measurementMeta, measPacket,
-  toggleSeries, plots, addStudioPlot, assignSignalsToPlot,
+  toggleSeries, plots, canCreatePlot, onCreatePlot, onAddToPlot,
 }: BoardSectionProps) {
   const [contextTarget, setContextTarget] = useState<ContextTarget | null>(null);
   // Controlled (not defaultOpen) so opening re-renders BoardSection itself —
@@ -222,12 +224,11 @@ function BoardSection({
 
   const handleNewPlot = () => {
     if (!contextTarget) return;
-    const plotId = addStudioPlot();
-    void assignSignalsToPlot(plotId, contextTarget.dragIds);
+    onCreatePlot(contextTarget.dragIds);
   };
   const handleAddToPlot = (plotId: string) => {
     if (!contextTarget) return;
-    void assignSignalsToPlot(plotId, contextTarget.dragIds);
+    onAddToPlot(plotId, contextTarget.dragIds);
   };
 
   return (
@@ -306,12 +307,17 @@ function BoardSection({
               </div>
             </ContextMenuTrigger>
             <ContextMenuContent>
-              <ContextMenuItem onClick={handleNewPlot}>
+              <ContextMenuItem
+                disabled={selectionLocked || !canCreatePlot}
+                onClick={handleNewPlot}
+              >
                 <Plus className="size-3.5" />
                 New Plot
               </ContextMenuItem>
               <ContextMenuSub>
-                <ContextMenuSubTrigger disabled={plots.length === 0}>
+                <ContextMenuSubTrigger
+                  disabled={selectionLocked || plots.length === 0}
+                >
                   <Layers className="size-3.5" />
                   Add to Plot
                 </ContextMenuSubTrigger>
@@ -340,15 +346,49 @@ function BoardSection({
 }
 
 const SeriesGroup = () => {
+  const isNormal = !useLocation().pathname.startsWith("/simple");
   const availableSeries = useStore((s) => s.availableSeries);
   const adjData = useStore((s) => s.adjData);
   const { selectedSeries, toggleSeries, isSelectionLocked } = useSeriesSelection();
   const studioPlots = useStore((s) => s.studioPlots);
   const addStudioPlot = useStore((s) => s.addStudioPlot);
-  const assignSignalsToPlot = useAssignSignalsToPlot();
+  const addNormalPlot = useStore((s) => s.addNormalPlot);
+  const assignNormalSignalsToPlot = useStore(
+    (s) => s.assignNormalSignalsToPlot,
+  );
+  const dashboard = useStore((s) =>
+    s.normalDashboards.find(
+      (item) => item.id === s.activeNormalDashboardId,
+    ),
+  );
+  const assignStudioSignals = useAssignSignalsToPlot();
 
   // Computed once for the whole list (not per row).
-  const plots = useMemo(() => Array.from(studioPlots.values()), [studioPlots]);
+  const plots = useMemo(
+    () =>
+      isNormal && dashboard
+        ? getPanes(dashboard.settings.layoutState.tree).map((plot, index) => ({
+            id: plot.id,
+            name: plot.title || `Plot ${index + 1}`,
+          }))
+        : Array.from(studioPlots.values()).map((plot) => ({
+            id: plot.id,
+            name: plot.name,
+          })),
+    [dashboard, isNormal, studioPlots],
+  );
+  const createPlot = (signalIds: string[]) => {
+    if (isNormal) {
+      addNormalPlot(signalIds);
+      return;
+    }
+    const plotId = addStudioPlot();
+    void assignStudioSignals(plotId, signalIds);
+  };
+  const addToPlot = (plotId: string, signalIds: string[]) => {
+    if (isNormal) assignNormalSignalsToPlot(plotId, signalIds);
+    else void assignStudioSignals(plotId, signalIds);
+  };
 
   // Build measurement metadata and packet-frequency lookups from the ADJ
   // archive. Memoized on adjData alone — previously rebuilt on every render
@@ -408,8 +448,9 @@ const SeriesGroup = () => {
               measPacket={measPacket}
               toggleSeries={toggleSeries}
               plots={plots}
-              addStudioPlot={addStudioPlot}
-              assignSignalsToPlot={assignSignalsToPlot}
+              canCreatePlot={!isNormal || plots.length < 8}
+              onCreatePlot={createPlot}
+              onAddToPlot={addToPlot}
             />
           ))}
         </SidebarMenu>

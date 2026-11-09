@@ -31,6 +31,7 @@ export interface TimeDomain {
 export interface ChartPane {
   type: "pane";
   id: string;
+  title: string;
   signalIds: string[];
   normalized: boolean;
   hiddenSignalIds?: string[];
