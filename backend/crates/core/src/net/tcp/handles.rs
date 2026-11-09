@@ -15,6 +15,11 @@ pub struct Handles {
 }
 
 impl Handles {
+    /// Assembles the configured handles after their supervisor tasks are started.
+    pub(super) fn new(boards: HashMap<BoardId, BoardHandle>, index: Arc<Index>) -> Self {
+        Self { boards, index }
+    }
+
     /// Returns the handle for a configured board, regardless of connection state.
     #[must_use]
     pub fn board(&self, board: BoardId) -> Option<&BoardHandle> {

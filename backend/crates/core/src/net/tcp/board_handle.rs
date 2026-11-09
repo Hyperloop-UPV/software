@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 /// Orders are validated and encoded against the shared index before their bytes
 /// are queued through a bounded channel. The future connection task owns the
 /// receiving end and the socket; this handle owns neither of them.
-/// A session writer is implemented; task startup and supervision are still pending.
+/// [`super::spawn`] starts the supervisor that owns the receiver and sessions.
 #[derive(Debug)]
 pub struct BoardHandle {
     pub(super) board: BoardId,
