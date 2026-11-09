@@ -28,6 +28,7 @@ import {
   Plus,
   RotateCcw,
   Rows2,
+  Send,
   Settings2,
   Square,
   Trash2,
@@ -60,6 +61,7 @@ import {
   type TimeRange,
   type TimeUnit,
 } from "../../types/normal";
+import type { LoggedOrder } from "../../types/session";
 import ComparisonChart from "./ComparisonChart";
 import WindowStatistics from "./WindowStatistics";
 
@@ -77,6 +79,8 @@ interface PaneProps {
   node: ChartPane;
   index: number;
   allSignals: ComparisonSignal[];
+  orders: LoggedOrder[];
+  showOrders: boolean;
   domain: TimeDomain;
   range: TimeRange;
   timeUnit: TimeUnit;
@@ -104,6 +108,8 @@ function ComparisonPane({
   node,
   index,
   allSignals,
+  orders,
+  showOrders,
   domain,
   range,
   timeUnit,
@@ -481,6 +487,8 @@ function ComparisonPane({
             normalized={normalized}
             isDarkMode={isDarkMode}
             syncGroup={syncGroup}
+            orders={orders}
+            showOrders={showOrders}
             onRangeChange={onRangeChange}
           />
         ) : signals.length > 0 ? (
@@ -702,6 +710,11 @@ export default function AnalysisWorkspace({
     dashboard,
     "showStatistics",
   );
+  const [showOrders, setShowOrders] = useDashboardSetting(
+    dashboard,
+    "showOrders",
+  );
+  const orders = useStore((state) => state.orders);
   const { selectedSeries } = useSeriesSelection();
   const addPlot = useStore((state) => state.addNormalPlot);
   const selectedIds = useMemo(
@@ -834,6 +847,8 @@ export default function AnalysisWorkspace({
             panes={panes}
             focusedId={focused ? focusedId : null}
             allSignals={resolvedSignals}
+            orders={orders}
+            showOrders={showOrders ?? true}
             domain={domain}
             range={range}
             timeUnit={timeUnit}
@@ -911,6 +926,14 @@ export default function AnalysisWorkspace({
             onCheckedChange={(checked) => setShowStatistics(checked === true)}
           >
             Window statistics
+          </ContextMenuCheckboxItem>
+          <ContextMenuCheckboxItem
+            disabled={dashboard.locked || orders.length === 0}
+            checked={showOrders ?? true}
+            onCheckedChange={(checked) => setShowOrders(checked === true)}
+          >
+            <Send className="size-3.5" />
+            Order markers ({orders.length})
           </ContextMenuCheckboxItem>
           <ContextMenuItem
             disabled={dashboard.locked}

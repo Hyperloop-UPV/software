@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { decimateLTTB } from "../../lib/plotStudio/decimate";
 import { lowerBound, upperBound } from "../../lib/plotStudio/range";
 import { axisKey } from "../../lib/normal/units";
+import { formatOrderParameters } from "../../lib/orders";
 import {
   TIME_DIVISORS,
   type ComparisonSignal,
@@ -10,6 +11,7 @@ import {
   type TimeRange,
   type TimeUnit,
 } from "../../types/normal";
+import type { LoggedOrder } from "../../types/session";
 
 interface TooltipPoint {
   seriesIndex: number;
@@ -26,6 +28,8 @@ interface Props {
   normalized: boolean;
   isDarkMode: boolean;
   syncGroup: string;
+  orders: LoggedOrder[];
+  showOrders: boolean;
   onRangeChange: (range: TimeRange) => void;
 }
 
@@ -41,6 +45,8 @@ export default function ComparisonChart({
   normalized,
   isDarkMode,
   syncGroup,
+  orders,
+  showOrders,
   onRangeChange,
 }: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
@@ -117,6 +123,19 @@ export default function ComparisonChart({
       normalized,
     ],
   );
+  const orderMarkers = useMemo(() => {
+    if (!showOrders) return [];
+    const duration = domain.endMs - domain.startMs;
+    return orders
+      .map((order) => ({
+        order,
+        plotTimeMs:
+          (order.absoluteTime ?? domain.startMs + order.time) - domain.startMs,
+      }))
+      .filter(
+        ({ plotTimeMs }) => plotTimeMs >= 0 && plotTimeMs <= duration,
+      );
+  }, [domain.endMs, domain.startMs, orders, showOrders]);
 
   useEffect(() => {
     const element = elementRef.current;
@@ -153,6 +172,13 @@ export default function ComparisonChart({
     const text = isDarkMode ? "#d5d8df" : "#374151";
     const muted = isDarkMode ? "#9ba3b2" : "#6b7280";
     const grid = isDarkMode ? "#3a404b" : "#e6e9ef";
+    const orderColor = isDarkMode ? "#fbbf24" : "#d97706";
+    const orderTooltipTolerance = Math.max(
+      1e-9,
+      ((domain.endMs - domain.startMs) / TIME_DIVISORS[timeUnit] /
+        Math.max(width, 1)) *
+        10,
+    );
     const units = normalized
       ? ["Relative (%)"]
       : [...new Set(signals.map(axisKey))];
@@ -247,7 +273,18 @@ export default function ComparisonChart({
                 return `<div style="margin-top:5px"><span style="color:${signal.color}">●</span> ${escapeHtml(signal.board)} / ${escapeHtml(signal.name)} <b style="margin-left:12px">${escapeHtml(shown)}</b></div>`;
               })
               .join("");
-            return `<b>${time.toLocaleString(undefined, { maximumFractionDigits: 3 })} ${timeUnit}</b>${rows}`;
+            const orderRows = orderMarkers
+              .filter(
+                ({ plotTimeMs }) =>
+                  Math.abs(plotTimeMs / TIME_DIVISORS[timeUnit] - time) <=
+                  orderTooltipTolerance,
+              )
+              .map(
+                ({ order }) =>
+                  `<div style="margin-top:7px;border-top:1px solid ${grid};padding-top:6px"><span style="color:${orderColor}">◆</span> <b>${escapeHtml(order.name)}</b><br/><span style="margin-left:12px">${escapeHtml(order.from)} → ${escapeHtml(order.to)} · ${formatOrderParameters(order.parameters)}</span></div>`,
+              )
+              .join("");
+            return `<b>${time.toLocaleString(undefined, { maximumFractionDigits: 3 })} ${timeUnit}</b>${rows}${orderRows}`;
           },
         },
         dataZoom: [
@@ -275,6 +312,37 @@ export default function ComparisonChart({
           itemStyle: { color: signal.color },
           emphasis: { focus: "series" },
           progressive: 5000,
+          ...(index === 0 && orderMarkers.length > 0
+            ? {
+                markLine: {
+                  silent: false,
+                  symbol: ["none", "circle"],
+                  symbolSize: [0, 6],
+                  animation: false,
+                  lineStyle: {
+                    color: orderColor,
+                    width: 1.25,
+                    type: "dashed",
+                    opacity: 0.9,
+                  },
+                  label: {
+                    show: orderMarkers.length <= 8,
+                    color: orderColor,
+                    fontSize: 9,
+                    position: "insideEndTop",
+                    formatter: "{b}",
+                  },
+                  data: orderMarkers.map(({ order, plotTimeMs }) => ({
+                    name:
+                      order.name.length > 18
+                        ? `${order.name.slice(0, 17)}…`
+                        : order.name,
+                    xAxis: plotTimeMs / TIME_DIVISORS[timeUnit],
+                    order,
+                  })),
+                },
+              }
+            : {}),
         })),
       },
       true,
@@ -290,6 +358,7 @@ export default function ComparisonChart({
     isDarkMode,
     width,
     locked,
+    orderMarkers,
   ]);
 
   useEffect(() => {

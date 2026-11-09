@@ -62,6 +62,7 @@ export function parseOrdersCsv(text: string, timeUnit: string, adjData: AdjArchi
   return records.map(({ rawTime, ...record }, index) => ({
     ...record,
     id: `${rawTime}-${record.to}-${record.orderId}-${index}`,
+    absoluteTime: rawTime * multiplier,
     time: (rawTime - start) * multiplier,
   }));
 }
@@ -70,6 +71,13 @@ export function formatOrderParameters(parameters: Record<string, unknown> | null
   if (!parameters || Object.keys(parameters).length === 0) return "No parameters";
   return Object.entries(parameters)
     .map(([key, value]) => `${escapePlotlyText(key)}: ${escapePlotlyText(typeof value === "string" ? value : JSON.stringify(value))}`)
+    .join(" · ");
+}
+
+export function describeOrderParameters(parameters: Record<string, unknown> | null): string {
+  if (!parameters || Object.keys(parameters).length === 0) return "No parameters";
+  return Object.entries(parameters)
+    .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`)
     .join(" · ");
 }
 

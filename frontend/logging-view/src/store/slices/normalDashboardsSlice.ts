@@ -29,6 +29,7 @@ function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
     settings: {
       layoutState: { ids: [], tree: createLayout([], "grid"), preset: "grid" },
       showStatistics: false,
+      showOrders: true,
       focusedId: null,
       units: {},
       timeUnit: "s",

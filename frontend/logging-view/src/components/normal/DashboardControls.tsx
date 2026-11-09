@@ -16,6 +16,7 @@ import {
   Plus,
   RotateCcw,
   Rows2,
+  Send,
   Square,
 } from "@hyperloopupv/frontend-kit/icons";
 import { useState } from "react";
@@ -54,10 +55,15 @@ export default function DashboardControls({
     dashboard,
     "showStatistics",
   );
+  const [showOrders, setShowOrders] = useDashboardSetting(
+    dashboard,
+    "showOrders",
+  );
   const [timeUnit, setTimeUnit] = useDashboardSetting(dashboard, "timeUnit");
   const [range, setRange] = useDashboardSetting(dashboard, "range");
   const [layoutOpen, setLayoutOpen] = useState(false);
   const addNormalPlot = useStore((state) => state.addNormalPlot);
+  const orderCount = useStore((state) => state.orders.length);
   const panes = getPanes(layoutState.tree);
   const chartDisabled = dashboard.locked || signals.length === 0;
   const startMs = signals.length
@@ -269,6 +275,24 @@ export default function DashboardControls({
             : "ml-auto flex max-w-full flex-wrap items-center gap-2"
         }
       >
+        <Button
+          variant={(showOrders ?? true) ? "secondary" : "ghost"}
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-xs"
+          aria-label={`${showOrders ?? true ? "Hide" : "Show"} order markers`}
+          title={`${showOrders ?? true ? "Hide" : "Show"} orders on every plot`}
+          aria-pressed={showOrders ?? true}
+          disabled={orderCount === 0}
+          onClick={() => setShowOrders((current) => !(current ?? true))}
+        >
+          <Send className="size-3.5" />
+          <span>Orders</span>
+          {orderCount > 0 && (
+            <span className="bg-primary/15 text-primary rounded-full px-1.5 py-0.5 text-[10px] leading-none tabular-nums">
+              {orderCount}
+            </span>
+          )}
+        </Button>
         <Button
           variant={showStatistics ? "default" : "outline"}
           size="sm"

@@ -55,6 +55,7 @@ export interface DashboardSettings {
     preset: LayoutPreset | null;
   };
   showStatistics: boolean;
+  showOrders: boolean;
   focusedId: string | null;
   units: Record<string, string>;
   timeUnit: TimeUnit;

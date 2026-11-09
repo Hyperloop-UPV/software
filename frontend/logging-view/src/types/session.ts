@@ -86,6 +86,8 @@ export interface DroppedFile {
  * normalized to milliseconds, matching plotted telemetry signals. */
 export interface LoggedOrder {
   id: string;
+  /** Original session timestamp in milliseconds, used by linked Normal plots. */
+  absoluteTime?: number;
   time: number;
   from: string;
   to: string;
