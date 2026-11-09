@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import {
   appendPane,
+  cloneLayout,
   createLayout,
   createPane,
   getPanes,
@@ -37,6 +38,54 @@ function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
   };
 }
 
+// "Thermal" -> "Thermal (copy)" -> "Thermal (copy 2)", skipping taken names.
+function copyName(name: string, taken: Set<string>): string {
+  const base = name.slice(0, 80 - " (copy)".length);
+  let candidate = `${base} (copy)`;
+  for (let number = 2; taken.has(candidate); number++)
+    candidate = `${base} (copy ${number})`;
+  return candidate.slice(0, 80);
+}
+
+// A duplicated layout must not share node ids with its source: `focusedId` is
+// a pane id, and `panelSizes` is keyed by split-node id with inner keys of the
+// form `<splitId>-first` / `<splitId>-second` (see AnalysisWorkspace), so both
+// have to be rewritten through the clone's id map.
+function duplicateSettings(settings: DashboardSettings): DashboardSettings {
+  const { tree, idMap } = cloneLayout(settings.layoutState.tree);
+  const panelSizes = Object.fromEntries(
+    Object.entries(settings.panelSizes).flatMap(([nodeId, sizes]) => {
+      const next = idMap.get(nodeId);
+      if (!next) return [];
+      return [
+        [
+          next,
+          Object.fromEntries(
+            Object.entries(sizes).map(([panel, size]) => [
+              panel.startsWith(nodeId) ? next + panel.slice(nodeId.length) : panel,
+              size,
+            ]),
+          ),
+        ],
+      ];
+    }),
+  );
+  return {
+    ...settings,
+    layoutState: {
+      ids: signalIdsInLayout(tree),
+      tree,
+      preset: settings.layoutState.preset,
+    },
+    focusedId: settings.focusedId
+      ? (idMap.get(settings.focusedId) ?? null)
+      : null,
+    units: { ...settings.units },
+    range: { ...settings.range },
+    panelSizes,
+  };
+}
+
 export function initialNormalDashboards() {
   const dashboard = createDashboard();
   return {
@@ -49,6 +98,7 @@ export interface NormalDashboardsSlice {
   normalDashboards: NormalDashboard[];
   activeNormalDashboardId: string;
   addNormalDashboard: () => string;
+  duplicateNormalDashboard: (id: string) => string;
   selectNormalDashboard: (id: string) => void;
   closeNormalDashboard: (id: string) => void;
   renameNormalDashboard: (id: string, name: string) => void;
@@ -85,6 +135,33 @@ export const createNormalDashboardsSlice: StateCreator<
       };
     });
     return id;
+  },
+  // Reading the source only, so a locked dashboard can be duplicated; the copy
+  // keeps `locked` and lands right after its original.
+  duplicateNormalDashboard: (id) => {
+    let copyId = "";
+    set((state) => {
+      const index = state.normalDashboards.findIndex(
+        (dashboard) => dashboard.id === id,
+      );
+      if (index < 0) return state;
+      const source = state.normalDashboards[index];
+      const copy: NormalDashboard = {
+        ...source,
+        id: crypto.randomUUID(),
+        name: copyName(
+          source.name,
+          new Set(state.normalDashboards.map((dashboard) => dashboard.name)),
+        ),
+        selectedSeries: { ...source.selectedSeries },
+        settings: duplicateSettings(source.settings),
+      };
+      copyId = copy.id;
+      const normalDashboards = [...state.normalDashboards];
+      normalDashboards.splice(index + 1, 0, copy);
+      return { normalDashboards, activeNormalDashboardId: copy.id };
+    });
+    return copyId;
   },
   selectNormalDashboard: (id) =>
     set((state) =>

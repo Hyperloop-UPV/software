@@ -1,4 +1,5 @@
 export {
+  Copy,
   FileCode2,
   FileDown,
   Folder,

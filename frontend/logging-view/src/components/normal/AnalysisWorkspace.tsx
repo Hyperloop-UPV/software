@@ -1,6 +1,15 @@
 import {
   Button,
   Checkbox,
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
   Input,
   Popover,
   PopoverContent,
@@ -9,13 +18,30 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@hyperloopupv/frontend-kit/components";
-import { Columns, Pencil, Settings2, X } from "@hyperloopupv/frontend-kit/icons";
+import {
+  Columns,
+  Eye,
+  EyeOff,
+  Grid2X2,
+  Layers,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Rows2,
+  Settings2,
+  Square,
+  Trash2,
+  X,
+} from "@hyperloopupv/frontend-kit/icons";
 import { useDroppable } from "@dnd-kit/core";
 import * as echarts from "echarts";
-import { Eye, EyeOff, Maximize2, Minimize2, Rows2 } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useDashboardSetting } from "../../hooks/useDashboardSetting";
+import { useSeriesSelection } from "../../hooks/useSeriesSelection";
+import { useStore } from "../../store/store";
 import {
+  arrangePanes,
   getPanes,
   minimumLayoutSize,
   removePane,
@@ -38,6 +64,13 @@ import ComparisonChart from "./ComparisonChart";
 import WindowStatistics from "./WindowStatistics";
 
 const MAX_PANES = 8;
+// Same four presets the toolbar offers, for the workspace context menu.
+const LAYOUT_ITEMS = [
+  { value: "single", label: "Single", Icon: Square },
+  { value: "columns", label: "Columns", Icon: Columns },
+  { value: "rows", label: "Rows", Icon: Rows2 },
+  { value: "grid", label: "Grid", Icon: Grid2X2 },
+] as const;
 interface PaneProps {
   dashboardId: string;
   locked: boolean;
@@ -96,7 +129,14 @@ function ComparisonPane({
     [allSignals, node.signalIds],
   );
   const [signalQuery, setSignalQuery] = useState("");
+  const [configOpen, setConfigOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
+  const { selectedSeries } = useSeriesSelection();
+  const assignSignals = useStore((state) => state.assignNormalSignalsToPlot);
+  const selectedIds = useMemo(
+    () => Object.keys(selectedSeries).filter((key) => selectedSeries[key]),
+    [selectedSeries],
+  );
   const [draftTitle, setDraftTitle] = useState(node.title ?? `Plot ${index + 1}`);
   const visibleSignals = useMemo(
     () =>
@@ -118,9 +158,20 @@ function ComparisonPane({
     setEditingTitle(false);
   };
 
+  const startRename = () => {
+    setDraftTitle(title);
+    setEditingTitle(true);
+  };
+
   return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <section
       ref={setNodeRef}
+      // Radix composes this before its own handler and only skips its own when
+      // defaultPrevented is set, so stopping propagation keeps this menu while
+      // hiding the event from the workspace menu wrapping the whole area.
+      onContextMenu={(event) => event.stopPropagation()}
       className={`border-border/80 flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-[border-color,box-shadow] dark:bg-[#21252c] ${isOver ? "border-primary ring-primary/25 ring-2" : ""}`}
       aria-label={`Chart panel ${index + 1}`}
       data-pane-id={node.id}
@@ -152,10 +203,7 @@ function ComparisonPane({
             disabled={locked}
             className="group/title flex min-w-0 flex-1 items-center gap-1.5 text-left"
             title={locked ? title : `${title} · double-click to rename`}
-            onDoubleClick={() => {
-              setDraftTitle(title);
-              setEditingTitle(true);
-            }}
+            onDoubleClick={startRename}
           >
             <h2 className="truncate text-xs font-semibold">{title}</h2>
             {!locked && (
@@ -187,7 +235,7 @@ function ComparisonPane({
           >
             <Rows2 className="size-3.5" />
           </Button>
-          <Popover>
+          <Popover open={configOpen} onOpenChange={setConfigOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
@@ -343,40 +391,81 @@ function ComparisonPane({
         </fieldset>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-2 text-[10px]">
-        {signals.map((signal) => (
-          <button
-            type="button"
-            key={signal.id}
-            disabled={locked}
-            className={`hover:bg-muted/60 focus-visible:ring-ring inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left focus-visible:ring-2 focus-visible:outline-none ${node.hiddenSignalIds?.includes(signal.id) ? "opacity-50" : ""}`}
-            aria-label={`${node.hiddenSignalIds?.includes(signal.id) ? "Show" : "Hide"} ${signal.board} / ${signal.name} in chart ${index + 1}`}
-            aria-pressed={!node.hiddenSignalIds?.includes(signal.id)}
-            title="Click to hide or show this trace"
-            onClick={() =>
-              onChange(node.id, {
-                hiddenSignalIds: node.hiddenSignalIds?.includes(signal.id)
-                  ? node.hiddenSignalIds.filter((id) => id !== signal.id)
-                  : [...(node.hiddenSignalIds ?? []), signal.id],
-              })
-            }
-          >
-            <span
-              className="size-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: signal.color }}
-            />
-            <span className="text-muted-foreground max-w-[14rem] truncate">
-              {signal.board} / {signal.name}
-            </span>
-            {node.hiddenSignalIds?.includes(signal.id) && (
-              <EyeOff className="size-3" />
-            )}
-            {signal.units && (
-              <span className="bg-muted/70 rounded px-1.5 py-0.5 font-mono">
-                {signal.units}
-              </span>
-            )}
-          </button>
-        ))}
+        {signals.map((signal) => {
+          const hidden = !!node.hiddenSignalIds?.includes(signal.id);
+          const label = `${signal.board} / ${signal.name}`;
+          const toggleTrace = () =>
+            onChange(node.id, {
+              hiddenSignalIds: hidden
+                ? (node.hiddenSignalIds ?? []).filter((id) => id !== signal.id)
+                : [...(node.hiddenSignalIds ?? []), signal.id],
+            });
+          return (
+            <ContextMenu key={signal.id}>
+              <ContextMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={locked}
+                  // Keep this chip's menu from also opening the plot's one.
+                  onContextMenu={(event) => event.stopPropagation()}
+                  className={`hover:bg-muted/60 focus-visible:ring-ring inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left focus-visible:ring-2 focus-visible:outline-none ${hidden ? "opacity-50" : ""}`}
+                  aria-label={`${hidden ? "Show" : "Hide"} ${label} in chart ${index + 1}`}
+                  aria-pressed={!hidden}
+                  title="Click to hide or show this trace"
+                  onClick={toggleTrace}
+                >
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: signal.color }}
+                  />
+                  <span className="text-muted-foreground max-w-[14rem] truncate">
+                    {label}
+                  </span>
+                  {hidden && <EyeOff className="size-3" />}
+                  {signal.units && (
+                    <span className="bg-muted/70 rounded px-1.5 py-0.5 font-mono">
+                      {signal.units}
+                    </span>
+                  )}
+                </button>
+              </ContextMenuTrigger>
+              <ContextMenuContent aria-label={`${label} actions`}>
+                <ContextMenuItem disabled={locked} onClick={toggleTrace}>
+                  {hidden ? (
+                    <Eye className="size-3.5" />
+                  ) : (
+                    <EyeOff className="size-3.5" />
+                  )}
+                  {hidden ? "Show this trace" : "Hide this trace"}
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onClick={() => void navigator.clipboard?.writeText(label)}
+                >
+                  <Layers className="size-3.5" />
+                  Copy name
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  variant="destructive"
+                  disabled={locked}
+                  onClick={() =>
+                    onChange(node.id, {
+                      signalIds: node.signalIds.filter(
+                        (id) => id !== signal.id,
+                      ),
+                      hiddenSignalIds: (node.hiddenSignalIds ?? []).filter(
+                        (id) => id !== signal.id,
+                      ),
+                    })
+                  }
+                >
+                  <Trash2 className="size-3.5" />
+                  Remove from this plot
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          );
+        })}
         {normalized && (
           <span className="text-primary ml-auto font-medium">Relative %</span>
         )}
@@ -423,6 +512,92 @@ function ComparisonPane({
         )}
       </div>
     </section>
+      </ContextMenuTrigger>
+      <ContextMenuContent aria-label={`Chart ${index + 1} actions`}>
+        <ContextMenuItem disabled={locked} onClick={startRename}>
+          <Pencil className="size-3.5" />
+          Rename
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={locked || selectedIds.length === 0}
+          onClick={() => assignSignals(node.id, selectedIds)}
+        >
+          <Layers className="size-3.5" />
+          Add {selectedIds.length || ""} selected measurement
+          {selectedIds.length === 1 ? "" : "s"}
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={locked}
+          // Opening the popover inside the menu's own close sequence makes the
+          // popover treat that dismissal as an outside click; defer past it.
+          onClick={() => requestAnimationFrame(() => setConfigOpen(true))}
+        >
+          <Settings2 className="size-3.5" />
+          Signals, units and scale
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          disabled={locked || !canSplit}
+          onClick={() => onSplit(node.id, "horizontal")}
+        >
+          <Columns className="size-3.5" />
+          Split into columns
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={locked || !canSplit}
+          onClick={() => onSplit(node.id, "vertical")}
+        >
+          <Rows2 className="size-3.5" />
+          Split into rows
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onFocus(node.id)}>
+          {focused ? (
+            <Minimize2 className="size-3.5" />
+          ) : (
+            <Maximize2 className="size-3.5" />
+          )}
+          {focused ? "Restore panels" : "Expand panel"}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuCheckboxItem
+          disabled={locked || tooManyUnits}
+          checked={normalized}
+          onCheckedChange={(checked) =>
+            onChange(node.id, { normalized: checked === true })
+          }
+        >
+          Normalize to 0–100%
+        </ContextMenuCheckboxItem>
+        <ContextMenuItem
+          disabled={locked || !node.hiddenSignalIds?.length}
+          onClick={() => onChange(node.id, { hiddenSignalIds: [] })}
+        >
+          <Eye className="size-3.5" />
+          Show all traces
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          variant="destructive"
+          disabled={locked || node.signalIds.length === 0}
+          onClick={() =>
+            onChange(node.id, { signalIds: [], hiddenSignalIds: [] })
+          }
+        >
+          <Trash2 className="size-3.5" />
+          Clear measurements
+        </ContextMenuItem>
+        {canClose && (
+          <ContextMenuItem
+            variant="destructive"
+            disabled={locked}
+            onClick={() => onClose(node.id)}
+          >
+            <X className="size-3.5" />
+            Close plot
+          </ContextMenuItem>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -523,7 +698,16 @@ export default function AnalysisWorkspace({
     dashboard,
     "layoutState",
   );
-  const showStatistics = dashboard.settings.showStatistics;
+  const [showStatistics, setShowStatistics] = useDashboardSetting(
+    dashboard,
+    "showStatistics",
+  );
+  const { selectedSeries } = useSeriesSelection();
+  const addPlot = useStore((state) => state.addNormalPlot);
+  const selectedIds = useMemo(
+    () => Object.keys(selectedSeries).filter((key) => selectedSeries[key]),
+    [selectedSeries],
+  );
   const [focusedId, setFocusedId] = useDashboardSetting(dashboard, "focusedId");
   const [units, setUnits] = useDashboardSetting(dashboard, "units");
   const timeUnit = dashboard.settings.timeUnit;
@@ -634,6 +818,8 @@ export default function AnalysisWorkspace({
       className="flex min-h-0 flex-1 flex-col"
       aria-label="Signal analysis workspace"
     >
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
       <div className="min-h-0 flex-1 overflow-auto p-3">
         <div
           className="h-full w-full"
@@ -671,6 +857,70 @@ export default function AnalysisWorkspace({
           />
         </div>
       </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent aria-label="Workspace actions">
+          <ContextMenuItem
+            disabled={dashboard.locked || panes.length >= MAX_PANES}
+            onClick={() => addPlot()}
+          >
+            <Plus className="size-3.5" />
+            New plot
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={
+              dashboard.locked ||
+              panes.length >= MAX_PANES ||
+              selectedIds.length === 0
+            }
+            onClick={() => addPlot(selectedIds)}
+          >
+            <Layers className="size-3.5" />
+            New plot from {selectedIds.length || ""} selected measurement
+            {selectedIds.length === 1 ? "" : "s"}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuSub>
+            <ContextMenuSubTrigger disabled={dashboard.locked}>
+              <Grid2X2 className="size-3.5" />
+              Layout
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent>
+              {LAYOUT_ITEMS.map(({ value, label, Icon }) => (
+                <ContextMenuItem
+                  key={value}
+                  disabled={value === "single" && panes.length > 1}
+                  onClick={() => {
+                    setFocusedId(null);
+                    setLayoutState({
+                      ids: layoutState.ids,
+                      tree: arrangePanes(panes, value),
+                      preset: value,
+                    });
+                  }}
+                >
+                  <Icon className="size-3.5" />
+                  {label}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+          <ContextMenuSeparator />
+          <ContextMenuCheckboxItem
+            disabled={dashboard.locked}
+            checked={showStatistics}
+            onCheckedChange={(checked) => setShowStatistics(checked === true)}
+          >
+            Window statistics
+          </ContextMenuCheckboxItem>
+          <ContextMenuItem
+            disabled={dashboard.locked}
+            onClick={() => setRange({ start: 0, end: 100 })}
+          >
+            <RotateCcw className="size-3.5" />
+            Reset zoom
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
       {showStatistics && (
         <WindowStatistics
           signals={resolvedSignals}

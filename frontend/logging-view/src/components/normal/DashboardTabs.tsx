@@ -1,6 +1,12 @@
 import {
   Button,
   Checkbox,
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -15,12 +21,16 @@ import {
   TabsTrigger,
 } from "@hyperloopupv/frontend-kit/components";
 import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
   LayoutDashboard,
   Lock,
   PanelTopClose,
   PanelTopOpen,
   Plus,
   Settings2,
+  Unlock,
   X,
 } from "@hyperloopupv/frontend-kit/icons";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -217,11 +227,25 @@ export default function DashboardTabs({
     (state) => state.configureNormalDashboard,
   );
   const moveDashboard = useStore((state) => state.moveNormalDashboard);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [closingId, setClosingId] = useState<string | null>(null);
-  const closingDashboard = dashboards.find(
-    (dashboard) => dashboard.id === closingId,
+  const duplicateDashboard = useStore(
+    (state) => state.duplicateNormalDashboard,
   );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // A list, so "Close other tabs" can reuse the same confirmation dialog
+  // instead of bypassing the four-chart guard.
+  const [closingIds, setClosingIds] = useState<string[] | null>(null);
+  const closing = closingIds
+    ? dashboards.filter((dashboard) => closingIds.includes(dashboard.id))
+    : [];
+  const closingDashboard = closing.length === 1 ? closing[0] : undefined;
+  const closingCharts = closing.reduce(
+    (total, dashboard) =>
+      total + getPanes(dashboard.settings.layoutState.tree).length,
+    0,
+  );
+  // Which tab was right-clicked. Falls back to the active one so the keyboard
+  // path (Shift+F10 / Menu key) and a click on empty strip still act on a tab.
+  const [contextId, setContextId] = useState<string | null>(null);
   const cancelCloseRef = useRef<HTMLButtonElement>(null);
   const closeOriginRef = useRef<HTMLButtonElement | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -250,6 +274,33 @@ export default function DashboardTabs({
     restoreEditorFocus.current = true;
     setEditingId(id);
   };
+  // Shared by the close button, the context menu and "Close other tabs":
+  // locked tabs are skipped, and four or more charts ask first.
+  const requestClose = (ids: string[], origin?: HTMLButtonElement | null) => {
+    const targets = dashboards.filter(
+      (dashboard) => ids.includes(dashboard.id) && !dashboard.locked,
+    );
+    if (targets.length === 0) return;
+    const charts = targets.reduce(
+      (total, dashboard) =>
+        total + getPanes(dashboard.settings.layoutState.tree).length,
+      0,
+    );
+    if (charts >= 4) {
+      closeOriginRef.current = origin ?? null;
+      setClosingIds(targets.map((dashboard) => dashboard.id));
+      return;
+    }
+    focusActive.current = true;
+    for (const dashboard of targets) closeDashboard(dashboard.id);
+  };
+  const menuTarget =
+    dashboards.find((dashboard) => dashboard.id === contextId) ??
+    dashboards.find((dashboard) => dashboard.id === activeId);
+  const menuIndex = menuTarget ? dashboards.indexOf(menuTarget) : -1;
+  const menuOtherIds = dashboards
+    .filter((dashboard) => dashboard.id !== menuTarget?.id && !dashboard.locked)
+    .map((dashboard) => dashboard.id);
   const insertionAt = (clientX: number) => {
     const bar = tabListRef.current?.parentElement?.getBoundingClientRect();
     if (bar && clientX <= bar.left + 12) return 0;
@@ -299,11 +350,17 @@ export default function DashboardTabs({
         setDropIndex(null);
       }}
     >
-      <TabsList
-        ref={tabListRef}
-        aria-label="Dashboards"
-        className="h-auto min-w-0 justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0"
+      <ContextMenu
+        onOpenChange={(open) => {
+          if (!open) setContextId(null);
+        }}
       >
+        <ContextMenuTrigger asChild>
+          <TabsList
+            ref={tabListRef}
+            aria-label="Dashboards"
+            className="h-auto min-w-0 justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0"
+          >
         {dashboards.map((dashboard, index) => (
           <Popover
             key={dashboard.id}
@@ -315,6 +372,7 @@ export default function DashboardTabs({
             <PopoverAnchor asChild>
               <div
                 className={`group relative shrink-0 ${draggingId === dashboard.id ? "opacity-50" : ""}`}
+                onContextMenu={() => setContextId(dashboard.id)}
                 draggable={!dashboard.locked && editingId !== dashboard.id}
                 onDragStart={(event) => {
                   if (
@@ -427,17 +485,9 @@ export default function DashboardTabs({
                   }
                   disabled={dashboard.locked}
                   tabIndex={dashboard.id === activeId ? 0 : -1}
-                  onClick={(event) => {
-                    if (
-                      getPanes(dashboard.settings.layoutState.tree).length >= 4
-                    ) {
-                      closeOriginRef.current = event.currentTarget;
-                      setClosingId(dashboard.id);
-                      return;
-                    }
-                    focusActive.current = true;
-                    closeDashboard(dashboard.id);
-                  }}
+                  onClick={(event) =>
+                    requestClose([dashboard.id], event.currentTarget)
+                  }
                 >
                   <X className="size-3" />
                 </Button>
@@ -476,7 +526,90 @@ export default function DashboardTabs({
             </PopoverContent>
           </Popover>
         ))}
-      </TabsList>
+          </TabsList>
+        </ContextMenuTrigger>
+        <ContextMenuContent aria-label="Dashboard tab actions">
+          <ContextMenuItem
+            onClick={() => {
+              if (!menuTarget) return;
+              focusActive.current = true;
+              duplicateDashboard(menuTarget.id);
+            }}
+          >
+            <Copy className="size-3.5" />
+            Duplicate
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => menuTarget && startEditing(menuTarget.id)}
+          >
+            <Settings2 className="size-3.5" />
+            Rename / settings
+            <ContextMenuShortcut>F2</ContextMenuShortcut>
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() =>
+              menuTarget &&
+              configureDashboard(menuTarget.id, {
+                name: menuTarget.name,
+                color: menuTarget.color,
+                locked: !menuTarget.locked,
+                position: menuIndex,
+              })
+            }
+          >
+            {menuTarget?.locked ? (
+              <Unlock className="size-3.5" />
+            ) : (
+              <Lock className="size-3.5" />
+            )}
+            {menuTarget?.locked ? "Unlock" : "Lock"}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            disabled={!menuTarget || menuTarget.locked || menuIndex === 0}
+            onClick={() => {
+              if (!menuTarget) return;
+              focusActive.current = true;
+              moveDashboard(menuTarget.id, 0);
+            }}
+          >
+            <ChevronLeft className="size-3.5" />
+            Move to first
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={
+              !menuTarget ||
+              menuTarget.locked ||
+              menuIndex === dashboards.length - 1
+            }
+            onClick={() => {
+              if (!menuTarget) return;
+              focusActive.current = true;
+              moveDashboard(menuTarget.id, dashboards.length - 1);
+            }}
+          >
+            <ChevronRight className="size-3.5" />
+            Move to last
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            variant="destructive"
+            disabled={!menuTarget || menuTarget.locked}
+            onClick={() => menuTarget && requestClose([menuTarget.id])}
+          >
+            <X className="size-3.5" />
+            Close
+          </ContextMenuItem>
+          <ContextMenuItem
+            variant="destructive"
+            disabled={menuOtherIds.length === 0}
+            onClick={() => requestClose(menuOtherIds)}
+          >
+            <X className="size-3.5" />
+            Close other tabs
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
       <Button
         variant="ghost"
         size="icon-sm"
@@ -518,9 +651,9 @@ export default function DashboardTabs({
         </Button>
       </div>
       <Dialog
-        open={!!closingDashboard}
+        open={closing.length > 0}
         onOpenChange={(open) => {
-          if (!open) setClosingId(null);
+          if (!open) setClosingIds(null);
         }}
       >
         <DialogContent
@@ -542,35 +675,36 @@ export default function DashboardTabs({
           }}
         >
           <DialogHeader>
-            <DialogTitle>Close {closingDashboard?.name}?</DialogTitle>
-            <DialogDescription>
-              This dashboard contains{" "}
+            <DialogTitle>
               {closingDashboard
-                ? getPanes(closingDashboard.settings.layoutState.tree).length
-                : 0}{" "}
-              charts. Closing it will discard its charts, layout, and time
-              settings.
+                ? `Close ${closingDashboard.name}?`
+                : `Close ${closing.length} tabs?`}
+            </DialogTitle>
+            <DialogDescription>
+              {closingDashboard ? "This dashboard contains" : "These dashboards contain"}{" "}
+              {closingCharts}{" "}
+              {closingDashboard
+                ? "charts. Closing it will discard its charts, layout, and time settings."
+                : "charts. Closing them will discard their charts, layout, and time settings."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               ref={cancelCloseRef}
               variant="outline"
-              onClick={() => setClosingId(null)}
+              onClick={() => setClosingIds(null)}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              disabled={closingDashboard?.locked}
               onClick={() => {
-                if (!closingDashboard) return;
                 focusActive.current = true;
-                closeDashboard(closingDashboard.id);
-                setClosingId(null);
+                for (const dashboard of closing) closeDashboard(dashboard.id);
+                setClosingIds(null);
               }}
             >
-              Close tab
+              {closingDashboard ? "Close tab" : "Close tabs"}
             </Button>
           </DialogFooter>
         </DialogContent>

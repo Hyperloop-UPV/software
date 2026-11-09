@@ -83,6 +83,33 @@ export function arrangePanes(
   return rows.length === 1 ? rows[0] : combine(rows, "vertical");
 }
 
+/**
+ * Rebuild a layout with brand-new ids for every node, so a copy shares no
+ * identity with its source. Returns the old -> new id map too: `focusedId`
+ * and every `panelSizes` key are node ids that have to be remapped with it.
+ */
+export function cloneLayout(layout: ChartLayout): {
+  tree: ChartLayout;
+  idMap: Map<string, string>;
+} {
+  const idMap = new Map<string, string>();
+  const clone = (node: ChartLayout): ChartLayout => {
+    const id = crypto.randomUUID();
+    idMap.set(node.id, id);
+    return node.type === "pane"
+      ? {
+          ...node,
+          id,
+          signalIds: [...node.signalIds],
+          ...(node.hiddenSignalIds
+            ? { hiddenSignalIds: [...node.hiddenSignalIds] }
+            : {}),
+        }
+      : { ...node, id, first: clone(node.first), second: clone(node.second) };
+  };
+  return { tree: clone(layout), idMap };
+}
+
 export function signalIdsInLayout(layout: ChartLayout): string[] {
   return [
     ...new Set(getPanes(layout).flatMap((current) => current.signalIds)),
@@ -138,30 +165,6 @@ export function removePane(
   const first = removePane(layout.first, id);
   const second = removePane(layout.second, id);
   return first && second ? { ...layout, first, second } : (first ?? second);
-}
-
-export function reconcileLayout(
-  layout: ChartLayout,
-  previousIds: string[],
-  selectedIds: string[],
-): ChartLayout {
-  let next = layout;
-  for (const current of getPanes(next)) {
-    next = updatePane(next, current.id, (node) => ({
-      ...node,
-      signalIds: node.signalIds.filter((id) => selectedIds.includes(id)),
-    }));
-  }
-  for (const id of selectedIds.filter((id) => !previousIds.includes(id))) {
-    const target = getPanes(next).reduce((least, current) =>
-      current.signalIds.length < least.signalIds.length ? current : least,
-    );
-    next = updatePane(next, target.id, (node) => ({
-      ...node,
-      signalIds: [...node.signalIds, id],
-    }));
-  }
-  return next;
 }
 
 export function minimumLayoutSize(layout: ChartLayout): {
