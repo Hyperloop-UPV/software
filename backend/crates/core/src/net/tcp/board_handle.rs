@@ -15,6 +15,7 @@ pub struct BoardHandle {
     pub(super) board: BoardId,
     pub(super) index: Arc<Index>,
     pub(super) orders: mpsc::Sender<Vec<u8>>,
+    pub(super) fault: super::fault::Endpoint,
 }
 
 impl BoardHandle {
@@ -119,6 +120,7 @@ mod tests {
                 board: BoardId(3),
                 index,
                 orders,
+                fault: super::super::fault::Endpoint::default(),
             },
             receiver,
         )

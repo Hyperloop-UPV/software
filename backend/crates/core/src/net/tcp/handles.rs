@@ -1,7 +1,14 @@
-use super::{BoardHandle, SendError};
+use super::{BoardHandle, SendError, Unreachable};
 use crate::model::{BoardId, OrderPacket, PacketType};
 use crate::protocol::Index;
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    future::{Future, poll_fn},
+    sync::Arc,
+    task::Poll,
+    time::Duration,
+};
+use tokio::time::Instant;
 
 /// Access to the configured boards' TCP clients.
 ///
@@ -12,12 +19,21 @@ use std::{collections::HashMap, sync::Arc};
 pub struct Handles {
     boards: HashMap<BoardId, BoardHandle>,
     index: Arc<Index>,
+    write_timeout: Duration,
 }
 
 impl Handles {
     /// Assembles the configured handles after their supervisor tasks are started.
-    pub(super) fn new(boards: HashMap<BoardId, BoardHandle>, index: Arc<Index>) -> Self {
-        Self { boards, index }
+    pub(super) fn new(
+        boards: HashMap<BoardId, BoardHandle>,
+        index: Arc<Index>,
+        write_timeout: Duration,
+    ) -> Self {
+        Self {
+            boards,
+            index,
+            write_timeout,
+        }
     }
 
     /// Returns the handle for a configured board, regardless of connection state.
@@ -51,6 +67,61 @@ impl Handles {
             .ok_or(SendError::NoClient(definition.board))?;
 
         handle.send(order).await
+    }
+
+    /// Requests the reserved fault frame (00 00) from every active board writer.
+    ///
+    /// Attempts run concurrently, each bounded by [`super::Config::write_timeout`] from the
+    /// start of this call, including queue capacity and waiting for a frame boundary.
+    /// Fault takes priority over heartbeats and queued orders, but never interrupts
+    /// a frame already being written. It does not clear the normal order queue or
+    /// prevent subsequent normal sends; application-level fault policy stays outside net.
+    /// Disconnected boards fail immediately; no reconnection or automatic replay is
+    /// attempted. Requests are session-scoped and expired/cancelled pending requests
+    /// are discarded. Concurrent calls are bounded by a separate one-slot queue.
+    ///
+    /// Success confirms write_all completion, not firmware receipt or execution.
+    /// An empty configuration succeeds. Cancelling this call discards requests not
+    /// yet started; a write in progress still finishes or hits its original deadline.
+    ///
+    /// # Errors
+    ///
+    /// Returns the configured boards whose write completion was not confirmed
+    /// (offline, session ended, I/O failure, or deadline elapsed). A failed/partial write is never
+    /// retried and ends that session. Failure does not prove no bytes were delivered.
+    pub async fn propagate_fault(&self) -> Result<(), Unreachable> {
+        let deadline = Instant::now() + self.write_timeout;
+        let mut pending: Vec<_> = self
+            .boards
+            .values()
+            .map(|handle| (handle.board, Box::pin(handle.fault.request(deadline))))
+            .collect();
+        let mut failed = Vec::new();
+        // Poll every board without spawning detached tasks or serialising waits.
+        // Dropping this future drops all outstanding completion receivers as well.
+        poll_fn(|cx| {
+            pending.retain_mut(|(board, request)| match request.as_mut().poll(cx) {
+                Poll::Ready(success) => {
+                    if !success {
+                        failed.push(*board);
+                    }
+                    false
+                }
+                Poll::Pending => true,
+            });
+            if pending.is_empty() {
+                Poll::Ready(())
+            } else {
+                Poll::Pending
+            }
+        })
+        .await;
+        if failed.is_empty() {
+            Ok(())
+        } else {
+            failed.sort_unstable_by_key(|board| board.0);
+            Err(Unreachable(failed))
+        }
     }
 }
 
@@ -113,6 +184,7 @@ mod tests {
         let (third_orders, third_receiver) = mpsc::channel(2);
         let handles = Handles {
             index: Arc::clone(&index),
+            write_timeout: Duration::from_secs(2),
             boards: HashMap::from([
                 (
                     BoardId(1),
@@ -120,6 +192,7 @@ mod tests {
                         board: BoardId(1),
                         index: Arc::clone(&index),
                         orders: first_orders,
+                        fault: super::super::fault::Endpoint::default(),
                     },
                 ),
                 (
@@ -128,6 +201,7 @@ mod tests {
                         board: BoardId(3),
                         index: Arc::clone(&index),
                         orders: third_orders,
+                        fault: super::super::fault::Endpoint::default(),
                     },
                 ),
             ]),
@@ -280,5 +354,74 @@ mod tests {
             third_receiver.try_recv(),
             Err(mpsc::error::TryRecvError::Empty)
         );
+    }
+
+    #[tokio::test]
+    async fn an_empty_fault_broadcast_succeeds() {
+        let handles = Handles::new(HashMap::new(), Arc::new(Index::default()), Duration::ZERO);
+        assert_eq!(handles.propagate_fault().await, Ok(()));
+    }
+
+    #[tokio::test]
+    async fn broadcasts_concurrently_without_using_the_adj_or_full_order_queues()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let (handles, mut first_orders, mut third_orders) = sample_handles();
+        for handle in handles.boards.values() {
+            handle.orders.try_send(vec![0xaa])?;
+            handle.orders.try_send(vec![0xbb])?;
+        }
+        let mut first = handles.boards[&BoardId(1)].fault.activate();
+        let mut third = handles.boards[&BoardId(3)].fault.activate();
+        let (result, ()) = tokio::time::timeout(Duration::from_secs(3), async {
+            tokio::join!(handles.propagate_fault(), async {
+                // Neither board is acknowledged until both requests have arrived:
+                // a sequential implementation would time out here.
+                let (Some(a), Some(b)) = tokio::join!(first.receiver.recv(), third.receiver.recv())
+                else {
+                    unreachable!("both session control channels are open");
+                };
+                assert!(a.pending() && b.pending());
+                assert!(a.complete.send(()).is_ok());
+                assert!(b.complete.send(()).is_ok());
+            })
+        })
+        .await?;
+        assert_eq!(result, Ok(()));
+        assert_eq!(first_orders.try_recv(), Ok(vec![0xaa]));
+        assert_eq!(first_orders.try_recv(), Ok(vec![0xbb]));
+        assert_eq!(third_orders.try_recv(), Ok(vec![0xaa]));
+        assert_eq!(third_orders.try_recv(), Ok(vec![0xbb]));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn reports_only_boards_whose_write_was_not_confirmed()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let (handles, _first_orders, _third_orders) = sample_handles();
+        let mut third = handles.boards[&BoardId(3)].fault.activate();
+        let (result, ()) = tokio::join!(handles.propagate_fault(), async {
+            let Some(request) = third.receiver.recv().await else {
+                unreachable!("third board has an active session");
+            };
+            assert!(request.complete.send(()).is_ok());
+        });
+        assert_eq!(result, Err(Unreachable(vec![BoardId(1)])));
+        // A running supervisor is not an active TCP connection.
+        assert_eq!(handles.boards[&BoardId(1)].orders.capacity(), 2);
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn all_unconfirmed_boards_share_the_budget_and_return_sorted() {
+        let (mut handles, _first_orders, _third_orders) = sample_handles();
+        handles.write_timeout = Duration::from_millis(10);
+        let _first = handles.boards[&BoardId(1)].fault.activate();
+        let _third = handles.boards[&BoardId(3)].fault.activate();
+        let started = Instant::now();
+        assert_eq!(
+            handles.propagate_fault().await,
+            Err(Unreachable(vec![BoardId(1), BoardId(3)]))
+        );
+        assert_eq!(started.elapsed(), handles.write_timeout);
     }
 }

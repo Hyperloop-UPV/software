@@ -1,6 +1,6 @@
 //! One board's lifecycle, with persistent queued orders and reset-on-success backoff.
 
-use super::{BoardLink, Config, SessionEnd, connect_with_backoff, session};
+use super::{BoardLink, Config, SessionEnd, connect_with_backoff, fault, session, writer};
 use crate::{
     net::{Closed, Event, Reporter},
     protocol::Index,
@@ -31,7 +31,9 @@ fn orders_drained(orders: &mpsc::Receiver<Vec<u8>>) -> bool {
 /// [`Event::Disconnected`] after its socket is dropped. Each session error is
 /// logged and reported once before retrying, including fatal decode errors: as in
 /// the transport contract, the error consumer decides the application-level response.
-/// No fault broadcast, hash exchange, extra task or multi-board startup is added.
+/// This standalone API exposes no fault control channel. Spawn uses a private
+/// variant to forward explicit fault requests; neither path triggers them itself.
+/// No hash exchange, extra task or multi-board startup is added here.
 /// Consume both Reporter channels concurrently: full channels apply backpressure.
 ///
 /// Returns [`SessionEnd::OrdersDrained`] when the closed order channel has been
@@ -52,6 +54,26 @@ pub async fn supervise(
     reporter: &Reporter,
     orders: &mut mpsc::Receiver<Vec<u8>>,
 ) -> Result<SessionEnd, Closed> {
+    supervise_with_faults(
+        link,
+        config,
+        index,
+        reporter,
+        orders,
+        &fault::Endpoint::default(),
+    )
+    .await
+}
+
+/// Spawn's private control path preserves the public single-board composition API.
+pub(super) async fn supervise_with_faults(
+    link: &BoardLink,
+    config: &Config,
+    index: &Index,
+    reporter: &Reporter,
+    orders: &mut mpsc::Receiver<Vec<u8>>,
+    fault: &fault::Endpoint,
+) -> Result<SessionEnd, Closed> {
     let supervising = async {
         let mut backoff = config.backoff;
         loop {
@@ -63,15 +85,21 @@ pub async fn supervise(
             if orders_drained(orders) {
                 return Ok(SessionEnd::OrdersDrained);
             }
+            // Register before publishing Connected so its consumer can request a
+            // fault immediately. Cancellation also drops this session registration.
+            let faults = fault.activate();
             reporter.notify(link.board, Event::Connected).await?;
-            let end = session::run(
+            let end = session::run_with_faults(
                 stream,
                 link.board,
                 index,
                 reporter,
                 orders,
-                config.write_timeout,
-                config.keep_alive,
+                writer::Settings {
+                    write_timeout: config.write_timeout,
+                    keep_alive: config.keep_alive,
+                },
+                Some(faults),
             )
             .await;
             let drained = match end {

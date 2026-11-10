@@ -1,17 +1,26 @@
-//! Serial writing of queued orders and periodic keep-alives for one TCP session.
+//! Serial writing of faults, queued orders and keep-alives for one TCP session.
 
-use super::Error;
+use super::{Error, fault};
 use crate::model::BoardId;
 use std::{future::pending, io, time::Duration};
 use tokio::{
     io::{AsyncWrite, AsyncWriteExt},
     net::tcp::OwnedWriteHalf,
     sync::mpsc,
-    time::{Instant, sleep, timeout},
+    time::{Instant, sleep, timeout_at},
 };
 
 /// The application heartbeat is only the reserved ID 1, little-endian.
 const KEEP_ALIVE: [u8; 2] = [0x01, 0x00];
+
+/// Reserved fault ID 0, independent of the ADJ order definitions.
+const FAULT: [u8; 2] = [0x00, 0x00];
+
+#[derive(Debug, Clone, Copy)]
+pub(super) struct Settings {
+    pub(super) write_timeout: Duration,
+    pub(super) keep_alive: Duration,
+}
 
 /// Writes queued frames in order, ending normally when the channel is closed and drained.
 ///
@@ -26,8 +35,12 @@ const KEEP_ALIVE: [u8; 2] = [0x01, 0x00];
 /// After a heartbeat completes, its timer restarts for a full period: delayed
 /// writes produce no catch-up burst, including when the heartbeat itself is slow.
 /// A closed and drained channel ends the writer even when a heartbeat is due.
+/// When supplied, the session's fault channel takes priority at frame boundaries.
+/// Expired/cancelled requests are discarded before writing; completion is acknowledged
+/// only after write_all succeeds. A fault deadline includes time already spent waiting.
 ///
-/// Each complete frame gets one `write_timeout`, including all partial writes.
+/// Each ordinary frame gets one `write_timeout`, including all partial writes;
+/// faults use the smaller remaining budget from their absolute request deadline.
 /// Waiting for an order has no deadline. Success means the socket accepted all
 /// queued bytes, not that firmware received or executed them. Dropping the owned
 /// write half shuts down the socket's write side; it is not a delivery guarantee.
@@ -36,9 +49,9 @@ const KEEP_ALIVE: [u8; 2] = [0x01, 0x00];
 /// to the caller and may have been partly or fully transmitted. A heartbeat write
 /// does not dequeue an order. In either case, never automatically retry the frame
 /// or continue using that session. Orders not yet dequeued remain in `orders`;
-/// their disconnected-order policy belongs to the future session supervisor.
+/// their disconnected-order policy belongs to the session supervisor.
 /// That owner must also dispose of the read half and report failures once.
-/// This function does not log, report events, reconnect, or broadcast faults.
+/// This function does not log, report events, reconnect, or decide when to fault.
 ///
 /// # Errors
 ///
@@ -48,19 +61,28 @@ pub(super) async fn send(
     writer: OwnedWriteHalf,
     board: BoardId,
     orders: &mut mpsc::Receiver<Vec<u8>>,
-    write_timeout: Duration,
-    keep_alive: Duration,
+    settings: Settings,
+    faults: Option<fault::Active>,
 ) -> Result<(), Error> {
-    write_orders(writer, board, orders, write_timeout, keep_alive).await
+    write_frames(
+        writer,
+        board,
+        orders,
+        settings.write_timeout,
+        settings.keep_alive,
+        faults,
+    )
+    .await
 }
 
 /// Drives the same loop over TCP or a controlled test writer, without socket-specific behavior.
-async fn write_orders<W: AsyncWrite + Unpin>(
+async fn write_frames<W: AsyncWrite + Unpin>(
     mut writer: W,
     board: BoardId,
     orders: &mut mpsc::Receiver<Vec<u8>>,
     write_timeout: Duration,
     keep_alive: Duration,
+    mut faults: Option<fault::Active>,
 ) -> Result<(), Error> {
     let mut heartbeat = (!keep_alive.is_zero()).then(|| Box::pin(sleep(keep_alive)));
 
@@ -69,18 +91,36 @@ async fn write_orders<W: AsyncWrite + Unpin>(
         // Choose only between frames, so neither branch can cancel write_all.
         let order = tokio::select! {
             biased;
+            request = async {
+                match &mut faults {
+                    Some(active) => active.receiver.recv().await,
+                    None => pending().await,
+                }
+            } => {
+                let Some(request) = request else {
+                    faults = None;
+                    continue;
+                };
+                if !request.pending() {
+                    continue;
+                }
+                // Never select cancellation against a partially written frame.
+                // The earlier absolute deadline includes the frame-boundary wait.
+                write_frame(&mut writer, board, &FAULT, request.deadline.min(Instant::now() + write_timeout)).await?;
+                let _ = request.complete.send(());
+                continue;
+            }
             _ = async {
                 match &mut heartbeat {
                     Some(timer) => timer.as_mut().await,
                     None => pending::<()>().await,
                 }
-            } => {
-                // Closure wins over a due timer once the queue is empty. recv
-                // also waits for outstanding reserved permits before declaring
-                // the channel drained; is_closed + is_empty alone is not enough.
+            }, if !(orders.is_closed() && orders.is_empty()) => {
+                // Closure can race the guard above. Keep waiting in the outer
+                // select, not inside recv(), so faults remain serviceable while
+                // outstanding reserved order permits delay final draining.
                 if orders.is_closed() && orders.is_empty() {
-                    let Some(bytes) = orders.recv().await else { return Ok(()) };
-                    Some(bytes)
+                    continue;
                 } else {
                     None
                 }
@@ -92,13 +132,7 @@ async fn write_orders<W: AsyncWrite + Unpin>(
         };
         let bytes = order.as_deref().unwrap_or(&KEEP_ALIVE);
         // Keep one deadline around the whole frame, not one deadline per partial write.
-        timeout(write_timeout, writer.write_all(bytes))
-            .await
-            .map_err(|_| Error::Write {
-                board,
-                source: io::Error::new(io::ErrorKind::TimedOut, "TCP frame write timed out"),
-            })?
-            .map_err(|source| Error::Write { board, source })?;
+        write_frame(&mut writer, board, bytes, Instant::now() + write_timeout).await?;
 
         if order.is_none()
             && let Some(timer) = &mut heartbeat
@@ -107,6 +141,34 @@ async fn write_orders<W: AsyncWrite + Unpin>(
             timer.as_mut().reset(Instant::now() + keep_alive);
         }
     }
+}
+
+/// One absolute deadline around the entire frame, including partial writes.
+async fn write_frame<W: AsyncWrite + Unpin>(
+    writer: &mut W,
+    board: BoardId,
+    bytes: &[u8],
+    deadline: Instant,
+) -> Result<(), Error> {
+    timeout_at(deadline, writer.write_all(bytes))
+        .await
+        .map_err(|_| Error::Write {
+            board,
+            source: io::Error::new(io::ErrorKind::TimedOut, "TCP frame write timed out"),
+        })?
+        .map_err(|source| Error::Write { board, source })
+}
+
+/// Existing order/heartbeat tests also exercise the same loop without fault input.
+#[cfg(test)]
+async fn write_orders<W: AsyncWrite + Unpin>(
+    writer: W,
+    board: BoardId,
+    orders: &mut mpsc::Receiver<Vec<u8>>,
+    write_timeout: Duration,
+    keep_alive: Duration,
+) -> Result<(), Error> {
+    write_frames(writer, board, orders, write_timeout, keep_alive, None).await
 }
 
 #[cfg(test)]
@@ -122,7 +184,7 @@ mod tests {
     use tokio::{
         io::AsyncReadExt,
         net::{TcpListener, TcpStream},
-        time::{Instant, Sleep, advance},
+        time::{Instant, Sleep, advance, timeout},
     };
 
     const TEST_TIMEOUT: Duration = Duration::from_secs(2);
@@ -248,6 +310,253 @@ mod tests {
             .collect()
     }
 
+    #[tokio::test(start_paused = true)]
+    async fn fault_precedes_a_due_heartbeat_and_queued_orders()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let endpoint = fault::Endpoint::default();
+        let active = endpoint.activate();
+        let (sender, mut orders) = mpsc::channel(2);
+        let mut writer = ControlledWriter::new([]);
+        let period = Duration::from_millis(10);
+        {
+            let sending = write_frames(
+                &mut writer,
+                BoardId(3),
+                &mut orders,
+                TEST_TIMEOUT,
+                period,
+                Some(active),
+            );
+            tokio::pin!(sending);
+            assert_pending_once(sending.as_mut()).await;
+            advance(period).await;
+            sender.try_send(FIRST.to_vec())?;
+            sender.try_send(SECOND.to_vec())?;
+            drop(sender);
+            let request = endpoint.request(Instant::now() + FRAME_TIMEOUT);
+            tokio::pin!(request);
+            assert_pending_once(request.as_mut()).await;
+            sending.await?;
+            assert!(request.await);
+        }
+        assert_eq!(
+            writer.written,
+            [FAULT.as_slice(), KEEP_ALIVE.as_slice(), FIRST, SECOND].concat()
+        );
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn fault_waits_for_the_current_frame_without_interleaving_bytes()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let endpoint = fault::Endpoint::default();
+        let active = endpoint.activate();
+        let (sender, mut orders) = queued_frames();
+        let delay = Duration::from_millis(6);
+        let mut writer =
+            ControlledWriter::new([Step::Write(1), Step::Wait(delay), Step::Write(usize::MAX)]);
+        {
+            let sending = write_frames(
+                &mut writer,
+                BoardId(3),
+                &mut orders,
+                FRAME_TIMEOUT,
+                Duration::ZERO,
+                Some(active),
+            );
+            tokio::pin!(sending);
+            assert_pending_once(sending.as_mut()).await; // FIRST has written one byte.
+            let request = endpoint.request(Instant::now() + FRAME_TIMEOUT);
+            tokio::pin!(request);
+            assert_pending_once(request.as_mut()).await;
+            drop(sender);
+            sending.await?;
+            assert!(request.await);
+        }
+        assert_eq!(writer.written, [FIRST, FAULT.as_slice(), SECOND].concat());
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn expired_and_cancelled_faults_are_skipped_without_discarding_orders()
+    -> Result<(), Box<dyn std::error::Error>> {
+        for expired in [false, true] {
+            let endpoint = fault::Endpoint::default();
+            let active = endpoint.activate();
+            {
+                let request = endpoint.request(Instant::now() + FRAME_TIMEOUT);
+                tokio::pin!(request);
+                assert_pending_once(request.as_mut()).await;
+                if expired {
+                    assert!(!request.await);
+                }
+                // Otherwise drop the caller while the request is still queued.
+            }
+            let (sender, mut orders) = queued_frames();
+            drop(sender);
+            let mut writer = ControlledWriter::new([]);
+            write_frames(
+                &mut writer,
+                BoardId(3),
+                &mut orders,
+                FRAME_TIMEOUT,
+                Duration::ZERO,
+                Some(active),
+            )
+            .await?;
+            assert_eq!(writer.written, [FIRST, SECOND].concat());
+        }
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn fault_io_failure_is_not_acknowledged_or_retried()
+    -> Result<(), Box<dyn std::error::Error>> {
+        for prefix in [0, 1] {
+            let endpoint = fault::Endpoint::default();
+            let active = endpoint.activate();
+            let request = endpoint.request(Instant::now() + FRAME_TIMEOUT);
+            tokio::pin!(request);
+            assert_pending_once(request.as_mut()).await;
+            let (_sender, mut orders) = queued_frames();
+            let mut steps = vec![];
+            if prefix > 0 {
+                steps.push(Step::Write(prefix));
+            }
+            steps.push(Step::Fail(io::ErrorKind::BrokenPipe));
+            let mut writer = ControlledWriter::new(steps);
+            let Err(error) = write_frames(
+                &mut writer,
+                BoardId(3),
+                &mut orders,
+                FRAME_TIMEOUT,
+                Duration::ZERO,
+                Some(active),
+            )
+            .await
+            else {
+                unreachable!("the fault write must fail");
+            };
+            assert_write_error(error, io::ErrorKind::BrokenPipe);
+            assert!(!request.await);
+            assert_eq!(writer.written, FAULT[..prefix]);
+            assert_eq!(orders.try_recv(), Ok(FIRST.to_vec()));
+            assert_eq!(orders.try_recv(), Ok(SECOND.to_vec()));
+            assert!(!endpoint.request(Instant::now() + FRAME_TIMEOUT).await);
+        }
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn fault_writing_only_gets_the_budget_left_after_waiting_for_an_order()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let endpoint = fault::Endpoint::default();
+        let active = endpoint.activate();
+        let (_sender, mut orders) = queued_frames();
+        let delay = Duration::from_millis(6);
+        let mut writer = ControlledWriter::new([
+            Step::Wait(delay),
+            Step::Write(usize::MAX), // Ordinary order takes 6 ms.
+            Step::Write(1),
+            Step::Wait(delay),
+            Step::Write(1), // Fault cannot get another 6 ms.
+        ]);
+        let started = Instant::now();
+        {
+            let sending = write_frames(
+                &mut writer,
+                BoardId(3),
+                &mut orders,
+                FRAME_TIMEOUT,
+                Duration::ZERO,
+                Some(active),
+            );
+            tokio::pin!(sending);
+            assert_pending_once(sending.as_mut()).await;
+            let request = endpoint.request(started + FRAME_TIMEOUT);
+            let (result, confirmed) = tokio::join!(sending, request);
+            let Err(error) = result else {
+                unreachable!("the original fault deadline must expire");
+            };
+            assert_write_error(error, io::ErrorKind::TimedOut);
+            assert!(!confirmed);
+        }
+        assert_eq!(started.elapsed(), FRAME_TIMEOUT);
+        assert_eq!(writer.written, [FIRST, &FAULT[..1]].concat());
+        assert_eq!(orders.try_recv(), Ok(SECOND.to_vec()));
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn caller_cancellation_does_not_interrupt_a_fault_already_being_written()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let endpoint = fault::Endpoint::default();
+        let active = endpoint.activate();
+        let (sender, mut orders) = mpsc::channel(1);
+        let mut writer = ControlledWriter::new([
+            Step::Write(1),
+            Step::Wait(Duration::from_millis(6)),
+            Step::Write(1),
+        ]);
+        {
+            let sending = write_frames(
+                &mut writer,
+                BoardId(3),
+                &mut orders,
+                FRAME_TIMEOUT,
+                Duration::ZERO,
+                Some(active),
+            );
+            tokio::pin!(sending);
+            {
+                let request = endpoint.request(Instant::now() + FRAME_TIMEOUT);
+                tokio::pin!(request);
+                assert_pending_once(request.as_mut()).await;
+                assert_pending_once(sending.as_mut()).await; // Fault prefix has been accepted.
+            } // Cancel the broadcast, not the writer.
+            sender.try_send(FIRST.to_vec())?;
+            drop(sender);
+            sending.await?;
+        }
+        assert_eq!(writer.written, [FAULT.as_slice(), FIRST].concat());
+        Ok(())
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn faults_remain_serviceable_while_closed_orders_wait_for_a_reserved_permit()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let endpoint = fault::Endpoint::default();
+        let active = endpoint.activate();
+        let (sender, mut orders) = mpsc::channel(1);
+        let permit = sender.reserve().await?;
+        orders.close();
+        let mut writer = ControlledWriter::new([]);
+        {
+            let sending = write_frames(
+                &mut writer,
+                BoardId(3),
+                &mut orders,
+                FRAME_TIMEOUT,
+                FRAME_TIMEOUT,
+                Some(active),
+            );
+            tokio::pin!(sending);
+            assert_pending_once(sending.as_mut()).await;
+            advance(FRAME_TIMEOUT).await;
+            assert_pending_once(sending.as_mut()).await;
+            let request = endpoint.request(Instant::now() + FRAME_TIMEOUT);
+            tokio::pin!(request);
+            assert_pending_once(request.as_mut()).await;
+            assert_pending_once(sending.as_mut()).await;
+            assert!(request.await);
+            permit.send(FIRST.to_vec());
+            drop(sender);
+            sending.await?;
+        }
+        assert_eq!(writer.written, [FAULT.as_slice(), FIRST].concat());
+        Ok(())
+    }
+
     #[tokio::test]
     async fn writes_queued_frames_to_tcp_in_order_and_closes_its_write_side()
     -> Result<(), Box<dyn std::error::Error>> {
@@ -267,8 +576,11 @@ mod tests {
                     write_half,
                     BoardId(3),
                     &mut receiver,
-                    TEST_TIMEOUT,
-                    Duration::ZERO
+                    Settings {
+                        write_timeout: TEST_TIMEOUT,
+                        keep_alive: Duration::ZERO
+                    },
+                    None,
                 ),
                 peer.read_to_end(&mut received),
             )
@@ -947,8 +1259,11 @@ mod tests {
                     write_half,
                     BoardId(3),
                     &mut receiver,
-                    TEST_TIMEOUT,
-                    Duration::from_millis(10)
+                    Settings {
+                        write_timeout: TEST_TIMEOUT,
+                        keep_alive: Duration::from_millis(10)
+                    },
+                    None,
                 ),
                 async {
                     peer.read_exact(&mut first).await?;

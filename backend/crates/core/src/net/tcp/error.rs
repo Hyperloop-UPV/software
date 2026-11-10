@@ -36,11 +36,12 @@ pub enum SendError {
     Gone(BoardId),
 }
 
-/// The boards a fault broadcast did not reach.
+/// Boards whose fault-frame write completion could not be confirmed.
 ///
-/// Never empty: a broadcast that reached everybody returns `Ok`.
+/// Produced nonempty by a failed broadcast. Success confirms write_all, not
+/// firmware execution; failure may still have transmitted some or all bytes.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("the fault did not reach these boards: {0:?}")]
+#[error("fault write completion was not confirmed for these boards: {0:?}")]
 pub struct Unreachable(pub Vec<BoardId>);
 
 /// Something that went wrong on a board's TCP connection.
@@ -81,7 +82,7 @@ pub enum Error {
         source: DecodeError,
     },
 
-    /// An order or a keep-alive could not be written.
+    /// An order, keep-alive or fault could not be written.
     #[error("board {board:?}: could not write")]
     Write {
         /// The board that was being written to.

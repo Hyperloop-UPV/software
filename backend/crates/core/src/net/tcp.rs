@@ -3,7 +3,8 @@
 //! [`spawn`] starts one independent supervisor and bounded order queue per board.
 //! Handles support board lookup, routing, encoding and queueing; [`supervise`]
 //! reconnects with queued orders preserved and backoff reset on connection success.
-//! Explicit task shutdown/joining and fault broadcast remain pending. This module
+//! Fault broadcast uses the same writers with priority at frame boundaries.
+//! Explicit task shutdown/joining remains pending. This module
 //! exposes the error type [`super::Error`] aggregates and defines the transport contract.
 //! See [`super`] and `net/README.md`.
 //!
@@ -46,10 +47,10 @@
 //! - **Be ready to be told to propagate the fault.** `station` is what
 //!   decides (it is the one consuming the error channel and reading
 //!   [`Error::is_fatal`]); this module is what can actually write, so it
-//!   exposes `Handles::propagate_fault`, which puts **the order with id
+//!   exposes [`Handles::propagate_fault`], which puts **the order with id
 //!   0** — the fault, same as the Go backend's `SendFault` — into every
-//!   board's writer channel at once, bounded by `write_timeout` per
-//!   write. It reports back which boards it could not reach instead of
+//!   board's control channel at once, bounded by `write_timeout` for the
+//!   whole attempt. It reports which writes could not be confirmed instead of
 //!   collapsing them into one opaque error, since a fault that only
 //!   half-landed is exactly what the operator has to know. The same path
 //!   covers the other case the Go backend had under `propagate_fault`: a
@@ -87,6 +88,7 @@ use tokio::sync::mpsc;
 mod board_handle;
 mod connection;
 mod error;
+mod fault;
 mod framing;
 mod handles;
 mod reader;
@@ -187,8 +189,8 @@ pub struct Config {
     /// Each spawned supervisor supplies this period to its session writer.
     /// OS-level keep-alive remains disabled in favor of this application packet.
     pub keep_alive: Duration,
-    /// Bound on each write, so that a peer that stops reading cannot park
-    /// a writer task for good (1 s in the Go backend).
+    /// Bound on each normal frame write, so a stalled peer cannot park a writer.
+    /// Also bounds each entire fault attempt, including queue/frame-boundary waits.
     pub write_timeout: Duration,
 }
 
@@ -216,7 +218,8 @@ pub struct Config {
 /// explicit shutdown. Closing either Reporter consumer stops the supervisors;
 /// consume both channels concurrently while running. Dropping Handles closes the
 /// order senders but does not promise immediate stop during offline retries.
-/// No application handshake, hash exchange or fault broadcast is performed.
+/// No application handshake or hash exchange is performed. Fault broadcast is
+/// explicit through [`Handles::propagate_fault`], never triggered automatically.
 ///
 /// # Panics
 ///
@@ -231,12 +234,14 @@ pub fn spawn(config: Config, adj: Arc<Index>, reporter: Reporter) -> Handles {
             continue;
         }
         let (orders, mut receiver) = mpsc::channel(ORDER_QUEUE_CAPACITY);
+        let fault = fault::Endpoint::default();
         boards.insert(
             link.board,
             BoardHandle {
                 board: link.board,
                 index: Arc::clone(&adj),
                 orders,
+                fault: fault.clone(),
             },
         );
 
@@ -245,10 +250,18 @@ pub fn spawn(config: Config, adj: Arc<Index>, reporter: Reporter) -> Handles {
         let reporter = reporter.clone();
         // Deliberately detached: explicit task ownership/joining is a later step.
         let _task = tokio::spawn(async move {
-            let _ = supervise(&link, &config, &index, &reporter, &mut receiver).await;
+            let _ = supervisor::supervise_with_faults(
+                &link,
+                &config,
+                &index,
+                &reporter,
+                &mut receiver,
+                &fault,
+            )
+            .await;
         });
     }
-    Handles::new(boards, adj)
+    Handles::new(boards, adj, config.write_timeout)
 }
 
 #[cfg(test)]
@@ -262,6 +275,109 @@ mod tests {
 
     fn io_error() -> std::io::Error {
         std::io::Error::from(std::io::ErrorKind::ConnectionRefused)
+    }
+
+    #[tokio::test]
+    async fn broadcasts_faults_over_active_clients_without_replaying_after_reconnect()
+    -> Result<(), Box<dyn std::error::Error>> {
+        use crate::net::Event;
+        use std::net::Ipv4Addr;
+        use tokio::{io::AsyncReadExt, net::TcpListener, time::timeout};
+
+        timeout(Duration::from_secs(6), async {
+            let first_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let third_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let config = Config {
+                boards: vec![
+                    BoardLink {
+                        board: BoardId(1),
+                        addr: first_listener.local_addr()?,
+                        local_port: 0,
+                    },
+                    BoardLink {
+                        board: BoardId(3),
+                        addr: third_listener.local_addr()?,
+                        local_port: 0,
+                    },
+                ],
+                connect_timeout: Duration::from_millis(100),
+                backoff: Backoff::new(1000, 1000),
+                write_timeout: Duration::from_millis(200),
+                keep_alive: Duration::ZERO,
+            };
+            let (reporter, mut sinks) = Reporter::channels(32, 16);
+            // Reserved ID 0 must work with no ADJ orders declared at all.
+            let handles = spawn(config, Arc::new(Index::default()), reporter);
+            let (first, third) =
+                tokio::try_join!(first_listener.accept(), third_listener.accept())?;
+            let (mut first, mut third) = (first.0, third.0);
+            for _ in 0..2 {
+                let notification = sinks
+                    .notifications
+                    .recv()
+                    .await
+                    .ok_or("reporting stopped")?;
+                assert!(matches!(notification.event, Event::Connected));
+            }
+
+            let (mut a, mut b) = ([0xff; 2], [0xff; 2]);
+            let (broadcast, read_a, read_b) = tokio::join!(
+                handles.propagate_fault(),
+                first.read_exact(&mut a),
+                third.read_exact(&mut b)
+            );
+            assert_eq!(broadcast, Ok(()));
+            read_a?;
+            read_b?;
+            assert_eq!((a, b), ([0, 0], [0, 0]));
+
+            drop(first);
+            let notification = sinks
+                .notifications
+                .recv()
+                .await
+                .ok_or("missing disconnection")?;
+            assert_eq!(notification.board, BoardId(1));
+            assert!(matches!(notification.event, Event::Disconnected));
+            // The offline board fails, without preventing the healthy board's write.
+            b.fill(0xff);
+            let (broadcast, read_b) =
+                tokio::join!(handles.propagate_fault(), third.read_exact(&mut b));
+            assert_eq!(broadcast, Err(Unreachable(vec![BoardId(1)])));
+            read_b?;
+            assert_eq!(b, [0, 0]);
+
+            let (mut reconnected, _) = first_listener.accept().await?;
+            let notification = sinks
+                .notifications
+                .recv()
+                .await
+                .ok_or("missing reconnection")?;
+            assert_eq!(notification.board, BoardId(1));
+            assert!(matches!(notification.event, Event::Connected));
+            // Neither the successful first fault nor the offline request is replayed.
+            assert!(
+                timeout(Duration::from_millis(30), reconnected.read_exact(&mut a))
+                    .await
+                    .is_err()
+            );
+            a.fill(0xff);
+            b.fill(0xff);
+            let (broadcast, read_a, read_b) = tokio::join!(
+                handles.propagate_fault(),
+                reconnected.read_exact(&mut a),
+                third.read_exact(&mut b)
+            );
+            assert_eq!(broadcast, Ok(()));
+            read_a?;
+            read_b?;
+            assert_eq!((a, b), ([0, 0], [0, 0]));
+            sinks.notifications.close();
+            sinks.errors.close();
+            Ok::<_, Box<dyn std::error::Error>>(())
+        })
+        .await??;
+        Ok(())
     }
 
     #[test]
@@ -561,7 +677,7 @@ mod tests {
         let handles = spawn(config, index, reporter);
         let running = async {
             handles
-                .send(OrderPacket::new(AdjId(1001), vec![Value::Number(5.0)]))
+                .send(OrderPacket::new(AdjId(1001), vec![Value::Number(-5.0)]))
                 .await?;
             tokio::signal::ctrl_c().await?;
             Ok::<_, Box<dyn std::error::Error>>(())

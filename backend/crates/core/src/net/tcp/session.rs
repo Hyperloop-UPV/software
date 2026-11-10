@@ -1,6 +1,6 @@
 //! Concurrent reading and writing for one already-prepared TCP connection.
 
-use super::{Error, reader, writer};
+use super::{Error, fault, reader, writer};
 use crate::{model::BoardId, net::Reporter, protocol::Index};
 use std::time::Duration;
 use tokio::{net::TcpStream, sync::mpsc};
@@ -51,6 +51,31 @@ pub async fn run(
     write_timeout: Duration,
     keep_alive: Duration,
 ) -> Result<SessionEnd, Error> {
+    run_with_faults(
+        stream,
+        board,
+        index,
+        reporter,
+        orders,
+        writer::Settings {
+            write_timeout,
+            keep_alive,
+        },
+        None,
+    )
+    .await
+}
+
+/// Uses exactly the public session teardown rules, with an optional fault channel.
+pub(super) async fn run_with_faults(
+    stream: TcpStream,
+    board: BoardId,
+    index: &Index,
+    reporter: &Reporter,
+    orders: &mut mpsc::Receiver<Vec<u8>>,
+    settings: writer::Settings,
+    faults: Option<fault::Active>,
+) -> Result<SessionEnd, Error> {
     let (read_half, write_half) = stream.into_split();
 
     // These futures own their halves directly. Selecting a result drops both,
@@ -62,7 +87,7 @@ pub async fn run(
                 reader::ReceiveEnd::ConsumerClosed => SessionEnd::ConsumerClosed,
             })
         }
-        result = writer::send(write_half, board, orders, write_timeout, keep_alive) => {
+        result = writer::send(write_half, board, orders, settings, faults) => {
             result.map(|()| SessionEnd::OrdersDrained)
         }
     }
