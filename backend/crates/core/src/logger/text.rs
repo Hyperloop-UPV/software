@@ -1,7 +1,7 @@
 //! A plain text file, written a line at a time.
 
 use super::Error;
-use super::target::{Target, create_file};
+use super::target::{Target, append_file, create_file};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
@@ -49,6 +49,24 @@ impl TextFile<BufWriter<File>> {
         let path = path.as_ref();
         let file = Self::new(create_file(path)?, path.display().to_string());
         debug!(path = %path.display(), "text file created");
+        Ok(file)
+    }
+
+    /// Opens the file at `path` to add lines to the end of it, creating it
+    /// and its parent directories if they aren't there.
+    ///
+    /// Nothing about what the file already contains is read, with one
+    /// exception: if it doesn't end in a newline, one is written first, so
+    /// the first new line can't continue a half-finished one.
+    pub fn append(path: impl AsRef<Path>) -> Result<Self, Error> {
+        let path = path.as_ref();
+        let (writer, existing) = append_file(path)?;
+        let file = Self::new(writer, path.display().to_string());
+        debug!(
+            path = %path.display(),
+            existing_bytes = existing,
+            "text file opened to append"
+        );
         Ok(file)
     }
 }
@@ -160,6 +178,40 @@ mod tests {
         fn flush(&mut self) -> std::io::Result<()> {
             Ok(())
         }
+    }
+
+    #[test]
+    fn appending_keeps_the_lines_that_were_already_there() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let path = temp.path().join("output/build.txt");
+
+        let mut log = TextFile::create(&path)?;
+        log.write_line("compiling")?;
+        log.close()?;
+
+        let mut log = TextFile::append(&path)?;
+        log.write_line("done")?;
+        log.close()?;
+
+        assert_eq!(fs::read_to_string(&path)?, "compiling\ndone\n");
+        Ok(())
+    }
+
+    #[test]
+    fn appending_to_content_that_lacks_its_last_newline_starts_a_fresh_line() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let path = temp.path().join("script.log");
+        fs::write(&path, "the script stopped here")?;
+
+        let mut log = TextFile::append(&path)?;
+        log.write_line("and this is ours")?;
+        log.close()?;
+
+        assert_eq!(
+            fs::read_to_string(&path)?,
+            "the script stopped here\nand this is ours\n"
+        );
+        Ok(())
     }
 
     #[test]

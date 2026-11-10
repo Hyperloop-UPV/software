@@ -9,8 +9,8 @@
 //! behaviour rather than two copies of it that can drift.
 
 use super::Error;
-use std::fs::{self, File};
-use std::io::{BufWriter, Write};
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use tracing::error;
 
@@ -165,4 +165,78 @@ pub(super) fn create_file(path: &Path) -> Result<BufWriter<File>, Error> {
     })?;
 
     Ok(BufWriter::new(file))
+}
+
+/// Opens `path` to add to the end of it, creating the file and its parent
+/// directories if they aren't there.
+///
+/// Returns the destination together with how many bytes the file already
+/// held, which is what tells a brand new (or empty) file from one that
+/// has content in it.
+///
+/// If that content doesn't end in a newline, one is written before
+/// anything else, so what gets appended starts on its own line instead of
+/// being glued onto the last one. That is the only thing looked at: what
+/// the existing content *says* is never read or checked.
+pub(super) fn append_file(path: &Path) -> Result<(BufWriter<File>, u64), Error> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|source| Error::Create {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    }
+
+    let mut file = OpenOptions::new()
+        // Readable as well as appendable: the last byte has to be looked
+        // at to know whether a newline is owed. Appending still lands at
+        // the end of the file however the read leaves the cursor.
+        .read(true)
+        .append(true)
+        .create(true)
+        .open(path)
+        .map_err(|source| Error::Create {
+            path: path.to_path_buf(),
+            source,
+        })?;
+
+    let existing = file
+        .metadata()
+        .map_err(|source| Error::Read {
+            path: path.to_path_buf(),
+            source,
+        })?
+        .len();
+
+    if !ends_with_newline(&mut file, existing, path)? {
+        // Opened in append mode, so this lands at the end of the file
+        // wherever the read above left the cursor.
+        file.write_all(b"\n").map_err(|source| Error::Write {
+            label: path.display().to_string(),
+            source,
+        })?;
+    }
+
+    Ok((BufWriter::new(file), existing))
+}
+
+/// Whether the last byte of `file` is a newline. An empty file counts as
+/// ending in one: there is no half-written line to finish.
+fn ends_with_newline(file: &mut File, len: u64, path: &Path) -> Result<bool, Error> {
+    let Some(last_byte) = len.checked_sub(1) else {
+        return Ok(true);
+    };
+
+    file.seek(SeekFrom::Start(last_byte))
+        .map_err(|source| Error::Read {
+            path: path.to_path_buf(),
+            source,
+        })?;
+
+    let mut last = [0u8; 1];
+    file.read_exact(&mut last).map_err(|source| Error::Read {
+        path: path.to_path_buf(),
+        source,
+    })?;
+
+    Ok(last[0] == b'\n')
 }

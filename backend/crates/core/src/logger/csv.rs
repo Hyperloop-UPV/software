@@ -1,7 +1,7 @@
 //! A CSV file that knows its own header.
 
 use super::Error;
-use super::target::{Target, create_file};
+use super::target::{Target, append_file, create_file};
 use std::fmt;
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -75,6 +75,47 @@ impl CsvFile<BufWriter<File>> {
         // The file is created before the header is written so that a failure to write the header doesn't leave a partially written file.
         let file = Self::new(create_file(path)?, path.display().to_string(), header)?;
         debug!(path = %path.display(), fields = header.len(), "csv file created");
+        Ok(file)
+    }
+
+    /// Opens the file at `path` to add rows to the end of it, creating it
+    /// and its parent directories if they aren't there.
+    ///
+    /// `header` is written only when the file is empty or brand new.
+    /// Otherwise it is taken as a statement of how many fields a row has —
+    /// what [`Error::FieldCount`] is checked against — and **what the file
+    /// already contains is not looked at**: if its columns are not these
+    /// ones, both shapes end up in the same file and nothing says so. The
+    /// caller is the one who knows that the file it opens is the file it
+    /// thinks it is; copying one with [`CsvFile::create`]'s own header is
+    /// the way to be sure.
+    ///
+    /// The one thing that *is* checked is the line boundary: if the
+    /// existing content doesn't end in a newline, one is written first, so
+    /// the first new row can't be glued onto a half-finished line.
+    pub fn append(path: impl AsRef<Path>, header: &[&str]) -> Result<Self, Error> {
+        let path = path.as_ref();
+        let (writer, existing) = append_file(path)?;
+
+        let file = if existing == 0 {
+            Self::new(writer, path.display().to_string(), header)?
+        } else {
+            Self {
+                target: Target::new(writer, path.display().to_string()),
+                // No header line to write, so the count is taken from the
+                // argument instead of from what was just written. An empty
+                // header leaves rows unchecked, as in `new`.
+                fields: (!header.is_empty()).then_some(header.len()),
+                buf: Vec::new(),
+            }
+        };
+
+        debug!(
+            path = %path.display(),
+            existing_bytes = existing,
+            fields = header.len(),
+            "csv file opened to append"
+        );
         Ok(file)
     }
 }
@@ -360,6 +401,73 @@ mod tests {
         fn flush(&mut self) -> std::io::Result<()> {
             Ok(())
         }
+    }
+
+    #[test]
+    fn appending_continues_a_file_without_writing_the_header_again() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let path = temp.path().join("data/lcu.csv");
+
+        let mut csv = CsvFile::create(&path, &["t", "value"])?;
+        csv.row().int(1).num(1.5).end()?;
+        csv.close()?;
+
+        let mut csv = CsvFile::append(&path, &["t", "value"])?;
+        csv.row().int(2).num(2.5).end()?;
+        csv.close()?;
+
+        assert_eq!(fs::read_to_string(&path)?, "t,value\n1,1.5\n2,2.5\n");
+        Ok(())
+    }
+
+    #[test]
+    fn appending_to_a_file_that_is_not_there_yet_writes_the_header() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let path = temp.path().join("data/lcu.csv");
+
+        let mut csv = CsvFile::append(&path, &["t", "value"])?;
+        csv.row().int(1).num(1.5).end()?;
+        csv.close()?;
+
+        assert_eq!(fs::read_to_string(&path)?, "t,value\n1,1.5\n");
+        Ok(())
+    }
+
+    #[test]
+    fn appending_to_content_that_lacks_its_last_newline_starts_a_fresh_line() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let path = temp.path().join("copied.csv");
+        // What a file copied from elsewhere can easily look like.
+        fs::write(&path, "t,value\n1,1.5")?;
+
+        let mut csv = CsvFile::append(&path, &["t", "value"])?;
+        csv.row().int(2).num(2.5).end()?;
+        csv.close()?;
+
+        assert_eq!(fs::read_to_string(&path)?, "t,value\n1,1.5\n2,2.5\n");
+        Ok(())
+    }
+
+    #[test]
+    fn an_appended_row_is_still_checked_against_the_header_it_was_given() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let path = temp.path().join("data.csv");
+        fs::write(&path, "t,value\n")?;
+
+        let mut csv = CsvFile::append(&path, &["t", "value"])?;
+        let Err(error) = csv.row().int(1).num(1.5).text("extra").end() else {
+            unreachable!("three fields where the header says two");
+        };
+
+        assert!(matches!(
+            error,
+            Error::FieldCount {
+                expected: 2,
+                got: 3,
+                ..
+            }
+        ));
+        Ok(())
     }
 
     #[test]

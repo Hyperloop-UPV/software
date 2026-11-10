@@ -69,8 +69,18 @@
 //! first. A CSV or a text log is appended to and never revisited, and
 //! nothing here will read one back.
 //!
+//! Two neighbours live alongside the three formats, each behind its own
+//! feature because neither is needed to write a file:
+//! [`crate::logger::files`] (feature `files`) copies, moves and removes
+//! them, which is what makes these types usable on a file that already
+//! exists, and [`crate::logger::host`] (feature `host`) is the snapshot
+//! of the machine that goes into a recording's metadata. Both are about
+//! a recording's files rather than about a vehicle, which is why they
+//! are here and not modules of their own; neither is used by `csv`,
+//! `text` or `json`, which still know nothing about what they write.
+//!
 //! Not here, on purpose: reading a CSV or a text log back, sessions, timestamps, file
-//! rotation, copying files around, keeping a registry of many open files
+//! rotation, keeping a registry of many open files
 //! (a `HashMap<K, CsvFile>` with `entry().or_insert_with(...)` in the
 //! caller is shorter and clearer than anything this module could wrap it
 //! in), and anything asynchronous. These functions block; a caller
@@ -82,6 +92,18 @@ mod error;
 mod json;
 mod target;
 mod text;
+
+/// Copies, moves and removes files, creating the directories a
+/// destination needs and naming the file in every error. See
+/// [`files::copy_file`].
+#[cfg(feature = "files")]
+pub mod files;
+
+/// A best-effort snapshot of the machine, the user and the build, for
+/// the metadata of a recording. Nothing in it fails: what the system
+/// won't say is left empty. See [`host::HostInfo`].
+#[cfg(feature = "host")]
+pub mod host;
 
 pub use csv::{CsvFile, Row};
 pub use error::Error;
