@@ -29,13 +29,24 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-tokio = { workspace = true, optional = true, features = ["macros", "rt-multi-thread"] }
+# `io-util` is what `net` needs on top of the workspace's own list
+# (`net`, `sync`, `time`...): `AsyncReadExt`/`AsyncWriteExt`, i.e. reading
+# a TCP stream into a buffer at all.
+tokio = { workspace = true, optional = true, features = [
+    "macros",
+    "rt-multi-thread",
+    "io-util",
+] }
 tracing-subscriber = { workspace = true, optional = true , features = ["env-filter", "fmt"]}
 tracing-appender = { workspace = true, optional = true }
 gix = { version = "0.87.1", optional = true, features = ["blocking-http-transport-reqwest-rust-tls", "blocking-network-client", "worktree-mutation"] }
 dirs = { version = "7.0.0", optional = true }
 tempfile = { version = "3.27", optional = true }
 ntp_usg-server = { version = "5.0.0", optional = true, features = ["ipv4", "tokio"] }
+
+[dev-dependencies]
+# Virtual time makes the writer's per-frame deadlines deterministic in tests.
+tokio = { workspace = true, features = ["test-util"] }
 
 # `workspace = true` can't be combined with extra lints in the same table,
 # so the workspace list is repeated here with `missing_docs` added: this is
