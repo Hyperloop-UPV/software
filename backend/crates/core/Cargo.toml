@@ -20,6 +20,15 @@ git = ["dep:tempfile", "dep:dirs", "dep:gix"]
 pcap = ["net"]
 # CSV data logger (records, sessions, subloggers)
 logger = []
+# `logger::files`: copying, moving and removing files. No dependencies
+# of its own: a tool that only wants to copy a file shouldn't have to
+# take anything else with it, beyond the `logger` module it lives in.
+files = ["logger"]
+# `logger::host`: a snapshot of the machine, the user and the build, for
+# the metadata of a recording. `rlimit` is only a dependency on unix, so
+# on Windows this enables `whoami` alone and `logger::host::open_file_limit`
+# reports nothing.
+host = ["logger", "dep:whoami", "dep:rlimit"]
 # Reusable tracing/diagnostics setup (console + non-blocking file + stderr layers)
 trace = ["dep:tracing-subscriber", "dep:tracing-appender"]
 
@@ -36,6 +45,20 @@ gix = { version = "0.87.1", optional = true, features = ["blocking-http-transpor
 dirs = { version = "7.0.0", optional = true }
 tempfile = { version = "3.27", optional = true }
 ntp_usg-server = { version = "5.0.0", optional = true, features = ["ipv4", "tokio"] }
+# User, machine and OS metadata. Every call returns a `Result`, which is
+# what makes a best-effort snapshot cheap to build.
+whoami = { version = "2.1.3", optional = true }
+
+# `getrlimit` has no meaning on Windows, so the dependency isn't there
+# either; `logger::host::open_file_limit` is `None` on that target.
+[target.'cfg(unix)'.dependencies]
+rlimit = { version = "0.11.0", optional = true }
+
+# The `logger` and `files` tests need a real directory to write into;
+# `tempfile` is also an optional dependency of the `git` feature, which is
+# why it shows up twice.
+[dev-dependencies]
+tempfile = "3.27"
 
 # `workspace = true` can't be combined with extra lints in the same table,
 # so the workspace list is repeated here with `missing_docs` added: this is
