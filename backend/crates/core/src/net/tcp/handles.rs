@@ -36,7 +36,9 @@ impl Handles {
         }
     }
 
-    /// Returns the handle for a configured board, regardless of connection state.
+    /// Returns read-only access to a configured board, regardless of connection state.
+    /// Presence does not imply a live connection. Send orders through [`Self::send`]
+    /// rather than selecting a destination manually.
     #[must_use]
     pub fn board(&self, board: BoardId) -> Option<&BoardHandle> {
         self.boards.get(&board)
@@ -45,10 +47,12 @@ impl Handles {
     /// Resolves an order's destination through the index and queues it there.
     ///
     /// Only IDs declared as orders are accepted. The destination handle validates
-    /// and encodes the parameters before queueing the bytes. Like
-    /// [`BoardHandle::send`], this waits for queue capacity and returns once the
-    /// bytes are queued, not written to TCP.
+    /// and encodes the parameters before queueing the bytes. This waits for queue
+    /// capacity and returns once the bytes are queued, not written to TCP.
     /// It does not broadcast reserved IDs or send anything to other boards.
+    /// Cancelling while waiting for capacity discards the unqueued frame.
+    /// There is no enqueue timeout; [`super::Config::write_timeout`] bounds
+    /// network writes, not queue admission for normal orders.
     ///
     /// # Errors
     ///

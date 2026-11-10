@@ -29,7 +29,10 @@ use tokio::{
 /// Returns [`Error::Connect`] with the board ID and original I/O error if socket
 /// creation, configuration, binding or connecting fails. An elapsed timeout is
 /// represented by [`io::ErrorKind::TimedOut`]; its pending socket is dropped.
-pub async fn connect(link: &BoardLink, connect_timeout: Duration) -> Result<TcpStream, Error> {
+pub(super) async fn connect(
+    link: &BoardLink,
+    connect_timeout: Duration,
+) -> Result<TcpStream, Error> {
     let result = async {
         let (socket, local_ip) = match link.addr {
             SocketAddr::V4(_) => (TcpSocket::new_v4()?, IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
@@ -76,7 +79,7 @@ pub async fn connect(link: &BoardLink, connect_timeout: Duration) -> Result<TcpS
 /// Returns [`Closed`] when publishing a failed attempt detects a closed error
 /// consumer. Transport failures are reported, not returned. Consumer closure is
 /// checked only when reporting, not proactively during a connection or wait.
-pub async fn connect_with_backoff(
+pub(super) async fn connect_with_backoff(
     link: &BoardLink,
     connect_timeout: Duration,
     backoff: &mut Backoff,

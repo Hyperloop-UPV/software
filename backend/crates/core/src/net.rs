@@ -42,4 +42,5 @@ pub mod tcp;
 pub mod udp;
 
 pub use error::Error;
-pub use report::{Closed, ErrorReport, Event, Notification, Reporter, Sinks};
+use report::Closed;
+pub use report::{ErrorReport, Event, Notification, Reporter, Sinks};

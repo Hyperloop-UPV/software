@@ -2,12 +2,11 @@
 
 use super::{Error, fault, reader, writer};
 use crate::{model::BoardId, net::Reporter, protocol::Index};
-use std::time::Duration;
 use tokio::{net::TcpStream, sync::mpsc};
 
 /// Why a session ended without a transport error.
 #[derive(Debug, PartialEq, Eq)]
-pub enum SessionEnd {
+pub(super) enum SessionEnd {
     /// The peer closed its write side at a frame boundary.
     PeerClosed,
     /// Publishing a received packet detected a closed notification consumer.
@@ -26,9 +25,9 @@ pub enum SessionEnd {
 ///
 /// Whichever completion `select!` chooses determines the result, including if
 /// both are ready. The other future is dropped before returning, releasing its
-/// socket half. Cancelling `run` also drops both halves and releases the borrow
+/// socket half. Cancelling the session also drops both halves and releases the borrow
 /// of `orders`. Never resume that connection or automatically replay an order
-/// whose write may have been interrupted. [`super::supervise`] retains this
+/// whose write may have been interrupted. The supervisor retains this
 /// receiver across reconnections without replaying dequeued orders.
 ///
 /// This is immediate session cancellation, not lossless shutdown: a decoded
@@ -42,31 +41,6 @@ pub enum SessionEnd {
 ///
 /// Returns the selected reader or writer error unchanged. The caller can report
 /// that single result once; this function does not collect errors from both sides.
-pub async fn run(
-    stream: TcpStream,
-    board: BoardId,
-    index: &Index,
-    reporter: &Reporter,
-    orders: &mut mpsc::Receiver<Vec<u8>>,
-    write_timeout: Duration,
-    keep_alive: Duration,
-) -> Result<SessionEnd, Error> {
-    run_with_faults(
-        stream,
-        board,
-        index,
-        reporter,
-        orders,
-        writer::Settings {
-            write_timeout,
-            keep_alive,
-        },
-        None,
-    )
-    .await
-}
-
-/// Uses exactly the public session teardown rules, with an optional fault channel.
 pub(super) async fn run_with_faults(
     stream: TcpStream,
     board: BoardId,
@@ -93,6 +67,32 @@ pub(super) async fn run_with_faults(
     }
 }
 
+/// Exercises the same session teardown without a fault channel in focused tests.
+#[cfg(test)]
+async fn run(
+    stream: TcpStream,
+    board: BoardId,
+    index: &Index,
+    reporter: &Reporter,
+    orders: &mut mpsc::Receiver<Vec<u8>>,
+    write_timeout: std::time::Duration,
+    keep_alive: std::time::Duration,
+) -> Result<SessionEnd, Error> {
+    run_with_faults(
+        stream,
+        board,
+        index,
+        reporter,
+        orders,
+        writer::Settings {
+            write_timeout,
+            keep_alive,
+        },
+        None,
+    )
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,6 +107,7 @@ mod tests {
         io,
         net::Ipv4Addr,
         task::Poll,
+        time::Duration,
     };
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},

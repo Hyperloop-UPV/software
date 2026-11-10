@@ -1,6 +1,9 @@
 //! One board's lifecycle, with persistent queued orders and reset-on-success backoff.
 
-use super::{BoardLink, Config, SessionEnd, connect_with_backoff, fault, session, writer};
+use super::{
+    BoardLink, Config, connection::connect_with_backoff, fault, session, session::SessionEnd,
+    writer,
+};
 use crate::{
     net::{Closed, Event, Reporter},
     protocol::Index,
@@ -31,8 +34,8 @@ fn orders_drained(orders: &mpsc::Receiver<Vec<u8>>) -> bool {
 /// [`Event::Disconnected`] after its socket is dropped. Each session error is
 /// logged and reported once before retrying, including fatal decode errors: as in
 /// the transport contract, the error consumer decides the application-level response.
-/// This standalone API exposes no fault control channel. Spawn uses a private
-/// variant to forward explicit fault requests; neither path triggers them itself.
+/// Spawn supplies the board's fault endpoint to forward explicit requests;
+/// this supervisor never triggers a fault itself.
 /// No hash exchange, extra task or multi-board startup is added here.
 /// Consume both Reporter channels concurrently: full channels apply backpressure.
 ///
@@ -47,25 +50,6 @@ fn orders_drained(orders: &mpsc::Receiver<Vec<u8>>) -> bool {
 ///
 /// Returns [`Closed`] when either Reporter consumer closes, including during idle
 /// I/O or retries. Transport errors go through Reporter rather than being returned.
-pub async fn supervise(
-    link: &BoardLink,
-    config: &Config,
-    index: &Index,
-    reporter: &Reporter,
-    orders: &mut mpsc::Receiver<Vec<u8>>,
-) -> Result<SessionEnd, Closed> {
-    supervise_with_faults(
-        link,
-        config,
-        index,
-        reporter,
-        orders,
-        &fault::Endpoint::default(),
-    )
-    .await
-}
-
-/// Spawn's private control path preserves the public single-board composition API.
 pub(super) async fn supervise_with_faults(
     link: &BoardLink,
     config: &Config,
@@ -123,6 +107,26 @@ pub(super) async fn supervise_with_faults(
         result = supervising => result,
         () = reporter.closed() => Err(Closed),
     }
+}
+
+/// Keeps fault requests out of focused lifecycle tests without a second runtime path.
+#[cfg(test)]
+async fn supervise(
+    link: &BoardLink,
+    config: &Config,
+    index: &Index,
+    reporter: &Reporter,
+    orders: &mut mpsc::Receiver<Vec<u8>>,
+) -> Result<SessionEnd, Closed> {
+    supervise_with_faults(
+        link,
+        config,
+        index,
+        reporter,
+        orders,
+        &fault::Endpoint::default(),
+    )
+    .await
 }
 
 #[cfg(test)]

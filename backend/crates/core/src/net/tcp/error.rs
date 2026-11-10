@@ -13,7 +13,7 @@ use crate::{
 pub enum SendError {
     /// No order with this id is declared in the loaded ADJ: the id is absent
     /// or belongs to another packet type. Returned by [`super::Handles::send`]
-    /// during routing; direct board sends retain the encoder's error in `Encode`.
+    /// during routing, before encoding or queueing.
     #[error("no order is declared with id {0:?}")]
     UnknownId(AdjId),
     /// The order resolves to a board the config did not list, so no

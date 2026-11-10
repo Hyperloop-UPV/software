@@ -10,6 +10,8 @@ use tokio::sync::mpsc;
 /// are queued through a bounded channel. The future connection task owns the
 /// receiving end and the socket; this handle owns neither of them.
 /// [`super::spawn`] starts the supervisor that owns the receiver and sessions.
+/// Public access is read-only: submit orders through [`super::Handles::send`]
+/// so their destination is always resolved from the index.
 #[derive(Debug)]
 pub struct BoardHandle {
     pub(super) board: BoardId,
@@ -30,9 +32,8 @@ impl BoardHandle {
     /// Returns once the encoded bytes are queued, not once they are written to
     /// the socket or received by the board. Encoding runs before waiting for
     /// capacity and uses the existing protocol checks, not application safety
-    /// rules. This method does not resolve or check the destination: callers
-    /// select the board.
-    /// Use [`super::Handles::send`] to resolve the destination by order ID.
+    /// rules. Internal callers must first resolve the destination through
+    /// [`super::Handles::send`]; this method does not repeat that lookup.
     ///
     /// # Errors
     ///
@@ -42,7 +43,7 @@ impl BoardHandle {
     /// Returns [`SendError::Gone`] if encoding succeeds but the receiver has been
     /// closed or dropped, including while this call was waiting for queue capacity.
     /// This indicates an unavailable consumer, not a TCP disconnection.
-    pub async fn send(&self, order: OrderPacket) -> Result<(), SendError> {
+    pub(super) async fn send(&self, order: OrderPacket) -> Result<(), SendError> {
         let bytes = tcp::encode_order(&order, &self.index).map_err(|source| SendError::Encode {
             board: self.board,
             source,

@@ -1,7 +1,7 @@
 //! The TCP client: one connection per board, one task each.
 //!
 //! [`spawn`] starts one independent supervisor and bounded order queue per board.
-//! Handles support board lookup, routing, encoding and queueing; [`supervise`]
+//! Handles support board lookup, routing, encoding and queueing; each supervisor
 //! reconnects with queued orders preserved and backoff reset on connection success.
 //! Fault broadcast uses the same writers with priority at frame boundaries.
 //! Explicit task shutdown/joining remains pending. This module
@@ -22,8 +22,8 @@
 //! [`super::Reporter`], and returning [`Handles`] — the API is written
 //! out below, with its reasoning on the items themselves. One call opens
 //! **every** connection: one task per entry in [`Config::boards`], so the
-//! per-board bookkeeping stays here and `station` only ever asks for
-//! "write this to that board".
+//! per-board bookkeeping stays here. The application submits orders through
+//! [`Handles::send`], which resolves their destination from the index.
 //!
 //! # Contract
 //!
@@ -42,21 +42,17 @@
 //! - **One writer task per connection.** Orders, the keep-alive and the
 //!   fault all share the socket, so a single task must own the write
 //!   half, or two half-written frames can interleave on the wire. That
-//!   task is what [`super::Reporter`]-side callers reach through the
-//!   board's channel in `Handles`.
-//! - **Be ready to be told to propagate the fault.** `station` is what
-//!   decides (it is the one consuming the error channel and reading
-//!   [`Error::is_fatal`]); this module is what can actually write, so it
+//!   task receives requests through the board's channels in `Handles`.
+//! - **Be ready to be told to propagate the fault.** The application
+//!   decides when; this module is what can actually write, so it
 //!   exposes [`Handles::propagate_fault`], which puts **the order with id
 //!   0** — the fault, same as the Go backend's `SendFault` — into every
 //!   board's control channel at once, bounded by `write_timeout` for the
 //!   whole attempt. It reports which writes could not be confirmed instead of
 //!   collapsing them into one opaque error, since a fault that only
 //!   half-landed is exactly what the operator has to know. The same path
-//!   covers the other case the Go backend had under `propagate_fault`: a
-//!   *received* packet with id 0 is a board announcing a fault, and
-//!   `station` answers it by calling this, so that logic does not have to
-//!   exist twice.
+//!   can be used by application policies for received protections or errors.
+//!   No automatic trigger or once-per-incident guard is implemented here.
 //! - Reconnection with exponential backoff and unlimited retries, the
 //!   OS-level keep-alive disabled (there is an application-level one),
 //!   `linger = 0` so a dropped connection frees its fixed local port
@@ -64,7 +60,7 @@
 //! - Report through [`super::Reporter`] only: [`super::Event::Connected`]
 //!   and [`super::Event::Disconnected`] per connection,
 //!   [`super::Event::Received`] per frame, and [`Error`] on the error
-//!   channel. Never stamp a timestamp by hand — [`super::Reporter::notify`]
+//!   channel. Never stamp a timestamp by hand — the reporter
 //!   does it. Never touch disk, WebSocket or aggregation.
 //! - **A terminal decode failure is fatal**: see [`Error::is_fatal`]. An
 //!   unsuccessful attempt on at most 374 pending bytes is not terminal;
@@ -101,11 +97,8 @@ mod writer;
 const ORDER_QUEUE_CAPACITY: usize = 64;
 
 pub use board_handle::BoardHandle;
-pub use connection::{connect, connect_with_backoff};
 pub use error::{Error, SendError, Unreachable};
 pub use handles::Handles;
-pub use session::{SessionEnd, run};
-pub use supervisor::supervise;
 
 /// One board to keep a connection to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,7 +132,7 @@ impl Backoff {
     /// Creates an exponential backoff with millisecond intervals.
     ///
     /// The first interval is `initial.min(max)`. A zero initial interval or
-    /// maximum produces zero intervals throughout; the caller decides when to wait.
+    /// maximum produces zero intervals throughout, with no deliberate retry delay.
     pub fn new(initial: u64, max: u64) -> Self {
         Self {
             initial: initial.min(max),
@@ -152,7 +145,7 @@ impl Backoff {
     ///
     /// Saturating arithmetic allows unlimited attempts without overflow. Once
     /// reached, the maximum is returned on every subsequent call until [`Self::reset`].
-    pub fn get_interval(&mut self) -> Duration {
+    fn get_interval(&mut self) -> Duration {
         let interval = Duration::from_millis(self.next);
         self.next = self.next.saturating_mul(2).min(self.max);
         interval
@@ -162,14 +155,14 @@ impl Backoff {
     ///
     /// Call after a successful connection so a later disconnection starts a new
     /// retry sequence. Repeated resets are harmless and do not consume an interval.
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.next = self.initial;
     }
 }
 
 /// How to run the TCP client.
 ///
-/// Everything here is resolved by `station` before `net` is reached: this
+/// Everything here is resolved by the application before `net` is reached: this
 /// module reads no config file, and it does not read the ADJ to find its
 /// peers either. That is also what lets a test point it at a fake peer.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -197,11 +190,11 @@ pub struct Config {
 /// Opens a connection to every board in `config.boards`.
 ///
 /// One call, one task per board: the per-connection bookkeeping stays in
-/// this module, and `station` only ever asks for "write this to that
-/// board" through the [`Handles`] that come back.
+/// this module, and the application submits orders through the [`Handles`]
+/// that come back, letting the index select their destination.
 ///
 /// `adj` is the only part of the ADJ this module needs: it decodes
-/// inbound frames and encodes outbound orders against it. `station` owns
+/// inbound frames and encodes outbound orders against it. The application owns
 /// it and hands out clones; it is read-only here, and a reload of the ADJ
 /// is a new [`Index`] with new tasks, never a mutation of this one.
 ///

@@ -4,12 +4,10 @@
 //! Two separate channels, both bounded. Notifications
 //! ([`Notification`]) carry everything that happened on a link, errors
 //! ([`ErrorReport`]) everything that went wrong. They are separate
-//! because their rules differ: a notification must never be dropped,
-//! while an error is rare enough that it can afford to wait behind a
-//! queue of telemetry.
+//! so an error does not have to wait behind a queue of received packets.
 //!
-//! Both sinks apply backpressure rather than dropping: see
-//! [`Reporter::notify`].
+//! Both channels apply backpressure rather than dropping on congestion.
+//! Cancellation can still discard a publication waiting for capacity.
 
 use super::Error;
 use crate::model::{BoardId, Packet};
@@ -23,7 +21,7 @@ use tokio::sync::mpsc;
 /// variants of [`Event`], so that **everything** that travels down the
 /// channel carries them — there is no event whose board the consumer has
 /// to go and look up, and none that can be built without a timestamp.
-/// [`Reporter::notify`] is the only thing that stamps `at`.
+/// The transport's reporter stamps `at` when publishing the event.
 #[derive(Debug)]
 pub struct Notification {
     /// The board this concerns.
@@ -96,11 +94,10 @@ pub enum Event {
     Received(Packet),
 }
 
-/// The receiving ends of a [`Reporter`]'s two channels, handed to
-/// whoever consumes them (`station`).
+/// The receiving ends of a [`Reporter`]'s two channels, handed to the application.
 #[derive(Debug)]
 pub struct Sinks {
-    /// Everything that happened, in the order it happened.
+    /// Notifications in publication order; concurrent boards may interleave.
     pub notifications: mpsc::Receiver<Notification>,
     /// Everything that went wrong.
     pub errors: mpsc::Receiver<ErrorReport>,
@@ -110,7 +107,9 @@ pub struct Sinks {
 ///
 /// Cloneable, and meant to be cloned: every task gets its own copy — one
 /// per TCP connection, one for the UDP loop — and they all feed the same
-/// two channels.
+/// two channels. The application creates these channels through
+/// [`Self::channels`] and passes the reporter to transports; only transports
+/// can publish into them.
 #[derive(Debug, Clone)]
 pub struct Reporter {
     notifications: mpsc::Sender<Notification>,
@@ -123,7 +122,7 @@ pub struct Reporter {
 /// something to retry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("the receiving end is gone")]
-pub struct Closed;
+pub(super) struct Closed;
 
 impl Reporter {
     /// Waits for either consumer to close, allowing a supervisor to stop even
@@ -139,8 +138,15 @@ impl Reporter {
     /// sending half to hand to the submodules plus the receiving halves
     /// to hand to the consumer.
     ///
-    /// Both are bounded on purpose: see [`Reporter::notify`] for what
-    /// happens when the notification channel fills up.
+    /// Both are bounded: publication waits for capacity, applying backpressure
+    /// to transports. Consume both channels concurrently. Closing either consumer
+    /// cancels TCP supervisors, including during idle connections or retries.
+    /// Cancellation can discard buffered input and unpublished events; already
+    /// queued notifications remain available to drain.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either capacity is zero, as does [`mpsc::channel`].
     pub fn channels(notifications: usize, errors: usize) -> (Self, Sinks) {
         let (notification_tx, notification_rx) = mpsc::channel(notifications);
         let (error_tx, error_rx) = mpsc::channel(errors);
@@ -170,7 +176,7 @@ impl Reporter {
     ///
     /// The instant is taken before the wait, not after, so a full queue
     /// delays the notification without distorting its timestamp.
-    pub async fn notify(&self, board: BoardId, event: Event) -> Result<(), Closed> {
+    pub(super) async fn notify(&self, board: BoardId, event: Event) -> Result<(), Closed> {
         let notification = Notification {
             board,
             at: SystemTime::now(),
@@ -194,7 +200,7 @@ impl Reporter {
     /// (reconnect, carry on with the next datagram), and has already
     /// logged it through `tracing`. This channel is only for telling the
     /// operator, through the frontend.
-    pub async fn report(&self, error: impl Into<Error>) -> Result<(), Closed> {
+    pub(super) async fn report(&self, error: impl Into<Error>) -> Result<(), Closed> {
         let report = ErrorReport {
             at: SystemTime::now(),
             error: error.into(),
