@@ -74,6 +74,36 @@ pub enum Error {
         label: String,
     },
 
+    /// Couldn't read the file.
+    #[error("couldn't read {path:?}")]
+    Read {
+        /// The file that couldn't be read.
+        path: PathBuf,
+        /// The underlying I/O error.
+        #[source]
+        source: std::io::Error,
+    },
+
+    /// Couldn't parse the file as JSON, or couldn't read one of its
+    /// properties as the type it was asked for.
+    #[error("couldn't parse {path:?} as JSON")]
+    Parse {
+        /// The file that failed to parse.
+        path: PathBuf,
+        /// The underlying `serde_json` error, which says where in the
+        /// document the problem is.
+        #[source]
+        source: serde_json::Error,
+    },
+
+    /// The file is valid JSON, but its root isn't an object, so it has
+    /// no properties to read or add to.
+    #[error("{path:?} is valid JSON but its root is not an object")]
+    NotAnObject {
+        /// The file whose root isn't an object.
+        path: PathBuf,
+    },
+
     /// Couldn't put the finished file in place of the old one.
     ///
     /// A JSON document is built in a temporary file next to its
