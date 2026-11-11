@@ -21,6 +21,7 @@ import {
 } from "@hyperloopupv/frontend-kit/icons";
 import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useCallback, useRef, useState } from "react";
+import { useSessionFolder } from "../../hooks/useSessionFolder";
 import { useStore } from "../../store/store";
 import type { DroppedFile } from "../../types/session";
 import SessionStatusBadge from "./SessionStatusBadge";
@@ -85,12 +86,18 @@ const FolderPickerGroup = () => {
   const isSessionPanelOpen = useStore((s) => s.isSessionPanelOpen);
   const setSessionPanelOpen = useStore((s) => s.setSessionPanelOpen);
 
+  const { canOpenPaths, pickFolder } = useSessionFolder();
   const inputRef = useRef<HTMLInputElement>(null);
   // Counter tracks nested dragenter/dragleave pairs to avoid flicker.
   const dragCounter = useRef(0);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleButtonClick = () => inputRef.current?.click();
+  // In the desktop app the native dialog returns a path, which is what lets a
+  // session be remembered as recent; the hidden input stays the browser path.
+  const handleButtonClick = () => {
+    if (canOpenPaths) void pickFolder();
+    else inputRef.current?.click();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

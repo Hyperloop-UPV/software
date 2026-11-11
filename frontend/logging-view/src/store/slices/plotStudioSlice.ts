@@ -42,6 +42,8 @@ export interface PlotStudioSlice {
   toggleStudioPlotFFT: (plotId: string) => void;
   toggleStudioPlotLocked: (plotId: string) => void;
   updateStudioSignalColor: (plotId: string, signalId: string, color: string) => void;
+  toggleStudioPlotOrder: (plotId: string, orderId: string) => void;
+  setStudioPlotOrdersVisible: (plotId: string, orderIds: string[], visible: boolean) => void;
   setStudioFFTSampleRate: (rate: number | null) => void;
   setSignalLoadWarning: (message: string | null) => void;
   setPlotAddedToast: (name: string | null) => void;
@@ -247,6 +249,32 @@ export const createPlotStudioSlice: StateCreator<PlotStudioSlice> = (set) => ({
           sig.signalId === signalId ? { ...sig, color } : sig,
         ),
       });
+      return { studioPlots: next };
+    }),
+
+  toggleStudioPlotOrder: (plotId, orderId) =>
+    set((s) => {
+      const plot = s.studioPlots.get(plotId);
+      if (!plot) return {};
+      const hiddenOrderIds = { ...plot.hiddenOrderIds };
+      if (hiddenOrderIds[orderId]) delete hiddenOrderIds[orderId];
+      else hiddenOrderIds[orderId] = true;
+      const next = new Map(s.studioPlots);
+      next.set(plotId, { ...plot, hiddenOrderIds });
+      return { studioPlots: next };
+    }),
+
+  setStudioPlotOrdersVisible: (plotId, orderIds, visible) =>
+    set((s) => {
+      const plot = s.studioPlots.get(plotId);
+      if (!plot) return {};
+      const hiddenOrderIds = { ...plot.hiddenOrderIds };
+      for (const orderId of orderIds) {
+        if (visible) delete hiddenOrderIds[orderId];
+        else hiddenOrderIds[orderId] = true;
+      }
+      const next = new Map(s.studioPlots);
+      next.set(plotId, { ...plot, hiddenOrderIds });
       return { studioPlots: next };
     }),
 

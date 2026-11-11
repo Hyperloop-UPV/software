@@ -9,9 +9,9 @@
 
 import { app, dialog, ipcMain, shell } from "electron";
 import { execFile } from "child_process";
-import { readFile } from "fs/promises";
+import { readFile, readdir, stat } from "fs/promises";
 import fs from "fs";
-import { isAbsolute, join } from "path";
+import { basename, isAbsolute, join, resolve, sep } from "path";
 import { promisify } from "util";
 import {
   importConfig,
@@ -232,6 +232,98 @@ function setupIpcHandlers() {
       logger.electron.error("Error opening folder:", error);
       throw error;
     }
+  });
+
+  // Logging View session folders. The renderer's folder picker only yields
+  // browser File objects, so reopening a recent session from its path needs
+  // the main process to list and read it.
+
+  // Guard: these two read arbitrary paths, so only the window that actually
+  // hosts the views may call them (same spirit as the About window's check).
+  const assertSessionSender = (event) => {
+    const mainWindow = getMainWindow();
+    if (!mainWindow || event.sender !== mainWindow.webContents) {
+      throw new Error("Session file IPC is restricted to the main window");
+    }
+  };
+
+  // A session is <dir>/logger_settings.json, <dir>/data/<BOARD>/*.csv and
+  // <dir>/order/order.csv — exactly what the renderer's openSession reads.
+  // Walking only those three shapes keeps a huge parent folder from being
+  // scanned, and Dirent.isDirectory()/isFile() skip symlinks.
+  const SESSION_FILE_LIMIT = 4000;
+
+  const listSessionEntries = async (dir) => {
+    const entries = [];
+    if (fs.existsSync(join(dir, "logger_settings.json"))) {
+      entries.push("logger_settings.json");
+    }
+    if (fs.existsSync(join(dir, "order", "order.csv"))) {
+      entries.push("order/order.csv");
+    }
+    let boards = [];
+    try {
+      boards = await readdir(join(dir, "data"), { withFileTypes: true });
+    } catch {
+      return entries;
+    }
+    for (const board of boards) {
+      if (!board.isDirectory()) continue;
+      const files = await readdir(join(dir, "data", board.name), {
+        withFileTypes: true,
+      });
+      for (const file of files) {
+        if (!file.isFile() || !file.name.endsWith(".csv")) continue;
+        entries.push(`data/${board.name}/${file.name}`);
+        if (entries.length >= SESSION_FILE_LIMIT) return entries;
+      }
+    }
+    return entries;
+  };
+
+  /**
+   * @event list-session-files
+   * @async
+   * @description Lists the files a logging session folder is made of.
+   * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
+   * @param {string} dir - Absolute path of the session folder.
+   * @returns {Promise<{folderName: string, entries: string[]}>} Folder basename
+   * plus slash-separated paths relative to it.
+   * @throws {Error} If the path is not an absolute existing directory.
+   */
+  ipcMain.handle("list-session-files", async (event, dir) => {
+    assertSessionSender(event);
+    if (typeof dir !== "string" || !isAbsolute(dir)) {
+      throw new Error("A session folder must be given as an absolute path");
+    }
+    const stats = await stat(dir);
+    if (!stats.isDirectory()) {
+      throw new Error(`Not a folder: ${dir}`);
+    }
+    return {
+      folderName: basename(dir) || "Session",
+      entries: await listSessionEntries(dir),
+    };
+  });
+
+  /**
+   * @event read-session-file
+   * @async
+   * @description Reads one file of a session folder as UTF-8 text.
+   * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
+   * @param {string} dir - Absolute path of the session folder.
+   * @param {string} relativePath - Path inside that folder, as listed.
+   * @returns {Promise<string>}
+   * @throws {Error} If the path would escape the session folder.
+   */
+  ipcMain.handle("read-session-file", async (event, dir, relativePath) => {
+    assertSessionSender(event);
+    const root = resolve(dir);
+    const target = resolve(root, relativePath);
+    if (target !== root && !target.startsWith(root + sep)) {
+      throw new Error("Refusing to read outside the session folder");
+    }
+    return await readFile(target, "utf-8");
   });
 
   // BLCU — only the file picker runs through IPC; all API calls go directly

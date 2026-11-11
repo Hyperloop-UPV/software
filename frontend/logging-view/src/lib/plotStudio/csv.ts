@@ -35,12 +35,13 @@ function encodeTextValue(raw: string, enumValues: string[] | undefined, seen: Ma
 /**
  * Parse a 4-column CSV produced by the backend logger.
  * Expected column order: timestamp, board, backend, value.
- * Time is normalized to start at 0 and converted to ms using `timeUnit`.
+ * Time is converted to ms using `timeUnit`; by default each signal starts at
+ * zero, while comparison views can preserve the original session timestamps.
  * `enumValues` — the ADJ measurement's state names, when known — lets an
  * enum/bool signal logged as text ("Idle", "true") be recovered as the
  * matching numeric code instead of being silently dropped by parseFloat.
  */
-export function parseCSV(text: string, timeUnit = "ms", enumValues?: string[]): SeriesData {
+export function parseCSV(text: string, timeUnit = "ms", enumValues?: string[], normalizeTime = true): SeriesData {
   const toMs = TIME_UNIT_TO_MS[timeUnit] ?? 1;
   const lines = text.trim().split("\n");
   const time = new Float64Array(lines.length);
@@ -65,7 +66,7 @@ export function parseCSV(text: string, timeUnit = "ms", enumValues?: string[]): 
 
   const t = time.subarray(0, count);
   const val = value.subarray(0, count);
-  if (count > 0) {
+  if (normalizeTime && count > 0) {
     const startTime = t[0];
     for (let i = 0; i < count; i++) t[i] -= startTime;
   }
@@ -78,7 +79,7 @@ export function parseCSV(text: string, timeUnit = "ms", enumValues?: string[]): 
  * hundreds of thousands of rows, and reading + parsing that synchronously
  * (as parseCSV does) would freeze the tab for the whole duration.
  */
-export async function parseCSVInWorker(file: DroppedFile, timeUnit = "ms", enumValues?: string[]): Promise<SeriesData> {
+export async function parseCSVInWorker(file: DroppedFile, timeUnit = "ms", enumValues?: string[], normalizeTime = true): Promise<SeriesData> {
   // Read the text on the main thread and hand the worker a plain string —
   // directory-drop sessions store synthetic DroppedFile objects (a closure
   // over the real File, not the File itself), and a function property like
@@ -93,6 +94,6 @@ export async function parseCSVInWorker(file: DroppedFile, timeUnit = "ms", enumV
       resolve({ time: new Float64Array(timeBuffer, 0, count), value: new Float64Array(valueBuffer, 0, count) });
     };
     worker.onerror = (err) => { worker.terminate(); reject(err); };
-    worker.postMessage({ text, timeUnit, enumValues });
+    worker.postMessage({ text, timeUnit, enumValues, normalizeTime });
   });
 }

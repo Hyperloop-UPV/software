@@ -1,8 +1,9 @@
-// D3 Category10 — Plotly's default colorway, pinned explicitly so the UI
-// (signal chips, stats headers) can show the exact color of each trace.
+// D3-inspired palette, pinned explicitly so the UI (signal chips, stats
+// headers) can show the exact color of each trace. Orange is reserved for
+// order-event markers, so it is deliberately not assigned to the second
+// signal (the usual secondary/right-axis series).
 export const TRACE_COLORS = [
   "#1f77b4", // blue
-  "#ff7f0e", // orange
   "#2ca02c", // green
   "#d62728", // red
   "#9467bd", // purple
@@ -11,6 +12,7 @@ export const TRACE_COLORS = [
   "#7f7f7f", // gray
   "#bcbd22", // olive
   "#17becf", // cyan
+  "#0f766e", // teal
 ] as const;
 
 export const traceColor = (index: number): string =>

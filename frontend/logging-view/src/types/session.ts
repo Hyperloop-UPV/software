@@ -81,3 +81,18 @@ export interface DroppedFile {
   webkitRelativePath: string;
   text: () => Promise<string>;
 }
+
+/** An order emitted by the backend during a logging session. Times are
+ * normalized to milliseconds, matching plotted telemetry signals. */
+export interface LoggedOrder {
+  id: string;
+  /** Original session timestamp in milliseconds, used by linked Normal plots. */
+  absoluteTime?: number;
+  time: number;
+  from: string;
+  to: string;
+  orderId: number;
+  parameters: Record<string, unknown> | null;
+  /** Resolved from the session ADJ when it is available. */
+  name: string;
+}

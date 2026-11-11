@@ -1,1 +1,1 @@
-export { Plus } from "lucide-react";
+export { Minus, Plus } from "lucide-react";

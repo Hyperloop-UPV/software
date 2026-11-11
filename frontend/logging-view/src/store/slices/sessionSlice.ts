@@ -15,10 +15,13 @@ import type {
   AdjStatus,
   DroppedFile,
   LoggerSettings,
+  LoggedOrder,
   SeriesKey,
   SessionStatus,
 } from "../../types/session";
+import { parseOrdersCsv } from "../../lib/orders";
 import type { Store } from "../store";
+import { initialNormalDashboards } from "./normalDashboardsSlice";
 
 const ADJ_ARCHIVE_URL = (hash: string) =>
   `https://hyperloop-upv.github.io/ADJ-Archive/storage/commit-${hash}.json`;
@@ -65,16 +68,16 @@ export interface SessionSlice {
   selectedSeries: Record<SeriesKey, boolean>;
   // All session files keyed by webkitRelativePath, for later CSV reading.
   sessionFiles: Map<string, DroppedFile>;
+  orders: LoggedOrder[];
   isLoading: boolean;
   // Persistent — reflects the currently open session, cleared only by clearSession.
   sessionStatus: SessionStatus | null;
   // Transient — set once per openSession() call, meant to auto-dismiss as a toast.
   // Kept separate from sessionStatus so dismissing the toast doesn't blank the badge.
   sessionStatusToast: SessionStatus | null;
-  // Open/closed state of the "Session" collapsible in the sidebar. Auto-closes
-  // the first time a measurement gets checked (0 → 1 selected), to free up
-  // space for the series list — but not on every subsequent selection, so a
-  // user who reopens it isn't fought every time they check another box.
+  // Open/closed state of the "Session" collapsible in the sidebar. A loaded
+  // session starts closed to prioritise the series list; it also auto-closes
+  // on the first measurement selection when the user has opened it.
   isSessionPanelOpen: boolean;
 
   // Accepts files from <input webkitdirectory> or a directory drop traversal.
@@ -93,6 +96,7 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
   availableSeries: {},
   selectedSeries: {},
   sessionFiles: new Map(),
+  orders: [],
   isLoading: false,
   sessionStatus: null,
   sessionStatusToast: null,
@@ -169,6 +173,19 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
         }
       }
 
+      // Orders are optional session events. Their absence or malformed content
+      // never changes the telemetry session status.
+      let orders: LoggedOrder[] = [];
+      const orderFile = fileArray.find((f) => {
+        const parts = f.webkitRelativePath.split("/");
+        return f.name === "order.csv" && parts.length === 3 && parts[1] === "order";
+      });
+      if (orderFile) {
+        try {
+          orders = parseOrdersCsv(await orderFile.text(), settings?.time_unit ?? "ms", adjData);
+        } catch { /* Leave events empty when an optional order file cannot be read. */ }
+      }
+
       const status = computeSessionStatus(settingsIssue, availableSeries, adjStatus);
 
       set({
@@ -176,10 +193,12 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
         settings,
         adjData,
         availableSeries,
+        ...initialNormalDashboards(),
         selectedSeries: {},
         sessionFiles: new Map(fileArray.map((f) => [f.webkitRelativePath, f])),
+        orders,
         isLoading: false,
-        isSessionPanelOpen: true,
+        isSessionPanelOpen: false,
         sessionStatus: status,
         sessionStatusToast: status,
       });
@@ -221,11 +240,13 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
   clearSession: () =>
     set({
       folderName: null,
+      ...initialNormalDashboards(),
       settings: null,
       adjData: null,
       availableSeries: {},
       selectedSeries: {},
       sessionFiles: new Map(),
+      orders: [],
       sessionStatus: null,
       sessionStatusToast: null,
       isSessionPanelOpen: true,

@@ -17,6 +17,7 @@
     "@tanstack/react-virtual": "^3.13.18",
     "@types/plotly.js": "^3.0.10",
     "@vitejs/plugin-react-swc": "^4.2.3",
+    "echarts": "^6.1.0",
     "@hyperloopupv/frontend-kit": "workspace:*",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

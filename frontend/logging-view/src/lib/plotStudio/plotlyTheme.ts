@@ -32,11 +32,11 @@ export function getPlotlyTheme(isDarkMode: boolean): PlotlyThemeColors {
     };
   }
   return {
-    paperBg: "#181818", plotBg: "#181818",
-    fontColor: "#f9fafb", gridColor: "#404040", neutralLineColor: "#f9fafb",
-    hoverBg: "rgba(24,24,24,0.95)", hoverBorder: "#404040", hoverFontColor: "#f9fafb",
-    legendBg: "rgba(24,24,24,0.9)", legendBorder: "#404040", legendFontColor: "#f9fafb",
-    modebar: { bgcolor: "rgba(24,24,24,0)", color: "#b5b5b5", activecolor: "#ff7f24" },
+    paperBg: "#242424", plotBg: "#2b2b2b",
+    fontColor: "#f5f5f5", gridColor: "#484848", neutralLineColor: "#d4d4d4",
+    hoverBg: "rgba(43,43,43,0.97)", hoverBorder: "#5a5a5a", hoverFontColor: "#f5f5f5",
+    legendBg: "rgba(36,36,36,0.96)", legendBorder: "#5a5a5a", legendFontColor: "#f5f5f5",
+    modebar: { bgcolor: "rgba(36,36,36,0)", color: "#c4c4c4", activecolor: "#ff7f24" },
   };
 }
 

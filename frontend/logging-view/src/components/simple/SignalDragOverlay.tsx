@@ -17,7 +17,7 @@ export default function SignalDragOverlay({ activeIds }: SignalDragOverlayProps)
 
   const label = activeIds.length === 1
     ? (getSignalName(adjData, activeIds[0]) ?? activeIds[0])
-    : `${activeIds.length} series`;
+    : `${activeIds.length} measurements`;
 
   return (
     <DragOverlay dropAnimation={{ duration: 200 }}>

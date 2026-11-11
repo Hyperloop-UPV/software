@@ -1,6 +1,6 @@
 import { SidebarMenuButton } from "@hyperloopupv/frontend-kit/components";
 import { Link } from "react-router";
-import logo from "@hyperloopupv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
+import logo from "@hyperloopupv/frontend-kit/outreach/main/logo_icon.svg";
 
 const Logo = () => (
   <Link to="/">
@@ -9,7 +9,9 @@ const Logo = () => (
       tooltip="Hyperloop UPV — Logging View"
       className="text-base font-bold"
     >
-      <img src={logo} alt="Hyperloop UPV" className="max-h-8 max-w-8 dark:invert" />
+      <span className="size-8 shrink-0 overflow-hidden">
+        <img src={logo} alt="Hyperloop UPV" className="size-full scale-[2.045] dark:invert" />
+      </span>
       <span>Logging View</span>
     </SidebarMenuButton>
   </Link>
