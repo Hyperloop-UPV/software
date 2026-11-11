@@ -129,6 +129,7 @@ export default function TimeWindowControls({
         aria-label="Time unit"
         className="border-input bg-background text-foreground h-7 rounded-md border px-2 text-xs"
       >
+        <option value="us">µs</option>
         <option value="ms">ms</option>
         <option value="s">s</option>
         <option value="min">min</option>

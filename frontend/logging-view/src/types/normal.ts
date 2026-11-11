@@ -13,8 +13,9 @@ export interface ComparisonSignal {
   data: SeriesData;
 }
 
-export type TimeUnit = "ms" | "s" | "min";
+export type TimeUnit = "us" | "ms" | "s" | "min";
 export const TIME_DIVISORS: Record<TimeUnit, number> = {
+  us: 0.001,
   ms: 1,
   s: 1_000,
   min: 60_000,
