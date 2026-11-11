@@ -9,6 +9,7 @@ import { formatOrderParameters } from "../../lib/orders";
 import {
   TIME_DIVISORS,
   type ComparisonSignal,
+  type ChartMarker,
   type TimeDomain,
   type TimeRange,
   type TimeUnit,
@@ -32,11 +33,13 @@ interface Props {
   syncGroup: string;
   orders: LoggedOrder[];
   showOrders: boolean;
+  markers: ChartMarker[];
   /** An enum drawn as a background wash behind the curves, if any. */
   band: ComparisonSignal | null;
   /** True when every signal is discrete: draw a Gantt-style state timeline. */
   timeline: boolean;
   onRangeChange: (range: TimeRange) => void;
+  onMarkerAt: (timeMs: number) => void;
 }
 
 const escapeHtml = (value: string) =>
@@ -53,14 +56,19 @@ export default function ComparisonChart({
   syncGroup,
   orders,
   showOrders,
+  markers,
   band,
   timeline,
   onRangeChange,
+  onMarkerAt,
 }: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const rangeRef = useRef(range);
   const onRangeChangeRef = useRef(onRangeChange);
+  const onMarkerAtRef = useRef(onMarkerAt);
+  const domainRef = useRef(domain);
+  const timeUnitRef = useRef(timeUnit);
   // The last window this chart pushed to the store. The store pushes every
   // change back (see the effect at the end), so without this we would re-apply
   // our own gesture mid-flight; an external change still gets through.
@@ -75,6 +83,15 @@ export default function ComparisonChart({
   useEffect(() => {
     onRangeChangeRef.current = onRangeChange;
   }, [onRangeChange]);
+
+  useEffect(() => {
+    onMarkerAtRef.current = onMarkerAt;
+  }, [onMarkerAt]);
+
+  useEffect(() => {
+    domainRef.current = domain;
+    timeUnitRef.current = timeUnit;
+  }, [domain, timeUnit]);
 
   // Keep normalization relative to the whole recording while sampling only
   // the visible interval so zooming reveals samples omitted at wider scales.
@@ -230,6 +247,36 @@ export default function ComparisonChart({
       }
     };
     chart.on("datazoom", updateRange);
+    const addMarkerAtPixel = (x: number, y: number) => {
+      if (lockedRef.current) return;
+      const point = chart.convertFromPixel({ xAxisIndex: 0 }, [x, y]);
+      const value = Array.isArray(point) ? point[0] : point;
+      const currentDomain = domainRef.current;
+      const duration = currentDomain.endMs - currentDomain.startMs;
+      const convertedTimeMs = Number(value) * TIME_DIVISORS[timeUnitRef.current];
+      // convertFromPixel can be unavailable for a just-resized chart. Keep the
+      // gesture useful by deriving the same x position from the plot width.
+      const fallbackTimeMs =
+        (Math.max(0, Math.min(element.clientWidth, x)) /
+          Math.max(1, element.clientWidth)) *
+        duration;
+      const timeMs =
+        Number.isFinite(convertedTimeMs) &&
+        convertedTimeMs >= 0 &&
+        convertedTimeMs <= duration
+          ? convertedTimeMs
+          : fallbackTimeMs;
+      onMarkerAtRef.current(timeMs);
+    };
+    const onDoubleClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Node) || !element.contains(event.target))
+        return;
+      const bounds = element.getBoundingClientRect();
+      addMarkerAtPixel(event.clientX - bounds.left, event.clientY - bounds.top);
+    };
+    // zrender can stop the canvas event before it reaches React or the chart
+    // container, so capture at the document and scope it back to this chart.
+    document.addEventListener("dblclick", onDoubleClick, true);
 
     // Shift+wheel pans in time. ECharts cannot do this on its own: its roam
     // controller evaluates zoomOnMouseWheel and moveOnMouseWheel
@@ -272,6 +319,7 @@ export default function ComparisonChart({
       observer.disconnect();
       element.removeEventListener("wheel", onWheel, { capture: true });
       chart.off("datazoom", updateRange);
+      document.removeEventListener("dblclick", onDoubleClick, true);
       chart.dispose();
       chartRef.current = null;
     };
@@ -285,6 +333,7 @@ export default function ComparisonChart({
     const muted = isDarkMode ? "#9ba3b2" : "#6b7280";
     const grid = isDarkMode ? "#3a404b" : "#e6e9ef";
     const orderColor = isDarkMode ? "#fbbf24" : "#d97706";
+    const markerColor = isDarkMode ? "#67e8f9" : "#0891b2";
     const orderTooltipTolerance = Math.max(
       1e-9,
       ((domain.endMs - domain.startMs) /
@@ -367,6 +416,34 @@ export default function ComparisonChart({
         xAxis: plotTimeMs / TIME_DIVISORS[timeUnit],
         order,
       })),
+    };
+    const markerMarkLine = {
+      silent: true,
+      symbol: ["none", "none"],
+      animation: false,
+      lineStyle: {
+        color: markerColor,
+        width: 1.25,
+        type: "solid",
+        opacity: 0.9,
+      },
+      label: {
+        show: true,
+        color: markerColor,
+        fontSize: 9,
+        position: "insideEndTop",
+        formatter: "{b}",
+      },
+      data: markers.map((marker) => ({
+        name: marker.label,
+        xAxis: marker.timeMs / TIME_DIVISORS[timeUnit],
+        lineStyle: { color: markerColor, width: 1.25, type: "solid" },
+        label: { color: markerColor },
+      })),
+    };
+    const chartMarkLine = {
+      ...orderMarkLine,
+      data: [...orderMarkLine.data, ...markerMarkLine.data],
     };
     chart.setOption(
       {
@@ -541,8 +618,8 @@ export default function ComparisonChart({
                 index,
                 segment.value,
               ]),
-              ...(index === 0 && orderMarkers.length > 0
-                ? { markLine: orderMarkLine }
+              ...(index === 0 && (orderMarkers.length > 0 || markers.length > 0)
+                ? { markLine: chartMarkLine }
                 : {}),
             }))
           : signals.map((signal, index) => ({
@@ -558,8 +635,8 @@ export default function ComparisonChart({
               itemStyle: { color: signal.color },
               emphasis: { focus: "series" },
               progressive: 5000,
-              ...(index === 0 && orderMarkers.length > 0
-                ? { markLine: orderMarkLine }
+              ...(index === 0 && (orderMarkers.length > 0 || markers.length > 0)
+                ? { markLine: chartMarkLine }
                 : {}),
               // Marks belong to a series, and series 0 is the one proven to
               // draw them, so the band rides along with the order markers.
@@ -601,6 +678,7 @@ export default function ComparisonChart({
     width,
     locked,
     orderMarkers,
+    markers,
     timeline,
     timelineRows,
     timelineSegments,

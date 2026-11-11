@@ -813,6 +813,42 @@ test("right-click menus duplicate tabs and act on plots", async ({
     2,
   );
 
+  await page
+    .getByRole("button", { name: "Add marker to chart 1", exact: true })
+    .click();
+  await page
+    .getByRole("spinbutton", { name: "Marker time for chart 1", exact: true })
+    .fill("1.5");
+  await page
+    .getByRole("textbox", { name: "Marker label for chart 1", exact: true })
+    .fill("Launch");
+  await page.getByRole("button", { name: "Add marker", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Add marker to chart 1", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Remove marker Launch" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Remove marker Launch" }).click();
+  await page
+    .getByRole("button", { name: "Add marker to chart 1", exact: true })
+    .click();
+  await page
+    .getByLabel("Interactive signal chart", { exact: true })
+    .locator("canvas")
+    .first()
+    .dblclick({ position: { x: 300, y: 120 } });
+  await expect(
+    page.getByRole("heading", { name: "Add chart marker", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Marker title for chart 1", exact: true })
+    .fill("Double click");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Add marker", exact: true })
+    .click();
+
   // The settings popover must survive the menu closing behind it. Radix
   // restores focus to whatever was focused when the menu opened, in a timeout
   // that runs after the exit animation, so the bug only reproduces when that

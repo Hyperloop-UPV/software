@@ -10,6 +10,11 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Input,
   Popover,
   PopoverContent,
@@ -130,7 +135,12 @@ interface PaneProps {
     changes: Partial<
       Pick<
         ChartPane,
-        "title" | "signalIds" | "normalized" | "hiddenSignalIds" | "enumDisplay"
+        | "title"
+        | "signalIds"
+        | "normalized"
+        | "hiddenSignalIds"
+        | "enumDisplay"
+        | "markers"
       >
     >,
   ) => void;
@@ -173,6 +183,13 @@ function ComparisonPane({
   );
   const [signalQuery, setSignalQuery] = useState("");
   const [configOpen, setConfigOpen] = useState(false);
+  const [markerOpen, setMarkerOpen] = useState(false);
+  const [markerTime, setMarkerTime] = useState("");
+  const [markerLabel, setMarkerLabel] = useState("");
+  const [clickedMarkerTime, setClickedMarkerTime] = useState<number | null>(
+    null,
+  );
+  const [clickedMarkerLabel, setClickedMarkerLabel] = useState("");
   // Set while the context menu is closing *because* it opened the config
   // popover, so the menu's focus restore does not dismiss it (see below).
   const reopenConfigRef = useRef(false);
@@ -230,6 +247,8 @@ function ComparisonPane({
   // While linked every pane shows the dashboard window; unlinked, a pane keeps
   // its own only once it has actually been moved.
   const paneRange = linkTimeAxis ? range : (node.timeWindow ?? range);
+  const defaultMarkerTime =
+    ((domain.endMs - domain.startMs) * (paneRange.start + paneRange.end)) / 200;
   const pinned = !linkTimeAxis && !!node.timeWindow;
   const windowLabel =
     `${formatWindowTime(paneRange.start, domain, timeUnit)}` +
@@ -314,6 +333,126 @@ function ComparisonPane({
               disabled={locked}
               className="flex min-w-0 shrink-0 items-center gap-0.5"
             >
+              <Popover
+                open={markerOpen}
+                onOpenChange={(open) => {
+                  setMarkerOpen(open);
+                  if (open) {
+                    setMarkerTime(
+                      (defaultMarkerTime / TIME_DIVISORS[timeUnit]).toString(),
+                    );
+                    setMarkerLabel("");
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Add marker to chart ${index + 1}`}
+                    title="Add time marker"
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64 p-3">
+                  <p className="text-sm font-semibold">Add marker</p>
+                  <p className="text-muted-foreground mt-0.5 text-[11px]">
+                    Markers stay attached to this chart.
+                  </p>
+                  <label className="text-muted-foreground mt-3 grid gap-1 text-xs">
+                    Time ({timeUnit} from recording start)
+                    <Input
+                      type="number"
+                      min={0}
+                      max={
+                        (domain.endMs - domain.startMs) /
+                        TIME_DIVISORS[timeUnit]
+                      }
+                      step="any"
+                      value={markerTime}
+                      onChange={(event) => setMarkerTime(event.target.value)}
+                      aria-label={`Marker time for chart ${index + 1}`}
+                      className="h-8"
+                    />
+                  </label>
+                  <label className="text-muted-foreground mt-3 grid gap-1 text-xs">
+                    Label (optional)
+                    <Input
+                      maxLength={40}
+                      value={markerLabel}
+                      onChange={(event) => setMarkerLabel(event.target.value)}
+                      placeholder={`Marker ${(node.markers?.length ?? 0) + 1}`}
+                      aria-label={`Marker label for chart ${index + 1}`}
+                      className="h-8"
+                    />
+                  </label>
+                  <Button
+                    size="sm"
+                    className="mt-3 w-full"
+                    disabled={
+                      !Number.isFinite(Number(markerTime)) ||
+                      Number(markerTime) < 0 ||
+                      Number(markerTime) >
+                        (domain.endMs - domain.startMs) /
+                          TIME_DIVISORS[timeUnit]
+                    }
+                    onClick={() => {
+                      const timeMs =
+                        Number(markerTime) * TIME_DIVISORS[timeUnit];
+                      onChange(node.id, {
+                        markers: [
+                          ...(node.markers ?? []),
+                          {
+                            id: crypto.randomUUID(),
+                            timeMs,
+                            label:
+                              markerLabel.trim() ||
+                              `Marker ${(node.markers?.length ?? 0) + 1}`,
+                          },
+                        ],
+                      });
+                      setMarkerOpen(false);
+                    }}
+                  >
+                    Add marker
+                  </Button>
+                  {node.markers && node.markers.length > 0 && (
+                    <div className="border-border mt-3 border-t pt-2">
+                      {node.markers.map((marker) => (
+                        <div
+                          key={marker.id}
+                          className="flex items-center gap-2 py-1 text-xs"
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            {marker.label}
+                          </span>
+                          <span className="text-muted-foreground font-mono text-[10px]">
+                            {(
+                              marker.timeMs / TIME_DIVISORS[timeUnit]
+                            ).toLocaleString()}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="size-5"
+                            aria-label={`Remove marker ${marker.label}`}
+                            onClick={() =>
+                              onChange(node.id, {
+                                markers: node.markers?.filter(
+                                  (item) => item.id !== marker.id,
+                                ),
+                              })
+                            }
+                          >
+                            <X className="size-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -635,7 +774,12 @@ function ComparisonPane({
                 syncGroup={syncGroup}
                 orders={orders}
                 showOrders={showOrders}
+                markers={node.markers ?? []}
                 onRangeChange={(next) => onRangeChange(node.id, next)}
+                onMarkerAt={(timeMs) => {
+                  setClickedMarkerTime(timeMs);
+                  setClickedMarkerLabel("");
+                }}
               />
             ) : signals.length > 0 ? (
               <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-xs">
@@ -670,6 +814,64 @@ function ComparisonPane({
               </div>
             )}
           </div>
+          <Dialog
+            open={clickedMarkerTime !== null}
+            onOpenChange={(open) => {
+              if (!open) setClickedMarkerTime(null);
+            }}
+          >
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Add chart marker</DialogTitle>
+              </DialogHeader>
+              <p className="text-muted-foreground text-xs">
+                {clickedMarkerTime === null
+                  ? ""
+                  : `Time: ${(clickedMarkerTime / TIME_DIVISORS[timeUnit]).toLocaleString(undefined, { maximumFractionDigits: 3 })} ${timeUnit}`}
+              </p>
+              <label className="text-muted-foreground grid gap-1 text-xs">
+                Marker title
+                <Input
+                  autoFocus
+                  maxLength={40}
+                  value={clickedMarkerLabel}
+                  onChange={(event) =>
+                    setClickedMarkerLabel(event.target.value)
+                  }
+                  placeholder={`Marker ${(node.markers?.length ?? 0) + 1}`}
+                  aria-label={`Marker title for chart ${index + 1}`}
+                />
+              </label>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setClickedMarkerTime(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (clickedMarkerTime === null) return;
+                    onChange(node.id, {
+                      markers: [
+                        ...(node.markers ?? []),
+                        {
+                          id: crypto.randomUUID(),
+                          timeMs: clickedMarkerTime,
+                          label:
+                            clickedMarkerLabel.trim() ||
+                            `Marker ${(node.markers?.length ?? 0) + 1}`,
+                        },
+                      ],
+                    });
+                    setClickedMarkerTime(null);
+                  }}
+                >
+                  Add marker
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </section>
       </ContextMenuTrigger>
       <ContextMenuContent
@@ -986,7 +1188,7 @@ export default function AnalysisWorkspace({
       changes: Partial<
         Pick<
           ChartPane,
-          "title" | "signalIds" | "normalized" | "hiddenSignalIds"
+          "title" | "signalIds" | "normalized" | "hiddenSignalIds" | "markers"
         >
       >,
     ) => {

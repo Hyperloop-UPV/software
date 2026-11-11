@@ -49,6 +49,13 @@ export const DEFAULT_STATISTICS_COLUMNS: StatisticsColumn[] = [
   "changes",
 ];
 
+export interface ChartMarker {
+  id: string;
+  /** Time from the start of the recording, in milliseconds. */
+  timeMs: number;
+  label: string;
+}
+
 export interface ChartPane {
   type: "pane";
   id: string;
@@ -56,6 +63,7 @@ export interface ChartPane {
   signalIds: string[];
   normalized: boolean;
   hiddenSignalIds?: string[];
+  markers?: ChartMarker[];
   // Only consulted when the dashboard's time axis is unlinked; absent means
   // this plot follows DashboardSettings.range.
   timeWindow?: TimeRange;
