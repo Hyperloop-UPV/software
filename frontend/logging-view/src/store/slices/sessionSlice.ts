@@ -75,10 +75,9 @@ export interface SessionSlice {
   // Transient — set once per openSession() call, meant to auto-dismiss as a toast.
   // Kept separate from sessionStatus so dismissing the toast doesn't blank the badge.
   sessionStatusToast: SessionStatus | null;
-  // Open/closed state of the "Session" collapsible in the sidebar. Auto-closes
-  // the first time a measurement gets checked (0 → 1 selected), to free up
-  // space for the series list — but not on every subsequent selection, so a
-  // user who reopens it isn't fought every time they check another box.
+  // Open/closed state of the "Session" collapsible in the sidebar. A loaded
+  // session starts closed to prioritise the series list; it also auto-closes
+  // on the first measurement selection when the user has opened it.
   isSessionPanelOpen: boolean;
 
   // Accepts files from <input webkitdirectory> or a directory drop traversal.
@@ -199,7 +198,7 @@ export const createSessionSlice: StateCreator<Store, [], [], SessionSlice> = (se
         sessionFiles: new Map(fileArray.map((f) => [f.webkitRelativePath, f])),
         orders,
         isLoading: false,
-        isSessionPanelOpen: true,
+        isSessionPanelOpen: false,
         sessionStatus: status,
         sessionStatusToast: status,
       });

@@ -214,9 +214,7 @@ test("dashboards keep separate signals, layout, panel sizes and time settings", 
   await expect(
     page.getByRole("tab", { name: "Dashboard 2", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
-  await expect(
-    page.getByText("Empty plot", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Empty plot", { exact: true })).toBeVisible();
   await expect(page.locator("header")).toContainText("0 selected");
   await plotSignals(page, ["temperature"]);
   await expect(page.locator("canvas")).toHaveCount(1);
@@ -300,9 +298,7 @@ test("tabs support renaming, keyboard switching, closing and overflow", async ({
     .getByRole("button", { name: "Close Dashboard", exact: true })
     .click();
   await expect(page.getByRole("tab")).toHaveCount(1);
-  await expect(
-    page.getByText("Empty plot", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Empty plot", { exact: true })).toBeVisible();
   for (let i = 0; i < 8; i++)
     await page
       .getByRole("button", { name: "New dashboard", exact: true })
@@ -333,9 +329,7 @@ test("clearing, mode switching and a new session keep selections scoped", async 
   await page
     .getByRole("button", { name: "Clear selection", exact: true })
     .click();
-  await expect(
-    page.getByText("Empty plot", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Empty plot", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Dashboard", exact: true }).click();
   await expect(page.locator("header")).toContainText("1 selected");
   await page.getByRole("button", { name: "Simple", exact: true }).click();
@@ -359,9 +353,7 @@ test("clearing, mode switching and a new session keep selections scoped", async 
   await expect(page.locator("header")).toContainText(
     "another-session · 0 selected",
   );
-  await expect(
-    page.getByText("Empty plot", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Empty plot", { exact: true })).toBeVisible();
 });
 
 test("tab editor keeps text separate and supports colors and individual reordering", async ({
@@ -929,6 +921,20 @@ test("right-click menus duplicate tabs and act on plots", async ({
       exact: true,
     }),
   ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Customize statistics columns" })
+    .click();
+  await page.getByRole("checkbox", { name: "Minimum" }).click();
+  await expect(
+    page.getByRole("columnheader", { name: "Minimum", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Close window statistics" }).click();
+  await expect(
+    page.getByRole("region", {
+      name: "Visible window statistics",
+      exact: true,
+    }),
+  ).toBeHidden();
   await page.screenshot({ path: testInfo.outputPath("context-menus.png") });
   expect(errors).toEqual([]);
 });
