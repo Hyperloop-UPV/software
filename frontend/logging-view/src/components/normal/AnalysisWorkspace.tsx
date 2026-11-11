@@ -883,6 +883,10 @@ export default function AnalysisWorkspace({
     dashboard,
     "showStatistics",
   );
+  const [statisticsColumns, setStatisticsColumns] = useDashboardSetting(
+    dashboard,
+    "statisticsColumns",
+  );
   const [showOrders, setShowOrders] = useDashboardSetting(
     dashboard,
     "showOrders",
@@ -1179,7 +1183,13 @@ export default function AnalysisWorkspace({
         </div>
       )}
       {showStatistics && (
-        <WindowStatistics groups={statisticsGroups} domain={domain} />
+        <WindowStatistics
+          groups={statisticsGroups}
+          domain={domain}
+          onClose={() => setShowStatistics(false)}
+          columns={statisticsColumns}
+          onColumnsChange={setStatisticsColumns}
+        />
       )}
       <div className="text-muted-foreground border-border flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-4 py-2 text-[10px]">
         <span>

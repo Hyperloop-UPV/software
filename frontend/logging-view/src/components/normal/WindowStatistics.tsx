@@ -1,10 +1,20 @@
 import { useMemo } from "react";
+import {
+  Button,
+  Checkbox,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@hyperloopupv/frontend-kit/components";
+import { Settings2, X } from "@hyperloopupv/frontend-kit/icons";
 import { summarizeWindow } from "../../lib/normal/statistics";
 import type {
   ComparisonSignal,
+  StatisticsColumn,
   TimeDomain,
   TimeRange,
 } from "../../types/normal";
+import { DEFAULT_STATISTICS_COLUMNS } from "../../types/normal";
 
 const format = (value: number) =>
   value.toLocaleString(undefined, { maximumSignificantDigits: 6 });
@@ -16,15 +26,33 @@ export interface StatisticsGroup {
   signals: ComparisonSignal[];
 }
 
+const COLUMNS: { id: StatisticsColumn; label: string }[] = [
+  { id: "samples", label: "Samples" },
+  { id: "min", label: "Minimum" },
+  { id: "max", label: "Maximum" },
+  { id: "mean", label: "Average" },
+  { id: "std", label: "Standard deviation" },
+  { id: "firstLast", label: "First → last" },
+  { id: "changes", label: "State changes" },
+];
+
 export default function WindowStatistics({
   groups,
   domain,
+  onClose,
+  columns,
+  onColumnsChange,
 }: {
   // One group while the time axis is linked; one per plot when it is not,
   // because then each plot summarises a different stretch of the recording.
   groups: StatisticsGroup[];
   domain: TimeDomain;
+  onClose: () => void;
+  columns?: StatisticsColumn[];
+  onColumnsChange: (columns: StatisticsColumn[]) => void;
 }) {
+  // Existing saved dashboards predate this preference.
+  const visibleColumns = columns ?? DEFAULT_STATISTICS_COLUMNS;
   const sections = useMemo(() => {
     const duration = domain.endMs - domain.startMs;
     return groups.map((group) => {
@@ -40,17 +68,88 @@ export default function WindowStatistics({
     });
   }, [groups, domain]);
 
+  const toggleColumn = (column: StatisticsColumn, checked: boolean) => {
+    if (checked) {
+      onColumnsChange(
+        COLUMNS.filter(
+          ({ id }) => visibleColumns.includes(id) || id === column,
+        ).map(({ id }) => id),
+      );
+    } else if (visibleColumns.length > 1) {
+      onColumnsChange(visibleColumns.filter((id) => id !== column));
+    }
+  };
+
   return (
     <section
       id="window-statistics"
       aria-label="Visible window statistics"
       className="border-border bg-background flex max-h-64 min-h-0 shrink-0 flex-col border-t"
     >
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-1 px-4 py-2">
-        <h2 className="text-xs font-semibold">Window statistics</h2>
-        <p className="text-muted-foreground text-[10px]">
-          Original values · Recorded samples only · Average is sample-weighted
-        </p>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="text-xs font-semibold">Window statistics</h2>
+          <span className="text-muted-foreground font-mono text-[10px] tabular-nums">
+            {groups.length === 1
+              ? `${groups[0].range.start.toFixed(1)}–${groups[0].range.end.toFixed(1)}% of recording`
+              : "Per-plot windows"}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <p className="text-muted-foreground hidden text-[10px] sm:block">
+            Original values · Recorded samples only · Average is sample-weighted
+          </p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Customize statistics columns"
+                title="Customize statistics columns"
+              >
+                <Settings2 className="size-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-52 p-3">
+              <p className="text-sm font-semibold">Visible metrics</p>
+              <p className="text-muted-foreground mt-0.5 text-[11px]">
+                Saved for this dashboard.
+              </p>
+              <div className="mt-3 grid gap-2">
+                {COLUMNS.map(({ id, label }) => {
+                  const checked = visibleColumns.includes(id);
+                  return (
+                    <label
+                      key={id}
+                      className="flex cursor-pointer items-center gap-2 text-xs"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        disabled={checked && visibleColumns.length === 1}
+                        onCheckedChange={(value) =>
+                          toggleColumn(id, value === true)
+                        }
+                      />
+                      {label}
+                    </label>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="ml-1"
+            onClick={onClose}
+            aria-label="Close window statistics"
+            title="Close statistics"
+          >
+            <X className="size-3.5" />
+          </Button>
+        </div>
       </div>
       <div className="min-h-0 overflow-auto px-4 pb-2">
         <table className="w-full text-right text-[11px] whitespace-nowrap tabular-nums">
@@ -59,13 +158,9 @@ export default function WindowStatistics({
               {[
                 "Signal",
                 "Unit",
-                "Samples",
-                "Min",
-                "Max",
-                "Average",
-                "Std dev",
-                "First → last",
-                "Changes",
+                ...COLUMNS.filter(({ id }) => visibleColumns.includes(id)).map(
+                  ({ label }) => label,
+                ),
               ].map((label, index) => (
                 <th
                   key={label}
@@ -83,7 +178,7 @@ export default function WindowStatistics({
                 <tr className="border-border border-t">
                   <th
                     scope="colgroup"
-                    colSpan={9}
+                    colSpan={visibleColumns.length + 2}
                     className="text-muted-foreground bg-muted/30 px-0 py-1.5 text-left text-[10px] font-semibold"
                   >
                     {section.label}
@@ -124,35 +219,49 @@ export default function WindowStatistics({
                     <td className="text-muted-foreground px-3 py-2">
                       {signal.discrete ? "State" : signal.units || "—"}
                     </td>
-                    <td className="px-3 py-2">
-                      {(stats?.count ?? 0).toLocaleString()}
-                    </td>
                     {stats ? (
                       <>
-                        <td className="px-3 py-2">
-                          {signal.discrete ? "—" : format(stats.min)}
-                        </td>
-                        <td className="px-3 py-2">
-                          {signal.discrete ? "—" : format(stats.max)}
-                        </td>
-                        <td className="px-3 py-2">
-                          {signal.discrete ? "—" : format(stats.mean)}
-                        </td>
-                        <td className="px-3 py-2">
-                          {signal.discrete ? "—" : format(stats.std)}
-                        </td>
-                        <td className="px-3 py-2">
-                          {state(stats.first)} → {state(stats.last)}
-                        </td>
-                        <td className="px-3 py-2">
-                          {signal.discrete
-                            ? stats.changes.toLocaleString()
-                            : "—"}
-                        </td>
+                        {visibleColumns.includes("samples") && (
+                          <td className="px-3 py-2">
+                            {stats.count.toLocaleString()}
+                          </td>
+                        )}
+                        {visibleColumns.includes("min") && (
+                          <td className="px-3 py-2">
+                            {signal.discrete ? "—" : format(stats.min)}
+                          </td>
+                        )}
+                        {visibleColumns.includes("max") && (
+                          <td className="px-3 py-2">
+                            {signal.discrete ? "—" : format(stats.max)}
+                          </td>
+                        )}
+                        {visibleColumns.includes("mean") && (
+                          <td className="px-3 py-2">
+                            {signal.discrete ? "—" : format(stats.mean)}
+                          </td>
+                        )}
+                        {visibleColumns.includes("std") && (
+                          <td className="px-3 py-2">
+                            {signal.discrete ? "—" : format(stats.std)}
+                          </td>
+                        )}
+                        {visibleColumns.includes("firstLast") && (
+                          <td className="px-3 py-2">
+                            {state(stats.first)} → {state(stats.last)}
+                          </td>
+                        )}
+                        {visibleColumns.includes("changes") && (
+                          <td className="px-3 py-2">
+                            {signal.discrete
+                              ? stats.changes.toLocaleString()
+                              : "—"}
+                          </td>
+                        )}
                       </>
                     ) : (
                       <td
-                        colSpan={6}
+                        colSpan={visibleColumns.length}
                         className="text-muted-foreground px-3 py-2 text-left"
                       >
                         No samples in this window

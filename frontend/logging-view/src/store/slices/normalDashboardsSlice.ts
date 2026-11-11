@@ -14,6 +14,7 @@ import type {
   DashboardTabSettings,
   NormalDashboard,
 } from "../../types/normal";
+import { DEFAULT_STATISTICS_COLUMNS } from "../../types/normal";
 import { isDiscreteMeasurement } from "../../lib/plotStudio/units";
 import { MIXED_ENUM_MESSAGE } from "../../lib/normal/enums";
 import type { Store } from "../store";
@@ -31,6 +32,7 @@ function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
     settings: {
       layoutState: { ids: [], tree: createLayout([], "grid"), preset: "grid" },
       showStatistics: false,
+      statisticsColumns: DEFAULT_STATISTICS_COLUMNS,
       showOrders: true,
       enumAsBackground: true,
       focusedId: null,
@@ -369,7 +371,8 @@ export const createNormalDashboardsSlice: StateCreator<
               if (accepted.includes(id)) continue;
               const enums =
                 accepted.filter(discrete).length + (discrete(id) ? 1 : 0);
-              if (enums <= 1 || enums === accepted.length + 1) accepted.push(id);
+              if (enums <= 1 || enums === accepted.length + 1)
+                accepted.push(id);
               else refused = true;
             }
             return {

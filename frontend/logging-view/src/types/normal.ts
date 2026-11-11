@@ -30,6 +30,25 @@ export interface TimeDomain {
   endMs: number;
 }
 
+export type StatisticsColumn =
+  | "samples"
+  | "min"
+  | "max"
+  | "mean"
+  | "std"
+  | "firstLast"
+  | "changes";
+
+export const DEFAULT_STATISTICS_COLUMNS: StatisticsColumn[] = [
+  "samples",
+  "min",
+  "max",
+  "mean",
+  "std",
+  "firstLast",
+  "changes",
+];
+
 export interface ChartPane {
   type: "pane";
   id: string;
@@ -62,6 +81,7 @@ export interface DashboardSettings {
     preset: LayoutPreset | null;
   };
   showStatistics: boolean;
+  statisticsColumns: StatisticsColumn[];
   showOrders: boolean;
   // Dashboard-wide default for how an enum mixed with numeric series is
   // drawn; a pane can override it with ChartPane.enumDisplay.
