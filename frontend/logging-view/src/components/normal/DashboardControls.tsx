@@ -1,5 +1,12 @@
 import {
+  Badge,
   Button,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -10,8 +17,9 @@ import {
   Clock,
   Columns,
   Eye,
-  EyeOff,
   Grid2X2,
+  Layers,
+  Link2Off,
   Minus,
   Plus,
   RotateCcw,
@@ -21,6 +29,7 @@ import {
 } from "@hyperloopupv/frontend-kit/icons";
 import { useState } from "react";
 import { useDashboardSetting } from "../../hooks/useDashboardSetting";
+import { useDashboardTimeWindow } from "../../hooks/useDashboardTimeWindow";
 import { arrangePanes, getPanes } from "../../lib/normal/layout";
 import { useStore } from "../../store/store";
 import {
@@ -59,8 +68,15 @@ export default function DashboardControls({
     dashboard,
     "showOrders",
   );
+  const [enumAsBackground, setEnumAsBackground] = useDashboardSetting(
+    dashboard,
+    "enumAsBackground",
+  );
   const [timeUnit, setTimeUnit] = useDashboardSetting(dashboard, "timeUnit");
-  const [range, setRange] = useDashboardSetting(dashboard, "range");
+  // Toolbar actions are dashboard-wide: they move every plot and pull any
+  // individually panned one back onto the shared window.
+  const { range, linkTimeAxis, setRangeForAll, setLinked } =
+    useDashboardTimeWindow(dashboard);
   const [layoutOpen, setLayoutOpen] = useState(false);
   const addNormalPlot = useStore((state) => state.addNormalPlot);
   const orderCount = useStore((state) => state.orders.length);
@@ -92,7 +108,7 @@ export default function DashboardControls({
       0,
       Math.min(100 - span, (range.start + range.end - span) / 2),
     );
-    setRange({ start, end: start + span });
+    setRangeForAll({ start, end: start + span });
   };
   const layout = (
     <div
@@ -131,10 +147,85 @@ export default function DashboardControls({
       duration={duration}
       range={range}
       timeUnit={timeUnit}
+      linked={linkTimeAxis}
       onUnitChange={setTimeUnit}
-      onChange={setRange}
+      onChange={setRangeForAll}
+      onLinkedChange={setLinked}
     />
   );
+  // One menu for every overlay, so the bar speaks a single visual language
+  // instead of two different "pressed" idioms sitting side by side.
+  const overlayCount =
+    (showStatistics ? 1 : 0) + ((showOrders ?? true) && orderCount > 0 ? 1 : 0);
+  const viewMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-xs"
+          aria-label="Plot overlays"
+          title="Choose what is drawn on every plot"
+        >
+          <Eye className="size-3.5" />
+          <span className="hidden lg:inline">View</span>
+          {overlayCount > 0 && (
+            <Badge
+              variant="secondary"
+              className="h-4 px-1.5 text-[10px] leading-none tabular-nums"
+            >
+              {overlayCount}
+            </Badge>
+          )}
+          <ChevronDown className="size-3" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[15rem]">
+        <DropdownMenuCheckboxItem
+          checked={showStatistics}
+          disabled={chartDisabled}
+          aria-controls="window-statistics"
+          onCheckedChange={(checked) => setShowStatistics(checked)}
+        >
+          <ChartNoAxesCombined className="size-3.5" />
+          Window statistics
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={showOrders ?? true}
+          disabled={orderCount === 0}
+          onCheckedChange={(checked) => setShowOrders(checked)}
+        >
+          <Send className="size-3.5" />
+          Order markers
+          {orderCount > 0 && (
+            <Badge
+              variant="secondary"
+              className="ml-auto h-4 px-1.5 text-[10px] leading-none tabular-nums"
+            >
+              {orderCount}
+            </Badge>
+          )}
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={enumAsBackground}
+          disabled={chartDisabled}
+          onCheckedChange={(checked) => setEnumAsBackground(checked)}
+        >
+          <Layers className="size-3.5" />
+          Enum background
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          disabled={chartDisabled}
+          onClick={() => setRangeForAll({ start: 0, end: 100 })}
+        >
+          <RotateCcw className="size-3.5" />
+          Reset zoom
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const zoomControls = (
     <div className="flex items-center gap-1">
       <Button
@@ -162,7 +253,7 @@ export default function DashboardControls({
         size="sm"
         className="h-7 gap-1.5 text-xs"
         disabled={chartDisabled}
-        onClick={() => setRange({ start: 0, end: 100 })}
+        onClick={() => setRangeForAll({ start: 0, end: 100 })}
       >
         <RotateCcw className="size-3" />
         Reset zoom
@@ -225,7 +316,11 @@ export default function DashboardControls({
                 aria-label="Time window settings"
                 title="Time window settings"
               >
-                <Clock className="size-3.5" />
+                {linkTimeAxis ? (
+                  <Clock className="size-3.5" />
+                ) : (
+                  <Link2Off className="size-3.5" />
+                )}
                 <span className="max-w-32 truncate font-mono tabular-nums">
                   {formatTime(range.start)}–{formatTime(range.end)} {timeUnit}
                 </span>
@@ -275,44 +370,7 @@ export default function DashboardControls({
             : "ml-auto flex max-w-full flex-wrap items-center gap-2"
         }
       >
-        <Button
-          variant={(showOrders ?? true) ? "secondary" : "ghost"}
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs"
-          aria-label={`${showOrders ?? true ? "Hide" : "Show"} order markers`}
-          title={`${showOrders ?? true ? "Hide" : "Show"} orders on every plot`}
-          aria-pressed={showOrders ?? true}
-          disabled={orderCount === 0}
-          onClick={() => setShowOrders((current) => !(current ?? true))}
-        >
-          <Send className="size-3.5" />
-          <span>Orders</span>
-          {orderCount > 0 && (
-            <span className="bg-primary/15 text-primary rounded-full px-1.5 py-0.5 text-[10px] leading-none tabular-nums">
-              {orderCount}
-            </span>
-          )}
-        </Button>
-        <Button
-          variant={showStatistics ? "default" : "outline"}
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs"
-          aria-label={`${showStatistics ? "Hide" : "Show"} window statistics`}
-          title={`${showStatistics ? "Hide" : "Show"} statistics for the visible time window`}
-          aria-pressed={showStatistics}
-          aria-expanded={showStatistics}
-          aria-controls="window-statistics"
-          disabled={chartDisabled}
-          onClick={() => setShowStatistics((current) => !current)}
-        >
-          <ChartNoAxesCombined className="size-3.5" />
-          <span>Statistics</span>
-          {showStatistics ? (
-            <Eye className="size-3.5" />
-          ) : (
-            <EyeOff className="size-3.5" />
-          )}
-        </Button>
+        {viewMenu}
         {!compact && (
           <>
             <div className="border-border mx-1 h-4 border-l" />

@@ -56,10 +56,9 @@ function combine(
   nodes: ChartLayout[],
   direction: "horizontal" | "vertical",
 ): ChartLayout {
-  return nodes.slice(1).reduce(
-    (layout, node) => split(layout, node, direction),
-    nodes[0],
-  );
+  return nodes
+    .slice(1)
+    .reduce((layout, node) => split(layout, node, direction), nodes[0]);
 }
 
 /** Rearrange complete plots while preserving their titles and measurements. */
@@ -104,16 +103,32 @@ export function cloneLayout(layout: ChartLayout): {
           ...(node.hiddenSignalIds
             ? { hiddenSignalIds: [...node.hiddenSignalIds] }
             : {}),
+          ...(node.timeWindow ? { timeWindow: { ...node.timeWindow } } : {}),
         }
       : { ...node, id, first: clone(node.first), second: clone(node.second) };
   };
   return { tree: clone(layout), idMap };
 }
 
+/**
+ * Apply `update` to every pane. Nodes whose update returns the same object are
+ * returned unchanged, so an unaffected subtree keeps its identity and
+ * `updateNormalDashboardSettings`' reference bail-out still fires.
+ */
+export function mapPanes(
+  layout: ChartLayout,
+  update: (pane: ChartPane) => ChartPane,
+): ChartLayout {
+  if (layout.type === "pane") return update(layout);
+  const first = mapPanes(layout.first, update);
+  const second = mapPanes(layout.second, update);
+  return first === layout.first && second === layout.second
+    ? layout
+    : { ...layout, first, second };
+}
+
 export function signalIdsInLayout(layout: ChartLayout): string[] {
-  return [
-    ...new Set(getPanes(layout).flatMap((current) => current.signalIds)),
-  ];
+  return [...new Set(getPanes(layout).flatMap((current) => current.signalIds))];
 }
 
 export function nextPaneTitle(layout: ChartLayout): string {

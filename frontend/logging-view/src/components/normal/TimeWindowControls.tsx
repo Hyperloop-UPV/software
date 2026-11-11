@@ -1,5 +1,10 @@
 import { Button, Input } from "@hyperloopupv/frontend-kit/components";
-import { ChevronLeft, ChevronRight, Link2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Link2,
+  Link2Off,
+} from "@hyperloopupv/frontend-kit/icons";
 import { useId, useState } from "react";
 import type { TimeRange, TimeUnit } from "../../types/normal";
 
@@ -7,14 +12,18 @@ export default function TimeWindowControls({
   duration,
   range,
   timeUnit,
+  linked,
   onUnitChange,
   onChange,
+  onLinkedChange,
 }: {
   duration: number;
   range: TimeRange;
   timeUnit: TimeUnit;
+  linked: boolean;
   onUnitChange: (unit: TimeUnit) => void;
   onChange: (range: TimeRange) => void;
+  onLinkedChange: (linked: boolean) => void;
 }) {
   const errorId = useId();
   const [draft, setDraft] = useState<{ start: string; end: string } | null>(
@@ -64,13 +73,26 @@ export default function TimeWindowControls({
         });
       }}
     >
-      <span
-        className="text-muted-foreground inline-flex items-center"
-        title="Time window shared by all charts"
+      <Button
+        // This form submits, so an unqualified button would apply the window.
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        aria-pressed={linked}
+        aria-label="Link time window across charts"
+        title={
+          linked
+            ? "Time window shared by all charts"
+            : "Each chart has its own time window"
+        }
+        onClick={() => onLinkedChange(!linked)}
       >
-        <Link2 className="size-3.5" />
-        <span className="sr-only">Linked time window</span>
-      </span>
+        {linked ? (
+          <Link2 className="size-3.5" />
+        ) : (
+          <Link2Off className="size-3.5" />
+        )}
+      </Button>
       {(["start", "end"] as const).map((field) => (
         <label
           key={field}

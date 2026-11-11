@@ -10,6 +10,7 @@ export * from "./devices";
 export * from "./files";
 export * from "./gaming";
 export * from "./layout";
+export * from "./links";
 export * from "./mail";
 export * from "./math";
 export * from "./notifications";

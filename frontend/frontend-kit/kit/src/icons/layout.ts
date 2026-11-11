@@ -5,6 +5,8 @@ export {
   GripVertical,
   Grid2X2,
   LayoutDashboard,
+  Maximize2,
+  Minimize2,
   PanelBottom,
   PanelRight,
   PanelTopClose,

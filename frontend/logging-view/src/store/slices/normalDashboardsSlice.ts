@@ -14,6 +14,8 @@ import type {
   DashboardTabSettings,
   NormalDashboard,
 } from "../../types/normal";
+import { isDiscreteMeasurement } from "../../lib/plotStudio/units";
+import { MIXED_ENUM_MESSAGE } from "../../lib/normal/enums";
 import type { Store } from "../store";
 
 function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
@@ -30,10 +32,12 @@ function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
       layoutState: { ids: [], tree: createLayout([], "grid"), preset: "grid" },
       showStatistics: false,
       showOrders: true,
+      enumAsBackground: true,
       focusedId: null,
       units: {},
       timeUnit: "s",
       range: { start: 0, end: 100 },
+      linkTimeAxis: true,
       panelSizes: {},
     },
   };
@@ -63,7 +67,9 @@ function duplicateSettings(settings: DashboardSettings): DashboardSettings {
           next,
           Object.fromEntries(
             Object.entries(sizes).map(([panel, size]) => [
-              panel.startsWith(nodeId) ? next + panel.slice(nodeId.length) : panel,
+              panel.startsWith(nodeId)
+                ? next + panel.slice(nodeId.length)
+                : panel,
               size,
             ]),
           ),
@@ -114,6 +120,10 @@ export interface NormalDashboardsSlice {
   ) => void;
   addNormalPlot: (signalIds?: string[]) => string;
   assignNormalSignalsToPlot: (plotId: string, signalIds: string[]) => void;
+  // Transient refusal message (mixing two enums with numeric series) —
+  // not persisted, cleared by the strip that shows it.
+  normalPlotWarning: string | null;
+  setNormalPlotWarning: (message: string | null) => void;
   toggleNormalSeries: (id: string) => void;
   clearNormalSeries: () => void;
 }
@@ -335,37 +345,58 @@ export const createNormalDashboardsSlice: StateCreator<
     }));
     return plotId;
   },
+  normalPlotWarning: null,
+  setNormalPlotWarning: (message) => set({ normalPlotWarning: message }),
   assignNormalSignalsToPlot: (plotId, signalIds) =>
-    set((state) => ({
-      normalDashboards: state.normalDashboards.map((dashboard) => {
-        if (
-          dashboard.id !== state.activeNormalDashboardId ||
-          dashboard.locked
-        )
-          return dashboard;
-        const current = dashboard.settings.layoutState;
-        const tree = updatePane(current.tree, plotId, (plot) => ({
-          ...plot,
-          signalIds: [...new Set([...plot.signalIds, ...signalIds])],
-          hiddenSignalIds: plot.hiddenSignalIds?.filter(
-            (id) => !signalIds.includes(id),
-          ),
-        }));
-        return tree === current.tree
-          ? dashboard
-          : {
-              ...dashboard,
-              settings: {
-                ...dashboard.settings,
-                layoutState: {
-                  ...current,
-                  ids: signalIdsInLayout(tree),
-                  tree,
-                },
-              },
+    set((state) => {
+      let refused = false;
+      const discrete = (id: string) => isDiscreteMeasurement(state.adjData, id);
+      return {
+        normalDashboards: state.normalDashboards.map((dashboard) => {
+          if (
+            dashboard.id !== state.activeNormalDashboardId ||
+            dashboard.locked
+          )
+            return dashboard;
+          const current = dashboard.settings.layoutState;
+          const tree = updatePane(current.tree, plotId, (plot) => {
+            // A background band can only show one state at a time, so a plot
+            // holds one enum next to numeric signals, or enums on their own.
+            // Whatever is already in the plot stays; only arrivals that would
+            // break that are turned away, one at a time.
+            const accepted = [...plot.signalIds];
+            for (const id of signalIds) {
+              if (accepted.includes(id)) continue;
+              const enums =
+                accepted.filter(discrete).length + (discrete(id) ? 1 : 0);
+              if (enums <= 1 || enums === accepted.length + 1) accepted.push(id);
+              else refused = true;
+            }
+            return {
+              ...plot,
+              signalIds: accepted,
+              hiddenSignalIds: plot.hiddenSignalIds?.filter(
+                (id) => !signalIds.includes(id),
+              ),
             };
-      }),
-    })),
+          });
+          return tree === current.tree
+            ? dashboard
+            : {
+                ...dashboard,
+                settings: {
+                  ...dashboard.settings,
+                  layoutState: {
+                    ...current,
+                    ids: signalIdsInLayout(tree),
+                    tree,
+                  },
+                },
+              };
+        }),
+        ...(refused ? { normalPlotWarning: MIXED_ENUM_MESSAGE } : {}),
+      };
+    }),
   toggleNormalSeries: (id) =>
     set((state) => {
       const active = state.normalDashboards.find(

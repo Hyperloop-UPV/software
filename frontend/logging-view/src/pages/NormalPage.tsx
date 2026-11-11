@@ -2,7 +2,7 @@
 // ECharts views. Simple mode keeps its separate plot studio and PDF workflow.
 import { Activity } from "@hyperloopupv/frontend-kit/icons";
 import { Tabs, TabsContent } from "@hyperloopupv/frontend-kit/components";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import AnalysisWorkspace from "../components/normal/AnalysisWorkspace";
 import DashboardTabs from "../components/normal/DashboardTabs";
 import DashboardControls from "../components/normal/DashboardControls";
@@ -14,6 +14,7 @@ import {
   getSignalUnits,
   isDiscreteMeasurement,
 } from "../lib/plotStudio/units";
+import RecentSessions from "../components/sidebar/RecentSessions";
 import { useStore } from "../store/store";
 import type { ComparisonSignal } from "../types/normal";
 import type { SeriesData } from "../types/plotStudio";
@@ -21,9 +22,11 @@ import type { SeriesData } from "../types/plotStudio";
 function EmptyView({
   title,
   description,
+  children,
 }: {
   title: string;
   description: string;
+  children?: ReactNode;
 }) {
   return (
     <div className="flex min-h-[22rem] flex-1 items-center justify-center p-6">
@@ -35,6 +38,7 @@ function EmptyView({
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           {description}
         </p>
+        {children}
       </div>
     </div>
   );
@@ -205,7 +209,9 @@ export default function NormalPage() {
       <EmptyView
         title="Open a logging session"
         description="Load a log folder from the left sidebar to start exploring and comparing its signals."
-      />
+      >
+        <RecentSessions />
+      </EmptyView>
     );
   }
   return <SessionComparison />;

@@ -18,6 +18,10 @@ import {
   createPlotStudioSlice,
   type PlotStudioSlice,
 } from "./slices/plotStudioSlice";
+import {
+  createRecentSessionsSlice,
+  type RecentSessionsSlice,
+} from "./slices/recentSessionsSlice";
 import { createSessionSlice, type SessionSlice } from "./slices/sessionSlice";
 import {
   createTelemetrySlice,
@@ -29,6 +33,7 @@ export type Store = AppSlice &
   ConnectionsSlice &
   MessagesSlice &
   PlotStudioSlice &
+  RecentSessionsSlice &
   SessionSlice &
   TelemetrySlice &
   NormalDashboardsSlice;
@@ -41,6 +46,7 @@ export const useStore = create<Store>()(
       ...createConnectionsSlice(...a),
       ...createMessagesSlice(...a),
       ...createPlotStudioSlice(...a),
+      ...createRecentSessionsSlice(...a),
       ...createSessionSlice(...a),
       ...createTelemetrySlice(...a),
       ...createNormalDashboardsSlice(...a),
@@ -51,6 +57,7 @@ export const useStore = create<Store>()(
       // Only persist lightweight user-preference data, never live telemetry.
       partialize: (state) => ({
         isDarkMode: state.isDarkMode,
+        recentSessions: state.recentSessions,
       }),
     },
   ),

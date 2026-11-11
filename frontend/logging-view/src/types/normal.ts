@@ -1,3 +1,5 @@
+import type { EnumDisplay } from "../lib/normal/enums";
+
 import type { SeriesData } from "./plotStudio";
 
 export interface ComparisonSignal {
@@ -35,6 +37,11 @@ export interface ChartPane {
   signalIds: string[];
   normalized: boolean;
   hiddenSignalIds?: string[];
+  // Only consulted when the dashboard's time axis is unlinked; absent means
+  // this plot follows DashboardSettings.range.
+  timeWindow?: TimeRange;
+  // Per-plot override of DashboardSettings.enumAsBackground.
+  enumDisplay?: EnumDisplay;
 }
 
 export interface ChartSplit {
@@ -56,10 +63,15 @@ export interface DashboardSettings {
   };
   showStatistics: boolean;
   showOrders: boolean;
+  // Dashboard-wide default for how an enum mixed with numeric series is
+  // drawn; a pane can override it with ChartPane.enumDisplay.
+  enumAsBackground: boolean;
   focusedId: string | null;
   units: Record<string, string>;
   timeUnit: TimeUnit;
   range: TimeRange;
+  // false lets each plot hold its own window in ChartPane.timeWindow.
+  linkTimeAxis: boolean;
   panelSizes: Record<string, Record<string, number>>;
 }
 

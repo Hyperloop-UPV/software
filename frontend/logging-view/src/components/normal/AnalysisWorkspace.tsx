@@ -19,11 +19,14 @@ import {
   ResizablePanelGroup,
 } from "@hyperloopupv/frontend-kit/components";
 import {
+  AlertTriangle,
   Columns,
   Eye,
   EyeOff,
   Grid2X2,
   Layers,
+  Maximize2,
+  Minimize2,
   Pencil,
   Plus,
   RotateCcw,
@@ -36,9 +39,16 @@ import {
 } from "@hyperloopupv/frontend-kit/icons";
 import { useDroppable } from "@dnd-kit/core";
 import * as echarts from "echarts";
-import { Maximize2, Minimize2 } from "lucide-react";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useDashboardSetting } from "../../hooks/useDashboardSetting";
+import { useDashboardTimeWindow } from "../../hooks/useDashboardTimeWindow";
 import { useSeriesSelection } from "../../hooks/useSeriesSelection";
 import { useStore } from "../../store/store";
 import {
@@ -49,6 +59,12 @@ import {
   splitPane,
   updatePane,
 } from "../../lib/normal/layout";
+import { enumVariantColor } from "../../lib/normal/enumColors";
+import {
+  canMixSignals,
+  classifyPaneSignals,
+  MIXED_ENUM_MESSAGE,
+} from "../../lib/normal/enums";
 import { axisKey } from "../../lib/normal/units";
 import {
   TIME_DIVISORS,
@@ -63,7 +79,7 @@ import {
 } from "../../types/normal";
 import type { LoggedOrder } from "../../types/session";
 import ComparisonChart from "./ComparisonChart";
-import WindowStatistics from "./WindowStatistics";
+import WindowStatistics, { type StatisticsGroup } from "./WindowStatistics";
 
 const MAX_PANES = 8;
 // Same four presets the toolbar offers, for the workspace context menu.
@@ -73,6 +89,19 @@ const LAYOUT_ITEMS = [
   { value: "rows", label: "Rows", Icon: Rows2 },
   { value: "grid", label: "Grid", Icon: Grid2X2 },
 ] as const;
+// A window edge, as a time in display units, from its percentage of the
+// recording. Shared by the pane header label and the workspace footer.
+function formatWindowTime(
+  percent: number,
+  domain: TimeDomain,
+  timeUnit: TimeUnit,
+): string {
+  const duration = (domain.endMs - domain.startMs) / TIME_DIVISORS[timeUnit];
+  return ((duration * percent) / 100).toLocaleString(undefined, {
+    maximumFractionDigits: 3,
+  });
+}
+
 interface PaneProps {
   dashboardId: string;
   locked: boolean;
@@ -83,20 +112,26 @@ interface PaneProps {
   showOrders: boolean;
   domain: TimeDomain;
   range: TimeRange;
+  linkTimeAxis: boolean;
+  enumAsBackground: boolean;
   timeUnit: TimeUnit;
   isDarkMode: boolean;
   syncGroup: string;
   canSplit: boolean;
   canClose: boolean;
   focused: boolean;
-  onRangeChange: (range: TimeRange) => void;
+  // null puts the pane back on the dashboard window.
+  onRangeChange: (paneId: string, range: TimeRange | null) => void;
   onSplit: (id: string, direction: "horizontal" | "vertical") => void;
   onClose: (id: string) => void;
   onFocus: (id: string) => void;
   onChange: (
     id: string,
     changes: Partial<
-      Pick<ChartPane, "title" | "signalIds" | "normalized" | "hiddenSignalIds">
+      Pick<
+        ChartPane,
+        "title" | "signalIds" | "normalized" | "hiddenSignalIds" | "enumDisplay"
+      >
     >,
   ) => void;
   onUnitChange: (id: string, unit: string) => void;
@@ -112,6 +147,8 @@ function ComparisonPane({
   showOrders,
   domain,
   range,
+  linkTimeAxis,
+  enumAsBackground,
   timeUnit,
   isDarkMode,
   syncGroup,
@@ -136,6 +173,9 @@ function ComparisonPane({
   );
   const [signalQuery, setSignalQuery] = useState("");
   const [configOpen, setConfigOpen] = useState(false);
+  // Set while the context menu is closing *because* it opened the config
+  // popover, so the menu's focus restore does not dismiss it (see below).
+  const reopenConfigRef = useRef(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const { selectedSeries } = useSeriesSelection();
   const assignSignals = useStore((state) => state.assignNormalSignalsToPlot);
@@ -143,7 +183,9 @@ function ComparisonPane({
     () => Object.keys(selectedSeries).filter((key) => selectedSeries[key]),
     [selectedSeries],
   );
-  const [draftTitle, setDraftTitle] = useState(node.title ?? `Plot ${index + 1}`);
+  const [draftTitle, setDraftTitle] = useState(
+    node.title ?? `Plot ${index + 1}`,
+  );
   const visibleSignals = useMemo(
     () =>
       signals.filter((signal) => !node.hiddenSignalIds?.includes(signal.id)),
@@ -154,9 +196,44 @@ function ComparisonPane({
       .toLowerCase()
       .includes(signalQuery.trim().toLowerCase()),
   );
-  const tooManyUnits = new Set(visibleSignals.map(axisKey)).size > 2;
-  const normalized = node.normalized || tooManyUnits;
+  const enumDisplay =
+    node.enumDisplay ?? (enumAsBackground ? "background" : "series");
+  const render = useMemo(
+    () => classifyPaneSignals(visibleSignals, enumDisplay),
+    [visibleSignals, enumDisplay],
+  );
+  const hasEnum = visibleSignals.some((signal) => signal.discrete);
+  // Only the states this enum actually takes, so a 20-variant enum does not
+  // print 20 swatches.
+  const bandVariants = useMemo(() => {
+    const band = render.band;
+    if (!band) return [];
+    const codes = new Set<number>();
+    for (const value of band.data.value) {
+      codes.add(Math.round(value));
+      if (codes.size > 12) break;
+    }
+    return [...codes]
+      .sort((a, b) => a - b)
+      .map((code) => ({
+        code,
+        label: band.enumLabels?.[code] ?? String(code),
+      }));
+  }, [render.band]);
+  // Only signals that actually take a y axis count: an enum drawn as a
+  // background band takes none, so it must not push the panel into
+  // relative-trend mode.
+  const tooManyUnits = new Set(render.plotted.map(axisKey)).size > 2;
+  const normalized =
+    render.mode === "lines" && (node.normalized || tooManyUnits);
   const title = node.title || `Plot ${index + 1}`;
+  // While linked every pane shows the dashboard window; unlinked, a pane keeps
+  // its own only once it has actually been moved.
+  const paneRange = linkTimeAxis ? range : (node.timeWindow ?? range);
+  const pinned = !linkTimeAxis && !!node.timeWindow;
+  const windowLabel =
+    `${formatWindowTime(paneRange.start, domain, timeUnit)}` +
+    `–${formatWindowTime(paneRange.end, domain, timeUnit)} ${timeUnit}`;
   const saveTitle = () => {
     const next = draftTitle.trim().slice(0, 80);
     if (next && next !== title) onChange(node.id, { title: next });
@@ -172,356 +249,442 @@ function ComparisonPane({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-    <section
-      ref={setNodeRef}
-      // Radix composes this before its own handler and only skips its own when
-      // defaultPrevented is set, so stopping propagation keeps this menu while
-      // hiding the event from the workspace menu wrapping the whole area.
-      onContextMenu={(event) => event.stopPropagation()}
-      className={`border-border/80 flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-[border-color,box-shadow] dark:bg-[#21252c] ${isOver ? "border-primary ring-primary/25 ring-2" : ""}`}
-      aria-label={`Chart panel ${index + 1}`}
-      data-pane-id={node.id}
-    >
-      <div className="border-border/60 bg-muted/35 flex min-h-11 shrink-0 items-center gap-2 border-b px-3 py-1.5">
-        <span className="text-muted-foreground text-[10px] font-semibold tabular-nums">
-          {String(index + 1).padStart(2, "0")}
-        </span>
-        {editingTitle ? (
-          <Input
-            autoFocus
-            value={draftTitle}
-            maxLength={80}
-            aria-label={`Title for chart ${index + 1}`}
-            className="h-7 min-w-0 flex-1 text-xs font-semibold"
-            onChange={(event) => setDraftTitle(event.target.value)}
-            onBlur={saveTitle}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") saveTitle();
-              if (event.key === "Escape") {
-                setDraftTitle(title);
-                setEditingTitle(false);
-              }
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            disabled={locked}
-            className="group/title flex min-w-0 flex-1 items-center gap-1.5 text-left"
-            title={locked ? title : `${title} · double-click to rename`}
-            onDoubleClick={startRename}
-          >
-            <h2 className="truncate text-xs font-semibold">{title}</h2>
-            {!locked && (
-              <Pencil className="text-muted-foreground size-3 shrink-0 opacity-0 transition-opacity group-hover/title:opacity-100" />
-            )}
-          </button>
-        )}
-        <fieldset
-          disabled={locked}
-          className="flex min-w-0 shrink-0 items-center gap-0.5"
+        <section
+          ref={setNodeRef}
+          // Radix composes this before its own handler and only skips its own when
+          // defaultPrevented is set, so stopping propagation keeps this menu while
+          // hiding the event from the workspace menu wrapping the whole area.
+          onContextMenu={(event) => event.stopPropagation()}
+          className={`border-border/80 flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-[border-color,box-shadow] dark:bg-[#21252c] ${isOver ? "border-primary ring-primary/25 ring-2" : ""}`}
+          aria-label={`Chart panel ${index + 1}`}
+          data-pane-id={node.id}
         >
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            disabled={!canSplit}
-            onClick={() => onSplit(node.id, "horizontal")}
-            aria-label={`Split chart ${index + 1} into columns`}
-            title="Split side by side"
-          >
-            <Columns className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            disabled={!canSplit}
-            onClick={() => onSplit(node.id, "vertical")}
-            aria-label={`Split chart ${index + 1} into rows`}
-            title="Split top and bottom"
-          >
-            <Rows2 className="size-3.5" />
-          </Button>
-          <Popover open={configOpen} onOpenChange={setConfigOpen}>
-            <PopoverTrigger asChild>
+          <div className="border-border/60 bg-muted/35 flex min-h-11 shrink-0 items-center gap-2 border-b px-3 py-1.5">
+            <span className="text-muted-foreground text-[10px] font-semibold tabular-nums">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            {!linkTimeAxis && (
+              <span
+                className={`shrink-0 rounded px-1 py-0.5 font-mono text-[10px] leading-none tabular-nums ${
+                  pinned
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground bg-transparent"
+                }`}
+                title={
+                  pinned
+                    ? "This plot has its own time window"
+                    : "Visible time window for this plot"
+                }
+              >
+                {windowLabel}
+              </span>
+            )}
+            {editingTitle ? (
+              <Input
+                autoFocus
+                value={draftTitle}
+                maxLength={80}
+                aria-label={`Title for chart ${index + 1}`}
+                className="h-7 min-w-0 flex-1 text-xs font-semibold"
+                onChange={(event) => setDraftTitle(event.target.value)}
+                onBlur={saveTitle}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") saveTitle();
+                  if (event.key === "Escape") {
+                    setDraftTitle(title);
+                    setEditingTitle(false);
+                  }
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                disabled={locked}
+                className="group/title flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                title={locked ? title : `${title} · double-click to rename`}
+                onDoubleClick={startRename}
+              >
+                <h2 className="truncate text-xs font-semibold">{title}</h2>
+                {!locked && (
+                  <Pencil className="text-muted-foreground size-3 shrink-0 opacity-0 transition-opacity group-hover/title:opacity-100" />
+                )}
+              </button>
+            )}
+            <fieldset
+              disabled={locked}
+              className="flex min-w-0 shrink-0 items-center gap-0.5"
+            >
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label={`Configure chart ${index + 1}`}
-                title="Signals, units and scale"
+                disabled={!canSplit}
+                onClick={() => onSplit(node.id, "horizontal")}
+                aria-label={`Split chart ${index + 1} into columns`}
+                title="Split side by side"
               >
-                <Settings2 className="size-3.5" />
+                <Columns className="size-3.5" />
               </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              className="w-[20rem] max-w-[calc(100vw-2rem)] p-0"
-            >
-              <div className="border-b px-4 py-3">
-                <p className="text-sm font-semibold">Signals & units</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  Choose signals to compare in this panel.
-                </p>
-              </div>
-              <div className="border-b px-3 py-3">
-                <label className="text-muted-foreground flex items-center gap-2 text-xs">
-                  Plot title
-                  <Input
-                    value={draftTitle}
-                    maxLength={80}
-                    onFocus={(event) => {
-                      setDraftTitle(title);
-                      event.currentTarget.select();
-                    }}
-                    onChange={(event) => setDraftTitle(event.target.value)}
-                    onBlur={saveTitle}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") saveTitle();
-                    }}
-                    aria-label={`Plot title for chart ${index + 1}`}
-                    className="h-8 flex-1 text-xs"
-                  />
-                </label>
-              </div>
-              <div className="px-3 pt-3">
-                <Input
-                  value={signalQuery}
-                  onChange={(event) => setSignalQuery(event.target.value)}
-                  placeholder="Search signals, boards or units…"
-                  aria-label={`Search signals for chart ${index + 1}`}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="max-h-[18rem] overflow-y-auto p-2">
-                {filteredSignals.length === 0 && (
-                  <p className="text-muted-foreground px-2 py-4 text-center text-xs">
-                    No matching signals.
-                  </p>
-                )}
-                {filteredSignals.map((signal) => {
-                  const checked = node.signalIds.includes(signal.id);
-                  return (
-                    <div
-                      key={signal.id}
-                      className="hover:bg-muted/40 rounded-md px-2 py-2"
-                    >
-                      <label className="flex cursor-pointer items-center gap-2 text-xs">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(next) =>
-                            onChange(node.id, {
-                              hiddenSignalIds: node.hiddenSignalIds?.filter(
-                                (id) => id !== signal.id,
-                              ),
-                              signalIds: next
-                                ? [...node.signalIds, signal.id]
-                                : node.signalIds.filter(
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                disabled={!canSplit}
+                onClick={() => onSplit(node.id, "vertical")}
+                aria-label={`Split chart ${index + 1} into rows`}
+                title="Split top and bottom"
+              >
+                <Rows2 className="size-3.5" />
+              </Button>
+              <Popover open={configOpen} onOpenChange={setConfigOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Configure chart ${index + 1}`}
+                    title="Signals, units and scale"
+                  >
+                    <Settings2 className="size-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-[20rem] max-w-[calc(100vw-2rem)] p-0"
+                  // A settings panel should outlive anything that steals focus
+                  // behind it (a closing menu, the ECharts canvas, dnd-kit).
+                  // Pointer-outside and Escape still close it.
+                  onFocusOutside={(event) => event.preventDefault()}
+                >
+                  <div className="border-b px-4 py-3">
+                    <p className="text-sm font-semibold">Signals & units</p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Choose signals to compare in this panel.
+                    </p>
+                  </div>
+                  <div className="border-b px-3 py-3">
+                    <label className="text-muted-foreground flex items-center gap-2 text-xs">
+                      Plot title
+                      <Input
+                        value={draftTitle}
+                        maxLength={80}
+                        onFocus={(event) => {
+                          setDraftTitle(title);
+                          event.currentTarget.select();
+                        }}
+                        onChange={(event) => setDraftTitle(event.target.value)}
+                        onBlur={saveTitle}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") saveTitle();
+                        }}
+                        aria-label={`Plot title for chart ${index + 1}`}
+                        className="h-8 flex-1 text-xs"
+                      />
+                    </label>
+                  </div>
+                  <div className="px-3 pt-3">
+                    <Input
+                      value={signalQuery}
+                      onChange={(event) => setSignalQuery(event.target.value)}
+                      placeholder="Search signals, boards or units…"
+                      aria-label={`Search signals for chart ${index + 1}`}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="max-h-[18rem] overflow-y-auto p-2">
+                    {filteredSignals.length === 0 && (
+                      <p className="text-muted-foreground px-2 py-4 text-center text-xs">
+                        No matching signals.
+                      </p>
+                    )}
+                    {filteredSignals.map((signal) => {
+                      const checked = node.signalIds.includes(signal.id);
+                      // Refuse the mix up front rather than after the fact.
+                      const blocked =
+                        !checked && !canMixSignals(signals, [signal]);
+                      return (
+                        <div
+                          key={signal.id}
+                          className={`hover:bg-muted/40 rounded-md px-2 py-2 ${
+                            blocked ? "opacity-50" : ""
+                          }`}
+                          title={blocked ? MIXED_ENUM_MESSAGE : undefined}
+                        >
+                          <label className="flex cursor-pointer items-center gap-2 text-xs">
+                            <Checkbox
+                              checked={checked}
+                              disabled={blocked}
+                              onCheckedChange={(next) =>
+                                onChange(node.id, {
+                                  hiddenSignalIds: node.hiddenSignalIds?.filter(
                                     (id) => id !== signal.id,
                                   ),
+                                  signalIds: next
+                                    ? [...node.signalIds, signal.id]
+                                    : node.signalIds.filter(
+                                        (id) => id !== signal.id,
+                                      ),
+                                })
+                              }
+                              aria-label={`Show ${signal.board} / ${signal.name} in chart ${index + 1}`}
+                            />
+                            <span
+                              className="size-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: signal.color }}
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              <span className="text-muted-foreground">
+                                {signal.board} /{" "}
+                              </span>
+                              {signal.name}
+                            </span>
+                          </label>
+                          {checked && !signal.discrete && (
+                            <label className="text-muted-foreground mt-2 flex items-center gap-2 pl-6 text-[11px]">
+                              Unit
+                              <Input
+                                value={signal.units ?? ""}
+                                onChange={(event) =>
+                                  onUnitChange(signal.id, event.target.value)
+                                }
+                                placeholder="e.g. m/s, °C, V"
+                                maxLength={24}
+                                aria-label={`Unit for ${signal.board} / ${signal.name}`}
+                                className="h-7 flex-1 text-xs"
+                              />
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="border-t px-4 py-3">
+                    <label className="flex cursor-pointer items-center gap-2 text-xs">
+                      <Checkbox
+                        checked={normalized}
+                        disabled={tooManyUnits}
+                        onCheckedChange={(checked) =>
+                          onChange(node.id, { normalized: checked === true })
+                        }
+                      />
+                      Compare relative trends (0–100%)
+                    </label>
+                    <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+                      {tooManyUnits
+                        ? "More than two unit scales use relative trends. Split this panel to inspect original scales."
+                        : "Original values use a separate axis for each unit. Editing a unit label does not convert values."}
+                    </p>
+                  </div>
+                  {hasEnum && render.mode === "lines" && (
+                    <div className="border-t px-4 py-3">
+                      <label className="flex cursor-pointer items-center gap-2 text-xs">
+                        <Checkbox
+                          checked={enumDisplay === "background"}
+                          onCheckedChange={(checked) =>
+                            onChange(node.id, {
+                              enumDisplay:
+                                checked === true ? "background" : "series",
                             })
                           }
-                          aria-label={`Show ${signal.board} / ${signal.name} in chart ${index + 1}`}
+                          aria-label="Draw the enum as a background band"
                         />
+                        Enum as background band
+                      </label>
+                      <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+                        A band keeps the numeric axes to themselves. Unchecked,
+                        the enum is drawn as a step line on its own axis.
+                      </p>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => onFocus(node.id)}
+                aria-label={`${focused ? "Restore" : "Expand"} chart ${index + 1}`}
+                title={focused ? "Restore panels" : "Expand panel"}
+              >
+                {focused ? (
+                  <Minimize2 className="size-3.5" />
+                ) : (
+                  <Maximize2 className="size-3.5" />
+                )}
+              </Button>
+              {canClose && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => onClose(node.id)}
+                  aria-label={`Close chart ${index + 1}`}
+                  title="Close panel"
+                >
+                  <X className="size-3.5" />
+                </Button>
+              )}
+            </fieldset>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-2 text-[10px]">
+            {signals.map((signal) => {
+              const hidden = !!node.hiddenSignalIds?.includes(signal.id);
+              const label = `${signal.board} / ${signal.name}`;
+              const toggleTrace = () =>
+                onChange(node.id, {
+                  hiddenSignalIds: hidden
+                    ? (node.hiddenSignalIds ?? []).filter(
+                        (id) => id !== signal.id,
+                      )
+                    : [...(node.hiddenSignalIds ?? []), signal.id],
+                });
+              return (
+                <ContextMenu key={signal.id}>
+                  <ContextMenuTrigger asChild>
+                    <button
+                      type="button"
+                      disabled={locked}
+                      // Keep this chip's menu from also opening the plot's one.
+                      onContextMenu={(event) => event.stopPropagation()}
+                      className={`hover:bg-muted/60 focus-visible:ring-ring inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left focus-visible:ring-2 focus-visible:outline-none ${hidden ? "opacity-50" : ""}`}
+                      aria-label={`${hidden ? "Show" : "Hide"} ${label} in chart ${index + 1}`}
+                      aria-pressed={!hidden}
+                      title="Click to hide or show this trace"
+                      onClick={toggleTrace}
+                    >
+                      {render.band?.id === signal.id ? (
+                        <span className="flex shrink-0 overflow-hidden rounded-sm">
+                          {bandVariants.map((variant) => (
+                            <span
+                              key={variant.code}
+                              className="h-2 w-1.5"
+                              style={{
+                                backgroundColor: enumVariantColor(variant.code),
+                              }}
+                              title={variant.label}
+                            />
+                          ))}
+                        </span>
+                      ) : (
                         <span
-                          className="size-2 shrink-0 rounded-full"
+                          className="size-1.5 shrink-0 rounded-full"
                           style={{ backgroundColor: signal.color }}
                         />
-                        <span className="min-w-0 flex-1 truncate">
-                          <span className="text-muted-foreground">
-                            {signal.board} /{" "}
-                          </span>
-                          {signal.name}
-                        </span>
-                      </label>
-                      {checked && !signal.discrete && (
-                        <label className="text-muted-foreground mt-2 flex items-center gap-2 pl-6 text-[11px]">
-                          Unit
-                          <Input
-                            value={signal.units ?? ""}
-                            onChange={(event) =>
-                              onUnitChange(signal.id, event.target.value)
-                            }
-                            placeholder="e.g. m/s, °C, V"
-                            maxLength={24}
-                            aria-label={`Unit for ${signal.board} / ${signal.name}`}
-                            className="h-7 flex-1 text-xs"
-                          />
-                        </label>
                       )}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="border-t px-4 py-3">
-                <label className="flex cursor-pointer items-center gap-2 text-xs">
-                  <Checkbox
-                    checked={normalized}
-                    disabled={tooManyUnits}
-                    onCheckedChange={(checked) =>
-                      onChange(node.id, { normalized: checked === true })
-                    }
-                  />
-                  Compare relative trends (0–100%)
-                </label>
-                <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
-                  {tooManyUnits
-                    ? "More than two unit scales use relative trends. Split this panel to inspect original scales."
-                    : "Original values use a separate axis for each unit. Editing a unit label does not convert values."}
-                </p>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => onFocus(node.id)}
-            aria-label={`${focused ? "Restore" : "Expand"} chart ${index + 1}`}
-            title={focused ? "Restore panels" : "Expand panel"}
-          >
-            {focused ? (
-              <Minimize2 className="size-3.5" />
-            ) : (
-              <Maximize2 className="size-3.5" />
+                      <span className="text-muted-foreground max-w-[14rem] truncate">
+                        {label}
+                      </span>
+                      {hidden && <EyeOff className="size-3" />}
+                      {signal.units && (
+                        <span className="bg-muted/70 rounded px-1.5 py-0.5 font-mono">
+                          {signal.units}
+                        </span>
+                      )}
+                    </button>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent aria-label={`${label} actions`}>
+                    <ContextMenuItem disabled={locked} onClick={toggleTrace}>
+                      {hidden ? (
+                        <Eye className="size-3.5" />
+                      ) : (
+                        <EyeOff className="size-3.5" />
+                      )}
+                      {hidden ? "Show this trace" : "Hide this trace"}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => void navigator.clipboard?.writeText(label)}
+                    >
+                      <Layers className="size-3.5" />
+                      Copy name
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      variant="destructive"
+                      disabled={locked}
+                      onClick={() =>
+                        onChange(node.id, {
+                          signalIds: node.signalIds.filter(
+                            (id) => id !== signal.id,
+                          ),
+                          hiddenSignalIds: (node.hiddenSignalIds ?? []).filter(
+                            (id) => id !== signal.id,
+                          ),
+                        })
+                      }
+                    >
+                      <Trash2 className="size-3.5" />
+                      Remove from this plot
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            })}
+            {normalized && (
+              <span className="text-primary ml-auto font-medium">
+                Relative %
+              </span>
             )}
-          </Button>
-          {canClose && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => onClose(node.id)}
-              aria-label={`Close chart ${index + 1}`}
-              title="Close panel"
-            >
-              <X className="size-3.5" />
-            </Button>
-          )}
-        </fieldset>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-2 text-[10px]">
-        {signals.map((signal) => {
-          const hidden = !!node.hiddenSignalIds?.includes(signal.id);
-          const label = `${signal.board} / ${signal.name}`;
-          const toggleTrace = () =>
-            onChange(node.id, {
-              hiddenSignalIds: hidden
-                ? (node.hiddenSignalIds ?? []).filter((id) => id !== signal.id)
-                : [...(node.hiddenSignalIds ?? []), signal.id],
-            });
-          return (
-            <ContextMenu key={signal.id}>
-              <ContextMenuTrigger asChild>
-                <button
-                  type="button"
-                  disabled={locked}
-                  // Keep this chip's menu from also opening the plot's one.
-                  onContextMenu={(event) => event.stopPropagation()}
-                  className={`hover:bg-muted/60 focus-visible:ring-ring inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left focus-visible:ring-2 focus-visible:outline-none ${hidden ? "opacity-50" : ""}`}
-                  aria-label={`${hidden ? "Show" : "Hide"} ${label} in chart ${index + 1}`}
-                  aria-pressed={!hidden}
-                  title="Click to hide or show this trace"
-                  onClick={toggleTrace}
-                >
-                  <span
-                    className="size-1.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: signal.color }}
-                  />
-                  <span className="text-muted-foreground max-w-[14rem] truncate">
-                    {label}
-                  </span>
-                  {hidden && <EyeOff className="size-3" />}
-                  {signal.units && (
-                    <span className="bg-muted/70 rounded px-1.5 py-0.5 font-mono">
-                      {signal.units}
-                    </span>
-                  )}
-                </button>
-              </ContextMenuTrigger>
-              <ContextMenuContent aria-label={`${label} actions`}>
-                <ContextMenuItem disabled={locked} onClick={toggleTrace}>
-                  {hidden ? (
-                    <Eye className="size-3.5" />
-                  ) : (
-                    <EyeOff className="size-3.5" />
-                  )}
-                  {hidden ? "Show this trace" : "Hide this trace"}
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onClick={() => void navigator.clipboard?.writeText(label)}
-                >
-                  <Layers className="size-3.5" />
-                  Copy name
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem
-                  variant="destructive"
-                  disabled={locked}
-                  onClick={() =>
-                    onChange(node.id, {
-                      signalIds: node.signalIds.filter(
-                        (id) => id !== signal.id,
-                      ),
-                      hiddenSignalIds: (node.hiddenSignalIds ?? []).filter(
-                        (id) => id !== signal.id,
-                      ),
-                    })
-                  }
-                >
-                  <Trash2 className="size-3.5" />
-                  Remove from this plot
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
-          );
-        })}
-        {normalized && (
-          <span className="text-primary ml-auto font-medium">Relative %</span>
-        )}
-      </div>
-      <div className="min-h-0 flex-1">
-        {visibleSignals.length > 0 ? (
-          <ComparisonChart
-            locked={locked}
-            signals={visibleSignals}
-            domain={domain}
-            range={range}
-            timeUnit={timeUnit}
-            normalized={normalized}
-            isDarkMode={isDarkMode}
-            syncGroup={syncGroup}
-            orders={orders}
-            showOrders={showOrders}
-            onRangeChange={onRangeChange}
-          />
-        ) : signals.length > 0 ? (
-          <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-xs">
-            <EyeOff className="size-5" />
-            <p>All traces in this panel are hidden.</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onChange(node.id, { hiddenSignalIds: [] })}
-              disabled={locked}
-            >
-              <Eye className="size-3.5" /> Show all traces
-            </Button>
           </div>
-        ) : (
-          <div className={`text-muted-foreground flex h-full items-center justify-center px-6 text-center text-xs ${isOver ? "bg-primary/5 text-primary" : ""}`}>
-            {node.signalIds.length ? (
-              "Loading measurements…"
+          <div className="min-h-0 flex-1">
+            {visibleSignals.length > 0 ? (
+              <ComparisonChart
+                locked={locked}
+                signals={render.plotted}
+                band={render.band}
+                timeline={render.mode === "timeline"}
+                domain={domain}
+                range={paneRange}
+                timeUnit={timeUnit}
+                normalized={normalized}
+                isDarkMode={isDarkMode}
+                syncGroup={syncGroup}
+                orders={orders}
+                showOrders={showOrders}
+                onRangeChange={(next) => onRangeChange(node.id, next)}
+              />
+            ) : signals.length > 0 ? (
+              <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-xs">
+                <EyeOff className="size-5" />
+                <p>All traces in this panel are hidden.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChange(node.id, { hiddenSignalIds: [] })}
+                  disabled={locked}
+                >
+                  <Eye className="size-3.5" /> Show all traces
+                </Button>
+              </div>
             ) : (
-              <div className="space-y-1">
-                <p className="text-foreground font-medium">
-                  {isOver ? "Release to add measurements" : "Empty plot"}
-                </p>
-                <p>Select measurements, then drag them here or use Add to plot.</p>
+              <div
+                className={`text-muted-foreground flex h-full items-center justify-center px-6 text-center text-xs ${isOver ? "bg-primary/5 text-primary" : ""}`}
+              >
+                {node.signalIds.length ? (
+                  "Loading measurements…"
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-foreground font-medium">
+                      {isOver ? "Release to add measurements" : "Empty plot"}
+                    </p>
+                    <p>
+                      Select measurements, then drag them here or use Add to
+                      plot.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
-    </section>
+        </section>
       </ContextMenuTrigger>
-      <ContextMenuContent aria-label={`Chart ${index + 1} actions`}>
+      <ContextMenuContent
+        aria-label={`Chart ${index + 1} actions`}
+        // Radix restores focus to the trigger in a setTimeout that runs after
+        // the exit animation, i.e. after the popover we just opened has
+        // mounted; that focusin reads as "focus outside" and closes it. No
+        // deferral can win that race, so skip the restore just for this path
+        // and keep it for every other close (Escape, other items).
+        onCloseAutoFocus={(event) => {
+          if (!reopenConfigRef.current) return;
+          reopenConfigRef.current = false;
+          event.preventDefault();
+        }}
+      >
         <ContextMenuItem disabled={locked} onClick={startRename}>
           <Pencil className="size-3.5" />
           Rename
@@ -536,9 +699,10 @@ function ComparisonPane({
         </ContextMenuItem>
         <ContextMenuItem
           disabled={locked}
-          // Opening the popover inside the menu's own close sequence makes the
-          // popover treat that dismissal as an outside click; defer past it.
-          onClick={() => requestAnimationFrame(() => setConfigOpen(true))}
+          onClick={() => {
+            reopenConfigRef.current = true;
+            setConfigOpen(true);
+          }}
         >
           <Settings2 className="size-3.5" />
           Signals, units and scale
@@ -566,6 +730,15 @@ function ComparisonPane({
           )}
           {focused ? "Restore panels" : "Expand panel"}
         </ContextMenuItem>
+        {!linkTimeAxis && (
+          <ContextMenuItem
+            disabled={locked || !pinned}
+            onClick={() => onRangeChange(node.id, null)}
+          >
+            <RotateCcw className="size-3.5" />
+            Reset this plot&apos;s zoom
+          </ContextMenuItem>
+        )}
         <ContextMenuSeparator />
         <ContextMenuCheckboxItem
           disabled={locked || tooManyUnits}
@@ -714,7 +887,19 @@ export default function AnalysisWorkspace({
     dashboard,
     "showOrders",
   );
+  const [enumAsBackground, setEnumAsBackground] = useDashboardSetting(
+    dashboard,
+    "enumAsBackground",
+  );
   const orders = useStore((state) => state.orders);
+  const plotWarning = useStore((state) => state.normalPlotWarning);
+  const setPlotWarning = useStore((state) => state.setNormalPlotWarning);
+
+  useEffect(() => {
+    if (!plotWarning) return;
+    const timer = setTimeout(() => setPlotWarning(null), 6000);
+    return () => clearTimeout(timer);
+  }, [plotWarning, setPlotWarning]);
   const { selectedSeries } = useSeriesSelection();
   const addPlot = useStore((state) => state.addNormalPlot);
   const selectedIds = useMemo(
@@ -724,7 +909,8 @@ export default function AnalysisWorkspace({
   const [focusedId, setFocusedId] = useDashboardSetting(dashboard, "focusedId");
   const [units, setUnits] = useDashboardSetting(dashboard, "units");
   const timeUnit = dashboard.settings.timeUnit;
-  const [range, setRange] = useDashboardSetting(dashboard, "range");
+  const { range, linkTimeAxis, setRange, setRangeForAll, setPaneWindow } =
+    useDashboardTimeWindow(dashboard);
   const [panelSizes, setPanelSizes] = useDashboardSetting(
     dashboard,
     "panelSizes",
@@ -745,12 +931,15 @@ export default function AnalysisWorkspace({
     [setPanelSizes],
   );
 
-  useEffect(
-    () => () => {
+  // `echarts.connect` is a module-level flag keyed by group id, consulted when
+  // an action is broadcast. Owning it here (instead of inside each chart) means
+  // unlinking really stops the broadcast, and no chart is ever re-initialised.
+  useEffect(() => {
+    if (linkTimeAxis) echarts.connect(syncGroup);
+    return () => {
       echarts.disconnect(syncGroup);
-    },
-    [syncGroup],
-  );
+    };
+  }, [linkTimeAxis, syncGroup]);
 
   const resolvedSignals = useMemo(
     () =>
@@ -780,21 +969,21 @@ export default function AnalysisWorkspace({
   const size = minimumLayoutSize(visibleLayout);
 
   const changeRange = useCallback(
-    (next: TimeRange) => {
-      setRange((current) =>
-        Math.abs(current.start - next.start) < 0.0001 &&
-        Math.abs(current.end - next.end) < 0.0001
-          ? current
-          : next,
-      );
+    (paneId: string, next: TimeRange | null) => {
+      if (!next) setPaneWindow(paneId, null);
+      else if (linkTimeAxis) setRange(next);
+      else setPaneWindow(paneId, next);
     },
-    [setRange],
+    [linkTimeAxis, setRange, setPaneWindow],
   );
   const changePane = useCallback(
     (
       id: string,
       changes: Partial<
-        Pick<ChartPane, "title" | "signalIds" | "normalized" | "hiddenSignalIds">
+        Pick<
+          ChartPane,
+          "title" | "signalIds" | "normalized" | "hiddenSignalIds"
+        >
       >,
     ) => {
       setLayoutState((current) => ({
@@ -820,11 +1009,29 @@ export default function AnalysisWorkspace({
       tree: removePane(current.tree, id) ?? current.tree,
     }));
   };
-  const duration = (domain.endMs - domain.startMs) / TIME_DIVISORS[timeUnit];
   const formatTime = (percent: number) =>
-    ((duration * percent) / 100).toLocaleString(undefined, {
-      maximumFractionDigits: 3,
-    });
+    formatWindowTime(percent, domain, timeUnit);
+  const statisticsGroups = useMemo<StatisticsGroup[]>(() => {
+    if (linkTimeAxis)
+      return [
+        {
+          id: dashboard.id,
+          label: "All plots",
+          range,
+          signals: resolvedSignals,
+        },
+      ];
+    // A signal assigned to two plots legitimately appears twice: different
+    // windows, different numbers.
+    return panes.map((pane, index) => ({
+      id: pane.id,
+      label: pane.title || `Plot ${index + 1}`,
+      range: pane.timeWindow ?? range,
+      signals: resolvedSignals.filter((signal) =>
+        pane.signalIds.includes(signal.id),
+      ),
+    }));
+  }, [linkTimeAxis, dashboard.id, range, resolvedSignals, panes]);
 
   return (
     <div
@@ -833,45 +1040,47 @@ export default function AnalysisWorkspace({
     >
       <ContextMenu>
         <ContextMenuTrigger asChild>
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        <div
-          className="h-full w-full"
-          style={{ minWidth: size.width, minHeight: size.height }}
-        >
-          <LayoutNode
-            dashboardId={dashboard.id}
-            locked={dashboard.locked}
-            panelSizes={panelSizes}
-            onPanelResize={resizePanel}
-            node={visibleLayout}
-            panes={panes}
-            focusedId={focused ? focusedId : null}
-            allSignals={resolvedSignals}
-            orders={orders}
-            showOrders={showOrders ?? true}
-            domain={domain}
-            range={range}
-            timeUnit={timeUnit}
-            isDarkMode={isDarkMode}
-            syncGroup={syncGroup}
-            canSplit={panes.length < MAX_PANES && !focused}
-            canClose={panes.length > 1}
-            onRangeChange={changeRange}
-            onSplit={split}
-            onClose={close}
-            onFocus={(id) =>
-              setFocusedId((current) => (current === id ? null : id))
-            }
-            onChange={changePane}
-            onUnitChange={(id, unit) =>
-              setUnits((current) => ({ ...current, [id]: unit }))
-            }
-            onResizeStart={() =>
-              setLayoutState((current) => ({ ...current, preset: null }))
-            }
-          />
-        </div>
-      </div>
+          <div className="min-h-0 flex-1 overflow-auto p-3">
+            <div
+              className="h-full w-full"
+              style={{ minWidth: size.width, minHeight: size.height }}
+            >
+              <LayoutNode
+                dashboardId={dashboard.id}
+                locked={dashboard.locked}
+                panelSizes={panelSizes}
+                onPanelResize={resizePanel}
+                node={visibleLayout}
+                panes={panes}
+                focusedId={focused ? focusedId : null}
+                allSignals={resolvedSignals}
+                orders={orders}
+                showOrders={showOrders ?? true}
+                domain={domain}
+                range={range}
+                linkTimeAxis={linkTimeAxis}
+                enumAsBackground={enumAsBackground}
+                timeUnit={timeUnit}
+                isDarkMode={isDarkMode}
+                syncGroup={syncGroup}
+                canSplit={panes.length < MAX_PANES && !focused}
+                canClose={panes.length > 1}
+                onRangeChange={changeRange}
+                onSplit={split}
+                onClose={close}
+                onFocus={(id) =>
+                  setFocusedId((current) => (current === id ? null : id))
+                }
+                onChange={changePane}
+                onUnitChange={(id, unit) =>
+                  setUnits((current) => ({ ...current, [id]: unit }))
+                }
+                onResizeStart={() =>
+                  setLayoutState((current) => ({ ...current, preset: null }))
+                }
+              />
+            </div>
+          </div>
         </ContextMenuTrigger>
         <ContextMenuContent aria-label="Workspace actions">
           <ContextMenuItem
@@ -935,31 +1144,54 @@ export default function AnalysisWorkspace({
             <Send className="size-3.5" />
             Order markers ({orders.length})
           </ContextMenuCheckboxItem>
+          <ContextMenuCheckboxItem
+            disabled={dashboard.locked}
+            checked={enumAsBackground}
+            onCheckedChange={(checked) => setEnumAsBackground(checked === true)}
+          >
+            <Layers className="size-3.5" />
+            Enum background
+          </ContextMenuCheckboxItem>
           <ContextMenuItem
             disabled={dashboard.locked}
-            onClick={() => setRange({ start: 0, end: 100 })}
+            onClick={() => setRangeForAll({ start: 0, end: 100 })}
           >
             <RotateCcw className="size-3.5" />
             Reset zoom
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      {plotWarning && (
+        <div
+          role="alert"
+          className="border-border bg-muted/40 text-muted-foreground flex shrink-0 items-start gap-2 border-t px-4 py-2 text-[11px]"
+        >
+          <AlertTriangle className="text-primary mt-0.5 size-3.5 shrink-0" />
+          <span className="flex-1">{plotWarning}</span>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            className="shrink-0 opacity-70 hover:opacity-100"
+            onClick={() => setPlotWarning(null)}
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
       {showStatistics && (
-        <WindowStatistics
-          signals={resolvedSignals}
-          domain={domain}
-          range={range}
-        />
+        <WindowStatistics groups={statisticsGroups} domain={domain} />
       )}
       <div className="text-muted-foreground border-border flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-4 py-2 text-[10px]">
         <span>
           {dashboard.locked
             ? "Dashboard locked · Unlock in tab settings to edit"
-            : "Drop selected measurements onto a plot · Scroll to zoom · Drag charts to pan"}
+            : "Drop selected measurements onto a plot · Scroll to zoom · Shift+scroll or drag to pan"}
         </span>
         <span className="font-mono tabular-nums">
-          {panes.length} panels · {formatTime(range.start)}–
-          {formatTime(range.end)} {timeUnit}
+          {panes.length} panels ·{" "}
+          {linkTimeAxis
+            ? `${formatTime(range.start)}–${formatTime(range.end)} ${timeUnit}`
+            : "independent windows"}
         </span>
       </div>
     </div>
