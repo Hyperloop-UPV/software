@@ -4,7 +4,6 @@
 //! This reports that HTTP is responding, not that the vehicle is ready.
 
 mod handlers;
-pub mod response;
 mod server;
 
 pub use server::serve;

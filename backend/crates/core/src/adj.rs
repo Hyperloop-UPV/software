@@ -20,6 +20,9 @@ mod error;
 mod info;
 mod raw;
 
+#[cfg(feature = "http")]
+pub mod http;
+
 #[cfg(feature = "git")]
 use std::path::PathBuf;
 #[cfg(feature = "git")]
