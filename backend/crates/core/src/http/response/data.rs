@@ -1,8 +1,10 @@
 //! ADJ v3 data packet catalog returned by `/backend/adj/DataPackets`.
 
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 
 use crate::model::{AdjId, BoardId, NumericKind};
+
+use super::utils::{serialize_adj_id, serialize_board_id, serialize_numeric_kind};
 
 /// Data packet definitions grouped by board.
 ///
@@ -80,33 +82,4 @@ pub enum DataMeasurementKind {
         /// Allowed variant names.
         options: Vec<String>,
     },
-}
-
-// Serialize domain types locally without changing the internal model.
-fn serialize_board_id<S: Serializer>(id: &BoardId, serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_u16(id.0)
-}
-
-fn serialize_adj_id<S: Serializer>(id: &AdjId, serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_u16(id.0)
-}
-
-// Serialize numeric kind to match ADJv3 types 
-fn serialize_numeric_kind<S: Serializer>(
-    kind: &NumericKind,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    let name = match kind {
-        NumericKind::U8 => "uint8",
-        NumericKind::U16 => "uint16",
-        NumericKind::U32 => "uint32",
-        NumericKind::U64 => "uint64",
-        NumericKind::I8 => "int8",
-        NumericKind::I16 => "int16",
-        NumericKind::I32 => "int32",
-        NumericKind::I64 => "int64",
-        NumericKind::F32 => "float32",
-        NumericKind::F64 => "float64",
-    };
-    serializer.serialize_str(name)
 }
