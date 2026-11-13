@@ -222,8 +222,10 @@ export default function ComparisonChart({
     if (!element) return;
     const chart = echarts.init(element);
     chartRef.current = chart;
+    // Only joins the group. Whether the group broadcasts is decided by
+    // AnalysisWorkspace from `linkTimeAxis`; connecting here as well would
+    // re-link an unlinked dashboard every time a chart mounts.
     chart.group = syncGroup;
-    echarts.connect(syncGroup);
     // ECharts emits its own dataZoom action every 20 ms during a gesture, and
     // each store write re-renders the workspace and re-decimates every pane,
     // so commit at most once per frame. ECharts has already repainted itself,

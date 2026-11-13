@@ -1419,6 +1419,55 @@ test("charts can hold independent time windows", async ({ page }) => {
   await expect(paneWindow(page, 1)).toHaveCount(0);
 });
 
+test("a plot added after unlinking does not link the charts again", async ({
+  page,
+}) => {
+  await addSignalToPane(page, "velocity");
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await applyWindow(page, "10", "50");
+  await page
+    .getByRole("button", {
+      name: "Link time window across charts",
+      exact: true,
+    })
+    .click();
+
+  // The second chart mounts while the dashboard is already unlinked.
+  await page
+    .getByRole("region", { name: "Chart panel 1", exact: true })
+    .click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Chart 1 actions" })
+    .getByRole("menuitem", { name: "Split into columns", exact: true })
+    .click();
+  // Through the store: unlinked, the plot menu is one row taller and opens
+  // over the pointer.
+  const secondPane = await page
+    .getByRole("region", { name: "Chart panel 2", exact: true })
+    .getAttribute("data-pane-id");
+  await page.evaluate(async (paneId) => {
+    const modulePath = "/src/store/store.ts";
+    const { useStore } = await import(/* @vite-ignore */ modulePath);
+    useStore.getState().assignNormalSignalsToPlot(paneId, ["LCU/position"]);
+  }, secondPane);
+  await expect(page.locator("canvas")).toHaveCount(2);
+
+  await page
+    .getByLabel("Interactive signal chart", { exact: true })
+    .first()
+    .hover();
+  await page.keyboard.down("Shift");
+  await page.mouse.wheel(0, 300);
+  await page.keyboard.up("Shift");
+  await flushFrames(page);
+
+  await expect
+    .poll(() => paneWindow(page, 1).textContent())
+    .not.toContain("10–50");
+  await flushFrames(page);
+  expect(await paneWindow(page, 2).textContent()).toContain("10–50");
+});
+
 // An ADJ-backed session: enum handling is driven entirely by ADJ metadata
 // (isDiscreteMeasurement), so the plain CSV fixture above can never produce a
 // discrete signal. ADJ names are set equal to their ids to keep selectors
