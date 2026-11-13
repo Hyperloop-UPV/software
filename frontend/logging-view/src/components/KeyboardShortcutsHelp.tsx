@@ -1,58 +1,81 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  Separator,
 } from "@hyperloopupv/frontend-kit/components";
 import { Keyboard } from "@hyperloopupv/frontend-kit/icons";
-// NOTE: the original hooks module was not available at this path in some
-// environments. Define a local fallback for SHORTCUT_DEFS here so this
-// component compiles and still shows useful keyboard shortcuts. Keep the
-// shape compatible with the original usage: { key, label, description }.
-const SHORTCUT_DEFS: { key: string; label: string; description: string }[] = [
-  { key: "help", label: "?", description: "Open keyboard shortcuts" },
-  { key: "focus-search", label: "/", description: "Focus search input" },
-  { key: "new-entry", label: "n", description: "Create new log entry" },
-];
+import { NORMAL_GESTURES, NORMAL_SHORTCUTS } from "../lib/normal/shortcuts";
 
 interface KeyboardShortcutsHelpProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-/**
- * Modal dialog listing all keyboard shortcuts.
- * Opened via the header button or by pressing '?'.
- */
-const KeyboardShortcutsHelp = ({ open, onOpenChange }: KeyboardShortcutsHelpProps) => (
+const GROUPS = ["Time", "Plots", "Panels", "General"] as const;
+
+const Key = ({ children }: { children: string }) => (
+  <kbd className="bg-muted text-muted-foreground shrink-0 rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold whitespace-nowrap shadow-sm">
+    {children}
+  </kbd>
+);
+
+/** Lists the Normal mode shortcuts. Opened with `?` or the footer button. */
+const KeyboardShortcutsHelp = ({
+  open,
+  onOpenChange,
+}: KeyboardShortcutsHelpProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="sm:max-w-[500px]">
+    <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[40rem]">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Keyboard className="size-4" />
-          Keyboard Shortcuts
+          Keyboard shortcuts
         </DialogTitle>
+        <DialogDescription>
+          Disabled while typing in a field or while a menu or dialog is open.
+        </DialogDescription>
       </DialogHeader>
 
-      <Separator />
-
-      <ul className="flex flex-col gap-3 py-1">
-        {SHORTCUT_DEFS.map(({ key, label, description }) => (
-          <li key={key} className="flex items-start justify-between gap-4">
-            <span className="text-foreground text-sm">{description}</span>
-            <kbd className="bg-muted text-muted-foreground shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 font-mono text-xs font-semibold tracking-wider shadow-sm">
-              {label}
-            </kbd>
-          </li>
+      <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        {GROUPS.map((group) => (
+          <section key={group} aria-label={`${group} shortcuts`}>
+            <h3 className="text-muted-foreground mb-1.5 text-[11px] font-semibold tracking-wide uppercase">
+              {group}
+            </h3>
+            <ul className="grid gap-1.5">
+              {NORMAL_SHORTCUTS.filter(
+                (shortcut) => shortcut.group === group,
+              ).map(({ id, label, description }) => (
+                <li
+                  key={id}
+                  className="flex items-start justify-between gap-3 text-xs"
+                >
+                  <span>{description}</span>
+                  <Key>{label}</Key>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
-
-      <Separator />
-
-      <p className="text-muted-foreground text-xs">
-        Shortcuts are disabled while typing in input fields.
-      </p>
+        <section aria-label="Mouse gestures" className="sm:col-span-2">
+          <h3 className="text-muted-foreground mb-1.5 text-[11px] font-semibold tracking-wide uppercase">
+            Mouse
+          </h3>
+          <ul className="grid gap-x-8 gap-y-1.5 sm:grid-cols-2">
+            {NORMAL_GESTURES.map(({ label, description }) => (
+              <li
+                key={label}
+                className="flex items-start justify-between gap-3 text-xs"
+              >
+                <span>{description}</span>
+                <Key>{label}</Key>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </DialogContent>
   </Dialog>
 );

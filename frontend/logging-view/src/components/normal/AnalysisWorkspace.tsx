@@ -30,6 +30,7 @@ import {
   Eye,
   EyeOff,
   Grid2X2,
+  Keyboard,
   Layers,
   Maximize2,
   Minimize2,
@@ -88,6 +89,11 @@ import {
 } from "../../types/normal";
 import type { LoggedOrder } from "../../types/session";
 import ComparisonChart from "./ComparisonChart";
+import KeyboardShortcutsHelp from "../KeyboardShortcutsHelp";
+import {
+  hoveredPaneId,
+  useNormalShortcuts,
+} from "../../hooks/useNormalShortcuts";
 import CursorReadout from "./CursorReadout";
 import WindowStatistics, { type StatisticsGroup } from "./WindowStatistics";
 
@@ -1263,8 +1269,14 @@ export default function AnalysisWorkspace({
   const [focusedId, setFocusedId] = useDashboardSetting(dashboard, "focusedId");
   const [units, setUnits] = useDashboardSetting(dashboard, "units");
   const timeUnit = dashboard.settings.timeUnit;
-  const { range, linkTimeAxis, setRange, setRangeForAll, setPaneWindow } =
-    useDashboardTimeWindow(dashboard);
+  const {
+    range,
+    linkTimeAxis,
+    setRange,
+    setRangeForAll,
+    setPaneWindow,
+    setLinked,
+  } = useDashboardTimeWindow(dashboard);
   const [panelSizes, setPanelSizes] = useDashboardSetting(
     dashboard,
     "panelSizes",
@@ -1370,6 +1382,76 @@ export default function AnalysisWorkspace({
   };
   const formatTime = (percent: number) =>
     formatWindowTime(percent, domain, timeUnit);
+
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // Pane a per-plot shortcut applies to: the one under the pointer, else the
+  // expanded one, else the only one.
+  const targetPane = () => {
+    const id = hoveredPaneId() ?? focused?.id;
+    return (
+      panes.find((pane) => pane.id === id) ??
+      (panes.length === 1 ? panes[0] : undefined)
+    );
+  };
+  // Linked, time shortcuts move the dashboard window; unlinked, they move
+  // only the target plot, like its own wheel and drag do.
+  const moveWindow = (next: (current: TimeRange) => TimeRange) => {
+    if (linkTimeAxis) return setRange(next(range));
+    const pane = targetPane();
+    if (pane) setPaneWindow(pane.id, next(pane.timeWindow ?? range));
+  };
+  const zoomBy = (factor: number) =>
+    moveWindow((current) => {
+      const span = Math.min(
+        100,
+        Math.max(0.01, (current.end - current.start) * factor),
+      );
+      const start = Math.max(
+        0,
+        Math.min(100 - span, (current.start + current.end - span) / 2),
+      );
+      return { start, end: start + span };
+    });
+  const panBy = (direction: number) =>
+    moveWindow((current) => {
+      const span = current.end - current.start;
+      const start = Math.max(
+        0,
+        Math.min(100 - span, current.start + direction * span * 0.2),
+      );
+      return { start, end: start + span };
+    });
+  useNormalShortcuts({
+    zoomIn: () => zoomBy(0.5),
+    zoomOut: () => zoomBy(2),
+    panLeft: () => panBy(-1),
+    panRight: () => panBy(1),
+    resetZoom: () => moveWindow(() => ({ start: 0, end: 100 })),
+    linkTime: () => setLinked(!linkTimeAxis),
+    newPlot: () => {
+      if (!dashboard.locked && panes.length < MAX_PANES && !focused) addPlot();
+    },
+    newFormula: () => {
+      if (!dashboard.locked) openFormulaEditor({});
+    },
+    expand: () => {
+      const pane = targetPane();
+      if (pane)
+        setFocusedId((current) => (current === pane.id ? null : pane.id));
+    },
+    fitY: () => {
+      const pane = targetPane();
+      if (pane) changePane(pane.id, { fitY: !pane.fitY });
+    },
+    statistics: () => setShowStatistics((current) => !current),
+    cursors: () => setShowCursors((current) => !current),
+    orders: () => setShowOrders((current) => !(current ?? true)),
+    escape: () => {
+      if (focused) setFocusedId(null);
+      else setCursors({ a: null, b: null });
+    },
+    help: () => setShortcutsOpen(true),
+  });
   const statisticsGroups = useMemo<StatisticsGroup[]>(() => {
     if (linkTimeAxis)
       return [
@@ -1577,8 +1659,21 @@ export default function AnalysisWorkspace({
         <span>
           {dashboard.locked
             ? "Dashboard locked · Unlock in tab settings to edit"
-            : "Drop selected measurements onto a plot · Scroll to zoom · Shift+scroll or drag to pan"}
+            : "Drop selected measurements onto a plot · Scroll to zoom · Drag to pan · Ctrl+drag to zoom to a stretch"}
+          <button
+            type="button"
+            className="hover:text-foreground ml-3 inline-flex items-center gap-1 underline-offset-2 hover:underline"
+            onClick={() => setShortcutsOpen(true)}
+          >
+            <Keyboard className="size-3" />
+            Shortcuts
+            <kbd className="bg-muted rounded border px-1 font-mono">?</kbd>
+          </button>
         </span>
+        <KeyboardShortcutsHelp
+          open={shortcutsOpen}
+          onOpenChange={setShortcutsOpen}
+        />
         <span className="font-mono tabular-nums">
           {panes.length} panels ·{" "}
           {linkTimeAxis

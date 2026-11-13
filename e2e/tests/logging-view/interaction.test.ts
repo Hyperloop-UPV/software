@@ -209,3 +209,83 @@ test("cursors measure the time and value between two clicks", async ({
   await readout(page).getByRole("button", { name: "Clear cursors" }).click();
   expect((await settings(page)).cursors).toEqual({ a: null, b: null });
 });
+
+test("keyboard shortcuts drive the dashboard and stay out of text fields", async ({
+  page,
+}) => {
+  await plotSignals(page, ["velocity"]);
+  const box = (await chart(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+
+  await page.keyboard.press("+");
+  await expect
+    .poll(async () => (await settings(page)).range)
+    .toEqual({ start: 25, end: 75 });
+  await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(async () => (await settings(page)).range)
+    .toEqual({ start: 35, end: 85 });
+  await page.keyboard.press("-");
+  await page.keyboard.press("0");
+  await expect
+    .poll(async () => (await settings(page)).range)
+    .toEqual({ start: 0, end: 100 });
+
+  await page.keyboard.press("s");
+  await expect(
+    page.getByRole("region", { name: "Visible window statistics" }),
+  ).toBeVisible();
+  await page.keyboard.press("c");
+  await expect(readout(page)).toBeVisible();
+  await page.keyboard.press("l");
+  expect((await settings(page)).linkTimeAxis).toBe(false);
+  await page.keyboard.press("l");
+  expect((await settings(page)).linkTimeAxis).toBe(true);
+
+  await page.keyboard.press("n");
+  await expect(page.getByRole("region", { name: /^Chart panel / })).toHaveCount(
+    2,
+  );
+  // The pointer is still over the first plot, so F and Y act on it.
+  await page.mouse.move(box.x + 40, box.y + 40);
+  await page.keyboard.press("f");
+  await expect(page.getByRole("region", { name: /^Chart panel / })).toHaveCount(
+    1,
+  );
+  await page.keyboard.press("y");
+  await expect
+    .poll(async () => {
+      const { layoutState, focusedId } = await settings(page);
+      const find = (node: any): any =>
+        node.type === "pane"
+          ? node.id === focusedId
+            ? node
+            : null
+          : (find(node.first) ?? find(node.second));
+      return find(layoutState.tree)?.fitY;
+    })
+    .toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("region", { name: /^Chart panel / })).toHaveCount(
+    2,
+  );
+
+  // Typing in a field is just typing.
+  await page.keyboard.press("m");
+  const dialog = page.getByRole("dialog", { name: "New formula" });
+  await dialog.getByLabel("Name", { exact: true }).fill("scn0-+");
+  await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue(
+    "scn0-+",
+  );
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("region", { name: /^Chart panel / })).toHaveCount(
+    2,
+  );
+  expect((await settings(page)).showStatistics).toBe(true);
+
+  await page.keyboard.press("?");
+  const help = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+  await expect(help).toContainText("Zoom in");
+  await expect(help).toContainText("Measuring cursors");
+});
