@@ -1,10 +1,10 @@
 //! Ejecutable mínimo para demostrar la integración con `software-core`.
 
-use tracing_subscriber::EnvFilter;
 use tokio::net::TcpListener;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
-async fn main() -> Result<(), std::io::Error>{
+async fn main() -> std::io::Result<()> {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
