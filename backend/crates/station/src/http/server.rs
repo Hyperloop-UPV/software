@@ -8,6 +8,25 @@ use tokio::{net::TcpListener, sync::mpsc};
 
 use super::handlers::{HttpState, data_packet, order_packet, protection_packet, websocket};
 
+/// Configures the HTTP server using the future application configuration.
+///
+/// Once `HttpConfig` is defined, this function should translate its settings
+/// into the server setup: select the listening address and port, apply the
+/// allowed CORS origins, and configure cache headers for the ADJ catalogs.
+/// Invalid settings should be reported before the server starts accepting
+/// requests, rather than silently falling back to other values.
+///
+/// It should consume configuration already loaded by the application, not read
+/// configuration files or environment variables itself. ADJ loading and
+/// WebSocket message handling remain outside its responsibilities.
+///
+/// The parameter and return type will be finalized when the configuration
+/// module is available. This placeholder is not called by the current startup.
+#[expect(dead_code, reason = "Waiting for the application configuration module")]
+fn configure_server(/* config: &HttpConfig */) {
+    todo!("Configure the HTTP server once HttpConfig is available");
+}
+
 /// Serves the catalogs and hands connections to the future WebSocket module.
 ///
 /// The caller chooses the address and port when binding the listener. To enable
