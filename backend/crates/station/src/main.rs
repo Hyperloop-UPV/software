@@ -1,8 +1,10 @@
 //! Ejecutable mínimo para demostrar la integración con `software-core`.
 
 use tracing_subscriber::EnvFilter;
+use tokio::net::TcpListener;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), std::io::Error>{
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
@@ -21,5 +23,14 @@ fn main() {
     };
     tracing::info!(boards = adj.pod_data.boards.len(), "adj de prueba cargado");
 
+    // Just testing, not the actual address
+    let listener = TcpListener::bind("127.0.0.1:8080").await?;
+
+    http::serve(listener, &adj).await?;
+
     tracing::info!("demo finalizada");
+
+    Ok(())
 }
+
+mod http;
