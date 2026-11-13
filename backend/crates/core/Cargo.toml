@@ -22,6 +22,8 @@ pcap = ["net"]
 logger = []
 # Reusable tracing/diagnostics setup (console + non-blocking file + stderr layers)
 trace = ["dep:tracing-subscriber", "dep:tracing-appender"]
+# HTTP
+http = ["dep:tokio"]
 
 [dependencies]
 bytes.workspace = true
@@ -36,6 +38,8 @@ gix = { version = "0.87.1", optional = true, features = ["blocking-http-transpor
 dirs = { version = "7.0.0", optional = true }
 tempfile = { version = "3.27", optional = true }
 ntp_usg-server = { version = "5.0.0", optional = true, features = ["ipv4", "tokio"] }
+axum = { version = "0.8.9", features = ["ws", "http2", "http1"] }
+tower = { version = "0.5.3", features = ["util"] }
 
 # `workspace = true` can't be combined with extra lints in the same table,
 # so the workspace list is repeated here with `missing_docs` added: this is
