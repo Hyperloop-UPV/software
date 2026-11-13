@@ -54,6 +54,25 @@ pub(crate) fn serialize_protection_kind<S: Serializer>(
     ProtectionKindDef::serialize(kind, serializer)
 }
 
+// This endpoint indexes general_info.json's protectionTypes by the original
+// ADJ names. Keep the order response's existing snake_case format unchanged.
+#[derive(Serialize)]
+#[serde(remote = "ProtectionKind", tag = "type")]
+enum AdjProtectionKindDef {
+    Above { limit: f64 },
+    Below { limit: f64 },
+    Equal { target: f64 },
+    NotEqual { target: f64 },
+    Range { min: f64, max: f64 },
+}
+
+pub(crate) fn serialize_adj_protection_kind<S: Serializer>(
+    kind: &ProtectionKind,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    AdjProtectionKindDef::serialize(kind, serializer)
+}
+
 pub(crate) fn serialize_severity<S: Serializer>(
     severity: &Severity,
     serializer: S,
