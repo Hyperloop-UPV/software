@@ -34,3 +34,4 @@ async fn main() -> std::io::Result<()> {
 }
 
 mod http;
+mod vehicle;
