@@ -78,6 +78,8 @@ export interface ChartPane {
   title: string;
   signalIds: string[];
   normalized: boolean;
+  /** Scale y axes to the visible window instead of the whole recording. */
+  fitY?: boolean;
   hiddenSignalIds?: string[];
   markers?: ChartMarker[];
   // Only consulted when the dashboard's time axis is unlinked; absent means

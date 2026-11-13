@@ -38,6 +38,8 @@ interface Props {
   band: ComparisonSignal | null;
   /** True when every signal is discrete: draw a Gantt-style state timeline. */
   timeline: boolean;
+  /** Scale each y axis to the samples inside the visible window. */
+  fitY: boolean;
   onRangeChange: (range: TimeRange) => void;
   onMarkerAt: (timeMs: number) => void;
 }
@@ -59,10 +61,12 @@ export default function ComparisonChart({
   markers,
   band,
   timeline,
+  fitY,
   onRangeChange,
   onMarkerAt,
 }: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
+  const zoomBandRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const rangeRef = useRef(range);
   const onRangeChangeRef = useRef(onRangeChange);
@@ -249,26 +253,29 @@ export default function ComparisonChart({
       }
     };
     chart.on("datazoom", updateRange);
-    const addMarkerAtPixel = (x: number, y: number) => {
-      if (lockedRef.current) return;
+    // Time under a pixel of this chart, in ms from the start of the recording.
+    const timeAtPixel = (x: number, y: number) => {
       const point = chart.convertFromPixel({ xAxisIndex: 0 }, [x, y]);
       const value = Array.isArray(point) ? point[0] : point;
       const currentDomain = domainRef.current;
       const duration = currentDomain.endMs - currentDomain.startMs;
-      const convertedTimeMs = Number(value) * TIME_DIVISORS[timeUnitRef.current];
+      const convertedTimeMs =
+        Number(value) * TIME_DIVISORS[timeUnitRef.current];
       // convertFromPixel can be unavailable for a just-resized chart. Keep the
       // gesture useful by deriving the same x position from the plot width.
       const fallbackTimeMs =
         (Math.max(0, Math.min(element.clientWidth, x)) /
           Math.max(1, element.clientWidth)) *
         duration;
-      const timeMs =
-        Number.isFinite(convertedTimeMs) &&
+      return Number.isFinite(convertedTimeMs) &&
         convertedTimeMs >= 0 &&
         convertedTimeMs <= duration
-          ? convertedTimeMs
-          : fallbackTimeMs;
-      onMarkerAtRef.current(timeMs);
+        ? convertedTimeMs
+        : fallbackTimeMs;
+    };
+    const addMarkerAtPixel = (x: number, y: number) => {
+      if (lockedRef.current) return;
+      onMarkerAtRef.current(timeAtPixel(x, y));
     };
     const onDoubleClick = (event: MouseEvent) => {
       if (!(event.target instanceof Node) || !element.contains(event.target))
@@ -311,6 +318,51 @@ export default function ComparisonChart({
       passive: false,
     });
 
+    // Ctrl+drag selects a stretch of time and zooms to it. Captured ahead of
+    // zrender for the same reason as the wheel: its roam controller would
+    // otherwise start a pan from the same mousedown.
+    let zoomFrom: number | null = null;
+    const band = zoomBandRef.current;
+    const localX = (event: MouseEvent) => {
+      const bounds = element.getBoundingClientRect();
+      return Math.max(0, Math.min(bounds.width, event.clientX - bounds.left));
+    };
+    const onZoomMove = (event: MouseEvent) => {
+      if (zoomFrom === null || !band) return;
+      const x = localX(event);
+      band.style.left = `${Math.min(zoomFrom, x)}px`;
+      band.style.width = `${Math.abs(x - zoomFrom)}px`;
+      band.hidden = false;
+    };
+    const onZoomEnd = (event: MouseEvent) => {
+      document.removeEventListener("mousemove", onZoomMove, true);
+      document.removeEventListener("mouseup", onZoomEnd, true);
+      if (band) band.hidden = true;
+      const from = zoomFrom;
+      zoomFrom = null;
+      if (from === null) return;
+      const to = localX(event);
+      // A plain Ctrl+click is not a selection.
+      if (Math.abs(to - from) < 5) return;
+      const duration = domainRef.current.endMs - domainRef.current.startMs;
+      if (duration <= 0) return;
+      const percents = [from, to]
+        .map((x) => (timeAtPixel(x, 0) / duration) * 100)
+        .sort((a, b) => a - b);
+      const start = Math.max(0, Math.min(100, percents[0]));
+      const end = Math.max(start + 0.01, Math.min(100, percents[1]));
+      chart.dispatchAction({ type: "dataZoom", start, end });
+    };
+    const onZoomStart = (event: MouseEvent) => {
+      if (!event.ctrlKey || event.button !== 0 || lockedRef.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+      zoomFrom = localX(event);
+      document.addEventListener("mousemove", onZoomMove, true);
+      document.addEventListener("mouseup", onZoomEnd, true);
+    };
+    element.addEventListener("mousedown", onZoomStart, true);
+
     const observer = new ResizeObserver(() => {
       setWidth(element.clientWidth);
       chart.resize();
@@ -320,6 +372,9 @@ export default function ComparisonChart({
       if (frame) cancelAnimationFrame(frame);
       observer.disconnect();
       element.removeEventListener("wheel", onWheel, { capture: true });
+      element.removeEventListener("mousedown", onZoomStart, true);
+      document.removeEventListener("mousemove", onZoomMove, true);
+      document.removeEventListener("mouseup", onZoomEnd, true);
       chart.off("datazoom", updateRange);
       document.removeEventListener("dblclick", onDoubleClick, true);
       chart.dispose();
@@ -364,8 +419,35 @@ export default function ComparisonChart({
       },
       splitLine: { show: false },
     };
+    // With fitY, an axis spans only what its signals do inside the window.
+    // `prepared` is already cut to the window plus one neighbour either side.
+    const windowFrom =
+      ((domain.endMs - domain.startMs) * range.start) /
+      100 /
+      TIME_DIVISORS[timeUnit];
+    const windowTo =
+      ((domain.endMs - domain.startMs) * range.end) /
+      100 /
+      TIME_DIVISORS[timeUnit];
+    const fitted = (unit: string) => {
+      let min = Infinity;
+      let max = -Infinity;
+      signals.forEach((signal, index) => {
+        if (axisKey(signal) !== unit) return;
+        for (const [time, value] of prepared[index]) {
+          if (time < windowFrom || time > windowTo) continue;
+          if (value < min) min = value;
+          if (value > max) max = value;
+        }
+      });
+      if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+      const pad = max === min ? Math.abs(max) * 0.05 || 1 : (max - min) * 0.05;
+      return { min: min - pad, max: max + pad };
+    };
     const axes = units.map((unit, index) => {
       const signal = signals.find((item) => axisKey(item) === unit);
+      const fit =
+        fitY && !normalized && !signal?.discrete ? fitted(unit) : null;
       return {
         type: "value" as const,
         name: normalized ? "Relative (%)" : signal?.discrete ? "State" : unit,
@@ -373,8 +455,8 @@ export default function ComparisonChart({
         nameGap: 48,
         nameTextStyle: { color: muted, fontSize: 11 },
         position: index === 0 ? ("left" as const) : ("right" as const),
-        min: normalized ? 0 : undefined,
-        max: normalized ? 100 : undefined,
+        min: normalized ? 0 : fit?.min,
+        max: normalized ? 100 : fit?.max,
         scale: !normalized,
         minInterval: signal?.discrete ? 1 : undefined,
         axisLine: { show: false },
@@ -676,6 +758,7 @@ export default function ComparisonChart({
     range,
     timeUnit,
     normalized,
+    fitY,
     isDarkMode,
     width,
     locked,
@@ -706,10 +789,18 @@ export default function ComparisonChart({
   }, [range]);
 
   return (
-    <div
-      ref={elementRef}
-      className="h-full min-h-0 w-full"
-      aria-label="Interactive signal chart"
-    />
+    <div className="relative h-full min-h-0 w-full">
+      <div
+        ref={elementRef}
+        className="h-full min-h-0 w-full"
+        aria-label="Interactive signal chart"
+      />
+      <div
+        ref={zoomBandRef}
+        hidden
+        aria-hidden="true"
+        className="border-primary bg-primary/15 pointer-events-none absolute inset-y-0 border-x"
+      />
+    </div>
   );
 }

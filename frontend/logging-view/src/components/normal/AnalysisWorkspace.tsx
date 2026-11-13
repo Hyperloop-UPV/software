@@ -142,6 +142,7 @@ interface PaneProps {
         | "title"
         | "signalIds"
         | "normalized"
+        | "fitY"
         | "hiddenSignalIds"
         | "enumDisplay"
         | "markers"
@@ -198,6 +199,7 @@ function ComparisonPane({
   // Set while the context menu is closing *because* it opened the config
   // popover, so the menu's focus restore does not dismiss it (see below).
   const reopenConfigRef = useRef(false);
+  const menuOpenedAtRef = useRef(0);
   const configContentRef = useRef<HTMLDivElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const { selectedSeries } = useSeriesSelection();
@@ -272,13 +274,25 @@ function ComparisonPane({
     setEditingTitle(false);
   };
 
+  const newFormulaFromPlot = () =>
+    openFormulaEditor({
+      paneId: node.id,
+      sourceIds: signals
+        .filter((signal) => !signal.formula && !signal.discrete)
+        .map((signal) => signal.id),
+    });
+
   const startRename = () => {
     setDraftTitle(title);
     setEditingTitle(true);
   };
 
   return (
-    <ContextMenu>
+    <ContextMenu
+      onOpenChange={(open) => {
+        if (open) menuOpenedAtRef.current = performance.now();
+      }}
+    >
       <ContextMenuTrigger asChild>
         <section
           ref={setNodeRef}
@@ -607,9 +621,6 @@ function ComparisonPane({
                       );
                     })}
                   </div>
-                  {/* Lives here rather than in the plot's right-click menu:
-                      one more row there makes the menu open over the cursor,
-                      and the same click then lands on its first item. */}
                   <div className="border-t px-2 py-2">
                     <p className="text-muted-foreground px-2 pb-1 text-[11px] font-medium">
                       Computed signals
@@ -641,14 +652,7 @@ function ComparisonPane({
                       className="h-7 w-full justify-start gap-2 px-2 text-xs"
                       onClick={() => {
                         setConfigOpen(false);
-                        openFormulaEditor({
-                          paneId: node.id,
-                          sourceIds: signals
-                            .filter(
-                              (signal) => !signal.formula && !signal.discrete,
-                            )
-                            .map((signal) => signal.id),
-                        });
+                        newFormulaFromPlot();
                       }}
                     >
                       <Calculator className="size-3.5" />
@@ -846,6 +850,7 @@ function ComparisonPane({
                 range={paneRange}
                 timeUnit={timeUnit}
                 normalized={normalized}
+                fitY={!!node.fitY}
                 isDarkMode={isDarkMode}
                 syncGroup={syncGroup}
                 orders={orders}
@@ -952,6 +957,16 @@ function ComparisonPane({
       </ContextMenuTrigger>
       <ContextMenuContent
         aria-label={`Chart ${index + 1} actions`}
+        // Near the bottom of the window the menu opens over the pointer, and
+        // releasing the right button that opened it would pick whatever row
+        // landed underneath. Swallow that one release.
+        onPointerUpCapture={(event) => {
+          if (
+            event.button === 2 &&
+            performance.now() - menuOpenedAtRef.current < 400
+          )
+            event.stopPropagation();
+        }}
         // Radix restores focus to the trigger in a setTimeout that runs after
         // the exit animation, i.e. after the popover we just opened has
         // mounted; that focusin reads as "focus outside" and closes it. No
@@ -969,10 +984,6 @@ function ComparisonPane({
             (content.querySelector("input") ?? content).focus();
         }}
       >
-        <ContextMenuItem disabled={locked} onClick={startRename}>
-          <Pencil className="size-3.5" />
-          Rename
-        </ContextMenuItem>
         <ContextMenuItem
           disabled={locked || selectedIds.length === 0}
           onClick={() => assignSignals(node.id, selectedIds)}
@@ -991,55 +1002,100 @@ function ComparisonPane({
           <Settings2 className="size-3.5" />
           Signals, units and scale
         </ContextMenuItem>
+        <ContextMenuItem disabled={locked} onClick={newFormulaFromPlot}>
+          <Calculator className="size-3.5" />
+          New formula from this plot…
+        </ContextMenuItem>
+        <ContextMenuItem disabled={locked} onClick={startRename}>
+          <Pencil className="size-3.5" />
+          Rename
+        </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem
-          disabled={locked || !canSplit}
-          onClick={() => onSplit(node.id, "horizontal")}
-        >
-          <Columns className="size-3.5" />
-          Split into columns
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={locked || !canSplit}
-          onClick={() => onSplit(node.id, "vertical")}
-        >
-          <Rows2 className="size-3.5" />
-          Split into rows
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => onFocus(node.id)}>
-          {focused ? (
-            <Minimize2 className="size-3.5" />
-          ) : (
-            <Maximize2 className="size-3.5" />
-          )}
-          {focused ? "Restore panels" : "Expand panel"}
-        </ContextMenuItem>
-        {!linkTimeAxis && (
-          <ContextMenuItem
-            disabled={locked || !pinned}
-            onClick={() => onRangeChange(node.id, null)}
-          >
-            <RotateCcw className="size-3.5" />
-            Reset this plot&apos;s zoom
-          </ContextMenuItem>
-        )}
-        <ContextMenuSeparator />
-        <ContextMenuCheckboxItem
-          disabled={locked || tooManyUnits}
-          checked={normalized}
-          onCheckedChange={(checked) =>
-            onChange(node.id, { normalized: checked === true })
-          }
-        >
-          Normalize to 0–100%
-        </ContextMenuCheckboxItem>
-        <ContextMenuItem
-          disabled={locked || !node.hiddenSignalIds?.length}
-          onClick={() => onChange(node.id, { hiddenSignalIds: [] })}
-        >
-          <Eye className="size-3.5" />
-          Show all traces
-        </ContextMenuItem>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Grid2X2 className="size-3.5" />
+            Layout
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            <ContextMenuItem
+              disabled={locked || !canSplit}
+              onClick={() => onSplit(node.id, "horizontal")}
+            >
+              <Columns className="size-3.5" />
+              Split into columns
+            </ContextMenuItem>
+            <ContextMenuItem
+              disabled={locked || !canSplit}
+              onClick={() => onSplit(node.id, "vertical")}
+            >
+              <Rows2 className="size-3.5" />
+              Split into rows
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => onFocus(node.id)}>
+              {focused ? (
+                <Minimize2 className="size-3.5" />
+              ) : (
+                <Maximize2 className="size-3.5" />
+              )}
+              {focused ? "Restore panels" : "Expand panel"}
+            </ContextMenuItem>
+            {canClose && (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  variant="destructive"
+                  disabled={locked}
+                  onClick={() => onClose(node.id)}
+                >
+                  <X className="size-3.5" />
+                  Close plot
+                </ContextMenuItem>
+              </>
+            )}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <Eye className="size-3.5" />
+            View
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            <ContextMenuCheckboxItem
+              disabled={locked || tooManyUnits}
+              checked={normalized}
+              onCheckedChange={(checked) =>
+                onChange(node.id, { normalized: checked === true })
+              }
+            >
+              Normalize to 0–100%
+            </ContextMenuCheckboxItem>
+            <ContextMenuCheckboxItem
+              disabled={locked || normalized || render.mode !== "lines"}
+              checked={!!node.fitY}
+              onCheckedChange={(checked) =>
+                onChange(node.id, { fitY: checked === true })
+              }
+            >
+              Fit Y to window
+            </ContextMenuCheckboxItem>
+            <ContextMenuItem
+              disabled={locked || !node.hiddenSignalIds?.length}
+              onClick={() => onChange(node.id, { hiddenSignalIds: [] })}
+            >
+              <Eye className="size-3.5" />
+              Show all traces
+            </ContextMenuItem>
+            {!linkTimeAxis && (
+              <ContextMenuItem
+                disabled={locked || !pinned}
+                onClick={() => onRangeChange(node.id, null)}
+              >
+                <RotateCcw className="size-3.5" />
+                Reset this plot&apos;s zoom
+              </ContextMenuItem>
+            )}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
         <ContextMenuSeparator />
         <ContextMenuItem
           variant="destructive"
@@ -1051,16 +1107,6 @@ function ComparisonPane({
           <Trash2 className="size-3.5" />
           Clear measurements
         </ContextMenuItem>
-        {canClose && (
-          <ContextMenuItem
-            variant="destructive"
-            disabled={locked}
-            onClick={() => onClose(node.id)}
-          >
-            <X className="size-3.5" />
-            Close plot
-          </ContextMenuItem>
-        )}
       </ContextMenuContent>
     </ContextMenu>
   );
@@ -1271,7 +1317,12 @@ export default function AnalysisWorkspace({
       changes: Partial<
         Pick<
           ChartPane,
-          "title" | "signalIds" | "normalized" | "hiddenSignalIds" | "markers"
+          | "title"
+          | "signalIds"
+          | "normalized"
+          | "fitY"
+          | "hiddenSignalIds"
+          | "markers"
         >
       >,
     ) => {

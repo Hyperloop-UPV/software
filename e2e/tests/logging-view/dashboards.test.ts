@@ -24,6 +24,20 @@ async function chooseSignal(page: Page, name: string) {
 
 // Two frames is what the existing wheel assertions use to let ECharts repaint
 // and the rAF-coalesced store commit land.
+// Layout and view actions of a plot's right-click menu live in submenus.
+async function pickPaneSubmenuItem(
+  page: Page,
+  chart: number,
+  submenu: "Layout" | "View",
+  item: string,
+) {
+  await page
+    .getByRole("menu", { name: `Chart ${chart} actions` })
+    .getByRole("menuitem", { name: submenu, exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: item, exact: true }).click();
+}
+
 async function flushFrames(page: Page) {
   await page.evaluate(
     () =>
@@ -919,10 +933,7 @@ test("right-click menus duplicate tabs and act on plots", async ({
   await page
     .getByRole("region", { name: "Chart panel 2", exact: true })
     .click({ button: "right" });
-  await page
-    .getByRole("menu", { name: "Chart 2 actions" })
-    .getByRole("menuitem", { name: "Close plot", exact: true })
-    .click();
+  await pickPaneSubmenuItem(page, 2, "Layout", "Close plot");
   await expect(page.getByRole("region", { name: /^Chart panel / })).toHaveCount(
     1,
   );
@@ -1369,10 +1380,7 @@ test("charts can hold independent time windows", async ({ page }) => {
   await page
     .getByRole("region", { name: "Chart panel 1", exact: true })
     .click({ button: "right" });
-  await page
-    .getByRole("menu", { name: "Chart 1 actions" })
-    .getByRole("menuitem", { name: "Split into columns", exact: true })
-    .click();
+  await pickPaneSubmenuItem(page, 1, "Layout", "Split into columns");
   await expect(page.getByRole("region", { name: /^Chart panel / })).toHaveCount(
     2,
   );
@@ -1456,10 +1464,7 @@ test("a plot added after unlinking does not link the charts again", async ({
   await page
     .getByRole("region", { name: "Chart panel 1", exact: true })
     .click({ button: "right" });
-  await page
-    .getByRole("menu", { name: "Chart 1 actions" })
-    .getByRole("menuitem", { name: "Split into columns", exact: true })
-    .click();
+  await pickPaneSubmenuItem(page, 1, "Layout", "Split into columns");
   // Through the store: unlinked, the plot menu is one row taller and opens
   // over the pointer.
   const secondPane = await page
