@@ -2,6 +2,8 @@
 
 This module deserializes, validates, and loads ADJ JSON fixtures into the backend domain model.
 
+The `http` submodule converts a loaded `Adj` into serializable data, order, and protection catalogs for HTTP responses. It defines response bodies, not routes or a server. See the [HTTP submodule README](http/README.md) for usage and JSON examples.
+
 For schema specifications, packet/measurement ID conventions, and network requirements, refer directly to the official documentation in the **ADJ repository**.
 
 ---

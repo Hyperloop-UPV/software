@@ -1,0 +1,65 @@
+{
+  "protections": [
+    {
+      "id": 11192,
+      "name": "LCU_temperature_1_protection_1",
+      "board_id": 1,
+      "measurement_id": 3000,
+      "kind": {
+        "type": "Range",
+        "min": 0.0,
+        "max": 100.0
+      },
+      "severity": "fault",
+      "time": {
+        "secs": 0,
+        "nanos": 500000000
+      }
+    },
+    {
+      "id": 19384,
+      "name": "LCU_temperature_1_protection_2",
+      "board_id": 1,
+      "measurement_id": 3000,
+      "kind": {
+        "type": "Below",
+        "limit": 10.0
+      },
+      "severity": "warning",
+      "time": {
+        "secs": 1,
+        "nanos": 0
+      }
+    },
+    {
+      "id": 11292,
+      "name": "HVBMS_pack_voltage_protection_1",
+      "board_id": 2,
+      "measurement_id": 3100,
+      "kind": {
+        "type": "Range",
+        "min": 300.0,
+        "max": 500.0
+      },
+      "severity": "fault",
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      }
+    }
+  ],
+  "info": {
+    "Equal": {
+      "range": false,
+      "text": "Value is equal to {} (measured: %)"
+    },
+    "Range": {
+      "range": true,
+      "text": "Value out of range {} (measured: %)"
+    },
+    "Below": {
+      "range": false,
+      "text": "Value below {} (measured: %)"
+    }
+  }
+}

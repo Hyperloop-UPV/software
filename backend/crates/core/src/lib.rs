@@ -25,3 +25,6 @@ pub mod adj;
 /// [`adj`] declares as the schema. See [`protocol::wire`],
 /// [`protocol::tcp`], [`protocol::udp`].
 pub mod protocol;
+
+// Utils module
+pub(crate) mod utils;
