@@ -19,6 +19,7 @@ tracing-subscriber.workspace = true
 serde_json.workspace = true
 tower = "0.5.3"
 axum = { version = "0.8.9", features = ["ws", "http1", "http2"] }
+tower-http = { version = "0.6.11", features = ["cors", "set-header"] }
 
 [lints]
 workspace = true

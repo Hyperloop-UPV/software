@@ -2,30 +2,13 @@
 
 use std::{io, sync::Arc};
 
-use axum::{Router, extract::ws::WebSocket, routing::get};
+use axum::{Router, extract::ws::WebSocket, http::header, routing::get};
 use software_core::adj::Adj;
 use tokio::{net::TcpListener, sync::mpsc};
+use tower_http::set_header::SetResponseHeaderLayer;
 
+use super::configure::CachePolicy;
 use super::handlers::{HttpState, data_packet, order_packet, protection_packet, websocket};
-
-/// Configures the HTTP server using the future application configuration.
-///
-/// Once `HttpConfig` is defined, this function should translate its settings
-/// into the server setup: select the listening address and port, apply the
-/// allowed CORS origins, and configure cache headers for the ADJ catalogs.
-/// Invalid settings should be reported before the server starts accepting
-/// requests, rather than silently falling back to other values.
-///
-/// It should consume configuration already loaded by the application, not read
-/// configuration files or environment variables itself. ADJ loading and
-/// WebSocket message handling remain outside its responsibilities.
-///
-/// The parameter and return type will be finalized when the configuration
-/// module is available. This placeholder is not called by the current startup.
-#[expect(dead_code, reason = "Waiting for the application configuration module")]
-fn configure_server(/* config: &HttpConfig */) {
-    todo!("Configure the HTTP server once HttpConfig is available");
-}
 
 /// Serves the catalogs and hands connections to the future WebSocket module.
 ///
@@ -48,20 +31,37 @@ pub async fn serve_with_websocket(
 }
 
 fn router(adj: &Adj, websocket_connections: Option<mpsc::Sender<WebSocket>>) -> io::Result<Router> {
+    // Keep the existing listener-based entry points unchanged for test startup.
+    router_with_cache(adj, websocket_connections, CachePolicy::Unspecified)
+}
+
+pub(super) fn router_with_cache(
+    adj: &Adj,
+    websocket_connections: Option<mpsc::Sender<WebSocket>>,
+    cache_policy: CachePolicy,
+) -> io::Result<Router> {
     // Build and serialize the catalogs once, before accepting requests. The
     // state retains the bytes even after the Adj is dropped.
     let state = Arc::new(HttpState::new(adj, websocket_connections).map_err(io::Error::other)?);
 
-    Ok(Router::new()
+    let mut catalogs = Router::new()
         .route("/backend/adj/DataPackets", get(data_packet))
         .route("/backend/adj/OrderPackets", get(order_packet))
-        .route("/backend/adj/ProtectionPackets", get(protection_packet))
-        .route("/backend", get(websocket))
-        .with_state(state))
+        .route("/backend/adj/ProtectionPackets", get(protection_packet));
+
+    if let Some(value) = cache_policy.header_value() {
+        catalogs = catalogs.layer(SetResponseHeaderLayer::overriding(
+            header::CACHE_CONTROL,
+            value,
+        ));
+    }
+
+    // Register WebSocket after the catalog layer so upgrades are not cached.
+    Ok(catalogs.route("/backend", get(websocket)).with_state(state))
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use std::{io, path::Path, time::Duration};
 
     use axum::{
@@ -79,7 +79,7 @@ mod tests {
 
     use super::router;
 
-    const PATHS: [&str; 3] = [
+    pub(in crate::http) const PATHS: [&str; 3] = [
         "/backend/adj/DataPackets",
         "/backend/adj/OrderPackets",
         "/backend/adj/ProtectionPackets",
@@ -147,6 +147,13 @@ mod tests {
         app: axum::Router,
     ) -> Result<(String, TcpStream), Box<dyn std::error::Error>> {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
+        handshake_on(listener, app).await
+    }
+
+    pub(in crate::http) async fn handshake_on(
+        listener: TcpListener,
+        app: axum::Router,
+    ) -> Result<(String, TcpStream), Box<dyn std::error::Error>> {
         let address = listener.local_addr()?;
         let (shutdown, stopped) = oneshot::channel();
         let server = tokio::spawn(async move {

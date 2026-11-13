@@ -9,10 +9,18 @@ use std::io;
 use software_core::adj::Adj;
 use tokio::net::TcpListener;
 
+mod configure;
 mod handlers;
 mod server;
 
 pub use server::serve_with_websocket;
+// The test main still uses the listener-based entry point. Configuration will
+// be connected by the application startup when its config module is available.
+#[allow(
+    unused_imports,
+    reason = "The test startup does not use configuration yet"
+)]
+pub use configure::{CachePolicy, HttpConfig, configure_server};
 
 /// Serves the catalogs without connecting a WebSocket consumer yet.
 ///
