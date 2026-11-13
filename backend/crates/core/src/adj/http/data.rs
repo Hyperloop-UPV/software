@@ -2,9 +2,10 @@
 
 use serde::Serialize;
 
-use crate::model::{AdjId, BoardId, NumericKind};
-
-use super::utils::{serialize_adj_id, serialize_board_id, serialize_numeric_kind};
+use crate::{
+    model::{AdjId, BoardId, NumericKind},
+    utils::serialize::{serialize_adj_id, serialize_board_id, serialize_numeric_kind},
+};
 
 /// Data packet definitions grouped by board.
 ///

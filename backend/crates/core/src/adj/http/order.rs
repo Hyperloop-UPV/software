@@ -4,12 +4,14 @@ use std::time::Duration;
 
 use serde::Serialize;
 
-use crate::model::{AdjId, BoardId, ProtectionKind, Severity};
-
-use super::{
-    data::DataMeasurementKind,
-    utils::{serialize_adj_id, serialize_board_id, serialize_protection_kind, serialize_severity},
+use crate::{
+    model::{AdjId, BoardId, ProtectionKind, Severity},
+    utils::serialize::{
+        serialize_adj_id, serialize_board_id, serialize_protection_kind, serialize_severity,
+    },
 };
+
+use super::data::DataMeasurementKind;
 
 /// Order definitions grouped by board, matching `example/order.json`.
 #[derive(Debug, Clone, PartialEq, Serialize)]

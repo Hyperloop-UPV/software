@@ -4,10 +4,11 @@ use std::{collections::HashMap, time::Duration};
 
 use serde::Serialize;
 
-use crate::model::{AdjId, BoardId, ProtectionKind, Severity};
-
-use super::utils::{
-    serialize_adj_id, serialize_adj_protection_kind, serialize_board_id, serialize_severity,
+use crate::{
+    model::{AdjId, BoardId, ProtectionKind, Severity},
+    utils::serialize::{
+        serialize_adj_id, serialize_adj_protection_kind, serialize_board_id, serialize_severity,
+    },
 };
 
 /// Protection definitions and their display metadata, matching `example/protection.json`.
