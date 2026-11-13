@@ -17,6 +17,7 @@ import {
 import {
   Calculator,
   ChartNoAxesCombined,
+  Ruler,
   ChevronDown,
   Clock,
   Columns,
@@ -67,6 +68,10 @@ export default function DashboardControls({
     "layoutState",
   );
   const [, setFocusedId] = useDashboardSetting(dashboard, "focusedId");
+  const [showCursors, setShowCursors] = useDashboardSetting(
+    dashboard,
+    "showCursors",
+  );
   const [showStatistics, setShowStatistics] = useDashboardSetting(
     dashboard,
     "showStatistics",
@@ -171,7 +176,9 @@ export default function DashboardControls({
   // One menu for every overlay, so the bar speaks a single visual language
   // instead of two different "pressed" idioms sitting side by side.
   const overlayCount =
-    (showStatistics ? 1 : 0) + ((showOrders ?? true) && orderCount > 0 ? 1 : 0);
+    (showStatistics ? 1 : 0) +
+    (showCursors ? 1 : 0) +
+    ((showOrders ?? true) && orderCount > 0 ? 1 : 0);
   const viewMenu = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -204,6 +211,15 @@ export default function DashboardControls({
         >
           <ChartNoAxesCombined className="size-3.5" />
           Window statistics
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem
+          checked={showCursors}
+          disabled={chartDisabled}
+          aria-controls="cursor-readout"
+          onCheckedChange={(checked) => setShowCursors(checked)}
+        >
+          <Ruler className="size-3.5" />
+          Cursors
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={showOrders ?? true}

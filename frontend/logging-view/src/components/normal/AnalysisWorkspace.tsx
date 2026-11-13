@@ -81,12 +81,14 @@ import {
   type DashboardSettings,
   type FormulaSignal,
   type NormalDashboard,
+  type MeasureCursors,
   type TimeDomain,
   type TimeRange,
   type TimeUnit,
 } from "../../types/normal";
 import type { LoggedOrder } from "../../types/session";
 import ComparisonChart from "./ComparisonChart";
+import CursorReadout from "./CursorReadout";
 import WindowStatistics, { type StatisticsGroup } from "./WindowStatistics";
 
 const MAX_PANES = 8;
@@ -119,6 +121,9 @@ interface PaneProps {
   formulas: FormulaSignal[];
   orders: LoggedOrder[];
   showOrders: boolean;
+  /** null while cursors are off. */
+  cursors: MeasureCursors | null;
+  onCursorAt: (cursor: "a" | "b", timeMs: number) => void;
   domain: TimeDomain;
   range: TimeRange;
   linkTimeAxis: boolean;
@@ -161,6 +166,8 @@ function ComparisonPane({
   formulas,
   orders,
   showOrders,
+  cursors,
+  onCursorAt,
   domain,
   range,
   linkTimeAxis,
@@ -851,6 +858,8 @@ function ComparisonPane({
                 timeUnit={timeUnit}
                 normalized={normalized}
                 fitY={!!node.fitY}
+                cursors={cursors}
+                onCursorAt={onCursorAt}
                 isDarkMode={isDarkMode}
                 syncGroup={syncGroup}
                 orders={orders}
@@ -1225,6 +1234,16 @@ export default function AnalysisWorkspace({
     dashboard,
     "enumAsBackground",
   );
+  const [showCursors, setShowCursors] = useDashboardSetting(
+    dashboard,
+    "showCursors",
+  );
+  const [cursors, setCursors] = useDashboardSetting(dashboard, "cursors");
+  const placeCursor = useCallback(
+    (cursor: "a" | "b", timeMs: number) =>
+      setCursors((current) => ({ ...current, [cursor]: timeMs })),
+    [setCursors],
+  );
   const orders = useStore((state) => state.orders);
   const plotWarning = useStore((state) => state.normalPlotWarning);
   const setPlotWarning = useStore((state) => state.setNormalPlotWarning);
@@ -1397,6 +1416,8 @@ export default function AnalysisWorkspace({
                 formulas={dashboard.settings.formulas}
                 orders={orders}
                 showOrders={showOrders ?? true}
+                cursors={showCursors ? cursors : null}
+                onCursorAt={placeCursor}
                 domain={domain}
                 range={range}
                 linkTimeAxis={linkTimeAxis}
@@ -1485,6 +1506,13 @@ export default function AnalysisWorkspace({
             Window statistics
           </ContextMenuCheckboxItem>
           <ContextMenuCheckboxItem
+            disabled={dashboard.locked}
+            checked={showCursors}
+            onCheckedChange={(checked) => setShowCursors(checked === true)}
+          >
+            Cursors
+          </ContextMenuCheckboxItem>
+          <ContextMenuCheckboxItem
             disabled={dashboard.locked || orders.length === 0}
             checked={showOrders ?? true}
             onCheckedChange={(checked) => setShowOrders(checked === true)}
@@ -1525,6 +1553,16 @@ export default function AnalysisWorkspace({
             <X className="size-3.5" />
           </button>
         </div>
+      )}
+      {showCursors && (
+        <CursorReadout
+          cursors={cursors}
+          signals={resolvedSignals}
+          domain={domain}
+          timeUnit={timeUnit}
+          onClear={() => setCursors({ a: null, b: null })}
+          onClose={() => setShowCursors(false)}
+        />
       )}
       {showStatistics && (
         <WindowStatistics

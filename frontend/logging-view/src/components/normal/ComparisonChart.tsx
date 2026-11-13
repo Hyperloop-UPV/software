@@ -10,6 +10,7 @@ import {
   TIME_DIVISORS,
   type ComparisonSignal,
   type ChartMarker,
+  type MeasureCursors,
   type TimeDomain,
   type TimeRange,
   type TimeUnit,
@@ -40,6 +41,9 @@ interface Props {
   timeline: boolean;
   /** Scale each y axis to the samples inside the visible window. */
   fitY: boolean;
+  /** A/B cursors to draw; null while cursors are off. */
+  cursors: MeasureCursors | null;
+  onCursorAt: (cursor: "a" | "b", timeMs: number) => void;
   onRangeChange: (range: TimeRange) => void;
   onMarkerAt: (timeMs: number) => void;
 }
@@ -62,6 +66,8 @@ export default function ComparisonChart({
   band,
   timeline,
   fitY,
+  cursors,
+  onCursorAt,
   onRangeChange,
   onMarkerAt,
 }: Props) {
@@ -78,11 +84,18 @@ export default function ComparisonChart({
   // our own gesture mid-flight; an external change still gets through.
   const lastSentRef = useRef(range);
   const lockedRef = useRef(locked);
+  const cursorsOnRef = useRef(cursors !== null);
+  const onCursorAtRef = useRef(onCursorAt);
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
     lockedRef.current = locked;
   }, [locked]);
+
+  useEffect(() => {
+    cursorsOnRef.current = cursors !== null;
+    onCursorAtRef.current = onCursorAt;
+  }, [cursors, onCursorAt]);
 
   useEffect(() => {
     onRangeChangeRef.current = onRangeChange;
@@ -363,6 +376,30 @@ export default function ComparisonChart({
     };
     element.addEventListener("mousedown", onZoomStart, true);
 
+    // A click that did not travel places a cursor: A, or B with Shift. A drag
+    // from the same press is a pan and must stay one.
+    let pressedAt: { x: number; y: number } | null = null;
+    const onCursorPress = (event: MouseEvent) => {
+      pressedAt =
+        event.button === 0 && !event.ctrlKey && cursorsOnRef.current
+          ? { x: event.clientX, y: event.clientY }
+          : null;
+    };
+    const onCursorRelease = (event: MouseEvent) => {
+      const from = pressedAt;
+      pressedAt = null;
+      if (!from || event.button !== 0 || lockedRef.current) return;
+      if (Math.hypot(event.clientX - from.x, event.clientY - from.y) > 4)
+        return;
+      const bounds = element.getBoundingClientRect();
+      onCursorAtRef.current(
+        event.shiftKey ? "b" : "a",
+        timeAtPixel(event.clientX - bounds.left, event.clientY - bounds.top),
+      );
+    };
+    element.addEventListener("mousedown", onCursorPress, true);
+    element.addEventListener("mouseup", onCursorRelease, true);
+
     const observer = new ResizeObserver(() => {
       setWidth(element.clientWidth);
       chart.resize();
@@ -373,6 +410,8 @@ export default function ComparisonChart({
       observer.disconnect();
       element.removeEventListener("wheel", onWheel, { capture: true });
       element.removeEventListener("mousedown", onZoomStart, true);
+      element.removeEventListener("mousedown", onCursorPress, true);
+      element.removeEventListener("mouseup", onCursorRelease, true);
       document.removeEventListener("mousemove", onZoomMove, true);
       document.removeEventListener("mouseup", onZoomEnd, true);
       chart.off("datazoom", updateRange);
@@ -525,10 +564,30 @@ export default function ComparisonChart({
         label: { color: markerColor },
       })),
     };
+    const cursorColor = isDarkMode ? "#f472b6" : "#db2777";
+    const cursorLines = (["a", "b"] as const).flatMap((key) => {
+      const timeMs = cursors?.[key];
+      if (timeMs === null || timeMs === undefined) return [];
+      return [
+        {
+          name: key.toUpperCase(),
+          xAxis: timeMs / TIME_DIVISORS[timeUnit],
+          lineStyle: { color: cursorColor, width: 1.5, type: "solid" },
+          label: {
+            show: true,
+            color: cursorColor,
+            fontSize: 11,
+            fontWeight: "bold",
+            position: "insideEndBottom",
+          },
+        },
+      ];
+    });
     const chartMarkLine = {
       ...orderMarkLine,
-      data: [...orderMarkLine.data, ...markerMarkLine.data],
+      data: [...orderMarkLine.data, ...markerMarkLine.data, ...cursorLines],
     };
+    const hasMarkLines = chartMarkLine.data.length > 0;
     chart.setOption(
       {
         backgroundColor: "transparent",
@@ -702,7 +761,7 @@ export default function ComparisonChart({
                 index,
                 segment.value,
               ]),
-              ...(index === 0 && (orderMarkers.length > 0 || markers.length > 0)
+              ...(index === 0 && hasMarkLines
                 ? { markLine: chartMarkLine }
                 : {}),
             }))
@@ -719,7 +778,7 @@ export default function ComparisonChart({
               itemStyle: { color: signal.color },
               emphasis: { focus: "series" },
               progressive: 5000,
-              ...(index === 0 && (orderMarkers.length > 0 || markers.length > 0)
+              ...(index === 0 && hasMarkLines
                 ? { markLine: chartMarkLine }
                 : {}),
               // Marks belong to a series, and series 0 is the one proven to
@@ -764,6 +823,7 @@ export default function ComparisonChart({
     locked,
     orderMarkers,
     markers,
+    cursors,
     timeline,
     timelineRows,
     timelineSegments,

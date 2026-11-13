@@ -146,3 +146,66 @@ test("fit Y scales the axis to the visible window", async ({ page }) => {
   expect(max).toBeGreaterThan(2);
   expect(max).toBeLessThan(2.5);
 });
+
+const readout = (page: Page) =>
+  page.getByRole("region", { name: "Cursor measurements" });
+
+test("cursors measure the time and value between two clicks", async ({
+  page,
+}) => {
+  await plotSignals(page, ["velocity"]);
+  await page.getByRole("button", { name: "Plot overlays" }).click();
+  await page
+    .getByRole("menuitemcheckbox", { name: "Cursors", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
+  await expect(readout(page)).toContainText("Click a plot to place A");
+
+  const box = (await chart(page).boundingBox())!;
+  const y = box.y + box.height / 2;
+  await page.mouse.click(box.x + box.width * 0.3, y);
+  await expect
+    .poll(async () => (await settings(page)).cursors.a)
+    .not.toBeNull();
+  await page.keyboard.down("Shift");
+  await page.mouse.click(box.x + box.width * 0.7, y);
+  await page.keyboard.up("Shift");
+  await expect
+    .poll(async () => (await settings(page)).cursors.b)
+    .not.toBeNull();
+
+  // Dragging pans (nothing to pan at full zoom) but must not move a cursor.
+  const placed = (await settings(page)).cursors;
+  await page.mouse.move(box.x + box.width * 0.5, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.6, y, { steps: 4 });
+  await page.mouse.up();
+  expect((await settings(page)).cursors).toEqual(placed);
+
+  // Pin both to known instants: velocity is 0 → 2 → 1 over 0, 50 and 100 s.
+  await page.evaluate(async () => {
+    const modulePath = "/src/store/store.ts";
+    const { useStore } = await import(/* @vite-ignore */ modulePath);
+    const state = useStore.getState();
+    state.updateNormalDashboardSettings(
+      state.activeNormalDashboardId,
+      (current: object) => ({ ...current, cursors: { a: 25_000, b: 75_000 } }),
+    );
+  });
+  await expect(readout(page).getByLabel("Cursor A")).toHaveText("25 s");
+  await expect(readout(page).getByLabel("Cursor B")).toHaveText("75 s");
+  await expect(readout(page).getByLabel("Cursor Δt")).toHaveText("50 s");
+  await expect(readout(page).getByLabel("Cursor 1/Δt")).toHaveText("0.02 Hz");
+  const row = readout(page).getByRole("row").filter({ hasText: "velocity" });
+  // At A = 1, at B = 1.5, Δ = 0.5, slope = 0.01 per second.
+  await expect(row.getByRole("cell")).toHaveText([
+    /.*/,
+    "1",
+    "1.5",
+    "0.5",
+    "0.01",
+  ]);
+
+  await readout(page).getByRole("button", { name: "Clear cursors" }).click();
+  expect((await settings(page)).cursors).toEqual({ a: null, b: null });
+});

@@ -100,6 +100,12 @@ export interface ChartSplit {
 export type ChartLayout = ChartPane | ChartSplit;
 export type LayoutPreset = "single" | "columns" | "rows" | "grid";
 
+/** A/B measuring cursors, in ms from the start of the recording. */
+export interface MeasureCursors {
+  a: number | null;
+  b: number | null;
+}
+
 export interface DashboardSettings {
   layoutState: {
     ids: string[];
@@ -120,6 +126,8 @@ export interface DashboardSettings {
   linkTimeAxis: boolean;
   panelSizes: Record<string, Record<string, number>>;
   formulas: FormulaSignal[];
+  showCursors: boolean;
+  cursors: MeasureCursors;
 }
 
 export interface NormalDashboard {

@@ -42,6 +42,8 @@ function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
       linkTimeAxis: true,
       panelSizes: {},
       formulas: [],
+      showCursors: false,
+      cursors: { a: null, b: null },
     },
   };
 }

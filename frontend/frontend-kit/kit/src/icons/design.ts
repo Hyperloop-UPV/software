@@ -1,2 +1,2 @@
-export { Battery, Layout, LayoutGrid, Palette, Pencil } from "lucide-react";
+export { Battery, Layout, LayoutGrid, Palette, Pencil, Ruler } from "lucide-react";
 
