@@ -1409,14 +1409,34 @@ test("charts can hold independent time windows", async ({ page }) => {
     page.getByRole("spinbutton", { name: "Start time (s)", exact: true }),
   ).toHaveValue("10");
 
-  // A toolbar window is dashboard-wide: it pulls the stray plot back in line.
-  await applyWindow(page, "20", "60");
-  await expect.poll(() => paneWindow(page, 1).textContent()).toContain("20–60");
-  await expect.poll(() => paneWindow(page, 2).textContent()).toContain("20–60");
+  // Unlinked, the bar has no single window to edit, so its time controls are
+  // off; only the link toggle and the unit stay usable.
+  for (const name of ["Start time (s)", "End time (s)"])
+    await expect(
+      page.getByRole("spinbutton", { name, exact: true }),
+    ).toBeDisabled();
+  for (const name of [
+    "Apply",
+    "Previous time window",
+    "Next time window",
+    "Zoom in comparison",
+    "Zoom out comparison",
+    "Reset zoom",
+  ])
+    await expect(
+      page.getByRole("button", { name, exact: true }),
+    ).toBeDisabled();
+  await expect(
+    page.getByRole("combobox", { name: "Time unit", exact: true }),
+  ).toBeEnabled();
 
-  // Re-linking drops the per-plot labels again.
+  // Re-linking drops the per-plot labels and hands the window back to the bar.
   await link.click();
   await expect(paneWindow(page, 1)).toHaveCount(0);
+  await applyWindow(page, "20", "60");
+  await expect(
+    page.getByRole("spinbutton", { name: "Start time (s)", exact: true }),
+  ).toHaveValue("20");
 });
 
 test("a plot added after unlinking does not link the charts again", async ({

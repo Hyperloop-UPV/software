@@ -34,6 +34,12 @@ export default function TimeWindowControls({
     start: String(Number(((duration * range.start) / 100).toPrecision(12))),
     end: String(Number(((duration * range.end) / 100).toPrecision(12))),
   };
+  // Unlinked, there is no single window to edit: each plot holds its own, and
+  // writing one here would silently pull them all back together.
+  const editable = linked && duration > 0;
+  const lockedHint = linked
+    ? undefined
+    : "Link the charts to set a shared time window";
   const move = (direction: number) => {
     const span = range.end - range.start;
     const start = Math.max(
@@ -49,6 +55,7 @@ export default function TimeWindowControls({
       aria-label="Visible time window"
       onSubmit={(event) => {
         event.preventDefault();
+        if (!editable) return;
         const start = Number(values.start);
         const end = Number(values.end);
         if (
@@ -104,7 +111,8 @@ export default function TimeWindowControls({
             step="any"
             min={0}
             max={duration}
-            disabled={duration <= 0}
+            disabled={!editable}
+            title={lockedHint}
             value={values[field]}
             aria-label={`${field === "start" ? "Start" : "End"} time (${timeUnit})`}
             aria-invalid={!!error}
@@ -139,7 +147,8 @@ export default function TimeWindowControls({
         variant="outline"
         size="sm"
         className="h-7 text-xs"
-        disabled={duration <= 0}
+        disabled={!editable}
+        title={lockedHint}
       >
         Apply
       </Button>
@@ -150,7 +159,7 @@ export default function TimeWindowControls({
           size="icon-xs"
           aria-label="Previous time window"
           title="Previous time window"
-          disabled={range.start <= 0 || duration <= 0}
+          disabled={range.start <= 0 || !editable}
           onClick={() => move(-1)}
         >
           <ChevronLeft className="size-3.5" />
@@ -161,7 +170,7 @@ export default function TimeWindowControls({
           size="icon-xs"
           aria-label="Next time window"
           title="Next time window"
-          disabled={range.end >= 100 || duration <= 0}
+          disabled={range.end >= 100 || !editable}
           onClick={() => move(1)}
         >
           <ChevronRight className="size-3.5" />

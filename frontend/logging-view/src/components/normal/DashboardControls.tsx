@@ -95,6 +95,8 @@ export default function DashboardControls({
   const orderCount = useStore((state) => state.orders.length);
   const panes = getPanes(layoutState.tree);
   const chartDisabled = dashboard.locked || signals.length === 0;
+  // The bar only edits the shared window; unlinked plots are moved one by one.
+  const timeDisabled = chartDisabled || !linkTimeAxis;
   const startMs = signals.length
     ? Math.min(...signals.map((signal) => signal.data.time[0]))
     : 0;
@@ -229,7 +231,7 @@ export default function DashboardControls({
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          disabled={chartDisabled}
+          disabled={timeDisabled}
           onClick={() => setRangeForAll({ start: 0, end: 100 })}
         >
           <RotateCcw className="size-3.5" />
@@ -338,7 +340,7 @@ export default function DashboardControls({
         size="icon-xs"
         aria-label="Zoom in comparison"
         title="Zoom in"
-        disabled={chartDisabled}
+        disabled={timeDisabled}
         onClick={() => zoom(0.5)}
       >
         <Plus className="size-3.5" />
@@ -348,7 +350,7 @@ export default function DashboardControls({
         size="icon-xs"
         aria-label="Zoom out comparison"
         title="Zoom out"
-        disabled={chartDisabled}
+        disabled={timeDisabled}
         onClick={() => zoom(2)}
       >
         <Minus className="size-3.5" />
@@ -357,7 +359,7 @@ export default function DashboardControls({
         variant="outline"
         size="sm"
         className="h-7 gap-1.5 text-xs"
-        disabled={chartDisabled}
+        disabled={timeDisabled}
         onClick={() => setRangeForAll({ start: 0, end: 100 })}
       >
         <RotateCcw className="size-3" />
