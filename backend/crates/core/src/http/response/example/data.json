@@ -1,0 +1,95 @@
+{
+  "boards": [
+    {
+      "id": 1,
+      "name": "LCU",
+      "packets": [
+        {
+          "id": 936,
+          "name": "Temperatures",
+          "type": "data",
+          "period": 10.0,
+          "period_type": "ms",
+          "socket": "control_station_udp",
+          "measurements": [
+            {
+              "id": 3000,
+              "alias": "temperature_1",
+              "name": "Motor temperature",
+              "display_units": "ºC",
+              "kind": {
+                "type": "numeric",
+                "wire_type": "float32"
+              }
+            }
+          ]
+        },
+        {
+          "id": 967,
+          "name": "Levitation distance",
+          "type": "data",
+          "period": 10.0,
+          "period_type": "ms",
+          "socket": "control_station_udp",
+          "measurements": [
+            {
+              "id": 3001,
+              "alias": "levitation_distance",
+              "name": "Levitation distance",
+              "display_units": "mm",
+              "kind": {
+                "type": "numeric",
+                "wire_type": "float32"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "HVBMS",
+      "packets": [
+        {
+          "id": 1200,
+          "name": "Battery voltage",
+          "type": "data",
+          "period": 20.0,
+          "period_type": "ms",
+          "socket": "control_station_udp",
+          "measurements": [
+            {
+              "id": 3100,
+              "alias": "pack_voltage",
+              "name": "Pack voltage",
+              "display_units": "V",
+              "kind": {
+                "type": "numeric",
+                "wire_type": "float32"
+              }
+            }
+          ]
+        },
+        {
+          "id": 1201,
+          "name": "Contactors status",
+          "type": "data",
+          "period": 100.0,
+          "period_type": "ms",
+          "socket": "control_station_udp",
+          "measurements": [
+            {
+              "id": 3101,
+              "alias": "contactor_closed",
+              "name": "Contactor closed",
+              "display_units": "",
+              "kind": {
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
