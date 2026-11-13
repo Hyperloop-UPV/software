@@ -289,3 +289,101 @@ test("keyboard shortcuts drive the dashboard and stay out of text fields", async
   await expect(help).toContainText("Zoom in");
   await expect(help).toContainText("Measuring cursors");
 });
+
+const panes = (page: Page) =>
+  page.getByRole("region", { name: /^Chart panel / });
+
+async function splitFirstPlot(page: Page) {
+  await pane(page).click({ button: "right" });
+  await paneMenu(page)
+    .getByRole("menuitem", { name: "Layout", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Split into columns", exact: true })
+    .click();
+  await expect(panes(page)).toHaveCount(2);
+}
+
+test("reopening a session brings its dashboards back", async ({ page }) => {
+  // Loads the app twice.
+  test.setTimeout(60_000);
+  await plotSignals(page, ["velocity"]);
+  await splitFirstPlot(page);
+  await page
+    .getByRole("button", { name: "New dashboard", exact: true })
+    .click();
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await page.getByRole("tab", { name: "Dashboard", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (localStorage.getItem("logging-view:dashboards:demo") ?? "").includes(
+          "LCU/velocity",
+        ),
+      ),
+    )
+    .toBe(true);
+
+  // A full reload: nothing survives in memory.
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Open a logging session" }),
+  ).toBeVisible();
+  await openSession(page);
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await expect(panes(page)).toHaveCount(2);
+  await expect(page.locator("canvas")).toHaveCount(1);
+  expect((await settings(page)).layoutState.ids).toEqual(["LCU/velocity"]);
+});
+
+test("a dashboard survives a round trip through a file", async ({
+  page,
+}, testInfo) => {
+  await plotSignals(page, ["velocity"]);
+  await splitFirstPlot(page);
+  const tab = page.getByRole("tab", { name: "Dashboard", exact: true });
+  const tabMenu = page.getByRole("menu", { name: "Dashboard tab actions" });
+
+  await tab.click({ button: "right" });
+  const download = page.waitForEvent("download");
+  await tabMenu
+    .getByRole("menuitem", { name: "Export dashboard…", exact: true })
+    .click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe("Dashboard.dashboard.json");
+  const path = testInfo.outputPath("Dashboard.dashboard.json");
+  await file.saveAs(path);
+
+  await tab.click({ button: "right" });
+  const chooser = page.waitForEvent("filechooser");
+  await tabMenu
+    .getByRole("menuitem", { name: "Import dashboard…", exact: true })
+    .click();
+  await (await chooser).setFiles(path);
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await expect(
+    page.getByRole("tab", { name: "Dashboard (2)", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(panes(page)).toHaveCount(2);
+  await expect(page.locator("canvas")).toHaveCount(1);
+
+  // Anything else is refused with a message and no new tab.
+  await page
+    .getByRole("tab", { name: "Dashboard (2)", exact: true })
+    .click({ button: "right" });
+  const second = page.waitForEvent("filechooser");
+  await tabMenu
+    .getByRole("menuitem", { name: "Import dashboard…", exact: true })
+    .click();
+  await (
+    await second
+  ).setFiles({
+    name: "notes.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"hello":"world"}'),
+  });
+  await expect(page.getByRole("alert")).toContainText(
+    "not an exported dashboard",
+  );
+  await expect(page.getByRole("tab")).toHaveCount(2);
+});

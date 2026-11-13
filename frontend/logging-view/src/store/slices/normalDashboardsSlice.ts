@@ -17,6 +17,11 @@ import type {
 import { DEFAULT_STATISTICS_COLUMNS } from "../../types/normal";
 import { isDiscreteMeasurement } from "../../lib/plotStudio/units";
 import { MIXED_ENUM_MESSAGE } from "../../lib/normal/enums";
+import {
+  loadSessionDashboards,
+  parseDashboardFile,
+  restoreDashboard,
+} from "../../lib/normal/dashboardStorage";
 import type { Store } from "../store";
 
 function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
@@ -99,6 +104,7 @@ function duplicateSettings(settings: DashboardSettings): DashboardSettings {
       ...formula,
       variables: { ...formula.variables },
     })),
+    cursors: { ...settings.cursors },
   };
 }
 
@@ -107,6 +113,47 @@ export function initialNormalDashboards() {
   return {
     normalDashboards: [dashboard],
     activeNormalDashboardId: dashboard.id,
+  };
+}
+
+const seriesLookup = (availableSeries: Record<string, string[]>) => {
+  const ids = new Set(
+    Object.entries(availableSeries).flatMap(([board, measurements]) =>
+      measurements.map((measurement) => `${board}/${measurement}`),
+    ),
+  );
+  return (id: string) => ids.has(id);
+};
+
+/**
+ * The dashboards to start a session with: the ones saved the last time this
+ * folder was open, or a blank one.
+ */
+export function sessionNormalDashboards(
+  folderName: string,
+  availableSeries: Record<string, string[]>,
+) {
+  const saved = loadSessionDashboards(folderName);
+  if (!saved) return initialNormalDashboards();
+  const hasSeries = seriesLookup(availableSeries);
+  const seen = new Set<string>();
+  const dashboards: NormalDashboard[] = [];
+  for (const raw of saved.dashboards) {
+    const restored = restoreDashboard(
+      raw,
+      createDashboard(dashboards),
+      hasSeries,
+    );
+    if (!restored || seen.has(restored.dashboard.id)) continue;
+    seen.add(restored.dashboard.id);
+    dashboards.push(restored.dashboard);
+  }
+  if (dashboards.length === 0) return initialNormalDashboards();
+  return {
+    normalDashboards: dashboards,
+    activeNormalDashboardId: seen.has(saved.activeId)
+      ? saved.activeId
+      : dashboards[0].id,
   };
 }
 
@@ -124,6 +171,8 @@ export interface NormalDashboardsSlice {
   activeNormalDashboardId: string;
   addNormalDashboard: () => string;
   duplicateNormalDashboard: (id: string) => string;
+  /** Adds the dashboard in an exported file as a new tab; false if invalid. */
+  importNormalDashboard: (fileText: string) => boolean;
   selectNormalDashboard: (id: string) => void;
   closeNormalDashboard: (id: string) => void;
   renameNormalDashboard: (id: string, name: string) => void;
@@ -156,8 +205,43 @@ export const createNormalDashboardsSlice: StateCreator<
   [],
   [],
   NormalDashboardsSlice
-> = (set) => ({
+> = (set, get) => ({
   ...initialNormalDashboards(),
+  importNormalDashboard: (fileText) => {
+    const state = get();
+    const defaults = createDashboard(state.normalDashboards);
+    const file = parseDashboardFile(fileText);
+    const restored = file
+      ? restoreDashboard(file, defaults, seriesLookup(state.availableSeries))
+      : null;
+    if (!restored) {
+      set({ normalPlotWarning: "That file is not an exported dashboard." });
+      return false;
+    }
+    const taken = new Set(state.normalDashboards.map((item) => item.name));
+    let name = restored.dashboard.name;
+    for (let number = 2; taken.has(name); number++)
+      name = `${restored.dashboard.name.slice(0, 74)} (${number})`;
+    const dashboard: NormalDashboard = {
+      ...restored.dashboard,
+      // Fresh ids throughout: the same file can be imported more than once.
+      id: defaults.id,
+      name,
+      locked: false,
+      selectedSeries: {},
+      settings: duplicateSettings(restored.dashboard.settings),
+    };
+    set({
+      normalDashboards: [...state.normalDashboards, dashboard],
+      activeNormalDashboardId: dashboard.id,
+      ...(restored.dropped > 0
+        ? {
+            normalPlotWarning: `${restored.dropped} measurement${restored.dropped === 1 ? "" : "s"} of the imported dashboard ${restored.dropped === 1 ? "is" : "are"} not in this session and ${restored.dropped === 1 ? "was" : "were"} left out.`,
+          }
+        : {}),
+    });
+    return true;
+  },
   addNormalDashboard: () => {
     let id = "";
     set((state) => {

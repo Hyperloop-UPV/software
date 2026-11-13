@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  FileDown,
   LayoutDashboard,
   Lock,
   PanelTopClose,
@@ -31,8 +32,14 @@ import {
   Plus,
   Settings2,
   Unlock,
+  Upload,
   X,
 } from "@hyperloopupv/frontend-kit/icons";
+import {
+  DASHBOARD_FILE_EXTENSION,
+  dashboardFileName,
+  serializeDashboard,
+} from "../../lib/normal/dashboardStorage";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useStore } from "../../store/store";
 import { getPanes } from "../../lib/normal/layout";
@@ -227,6 +234,29 @@ export default function DashboardTabs({
     (state) => state.configureNormalDashboard,
   );
   const moveDashboard = useStore((state) => state.moveNormalDashboard);
+  const importDashboard = useStore((state) => state.importNormalDashboard);
+  const exportDashboard = (dashboard: NormalDashboard) => {
+    const url = URL.createObjectURL(
+      new Blob([serializeDashboard(dashboard)], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = dashboardFileName(dashboard.name);
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const pickDashboardFile = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = `${DASHBOARD_FILE_EXTENSION},.json,application/json`;
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      focusActive.current = true;
+      importDashboard(await file.text());
+    };
+    input.click();
+  };
   const duplicateDashboard = useStore(
     (state) => state.duplicateNormalDashboard,
   );
@@ -538,6 +568,16 @@ export default function DashboardTabs({
           >
             <Copy className="size-3.5" />
             Duplicate
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => menuTarget && exportDashboard(menuTarget)}
+          >
+            <FileDown className="size-3.5" />
+            Export dashboard…
+          </ContextMenuItem>
+          <ContextMenuItem onClick={pickDashboardFile}>
+            <Upload className="size-3.5" />
+            Import dashboard…
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => menuTarget && startEditing(menuTarget.id)}
