@@ -39,12 +39,6 @@ pub struct DataPacketResponse {
     /// ADJ packet type: `data` for this endpoint.
     #[serde(rename = "type")]
     pub packet_type: String,
-    /// Declared transmission period, expressed in `period_type` units.
-    pub period: f64,
-    /// ADJ period unit, e.g. `ms`.
-    pub period_type: String,
-    /// Name of the socket declared by the ADJ.
-    pub socket: String,
     /// Measurement definitions in wire order, without protections.
     pub measurements: Vec<DataMeasurementResponse>,
 }

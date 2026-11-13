@@ -8,9 +8,6 @@
           "id": 936,
           "name": "Temperatures",
           "type": "data",
-          "period": 10.0,
-          "period_type": "ms",
-          "socket": "control_station_udp",
           "measurements": [
             {
               "id": 3000,
@@ -28,9 +25,6 @@
           "id": 967,
           "name": "Levitation distance",
           "type": "data",
-          "period": 10.0,
-          "period_type": "ms",
-          "socket": "control_station_udp",
           "measurements": [
             {
               "id": 3001,
@@ -54,9 +48,6 @@
           "id": 1200,
           "name": "Battery voltage",
           "type": "data",
-          "period": 20.0,
-          "period_type": "ms",
-          "socket": "control_station_udp",
           "measurements": [
             {
               "id": 3100,
@@ -74,9 +65,6 @@
           "id": 1201,
           "name": "Contactors status",
           "type": "data",
-          "period": 100.0,
-          "period_type": "ms",
-          "socket": "control_station_udp",
           "measurements": [
             {
               "id": 3101,
