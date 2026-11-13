@@ -25,6 +25,7 @@ import {
 } from "@hyperloopupv/frontend-kit/components";
 import {
   AlertTriangle,
+  Calculator,
   Columns,
   Eye,
   EyeOff,
@@ -70,6 +71,7 @@ import {
   classifyPaneSignals,
   MIXED_ENUM_MESSAGE,
 } from "../../lib/normal/enums";
+import { formulaLabel } from "../../lib/normal/formula";
 import { axisKey } from "../../lib/normal/units";
 import {
   TIME_DIVISORS,
@@ -77,6 +79,7 @@ import {
   type ChartPane,
   type ComparisonSignal,
   type DashboardSettings,
+  type FormulaSignal,
   type NormalDashboard,
   type TimeDomain,
   type TimeRange,
@@ -113,6 +116,7 @@ interface PaneProps {
   node: ChartPane;
   index: number;
   allSignals: ComparisonSignal[];
+  formulas: FormulaSignal[];
   orders: LoggedOrder[];
   showOrders: boolean;
   domain: TimeDomain;
@@ -153,6 +157,7 @@ function ComparisonPane({
   node,
   index,
   allSignals,
+  formulas,
   orders,
   showOrders,
   domain,
@@ -193,9 +198,16 @@ function ComparisonPane({
   // Set while the context menu is closing *because* it opened the config
   // popover, so the menu's focus restore does not dismiss it (see below).
   const reopenConfigRef = useRef(false);
+  const configContentRef = useRef<HTMLDivElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const { selectedSeries } = useSeriesSelection();
   const assignSignals = useStore((state) => state.assignNormalSignalsToPlot);
+  const openFormulaEditor = useStore((state) => state.openNormalFormulaEditor);
+  // Formulas of this dashboard that this plot does not show yet. They are not
+  // in `allSignals` until some plot uses them, so the picker lists them apart.
+  const otherFormulas = formulas.filter(
+    (formula) => !node.signalIds.includes(formula.id),
+  );
   const selectedIds = useMemo(
     () => Object.keys(selectedSeries).filter((key) => selectedSeries[key]),
     [selectedSeries],
@@ -485,6 +497,7 @@ function ComparisonPane({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
+                  ref={configContentRef}
                   align="end"
                   className="w-[20rem] max-w-[calc(100vw-2rem)] p-0"
                   // A settings panel should outlive anything that steals focus
@@ -594,6 +607,54 @@ function ComparisonPane({
                       );
                     })}
                   </div>
+                  {/* Lives here rather than in the plot's right-click menu:
+                      one more row there makes the menu open over the cursor,
+                      and the same click then lands on its first item. */}
+                  <div className="border-t px-2 py-2">
+                    <p className="text-muted-foreground px-2 pb-1 text-[11px] font-medium">
+                      Computed signals
+                    </p>
+                    {otherFormulas.map((formula) => (
+                      <label
+                        key={formula.id}
+                        className="hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                        title={formulaLabel(formula)}
+                      >
+                        <Checkbox
+                          checked={false}
+                          onCheckedChange={() =>
+                            assignSignals(node.id, [formula.id])
+                          }
+                          aria-label={`Show ${formula.name} in chart ${index + 1}`}
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          {formula.name}
+                        </span>
+                        <span className="text-muted-foreground max-w-[9rem] truncate font-mono text-[10px]">
+                          {formula.expression}
+                        </span>
+                      </label>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-full justify-start gap-2 px-2 text-xs"
+                      onClick={() => {
+                        setConfigOpen(false);
+                        openFormulaEditor({
+                          paneId: node.id,
+                          sourceIds: signals
+                            .filter(
+                              (signal) => !signal.formula && !signal.discrete,
+                            )
+                            .map((signal) => signal.id),
+                        });
+                      }}
+                    >
+                      <Calculator className="size-3.5" />
+                      New formula from this plot…
+                    </Button>
+                  </div>
                   <div className="border-t px-4 py-3">
                     <label className="flex cursor-pointer items-center gap-2 text-xs">
                       <Checkbox
@@ -683,7 +744,11 @@ function ComparisonPane({
                       className={`hover:bg-muted/60 focus-visible:ring-ring inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left focus-visible:ring-2 focus-visible:outline-none ${hidden ? "opacity-50" : ""}`}
                       aria-label={`${hidden ? "Show" : "Hide"} ${label} in chart ${index + 1}`}
                       aria-pressed={!hidden}
-                      title="Click to hide or show this trace"
+                      title={
+                        signal.formula
+                          ? `${formulaLabel(signal.formula)} · click to hide or show`
+                          : "Click to hide or show this trace"
+                      }
                       onClick={toggleTrace}
                     >
                       {render.band?.id === signal.id ? (
@@ -731,6 +796,17 @@ function ComparisonPane({
                       <Layers className="size-3.5" />
                       Copy name
                     </ContextMenuItem>
+                    {signal.formula && (
+                      <ContextMenuItem
+                        disabled={locked}
+                        onClick={() =>
+                          openFormulaEditor({ formulaId: signal.id })
+                        }
+                      >
+                        <Calculator className="size-3.5" />
+                        Edit formula…
+                      </ContextMenuItem>
+                    )}
                     <ContextMenuSeparator />
                     <ContextMenuItem
                       variant="destructive"
@@ -885,6 +961,12 @@ function ComparisonPane({
           if (!reopenConfigRef.current) return;
           reopenConfigRef.current = false;
           event.preventDefault();
+          // When the popover opens under the pointer, the menu item sees the
+          // pointer leave and pulls focus back into the dying menu, which
+          // then drops it on <body>. Hand it to the popover instead.
+          const content = configContentRef.current;
+          if (content && !content.contains(document.activeElement))
+            (content.querySelector("input") ?? content).focus();
         }}
       >
         <ContextMenuItem disabled={locked} onClick={startRename}>
@@ -1108,6 +1190,7 @@ export default function AnalysisWorkspace({
   }, [plotWarning, setPlotWarning]);
   const { selectedSeries } = useSeriesSelection();
   const addPlot = useStore((state) => state.addNormalPlot);
+  const openFormulaEditor = useStore((state) => state.openNormalFormulaEditor);
   const selectedIds = useMemo(
     () => Object.keys(selectedSeries).filter((key) => selectedSeries[key]),
     [selectedSeries],
@@ -1260,6 +1343,7 @@ export default function AnalysisWorkspace({
                 panes={panes}
                 focusedId={focused ? focusedId : null}
                 allSignals={resolvedSignals}
+                formulas={dashboard.settings.formulas}
                 orders={orders}
                 showOrders={showOrders ?? true}
                 domain={domain}
@@ -1307,6 +1391,13 @@ export default function AnalysisWorkspace({
             <Layers className="size-3.5" />
             New plot from {selectedIds.length || ""} selected measurement
             {selectedIds.length === 1 ? "" : "s"}
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={dashboard.locked}
+            onClick={() => openFormulaEditor()}
+          >
+            <Calculator className="size-3.5" />
+            New formula…
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuSub>

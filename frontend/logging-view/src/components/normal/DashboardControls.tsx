@@ -6,12 +6,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@hyperloopupv/frontend-kit/components";
 import {
+  Calculator,
   ChartNoAxesCombined,
   ChevronDown,
   Clock,
@@ -21,16 +25,19 @@ import {
   Layers,
   Link2Off,
   Minus,
+  Pencil,
   Plus,
   RotateCcw,
   Rows2,
   Send,
   Square,
+  Trash2,
 } from "@hyperloopupv/frontend-kit/icons";
 import { useState } from "react";
 import { useDashboardSetting } from "../../hooks/useDashboardSetting";
 import { useDashboardTimeWindow } from "../../hooks/useDashboardTimeWindow";
-import { arrangePanes, getPanes } from "../../lib/normal/layout";
+import { removeFormula } from "../../lib/normal/formula";
+import { arrangePanes, getPanes, updatePane } from "../../lib/normal/layout";
 import { useStore } from "../../store/store";
 import {
   TIME_DIVISORS,
@@ -79,6 +86,12 @@ export default function DashboardControls({
     useDashboardTimeWindow(dashboard);
   const [layoutOpen, setLayoutOpen] = useState(false);
   const addNormalPlot = useStore((state) => state.addNormalPlot);
+  const assignSignals = useStore((state) => state.assignNormalSignalsToPlot);
+  const openFormulaEditor = useStore((state) => state.openNormalFormulaEditor);
+  const updateSettings = useStore(
+    (state) => state.updateNormalDashboardSettings,
+  );
+  const formulas = dashboard.settings.formulas;
   const orderCount = useStore((state) => state.orders.length);
   const panes = getPanes(layoutState.tree);
   const chartDisabled = dashboard.locked || signals.length === 0;
@@ -222,6 +235,98 @@ export default function DashboardControls({
           <RotateCcw className="size-3.5" />
           Reset zoom
         </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const mathMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-xs"
+          aria-label="Formula signals"
+          title="Compute new signals from measurements"
+        >
+          <Calculator className="size-3.5" />
+          <span className="hidden lg:inline">Math</span>
+          {formulas.length > 0 && (
+            <Badge
+              variant="secondary"
+              className="h-4 px-1.5 text-[10px] leading-none tabular-nums"
+            >
+              {formulas.length}
+            </Badge>
+          )}
+          <ChevronDown className="size-3" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[17rem]">
+        <DropdownMenuItem onClick={() => openFormulaEditor()}>
+          <Plus className="size-3.5" />
+          New formula…
+        </DropdownMenuItem>
+        {formulas.length > 0 && <DropdownMenuSeparator />}
+        {formulas.map((formula) => (
+          <DropdownMenuSub key={formula.id}>
+            <DropdownMenuSubTrigger className="gap-2">
+              <span className="grid min-w-0 flex-1">
+                <span className="truncate text-xs">{formula.name}</span>
+                <span className="text-muted-foreground truncate font-mono text-[10px]">
+                  {formula.expression}
+                </span>
+              </span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-[13rem]">
+              <DropdownMenuItem
+                onClick={() => openFormulaEditor({ formulaId: formula.id })}
+              >
+                <Pencil className="size-3.5" />
+                Edit…
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {panes.map((pane, index) => (
+                <DropdownMenuCheckboxItem
+                  key={pane.id}
+                  checked={pane.signalIds.includes(formula.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) assignSignals(pane.id, [formula.id]);
+                    else
+                      setLayoutState((current) => ({
+                        ...current,
+                        tree: updatePane(current.tree, pane.id, (plot) => ({
+                          ...plot,
+                          signalIds: plot.signalIds.filter(
+                            (id) => id !== formula.id,
+                          ),
+                          hiddenSignalIds: plot.hiddenSignalIds?.filter(
+                            (id) => id !== formula.id,
+                          ),
+                        })),
+                      }));
+                  }}
+                >
+                  <span className="truncate">
+                    {pane.title || `Plot ${index + 1}`}
+                  </span>
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() =>
+                  updateSettings(dashboard.id, (settings) =>
+                    removeFormula(settings, formula.id),
+                  )
+                }
+              >
+                <Trash2 className="size-3.5" />
+                Delete formula
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -370,6 +475,7 @@ export default function DashboardControls({
             : "ml-auto flex max-w-full flex-wrap items-center gap-2"
         }
       >
+        {mathMenu}
         {viewMenu}
         {!compact && (
           <>

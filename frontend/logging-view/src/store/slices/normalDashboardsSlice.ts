@@ -41,6 +41,7 @@ function createDashboard(existing: NormalDashboard[] = []): NormalDashboard {
       range: { start: 0, end: 100 },
       linkTimeAxis: true,
       panelSizes: {},
+      formulas: [],
     },
   };
 }
@@ -92,6 +93,10 @@ function duplicateSettings(settings: DashboardSettings): DashboardSettings {
     units: { ...settings.units },
     range: { ...settings.range },
     panelSizes,
+    formulas: settings.formulas.map((formula) => ({
+      ...formula,
+      variables: { ...formula.variables },
+    })),
   };
 }
 
@@ -101,6 +106,15 @@ export function initialNormalDashboards() {
     normalDashboards: [dashboard],
     activeNormalDashboardId: dashboard.id,
   };
+}
+
+export interface FormulaEditorRequest {
+  /** Edit this formula; absent creates a new one. */
+  formulaId?: string;
+  /** Plot the new formula should land in by default. */
+  paneId?: string;
+  /** Measurements pre-bound to a, b, c… for a new formula. */
+  sourceIds?: string[];
 }
 
 export interface NormalDashboardsSlice {
@@ -126,6 +140,11 @@ export interface NormalDashboardsSlice {
   // not persisted, cleared by the strip that shows it.
   normalPlotWarning: string | null;
   setNormalPlotWarning: (message: string | null) => void;
+  // Transient: which formula the shared dialog is editing. The toolbar and
+  // the plots live in sibling trees, so the request travels through here.
+  normalFormulaEditor: FormulaEditorRequest | null;
+  openNormalFormulaEditor: (request?: FormulaEditorRequest) => void;
+  closeNormalFormulaEditor: () => void;
   toggleNormalSeries: (id: string) => void;
   clearNormalSeries: () => void;
 }
@@ -349,6 +368,10 @@ export const createNormalDashboardsSlice: StateCreator<
   },
   normalPlotWarning: null,
   setNormalPlotWarning: (message) => set({ normalPlotWarning: message }),
+  normalFormulaEditor: null,
+  openNormalFormulaEditor: (request = {}) =>
+    set({ normalFormulaEditor: request }),
+  closeNormalFormulaEditor: () => set({ normalFormulaEditor: null }),
   assignNormalSignalsToPlot: (plotId, signalIds) =>
     set((state) => {
       let refused = false;

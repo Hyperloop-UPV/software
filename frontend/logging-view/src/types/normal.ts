@@ -11,6 +11,21 @@ export interface ComparisonSignal {
   discrete: boolean;
   color: string;
   data: SeriesData;
+  /** Set only for computed signals. */
+  formula?: FormulaSignal;
+}
+
+export const FORMULA_ID_PREFIX = "calc:";
+
+/** A signal computed from an expression over session measurements. */
+export interface FormulaSignal {
+  /** `calc:<uuid>` — never contains "/", unlike "BOARD/measId" ids. */
+  id: string;
+  name: string;
+  expression: string;
+  /** Variable name used in the expression -> "BOARD/measId". */
+  variables: Record<string, string>;
+  units?: string;
 }
 
 export type TimeUnit = "us" | "ms" | "s" | "min";
@@ -102,6 +117,7 @@ export interface DashboardSettings {
   // false lets each plot hold its own window in ChartPane.timeWindow.
   linkTimeAxis: boolean;
   panelSizes: Record<string, Record<string, number>>;
+  formulas: FormulaSignal[];
 }
 
 export interface NormalDashboard {
