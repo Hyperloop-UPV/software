@@ -97,9 +97,16 @@ export function restoreDashboard(
       missing.add(id);
       return false;
     });
+    const xSignalId =
+      typeof pane.xSignalId === "string" && known(pane.xSignalId)
+        ? pane.xSignalId
+        : undefined;
+    if (typeof pane.xSignalId === "string" && !xSignalId)
+      missing.add(pane.xSignalId);
     return {
       ...pane,
       signalIds,
+      xSignalId,
       normalized: pane.normalized === true,
       hiddenSignalIds: isStringArray(pane.hiddenSignalIds)
         ? pane.hiddenSignalIds.filter((id) => signalIds.includes(id))

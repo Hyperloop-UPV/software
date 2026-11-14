@@ -6,6 +6,8 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
@@ -34,6 +36,7 @@ import {
   FileSpreadsheet,
   Grid2X2,
   ImageDown,
+  ChartScatter,
   Keyboard,
   Layers,
   Maximize2,
@@ -100,6 +103,7 @@ import {
   useNormalShortcuts,
 } from "../../hooks/useNormalShortcuts";
 import CursorReadout from "./CursorReadout";
+import XYChart from "./XYChart";
 import type { ChartHandle } from "../../lib/normal/chartImage";
 import {
   canCopyImages,
@@ -169,6 +173,7 @@ interface PaneProps {
         | "signalIds"
         | "normalized"
         | "fitY"
+        | "xSignalId"
         | "hiddenSignalIds"
         | "enumDisplay"
         | "markers"
@@ -239,6 +244,27 @@ function ComparisonPane({
       ),
   );
   const chartHandleRef = useRef<ChartHandle>(null);
+  // X‑Y: what the signals are drawn against, if not time.
+  const xSignal = node.xSignalId
+    ? allSignals.find((signal) => signal.id === node.xSignalId)
+    : undefined;
+  const xCandidates = allSignals.filter((signal) => !signal.discrete);
+  const setXSignal = (id: string | null) => {
+    if (!id)
+      // Back to time: the old X becomes a plotted signal again.
+      onChange(node.id, {
+        xSignalId: undefined,
+        signalIds:
+          node.xSignalId && !node.signalIds.includes(node.xSignalId)
+            ? [...node.signalIds, node.xSignalId]
+            : node.signalIds,
+      });
+    else
+      onChange(node.id, {
+        xSignalId: id,
+        signalIds: node.signalIds.filter((signalId) => signalId !== id),
+      });
+  };
   const exportName = () =>
     safeFileName(node.title || `Plot ${index + 1}`, "plot");
   const savePlotImage = async () => {
@@ -383,6 +409,14 @@ function ComparisonPane({
             >
               {String(index + 1).padStart(2, "0")}
             </span>
+            {node.xSignalId && (
+              <span
+                className="bg-primary/15 text-primary max-w-40 shrink-0 truncate rounded px-1 py-0.5 text-[10px] leading-none"
+                title="Signals are drawn against this one instead of against time"
+              >
+                X: {xSignal ? xSignal.name : "loading…"}
+              </span>
+            )}
             {!linkTimeAxis && (
               <span
                 className={`shrink-0 rounded px-1 py-0.5 font-mono text-[10px] leading-none tabular-nums ${
@@ -915,7 +949,23 @@ function ComparisonPane({
             )}
           </div>
           <div className="min-h-0 flex-1">
-            {visibleSignals.length > 0 ? (
+            {node.xSignalId ? (
+              xSignal ? (
+                <XYChart
+                  x={xSignal}
+                  signals={visibleSignals.filter((signal) => !signal.discrete)}
+                  domain={domain}
+                  range={paneRange}
+                  timeUnit={timeUnit}
+                  isDarkMode={isDarkMode}
+                  handleRef={chartHandleRef}
+                />
+              ) : (
+                <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+                  Loading measurements…
+                </div>
+              )
+            ) : visibleSignals.length > 0 ? (
               <ComparisonChart
                 locked={locked}
                 signals={render.plotted}
@@ -1138,8 +1188,39 @@ function ComparisonPane({
             View
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger disabled={locked}>
+                <ChartScatter className="size-3.5" />X axis
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="max-h-[60vh] w-[16rem] overflow-y-auto">
+                <ContextMenuRadioGroup
+                  value={node.xSignalId ?? ""}
+                  onValueChange={(value) => setXSignal(value || null)}
+                >
+                  <ContextMenuRadioItem value="">Time</ContextMenuRadioItem>
+                  <ContextMenuSeparator />
+                  {xCandidates.length === 0 ? (
+                    <p className="text-muted-foreground px-2 py-1.5 text-[11px]">
+                      Plot a numeric measurement first.
+                    </p>
+                  ) : (
+                    xCandidates.map((signal) => (
+                      <ContextMenuRadioItem key={signal.id} value={signal.id}>
+                        <span className="truncate">
+                          <span className="text-muted-foreground">
+                            {signal.board} /{" "}
+                          </span>
+                          {signal.name}
+                        </span>
+                      </ContextMenuRadioItem>
+                    ))
+                  )}
+                </ContextMenuRadioGroup>
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSeparator />
             <ContextMenuCheckboxItem
-              disabled={locked || tooManyUnits}
+              disabled={locked || tooManyUnits || !!node.xSignalId}
               checked={normalized}
               onCheckedChange={(checked) =>
                 onChange(node.id, { normalized: checked === true })
@@ -1148,7 +1229,12 @@ function ComparisonPane({
               Normalize to 0–100%
             </ContextMenuCheckboxItem>
             <ContextMenuCheckboxItem
-              disabled={locked || normalized || render.mode !== "lines"}
+              disabled={
+                locked ||
+                normalized ||
+                render.mode !== "lines" ||
+                !!node.xSignalId
+              }
               checked={!!node.fitY}
               onCheckedChange={(checked) =>
                 onChange(node.id, { fitY: checked === true })
@@ -1440,6 +1526,7 @@ export default function AnalysisWorkspace({
           | "signalIds"
           | "normalized"
           | "fitY"
+          | "xSignalId"
           | "hiddenSignalIds"
           | "markers"
         >

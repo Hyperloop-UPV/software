@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  chartOption,
   gotoNormal,
   openBoard,
   openSession,
@@ -253,4 +254,41 @@ test("a dashboard saved as a template starts a dashboard on another log", async 
   await expect(
     page.getByRole("menuitem", { name: /^Speed check/ }),
   ).toHaveCount(0);
+});
+
+test("a plot can draw its signals against another signal", async ({ page }) => {
+  await pane(page).click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Chart 1 actions" })
+    .getByRole("menuitem", { name: "View", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "X axis", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "LCU / velocity" }).click();
+
+  await expect(pane(page).getByText("X: velocity")).toBeVisible();
+  await expect(pane(page).getByLabel("X-Y chart")).toBeVisible();
+  // position against velocity: the three shared instants, x spanning 0–2.
+  const xy = await chartOption(page, "X-Y chart");
+  expect(xy.xType).toBe("value");
+  expect(xy.seriesLengths).toEqual([3]);
+  expect(xy.xExtent[0]).toBeLessThanOrEqual(0);
+  expect(xy.xExtent[1]).toBeGreaterThanOrEqual(2);
+  const plotted = await settings(page);
+  const first = plotted.layoutState.tree;
+  expect(first.xSignalId).toBe("LCU/velocity");
+  expect(first.signalIds).toEqual(["LCU/position"]);
+
+  // Back to time: velocity is a plotted signal again.
+  await pane(page).click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Chart 1 actions" })
+    .getByRole("menuitem", { name: "View", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "X axis", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "Time", exact: true }).click();
+  await expect(pane(page).getByLabel("Interactive signal chart")).toBeVisible();
+  expect((await settings(page)).layoutState.tree.signalIds).toEqual([
+    "LCU/position",
+    "LCU/velocity",
+  ]);
 });

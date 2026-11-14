@@ -58,7 +58,7 @@ export function NewDashboardMenu({
         <Button
           variant="ghost"
           size="icon-xs"
-          className="mb-0.5 -ml-1 shrink-0"
+          className="mb-1.5 -ml-1 shrink-0"
           aria-label="New dashboard from a template"
           title="New dashboard from a template or a file"
         >

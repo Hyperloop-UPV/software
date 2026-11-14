@@ -128,7 +128,16 @@ export function mapPanes(
 }
 
 export function signalIdsInLayout(layout: ChartLayout): string[] {
-  return [...new Set(getPanes(layout).flatMap((current) => current.signalIds))];
+  // The X of an X‑Y plot is loaded and computed like any plotted signal.
+  return [
+    ...new Set(
+      getPanes(layout).flatMap((current) =>
+        current.xSignalId
+          ? [...current.signalIds, current.xSignalId]
+          : current.signalIds,
+      ),
+    ),
+  ];
 }
 
 export function nextPaneTitle(layout: ChartLayout): string {

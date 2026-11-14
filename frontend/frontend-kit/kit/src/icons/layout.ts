@@ -1,5 +1,6 @@
 export {
   ChartNoAxesCombined,
+  ChartScatter,
   Columns,
   Filter,
   GripVertical,

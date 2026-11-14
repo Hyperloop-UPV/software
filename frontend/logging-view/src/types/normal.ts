@@ -80,6 +80,8 @@ export interface ChartPane {
   normalized: boolean;
   /** Scale y axes to the visible window instead of the whole recording. */
   fitY?: boolean;
+  /** Draws the signals against this one instead of against time (X‑Y). */
+  xSignalId?: string;
   hiddenSignalIds?: string[];
   markers?: ChartMarker[];
   // Only consulted when the dashboard's time axis is unlinked; absent means

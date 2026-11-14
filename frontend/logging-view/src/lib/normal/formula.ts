@@ -272,6 +272,33 @@ export interface FormulaInput {
 }
 
 /** Resample `input` at each `grid` time (grid lies inside the input's span). */
+/**
+ * Puts several signals on one time base: the timestamps of the densest one,
+ * restricted to the span all of them cover, with the others interpolated (or
+ * held, if discrete) onto it. `null` when they share no time at all.
+ */
+export function alignOnGrid(
+  inputs: FormulaInput[],
+): { grid: Float64Array; values: Float64Array[] } | null {
+  let start = -Infinity;
+  let end = Infinity;
+  for (const { data } of inputs) {
+    if (data.time.length === 0) return null;
+    start = Math.max(start, data.time[0]);
+    end = Math.min(end, data.time[data.time.length - 1]);
+  }
+  let grid: Float64Array = new Float64Array(0);
+  for (const { data } of inputs) {
+    const candidate = data.time.subarray(
+      lowerBound(data.time, start),
+      upperBound(data.time, end),
+    );
+    if (candidate.length > grid.length) grid = candidate;
+  }
+  if (grid.length === 0) return null;
+  return { grid, values: inputs.map((input) => resample(input, grid)) };
+}
+
 function resample(input: FormulaInput, grid: Float64Array): Float64Array {
   const { time, value } = input.data;
   const out = new Float64Array(grid.length);
@@ -365,31 +392,20 @@ export function evaluateFormula(
   collectVariables(ast, names);
   if (names.size === 0)
     throw new Error("The expression must use at least one measurement");
-  let start = -Infinity;
-  let end = Infinity;
-  for (const name of names) {
+  const ordered = [...names];
+  for (const name of ordered) {
     const input = inputs[name];
     if (!input) throw new Error(`"${name}" is not bound to a measurement`);
-    const { time } = input.data;
-    if (time.length === 0) throw new Error(`"${name}" has no samples`);
-    start = Math.max(start, time[0]);
-    end = Math.min(end, time[time.length - 1]);
+    if (input.data.time.length === 0)
+      throw new Error(`"${name}" has no samples`);
   }
-  let grid: Float64Array = new Float64Array(0);
-  for (const name of names) {
-    const { time } = inputs[name].data;
-    const candidate = time.subarray(
-      lowerBound(time, start),
-      upperBound(time, end),
-    );
-    if (candidate.length > grid.length) grid = candidate;
-  }
-  if (grid.length === 0)
-    throw new Error("The measurements do not overlap in time");
+  const aligned = alignOnGrid(ordered.map((name) => inputs[name]));
+  if (!aligned) throw new Error("The measurements do not overlap in time");
+  const { grid } = aligned;
 
   const length = grid.length;
   const series: Record<string, Float64Array> = {};
-  for (const name of names) series[name] = resample(inputs[name], grid);
+  ordered.forEach((name, index) => (series[name] = aligned.values[index]));
   let seconds: Float64Array | null = null;
 
   const run = (node: Node): Value => {
@@ -460,11 +476,12 @@ export function removeFormula(
 ): DashboardSettings {
   let tree = settings.layoutState.tree;
   for (const pane of getPanes(tree))
-    if (pane.signalIds.includes(id))
+    if (pane.signalIds.includes(id) || pane.xSignalId === id)
       tree = updatePane(tree, pane.id, (current) => ({
         ...current,
         signalIds: current.signalIds.filter((item) => item !== id),
         hiddenSignalIds: current.hiddenSignalIds?.filter((item) => item !== id),
+        xSignalId: current.xSignalId === id ? undefined : current.xSignalId,
       }));
   const units = { ...settings.units };
   delete units[id];
