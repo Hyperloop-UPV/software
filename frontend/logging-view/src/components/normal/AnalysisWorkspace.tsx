@@ -1660,16 +1660,16 @@ export default function AnalysisWorkspace({
           {dashboard.locked
             ? "Dashboard locked · Unlock in tab settings to edit"
             : "Drop selected measurements onto a plot · Scroll to zoom · Drag to pan · Ctrl+drag to zoom to a stretch"}
-          <button
-            type="button"
-            className="hover:text-foreground ml-3 inline-flex items-center gap-1 underline-offset-2 hover:underline"
-            onClick={() => setShortcutsOpen(true)}
-          >
-            <Keyboard className="size-3" />
-            Shortcuts
-            <kbd className="bg-muted rounded border px-1 font-mono">?</kbd>
-          </button>
         </span>
+        <button
+          type="button"
+          className="hover:text-foreground inline-flex items-center gap-1 underline-offset-2 hover:underline"
+          onClick={() => setShortcutsOpen(true)}
+        >
+          <Keyboard className="size-3" />
+          Shortcuts
+          <kbd className="bg-muted rounded border px-1 font-mono">?</kbd>
+        </button>
         <KeyboardShortcutsHelp
           open={shortcutsOpen}
           onOpenChange={setShortcutsOpen}

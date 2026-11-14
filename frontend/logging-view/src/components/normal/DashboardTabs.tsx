@@ -234,29 +234,6 @@ export default function DashboardTabs({
     (state) => state.configureNormalDashboard,
   );
   const moveDashboard = useStore((state) => state.moveNormalDashboard);
-  const importDashboard = useStore((state) => state.importNormalDashboard);
-  const exportDashboard = (dashboard: NormalDashboard) => {
-    const url = URL.createObjectURL(
-      new Blob([serializeDashboard(dashboard)], { type: "application/json" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = dashboardFileName(dashboard.name);
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-  const pickDashboardFile = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = `${DASHBOARD_FILE_EXTENSION},.json,application/json`;
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      focusActive.current = true;
-      importDashboard(await file.text());
-    };
-    input.click();
-  };
   const duplicateDashboard = useStore(
     (state) => state.duplicateNormalDashboard,
   );
@@ -283,6 +260,29 @@ export default function DashboardTabs({
   const tabListRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
   const focusActive = useRef(false);
+  const importDashboard = useStore((state) => state.importNormalDashboard);
+  const exportDashboard = (dashboard: NormalDashboard) => {
+    const url = URL.createObjectURL(
+      new Blob([serializeDashboard(dashboard)], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = dashboardFileName(dashboard.name);
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const pickDashboardFile = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = `${DASHBOARD_FILE_EXTENSION},.json,application/json`;
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      focusActive.current = true;
+      importDashboard(await file.text());
+    };
+    input.click();
+  };
   const restoreEditorFocus = useRef(true);
   const order = dashboards.map((dashboard) => dashboard.id).join(":");
 

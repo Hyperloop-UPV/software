@@ -11,6 +11,9 @@ const isTyping = (target: EventTarget | null) =>
 // A dialog, menu or picker owns the keyboard while it is open.
 const OVERLAYS = '[role="dialog"], [role="menu"], [role="listbox"]';
 
+const ARROW_WIDGETS =
+  '[role="tablist"], [role="separator"], [role="slider"], [role="radiogroup"]';
+
 /** Id of the plot the pointer is over, if any. */
 export function hoveredPaneId(): string | null {
   const hovered = document.querySelectorAll(":hover");
@@ -32,6 +35,13 @@ export function useNormalShortcuts(handlers: ShortcutHandlers) {
       if (isTyping(event.target) || document.querySelector(OVERLAYS)) return;
       const id = shortcutForKey(event);
       if (!id) return;
+      // Tabs, resize handles and sliders move with the arrow keys themselves.
+      if (
+        event.key.startsWith("Arrow") &&
+        event.target instanceof Element &&
+        event.target.closest(ARROW_WIDGETS)
+      )
+        return;
       event.preventDefault();
       handlersRef.current[id]();
     };
