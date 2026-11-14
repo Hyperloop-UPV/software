@@ -334,6 +334,15 @@ test("reopening a session brings its dashboards back", async ({ page }) => {
   expect((await settings(page)).layoutState.ids).toEqual(["LCU/velocity"]);
 });
 
+async function importFromMenu(page: Page) {
+  await page
+    .getByRole("button", { name: "New dashboard from a template" })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Import dashboard…", exact: true })
+    .click();
+}
+
 test("a dashboard survives a round trip through a file", async ({
   page,
 }, testInfo) => {
@@ -352,11 +361,8 @@ test("a dashboard survives a round trip through a file", async ({
   const path = testInfo.outputPath("Dashboard.dashboard.json");
   await file.saveAs(path);
 
-  await tab.click({ button: "right" });
   const chooser = page.waitForEvent("filechooser");
-  await tabMenu
-    .getByRole("menuitem", { name: "Import dashboard…", exact: true })
-    .click();
+  await importFromMenu(page);
   await (await chooser).setFiles(path);
   await expect(page.getByRole("tab")).toHaveCount(2);
   await expect(
@@ -366,13 +372,8 @@ test("a dashboard survives a round trip through a file", async ({
   await expect(page.locator("canvas")).toHaveCount(1);
 
   // Anything else is refused with a message and no new tab.
-  await page
-    .getByRole("tab", { name: "Dashboard (2)", exact: true })
-    .click({ button: "right" });
   const second = page.waitForEvent("filechooser");
-  await tabMenu
-    .getByRole("menuitem", { name: "Import dashboard…", exact: true })
-    .click();
+  await importFromMenu(page);
   await (
     await second
   ).setFiles({

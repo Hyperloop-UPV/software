@@ -32,9 +32,9 @@ import {
   Plus,
   Settings2,
   Unlock,
-  Upload,
   X,
 } from "@hyperloopupv/frontend-kit/icons";
+import { NewDashboardMenu, SaveTemplateDialog } from "./DashboardTemplates";
 import {
   DASHBOARD_FILE_EXTENSION,
   dashboardFileName,
@@ -261,6 +261,9 @@ export default function DashboardTabs({
   const tabListRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
   const focusActive = useRef(false);
+  const [templateTarget, setTemplateTarget] = useState<NormalDashboard | null>(
+    null,
+  );
   const importDashboard = useStore((state) => state.importNormalDashboard);
   const exportDashboard = (dashboard: NormalDashboard) =>
     downloadText(
@@ -575,9 +578,11 @@ export default function DashboardTabs({
             <FileDown className="size-3.5" />
             Export dashboard…
           </ContextMenuItem>
-          <ContextMenuItem onClick={pickDashboardFile}>
-            <Upload className="size-3.5" />
-            Import dashboard…
+          <ContextMenuItem
+            onClick={() => menuTarget && setTemplateTarget(menuTarget)}
+          >
+            <LayoutDashboard className="size-3.5" />
+            Save as template…
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => menuTarget && startEditing(menuTarget.id)}
@@ -663,6 +668,20 @@ export default function DashboardTabs({
       >
         <Plus className="size-4" />
       </Button>
+      <NewDashboardMenu
+        onBlank={() => {
+          focusActive.current = true;
+          addDashboard();
+        }}
+        onImportFile={pickDashboardFile}
+        onCreated={() => {
+          focusActive.current = true;
+        }}
+      />
+      <SaveTemplateDialog
+        dashboard={templateTarget}
+        onClose={() => setTemplateTarget(null)}
+      />
       <div
         className={`mb-1 ml-auto flex shrink-0 items-center gap-1 pl-2 ${controls ? "border-border border-l" : ""}`}
       >

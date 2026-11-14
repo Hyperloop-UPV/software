@@ -200,3 +200,57 @@ test("undo and redo bring back dashboard changes but not zoom", async ({
   await page.keyboard.press("Escape");
   await expect(panes(page)).toHaveCount(1);
 });
+
+test("a dashboard saved as a template starts a dashboard on another log", async ({
+  page,
+}) => {
+  await page.keyboard.press("n");
+  await expect(panes(page)).toHaveCount(2);
+  await page
+    .getByRole("tab", { name: "Dashboard", exact: true })
+    .click({ button: "right" });
+  await page
+    .getByRole("menu", { name: "Dashboard tab actions" })
+    .getByRole("menuitem", { name: "Save as template…" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Save as template" });
+  await dialog.getByLabel("Template name").fill("Speed check");
+  await dialog.getByRole("button", { name: "Save template" }).click();
+  await expect(dialog).toBeHidden();
+
+  // Another log, where temperature was never recorded.
+  await page.evaluate(async () => {
+    const modulePath = "/src/store/store.ts";
+    const { useStore } = await import(/* @vite-ignore */ modulePath);
+    await useStore.getState().openSession(
+      ["velocity", "position"].map((name) => ({
+        name: `${name}.csv`,
+        webkitRelativePath: `other/data/LCU/${name}.csv`,
+        text: async () => "0,LCU,backend,5\n10000,LCU,backend,6",
+      })),
+    );
+  });
+  await expect(page.getByRole("tab")).toHaveCount(1);
+  await expect(panes(page)).toHaveCount(1);
+
+  const templates = page.getByRole("button", {
+    name: "New dashboard from a template",
+  });
+  await templates.click();
+  await page.getByRole("menuitem", { name: /^Speed check/ }).click();
+  await expect(page.getByRole("tab")).toHaveCount(2);
+  await expect(
+    page.getByRole("tab", { name: "Speed check", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(panes(page)).toHaveCount(2);
+  await expect(page.locator("canvas")).toHaveCount(1);
+
+  await templates.click();
+  await page
+    .getByRole("button", { name: "Delete template Speed check" })
+    .click();
+  await expect(page.getByRole("menu")).toContainText("Save as template");
+  await expect(
+    page.getByRole("menuitem", { name: /^Speed check/ }),
+  ).toHaveCount(0);
+});

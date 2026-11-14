@@ -275,3 +275,78 @@ export function parseDashboardFile(text: string): unknown | null {
 export function dashboardFileName(name: string): string {
   return `${safeFileName(name, "dashboard")}${DASHBOARD_FILE_EXTENSION}`;
 }
+
+// ---- Templates -----------------------------------------------------------
+
+const TEMPLATES_KEY = "logging-view:dashboard-templates";
+const MAX_TEMPLATES = 30;
+
+export interface DashboardTemplate {
+  id: string;
+  name: string;
+  savedAt: number;
+  /** The same text an exported dashboard file holds. */
+  file: string;
+}
+
+const isTemplate = (value: unknown): value is DashboardTemplate =>
+  isRecord(value) &&
+  typeof value.id === "string" &&
+  typeof value.name === "string" &&
+  typeof value.savedAt === "number" &&
+  typeof value.file === "string";
+
+// A stable snapshot for useSyncExternalStore: the same array until it changes.
+let templates: DashboardTemplate[] | null = null;
+const templateListeners = new Set<() => void>();
+
+export function listTemplates(): DashboardTemplate[] {
+  if (!templates) {
+    const saved = readJson(TEMPLATES_KEY);
+    templates = Array.isArray(saved) ? saved.filter(isTemplate) : [];
+  }
+  return templates;
+}
+
+export function subscribeTemplates(listener: () => void) {
+  templateListeners.add(listener);
+  return () => {
+    templateListeners.delete(listener);
+  };
+}
+
+function writeTemplates(next: DashboardTemplate[]): boolean {
+  try {
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(next));
+  } catch {
+    return false;
+  }
+  templates = next;
+  templateListeners.forEach((listener) => listener());
+  return true;
+}
+
+/** Saves under `name`, replacing a template of the same name. */
+export function saveTemplate(
+  name: string,
+  dashboard: NormalDashboard,
+): boolean {
+  const trimmed = name.trim().slice(0, 80);
+  if (!trimmed) return false;
+  const template: DashboardTemplate = {
+    id: crypto.randomUUID(),
+    name: trimmed,
+    savedAt: Date.now(),
+    file: serializeDashboard({ ...dashboard, name: trimmed }),
+  };
+  return writeTemplates(
+    [
+      template,
+      ...listTemplates().filter((item) => item.name !== trimmed),
+    ].slice(0, MAX_TEMPLATES),
+  );
+}
+
+export function deleteTemplate(id: string) {
+  writeTemplates(listTemplates().filter((item) => item.id !== id));
+}
