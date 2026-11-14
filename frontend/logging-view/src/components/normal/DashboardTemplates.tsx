@@ -100,7 +100,12 @@ export function NewDashboardMenu({
                 className="opacity-60 group-hover/template:opacity-100"
                 aria-label={`Delete template ${template.name}`}
                 title="Delete template"
+                // The menu item around this button selects on pointer up (it
+                // calls click() on itself), which would apply the template
+                // being deleted: keep every pointer event to the button.
                 onPointerDown={(event) => event.stopPropagation()}
+                onPointerUp={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();

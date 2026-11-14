@@ -250,10 +250,19 @@ test("a dashboard saved as a template starts a dashboard on another log", async 
   await page
     .getByRole("button", { name: "Delete template Speed check" })
     .click();
+  // Deleting neither applies the template nor closes the menu.
   await expect(page.getByRole("menu")).toContainText("Save as template");
   await expect(
     page.getByRole("menuitem", { name: /^Speed check/ }),
   ).toHaveCount(0);
+  // The open menu hides the tabs from the accessibility tree; ask the store.
+  expect(
+    await page.evaluate(async () => {
+      const modulePath = "/src/store/store.ts";
+      const { useStore } = await import(/* @vite-ignore */ modulePath);
+      return useStore.getState().normalDashboards.length;
+    }),
+  ).toBe(2);
 });
 
 test("a plot can draw its signals against another signal", async ({ page }) => {
