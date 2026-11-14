@@ -305,8 +305,6 @@ async function splitFirstPlot(page: Page) {
 }
 
 test("reopening a session brings its dashboards back", async ({ page }) => {
-  // Loads the app twice.
-  test.setTimeout(60_000);
   await plotSignals(page, ["velocity"]);
   await splitFirstPlot(page);
   await page
