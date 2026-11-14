@@ -19,6 +19,8 @@ export type ShortcutId =
   | "previousEvent"
   | "nextEvent"
   | "escape"
+  | "undo"
+  | "redo"
   | "help";
 
 export interface ShortcutDefinition {
@@ -145,6 +147,21 @@ export const NORMAL_SHORTCUTS: ShortcutDefinition[] = [
     group: "Panels",
   },
   {
+    id: "undo",
+    // Matched by shortcutForKey with Ctrl/Cmd held, never on their own.
+    keys: [],
+    label: "Ctrl+Z",
+    description: "Undo the last change to the dashboard",
+    group: "General",
+  },
+  {
+    id: "redo",
+    keys: [],
+    label: "Ctrl+Shift+Z",
+    description: "Redo",
+    group: "General",
+  },
+  {
     id: "escape",
     keys: ["escape"],
     label: "Esc",
@@ -177,7 +194,14 @@ export const NORMAL_GESTURES: { label: string; description: string }[] = [
 ];
 
 export function shortcutForKey(event: KeyboardEvent): ShortcutId | null {
-  if (event.ctrlKey || event.metaKey || event.altKey) return null;
+  if (event.altKey) return null;
+  // Ctrl on Linux and Windows, Cmd on macOS.
+  if (event.ctrlKey || event.metaKey) {
+    const key = event.key.toLowerCase();
+    if (key === "z") return event.shiftKey ? "redo" : "undo";
+    if (key === "y" && !event.shiftKey) return "redo";
+    return null;
+  }
   const key = event.key.toLowerCase();
   return (
     NORMAL_SHORTCUTS.find((shortcut) => shortcut.keys.includes(key))?.id ?? null

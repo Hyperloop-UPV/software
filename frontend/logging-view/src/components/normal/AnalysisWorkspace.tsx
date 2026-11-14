@@ -1348,6 +1348,8 @@ export default function AnalysisWorkspace({
   const addPlot = useStore((state) => state.addNormalPlot);
   const openFormulaEditor = useStore((state) => state.openNormalFormulaEditor);
   const openSearch = useStore((state) => state.setNormalSignalSearchOpen);
+  const undo = useStore((state) => state.undoNormalDashboard);
+  const redo = useStore((state) => state.redoNormalDashboard);
   const selectedIds = useMemo(
     () => Object.keys(selectedSeries).filter((key) => selectedSeries[key]),
     [selectedSeries],
@@ -1580,6 +1582,8 @@ export default function AnalysisWorkspace({
       else setCursors({ a: null, b: null });
     },
     help: () => setShortcutsOpen(true),
+    undo: () => undo(dashboard.id),
+    redo: () => redo(dashboard.id),
     search: () => {
       if (!dashboard.locked) openSearch(true);
     },

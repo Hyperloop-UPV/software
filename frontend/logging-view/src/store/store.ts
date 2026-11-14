@@ -1,5 +1,12 @@
 import { create } from "zustand";
 import { saveSessionDashboards } from "../lib/normal/dashboardStorage";
+import {
+  HISTORY_LIMIT,
+  MERGE_MS,
+  isViewOnlyChange,
+  type DashboardHistory,
+} from "../lib/normal/history";
+import { historyReplay } from "./slices/normalDashboardsSlice";
 import { persist } from "zustand/middleware";
 import {
   createNormalDashboardsSlice,
@@ -100,3 +107,51 @@ if (typeof window !== "undefined")
   window.addEventListener("pagehide", () => {
     if (saveTimer !== undefined) saveDashboards();
   });
+
+// Undo history for Normal mode dashboards, recorded here rather than in each
+// action so that every way of editing a dashboard is covered.
+const lastRecordedAt = new Map<string, number>();
+useStore.subscribe((state, previous) => {
+  if (state.normalDashboards === previous.normalDashboards) return;
+  // A new session or a closed one starts every dashboard afresh.
+  if (state.folderName !== previous.folderName) {
+    lastRecordedAt.clear();
+    if (Object.keys(state.normalHistory).length > 0)
+      useStore.setState({ normalHistory: {} });
+    return;
+  }
+  if (historyReplay.active) return;
+  const before = new Map(
+    previous.normalDashboards.map((dashboard) => [dashboard.id, dashboard]),
+  );
+  const now = performance.now();
+  let history: Record<string, DashboardHistory> | null = null;
+  for (const dashboard of state.normalDashboards) {
+    const old = before.get(dashboard.id);
+    if (!old || old.settings === dashboard.settings) continue;
+    if (isViewOnlyChange(old.settings, dashboard.settings)) continue;
+    history ??= { ...state.normalHistory };
+    const current = history[dashboard.id] ?? { past: [], future: [] };
+    const merge =
+      now - (lastRecordedAt.get(dashboard.id) ?? -Infinity) < MERGE_MS;
+    lastRecordedAt.set(dashboard.id, now);
+    history[dashboard.id] = {
+      past:
+        merge && current.past.length > 0
+          ? current.past
+          : [...current.past, old.settings].slice(-HISTORY_LIMIT),
+      future: [],
+    };
+  }
+  // Closed dashboards take their history with them.
+  const alive = new Set(
+    state.normalDashboards.map((dashboard) => dashboard.id),
+  );
+  for (const id of Object.keys(history ?? state.normalHistory))
+    if (!alive.has(id)) {
+      history ??= { ...state.normalHistory };
+      delete history[id];
+      lastRecordedAt.delete(id);
+    }
+  if (history) useStore.setState({ normalHistory: history });
+});

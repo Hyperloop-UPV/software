@@ -16,7 +16,9 @@ import {
 } from "@hyperloopupv/frontend-kit/components";
 import {
   Calculator,
+  Redo2,
   Search,
+  Undo2,
   ChartNoAxesCombined,
   Ruler,
   ChevronDown,
@@ -95,6 +97,14 @@ export default function DashboardControls({
   const assignSignals = useStore((state) => state.assignNormalSignalsToPlot);
   const openFormulaEditor = useStore((state) => state.openNormalFormulaEditor);
   const openSearch = useStore((state) => state.setNormalSignalSearchOpen);
+  const undo = useStore((state) => state.undoNormalDashboard);
+  const redo = useStore((state) => state.redoNormalDashboard);
+  const canUndo = useStore(
+    (state) => (state.normalHistory[dashboard.id]?.past.length ?? 0) > 0,
+  );
+  const canRedo = useStore(
+    (state) => (state.normalHistory[dashboard.id]?.future.length ?? 0) > 0,
+  );
   const updateSettings = useStore(
     (state) => state.updateNormalDashboardSettings,
   );
@@ -495,6 +505,28 @@ export default function DashboardControls({
             : "ml-auto flex max-w-full flex-wrap items-center gap-2"
         }
       >
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Undo"
+            title="Undo (Ctrl+Z)"
+            disabled={!canUndo}
+            onClick={() => undo(dashboard.id)}
+          >
+            <Undo2 className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Redo"
+            title="Redo (Ctrl+Shift+Z)"
+            disabled={!canRedo}
+            onClick={() => redo(dashboard.id)}
+          >
+            <Redo2 className="size-3.5" />
+          </Button>
+        </div>
         <Button
           variant="ghost"
           size="sm"

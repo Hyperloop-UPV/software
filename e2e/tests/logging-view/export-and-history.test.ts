@@ -151,3 +151,52 @@ test("the search box adds measurements to the active plot or a new one", async (
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 });
+
+test("undo and redo bring back dashboard changes but not zoom", async ({
+  page,
+}) => {
+  const undo = page.getByRole("button", { name: "Undo", exact: true });
+  const redo = page.getByRole("button", { name: "Redo", exact: true });
+  await page.keyboard.press("n");
+  await expect(panes(page)).toHaveCount(2);
+  await page.waitForTimeout(500);
+  await pickPaneItem(page, "Layout", "Close plot", 1);
+  await expect(panes(page)).toHaveCount(1);
+
+  // Zooming is view state: no undo step for it, and undo leaves it alone.
+  await page.keyboard.press("+");
+  await expect
+    .poll(async () => (await settings(page)).range)
+    .toEqual({ start: 25, end: 75 });
+
+  await page.keyboard.press("Control+z");
+  await expect(panes(page)).toHaveCount(2);
+  await expect(
+    pane(page, 1).getByRole("button", { name: /LCU \/ velocity/ }),
+  ).toBeVisible();
+  expect((await settings(page)).range).toEqual({ start: 25, end: 75 });
+  await expect(redo).toBeEnabled();
+
+  await page.keyboard.press("Control+Shift+z");
+  await expect(panes(page)).toHaveCount(1);
+  await undo.click();
+  await expect(panes(page)).toHaveCount(2);
+  await undo.click();
+  await expect(panes(page)).toHaveCount(1);
+  // One step left: adding the measurements, done when the test started.
+  await undo.click();
+  await expect(page.getByText("Empty plot", { exact: true })).toBeVisible();
+  await expect(undo).toBeDisabled();
+  await redo.click();
+  await expect(page.locator("canvas")).toHaveCount(1);
+
+  // In a text field, Ctrl+Z is the field's own undo.
+  await page.keyboard.press("m");
+  const name = page
+    .getByRole("dialog", { name: "New formula" })
+    .getByLabel("Name", { exact: true });
+  await name.fill("Gap");
+  await name.press("Control+z");
+  await page.keyboard.press("Escape");
+  await expect(panes(page)).toHaveCount(1);
+});
