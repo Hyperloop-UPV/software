@@ -84,7 +84,7 @@ export default function ComparisonChart({
   // our own gesture mid-flight; an external change still gets through.
   const lastSentRef = useRef(range);
   const lockedRef = useRef(locked);
-  const cursorsOnRef = useRef(cursors !== null);
+  const cursorsRef = useRef(cursors);
   const onCursorAtRef = useRef(onCursorAt);
   const [width, setWidth] = useState(0);
 
@@ -93,7 +93,7 @@ export default function ComparisonChart({
   }, [locked]);
 
   useEffect(() => {
-    cursorsOnRef.current = cursors !== null;
+    cursorsRef.current = cursors;
     onCursorAtRef.current = onCursorAt;
   }, [cursors, onCursorAt]);
 
@@ -378,12 +378,69 @@ export default function ComparisonChart({
 
     // A click that did not travel places a cursor: A, or B with Shift. A drag
     // from the same press is a pan and must stay one.
+    // Pressing on a cursor line instead grabs it, and it follows the pointer.
     let pressedAt: { x: number; y: number } | null = null;
+    let dragging: "a" | "b" | null = null;
+    let dragFrame = 0;
+    let dragX = 0;
+    const cursorNear = (event: MouseEvent): "a" | "b" | null => {
+      const placed = cursorsRef.current;
+      if (!placed || lockedRef.current) return null;
+      const x = localX(event);
+      let nearest: "a" | "b" | null = null;
+      let distance = 6;
+      for (const key of ["a", "b"] as const) {
+        const timeMs = placed[key];
+        if (timeMs === null) continue;
+        const pixel = chart.convertToPixel(
+          { xAxisIndex: 0 },
+          timeMs / TIME_DIVISORS[timeUnitRef.current],
+        );
+        const gap = Math.abs(Number(pixel) - x);
+        if (gap <= distance) {
+          distance = gap;
+          nearest = key;
+        }
+      }
+      return nearest;
+    };
+    const onCursorDrag = (event: MouseEvent) => {
+      dragX = localX(event);
+      if (dragFrame) return;
+      dragFrame = requestAnimationFrame(() => {
+        dragFrame = 0;
+        if (dragging) onCursorAtRef.current(dragging, timeAtPixel(dragX, 0));
+      });
+    };
+    const onCursorDrop = (event: MouseEvent) => {
+      document.removeEventListener("mousemove", onCursorDrag, true);
+      document.removeEventListener("mouseup", onCursorDrop, true);
+      if (dragFrame) cancelAnimationFrame(dragFrame);
+      dragFrame = 0;
+      if (dragging)
+        onCursorAtRef.current(dragging, timeAtPixel(localX(event), 0));
+      dragging = null;
+    };
+    // Shows the line can be grabbed.
+    const onCursorHover = (event: MouseEvent) => {
+      if (dragging || event.buttons !== 0) return;
+      const zr = chart.getZr();
+      if (cursorNear(event)) zr.setCursorStyle("ew-resize");
+    };
     const onCursorPress = (event: MouseEvent) => {
-      pressedAt =
-        event.button === 0 && !event.ctrlKey && cursorsOnRef.current
-          ? { x: event.clientX, y: event.clientY }
-          : null;
+      pressedAt = null;
+      if (event.button !== 0 || event.ctrlKey || !cursorsRef.current) return;
+      const grabbed = cursorNear(event);
+      if (grabbed) {
+        // Ahead of zrender, so the same press does not start a pan.
+        event.preventDefault();
+        event.stopPropagation();
+        dragging = grabbed;
+        document.addEventListener("mousemove", onCursorDrag, true);
+        document.addEventListener("mouseup", onCursorDrop, true);
+        return;
+      }
+      pressedAt = { x: event.clientX, y: event.clientY };
     };
     const onCursorRelease = (event: MouseEvent) => {
       const from = pressedAt;
@@ -399,6 +456,7 @@ export default function ComparisonChart({
     };
     element.addEventListener("mousedown", onCursorPress, true);
     element.addEventListener("mouseup", onCursorRelease, true);
+    element.addEventListener("mousemove", onCursorHover);
 
     const observer = new ResizeObserver(() => {
       setWidth(element.clientWidth);
@@ -412,6 +470,10 @@ export default function ComparisonChart({
       element.removeEventListener("mousedown", onZoomStart, true);
       element.removeEventListener("mousedown", onCursorPress, true);
       element.removeEventListener("mouseup", onCursorRelease, true);
+      element.removeEventListener("mousemove", onCursorHover);
+      document.removeEventListener("mousemove", onCursorDrag, true);
+      document.removeEventListener("mouseup", onCursorDrop, true);
+      if (dragFrame) cancelAnimationFrame(dragFrame);
       document.removeEventListener("mousemove", onZoomMove, true);
       document.removeEventListener("mouseup", onZoomEnd, true);
       chart.off("datazoom", updateRange);

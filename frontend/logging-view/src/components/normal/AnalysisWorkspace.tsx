@@ -1421,7 +1421,50 @@ export default function AnalysisWorkspace({
       );
       return { start, end: start + span };
     });
+  // Orders and markers, as ms from the start of the recording, in time order.
+  const eventTimes = () => {
+    const duration = domain.endMs - domain.startMs;
+    const times = [
+      ...((showOrders ?? true)
+        ? orders.map(
+            (order) =>
+              (order.absoluteTime ?? domain.startMs + order.time) -
+              domain.startMs,
+          )
+        : []),
+      ...panes.flatMap((pane) =>
+        (pane.markers ?? []).map((marker) => marker.timeMs),
+      ),
+    ].filter((time) => time >= 0 && time <= duration);
+    return [...new Set(times)].sort((a, b) => a - b);
+  };
+  // Cursor A is the "current position": it steps from event to event, and the
+  // window follows whenever the event would fall outside it.
+  const jumpToEvent = (direction: 1 | -1) => {
+    const duration = domain.endMs - domain.startMs;
+    const times = eventTimes();
+    if (times.length === 0 || duration <= 0) return;
+    const from =
+      (showCursors ? cursors.a : null) ??
+      (duration * (range.start + range.end)) / 200;
+    const target =
+      direction > 0
+        ? times.find((time) => time > from + 1e-6)
+        : [...times].reverse().find((time) => time < from - 1e-6);
+    if (target === undefined) return;
+    setShowCursors(true);
+    setCursors((current) => ({ ...current, a: target }));
+    const percent = (target / duration) * 100;
+    moveWindow((current) => {
+      if (percent >= current.start && percent <= current.end) return current;
+      const span = current.end - current.start;
+      const start = Math.max(0, Math.min(100 - span, percent - span / 2));
+      return { start, end: start + span };
+    });
+  };
   useNormalShortcuts({
+    previousEvent: () => jumpToEvent(-1),
+    nextEvent: () => jumpToEvent(1),
     zoomIn: () => zoomBy(0.5),
     zoomOut: () => zoomBy(2),
     panLeft: () => panBy(-1),

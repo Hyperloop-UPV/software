@@ -15,6 +15,8 @@ export type ShortcutId =
   | "linkTime"
   | "expand"
   | "fitY"
+  | "previousEvent"
+  | "nextEvent"
   | "escape"
   | "help";
 
@@ -62,6 +64,20 @@ export const NORMAL_SHORTCUTS: ShortcutDefinition[] = [
     keys: ["0"],
     label: "0",
     description: "Reset zoom",
+    group: "Time",
+  },
+  {
+    id: "previousEvent",
+    keys: [","],
+    label: ",",
+    description: "Cursor A to the previous order or marker",
+    group: "Time",
+  },
+  {
+    id: "nextEvent",
+    keys: ["."],
+    label: ".",
+    description: "Cursor A to the next order or marker",
     group: "Time",
   },
   {

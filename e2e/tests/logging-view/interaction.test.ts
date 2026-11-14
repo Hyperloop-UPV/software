@@ -387,3 +387,80 @@ test("a dashboard survives a round trip through a file", async ({
   );
   await expect(page.getByRole("tab")).toHaveCount(2);
 });
+
+async function patchSettings(page: Page, script: string) {
+  await page.evaluate(async (body) => {
+    const modulePath = "/src/store/store.ts";
+    const { useStore } = await import(/* @vite-ignore */ modulePath);
+    const state = useStore.getState();
+    const change = new Function("current", body) as (current: object) => object;
+    state.updateNormalDashboardSettings(state.activeNormalDashboardId, change);
+  }, script);
+}
+
+test("a cursor follows the pointer when dragged", async ({ page }) => {
+  await plotSignals(page, ["velocity"]);
+  await patchSettings(
+    page,
+    "return { ...current, showCursors: true, cursors: { a: 50000, b: null } };",
+  );
+  await expect(readout(page).getByLabel("Cursor A")).toHaveText("50 s");
+  const box = (await chart(page).boundingBox())!;
+  const y = box.y + box.height / 2;
+  // Find the line: click-free, through the same maths the chart uses.
+  const lineX = await page.evaluate(async () => {
+    const modulePath = performance
+      .getEntriesByType("resource")
+      .find((entry) => /\/deps\/echarts\.js/.test(entry.name))!.name;
+    const echarts = await import(/* @vite-ignore */ modulePath);
+    const element = document.querySelector(
+      '[aria-label="Interactive signal chart"]',
+    )!;
+    return (
+      element.getBoundingClientRect().left +
+      echarts.getInstanceByDom(element).convertToPixel({ xAxisIndex: 0 }, 50)
+    );
+  });
+  await page.mouse.move(lineX, y);
+  await page.mouse.down();
+  await page.mouse.move(lineX + 60, y, { steps: 5 });
+  await page.mouse.move(lineX + 120, y, { steps: 5 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await settings(page)).cursors.a)
+    .toBeGreaterThan(55_000);
+  // It was a cursor drag, not a pan or a second cursor.
+  const after = await settings(page);
+  expect(after.cursors.b).toBeNull();
+  expect(after.range).toEqual({ start: 0, end: 100 });
+});
+
+test("comma and period step cursor A through the markers", async ({ page }) => {
+  await plotSignals(page, ["velocity"]);
+  await patchSettings(
+    page,
+    `const mark = (node) => node.type === "pane"
+       ? { ...node, markers: [
+           { id: "m1", label: "One", timeMs: 20000 },
+           { id: "m2", label: "Two", timeMs: 90000 } ] }
+       : { ...node, first: mark(node.first), second: mark(node.second) };
+     return { ...current, range: { start: 0, end: 40 },
+       layoutState: { ...current.layoutState, tree: mark(current.layoutState.tree) } };`,
+  );
+  const box = (await chart(page).boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+
+  // From the middle of the window (20 s) the next marker is the one at 90 s,
+  // which is off screen: the window moves to show it.
+  await page.keyboard.press(".");
+  await expect.poll(async () => (await settings(page)).cursors.a).toBe(90_000);
+  const moved = await settings(page);
+  expect(moved.showCursors).toBe(true);
+  expect(moved.range).toEqual({ start: 60, end: 100 });
+  await page.keyboard.press(",");
+  await expect.poll(async () => (await settings(page)).cursors.a).toBe(20_000);
+  expect((await settings(page)).range).toEqual({ start: 0, end: 40 });
+  // Nothing before the first one.
+  await page.keyboard.press(",");
+  expect((await settings(page)).cursors.a).toBe(20_000);
+});
