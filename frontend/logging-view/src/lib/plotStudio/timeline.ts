@@ -33,7 +33,17 @@ export function isDiscreteSeries(data: SeriesData, maxUnique = 12): boolean {
 
 // Single pass over (time, value): emits one segment per contiguous run of
 // the same value, mirroring the single-pass style used in stats.ts.
-export function computeStateSegments(data: SeriesData): StateSegment[] {
+//
+// `endMs` is when the recording ends. The final run holds until then, which
+// matters whenever the last state change is the last sample of this series:
+// closing that run at its own last sample would give it zero duration and
+// draw it as a 1px sliver, reading as "that state never happened". Callers
+// pass the end of the whole plot/recording; omitting it keeps the old
+// self-closing behaviour.
+export function computeStateSegments(
+  data: SeriesData,
+  endMs?: number,
+): StateSegment[] {
   const { time, value } = data;
   const n = time.length;
   if (n === 0) return [];
@@ -48,14 +58,26 @@ export function computeStateSegments(data: SeriesData): StateSegment[] {
       current = value[i];
     }
   }
-  segments.push({ start, end: time[n - 1], value: current });
+  segments.push({
+    start,
+    end: Math.max(time[n - 1], endMs ?? time[n - 1]),
+    value: current,
+  });
   return segments;
 }
 
 // Human-readable label for a state code: enum name if available, True/False
 // for boolean-looking 0/1, otherwise a generic "State N" fallback.
-export function stateLabel(value: number, enumLabels: string[] | undefined): string {
-  if (enumLabels && Number.isInteger(value) && value >= 0 && value < enumLabels.length) {
+export function stateLabel(
+  value: number,
+  enumLabels: string[] | undefined,
+): string {
+  if (
+    enumLabels &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value < enumLabels.length
+  ) {
     return enumLabels[value];
   }
   if (value === 0 || value === 1) return value === 1 ? "True" : "False";

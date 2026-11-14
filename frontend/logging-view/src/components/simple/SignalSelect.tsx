@@ -17,6 +17,9 @@ interface SignalSelectProps {
   placeholder?: string;
   /** Signal ids to hide (e.g. already assigned to the plot). */
   exclude?: string[];
+  /** Offer session measurements only, leaving out Plot Studio's composed signals. */
+  seriesOnly?: boolean;
+  ariaLabel?: string;
   triggerClassName?: string;
   size?: "sm" | "default";
 }
@@ -29,6 +32,8 @@ export default function SignalSelect({
   onValueChange,
   placeholder = "Select signal…",
   exclude,
+  seriesOnly = false,
+  ariaLabel,
   triggerClassName,
   size = "default",
 }: SignalSelectProps) {
@@ -47,6 +52,7 @@ export default function SignalSelect({
   const composed: AvailableSignal[] = [];
   for (const s of signals) {
     if (excluded.has(s.id)) continue;
+    if (seriesOnly && s.kind !== "series") continue;
     if (s.board) {
       const arr = byBoard.get(s.board);
       if (arr) { arr.push(s); } else { byBoard.set(s.board, [s]); }
@@ -98,6 +104,7 @@ export default function SignalSelect({
       <PopoverTrigger asChild>
         <button
           type="button"
+          aria-label={ariaLabel}
           className={cn(
             "border-input focus-visible:border-ring focus-visible:ring-ring/50 flex h-8 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border bg-transparent px-3 outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
             size === "sm" ? "text-xs" : "text-sm",

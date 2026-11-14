@@ -13,6 +13,16 @@ Tests are split into two Playwright projects:
 | `ui`          | `tests/ui/`          | UI tests — launch the Electron app and interact with the UI                             |
 | `integration` | `tests/integration/` | Real renderer/main IPC, Go HTTP catalogs, WebSocket subscriptions and profile isolation |
 
+Logging View also has a standalone browser suite in `tests/logging-view/`, using
+`playwright.logging.config.ts`. Run `pnpm --dir e2e test:logging-view` from the
+repository root. It starts Vite on port 9007 and verifies dashboard tabs, independent
+signal/layout/time settings, keyboard navigation, and session resets without Electron
+or a backend binary.
+The suite also covers the tab settings popover, colors, drag and keyboard reordering,
+and lock protection for tab metadata, plots, sidebar selection and time controls.
+Compact controls in the tab bar and the expandable full controls are checked for
+state preservation, lock protection and narrow layouts.
+
 ---
 
 ## UI Tests
@@ -57,11 +67,22 @@ vehicle commands. The WebSocket integration test only subscribes to connection s
 | `pnpm test:fast`             | Run all tests without rebuilding (assumes already built)              |
 | `pnpm test:fast:ui`          | Run `tests/ui` without rebuilding                                     |
 | `pnpm test:fast:integration` | Run integration tests without rebuilding                              |
+| `pnpm test:logging-view`     | Run Logging View dashboard tests against a local Vite server          |
 | `pnpm report`                | Open the last Playwright HTML report                                  |
 
 The renderer build does not compile Go or package Electron. It copies each
 frontend once, preserving Testing's E2E build rather than rebuilding it in normal mode.
 Use `:fast` variants when iterating against already-built renderers.
+
+`pnpm build` also seeds the About credits. The About screen reads a snapshot of
+contributor photographs and per-person commit counts that `generateCredits.js`
+fetches from the GitHub API when the app is packaged; it is gitignored, so a
+fresh clone — every CI run — has neither it nor the avatars beside it, and
+`tests/ui/about.test.ts` would find an empty contributor list. The build writes
+a fixed, offline fixture through `scripts/about-credits.mjs` when no usable
+snapshot is on disk, and leaves a generated one untouched, so a developer's own
+build stays what the About tests exercise locally. The suite never calls GitHub:
+the About tests assert that the screen is entirely network-free.
 
 ---
 
@@ -69,6 +90,7 @@ Use `:fast` variants when iterating against already-built renderers.
 
 - A platform-appropriate, prebuilt backend binary must exist in `electron-app/binaries/`. CI builds it before running the suite.
 - `testing-view` must be built in e2e mode (`build:e2e`), also handled automatically.
+- About credits need no network or GitHub token: `pnpm build` seeds an offline fixture when nothing has generated the snapshot.
 - Workers are set to `1` — Electron tests must run serially since only one app instance can run at a time.
 
 CI builds all four tested views and runs both projects. `E2E_REQUIRED_VIEWS=testing,competition,logging,adj` makes missing CI build artifacts a failure instead of silently skipping cross-view tests. Fast local runs may still skip optional-view cases when testing a reduced build.

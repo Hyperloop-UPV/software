@@ -1,7 +1,16 @@
 export {
+  ChartNoAxesCombined,
+  ChartScatter,
   Columns,
   Filter,
   GripVertical,
+  Grid2X2,
+  LayoutDashboard,
+  Maximize2,
+  Minimize2,
   PanelBottom,
   PanelRight,
+  PanelTopClose,
+  PanelTopOpen,
+  Rows2,
 } from "lucide-react";

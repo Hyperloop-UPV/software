@@ -39,6 +39,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   selectFolder: () => ipcRenderer.invoke("select-folder"),
   // Open a folder path in the OS file explorer
   openFolder: (path) => ipcRenderer.invoke("open-folder", path),
+  // Logging View: list and read a session folder by path, so a recently used
+  // session can be reopened without going through the folder picker
+  listSessionFiles: (dir) => ipcRenderer.invoke("list-session-files", dir),
+  readSessionFile: (dir, relativePath) =>
+    ipcRenderer.invoke("read-session-file", dir, relativePath),
   // BLCU: open native file picker and return the selected path
   blcuSelectFile: () => ipcRenderer.invoke("blcu-select-file"),
   // BLCU: read a file from disk and return its contents as a Buffer

@@ -1,1 +1,1 @@
-export { Camera } from "lucide-react";
+export { Camera, ImageDown } from "lucide-react";
