@@ -1,5 +1,17 @@
 import * as echarts from "echarts";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
+import {
+  chartBackground,
+  useChartHandle,
+  type ChartHandle,
+} from "../../lib/normal/chartImage";
 import { decimateLTTB } from "../../lib/plotStudio/decimate";
 import { lowerBound, upperBound } from "../../lib/plotStudio/range";
 import { enumBandColor, enumVariantColor } from "../../lib/normal/enumColors";
@@ -46,6 +58,7 @@ interface Props {
   onCursorAt: (cursor: "a" | "b", timeMs: number) => void;
   onRangeChange: (range: TimeRange) => void;
   onMarkerAt: (timeMs: number) => void;
+  handleRef?: Ref<ChartHandle>;
 }
 
 const escapeHtml = (value: string) =>
@@ -70,6 +83,7 @@ export default function ComparisonChart({
   onCursorAt,
   onRangeChange,
   onMarkerAt,
+  handleRef,
 }: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const zoomBandRef = useRef<HTMLDivElement>(null);
@@ -87,6 +101,7 @@ export default function ComparisonChart({
   const cursorsRef = useRef(cursors);
   const onCursorAtRef = useRef(onCursorAt);
   const [width, setWidth] = useState(0);
+  useChartHandle(handleRef, chartRef, chartBackground(isDarkMode));
 
   useEffect(() => {
     lockedRef.current = locked;

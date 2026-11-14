@@ -29,7 +29,11 @@ import {
   Columns,
   Eye,
   EyeOff,
+  Clipboard,
+  FileDown,
+  FileSpreadsheet,
   Grid2X2,
+  ImageDown,
   Keyboard,
   Layers,
   Maximize2,
@@ -95,6 +99,16 @@ import {
   useNormalShortcuts,
 } from "../../hooks/useNormalShortcuts";
 import CursorReadout from "./CursorReadout";
+import type { ChartHandle } from "../../lib/normal/chartImage";
+import {
+  canCopyImages,
+  copyImage,
+  downloadBlob,
+  downloadText,
+  safeFileName,
+} from "../../lib/download";
+import { exportTimestamp } from "../../lib/plotStudio/format";
+import { toCsv, visibleDataRows } from "../../lib/normal/tableExport";
 import WindowStatistics, { type StatisticsGroup } from "./WindowStatistics";
 
 const MAX_PANES = 8;
@@ -213,6 +227,34 @@ function ComparisonPane({
   // popover, so the menu's focus restore does not dismiss it (see below).
   const reopenConfigRef = useRef(false);
   const menuOpenedAtRef = useRef(0);
+  const chartHandleRef = useRef<ChartHandle>(null);
+  const exportName = () =>
+    safeFileName(node.title || `Plot ${index + 1}`, "plot");
+  const savePlotImage = async () => {
+    const blob = await chartHandleRef.current?.getImage();
+    if (blob) downloadBlob(`${exportName()}__${exportTimestamp()}.png`, blob);
+  };
+  const copyPlotImage = async () => {
+    const blob = await chartHandleRef.current?.getImage();
+    if (blob) await copyImage(blob);
+  };
+  const saveVisibleData = () =>
+    downloadText(
+      `${exportName()}__${exportTimestamp()}.csv`,
+      toCsv(
+        visibleDataRows(
+          // Filtered here, not the memoized list: handing that one to another
+          // function makes the React Compiler give up on this component.
+          signals.filter(
+            (signal) => !node.hiddenSignalIds?.includes(signal.id),
+          ),
+          domain,
+          paneRange,
+          timeUnit,
+        ),
+      ),
+      "text/csv",
+    );
   const configContentRef = useRef<HTMLDivElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const { selectedSeries } = useSeriesSelection();
@@ -872,6 +914,7 @@ function ComparisonPane({
                 showOrders={showOrders}
                 markers={node.markers ?? []}
                 onRangeChange={(next) => onRangeChange(node.id, next)}
+                handleRef={chartHandleRef}
                 onMarkerAt={(timeMs) => {
                   setClickedMarkerTime(timeMs);
                   setClickedMarkerLabel("");
@@ -1109,6 +1152,28 @@ function ComparisonPane({
                 Reset this plot&apos;s zoom
               </ContextMenuItem>
             )}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger disabled={visibleSignals.length === 0}>
+            <FileDown className="size-3.5" />
+            Export
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            <ContextMenuItem onClick={savePlotImage}>
+              <ImageDown className="size-3.5" />
+              Save as PNG
+            </ContextMenuItem>
+            {canCopyImages() && (
+              <ContextMenuItem onClick={copyPlotImage}>
+                <Clipboard className="size-3.5" />
+                Copy image
+              </ContextMenuItem>
+            )}
+            <ContextMenuItem onClick={saveVisibleData}>
+              <FileSpreadsheet className="size-3.5" />
+              Visible data as CSV
+            </ContextMenuItem>
           </ContextMenuSubContent>
         </ContextMenuSub>
         <ContextMenuSeparator />

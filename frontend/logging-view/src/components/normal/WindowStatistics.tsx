@@ -15,6 +15,8 @@ import type {
   TimeRange,
 } from "../../types/normal";
 import { DEFAULT_STATISTICS_COLUMNS } from "../../types/normal";
+import type { Cell } from "../../lib/normal/tableExport";
+import TableExportButtons from "./TableExportButtons";
 
 const format = (value: number) =>
   value.toLocaleString(undefined, { maximumSignificantDigits: 6 });
@@ -68,6 +70,59 @@ export default function WindowStatistics({
     });
   }, [groups, domain]);
 
+  // Raw numbers, not the localized display strings, so a spreadsheet can use
+  // them; enum states go out by name.
+  const exportRows = (): Cell[][] => {
+    const columns = COLUMNS.filter(({ id }) => visibleColumns.includes(id));
+    const grouped = sections.length > 1;
+    const header: Cell[] = [
+      ...(grouped ? ["Plot", "From (%)", "To (%)"] : []),
+      "Board",
+      "Signal",
+      "Unit",
+      ...columns.flatMap(({ id, label }) =>
+        id === "firstLast" ? ["First", "Last"] : [label],
+      ),
+    ];
+    const body = sections.flatMap((section) =>
+      section.rows.map(({ signal, stats }) => {
+        const state = (value: number): Cell =>
+          signal.discrete ? (signal.enumLabels?.[value] ?? value) : value;
+        const numeric = (value: number): Cell =>
+          signal.discrete ? null : value;
+        const cells = columns.flatMap(({ id }): Cell[] => {
+          if (!stats) return id === "firstLast" ? [null, null] : [null];
+          switch (id) {
+            case "samples":
+              return [stats.count];
+            case "min":
+              return [numeric(stats.min)];
+            case "max":
+              return [numeric(stats.max)];
+            case "mean":
+              return [numeric(stats.mean)];
+            case "std":
+              return [numeric(stats.std)];
+            case "firstLast":
+              return [state(stats.first), state(stats.last)];
+            case "changes":
+              return [signal.discrete ? stats.changes : null];
+          }
+        });
+        return [
+          ...(grouped
+            ? [section.label, section.range.start, section.range.end]
+            : []),
+          signal.board,
+          signal.name,
+          signal.discrete ? "State" : (signal.units ?? ""),
+          ...cells,
+        ];
+      }),
+    );
+    return [header, ...body];
+  };
+
   const toggleColumn = (column: StatisticsColumn, checked: boolean) => {
     if (checked) {
       onColumnsChange(
@@ -99,6 +154,12 @@ export default function WindowStatistics({
           <p className="text-muted-foreground hidden text-[10px] sm:block">
             Original values · Recorded samples only · Average is sample-weighted
           </p>
+          <TableExportButtons
+            name="window-statistics"
+            label="statistics"
+            rows={exportRows}
+            disabled={sections.every((section) => section.rows.length === 0)}
+          />
           <Popover>
             <PopoverTrigger asChild>
               <Button

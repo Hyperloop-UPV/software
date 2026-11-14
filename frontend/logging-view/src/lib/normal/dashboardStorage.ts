@@ -2,6 +2,7 @@
 // log brings its layout back, and as a file that can be loaded onto another
 // log. Both go through `restoreDashboard`, which trusts nothing it reads.
 import { getPanes, mapPanes, signalIdsInLayout } from "./layout";
+import { safeFileName } from "../download";
 import {
   FORMULA_ID_PREFIX,
   type ChartLayout,
@@ -272,6 +273,5 @@ export function parseDashboardFile(text: string): unknown | null {
 }
 
 export function dashboardFileName(name: string): string {
-  const safe = name.trim().replace(/[^\p{L}\p{N} ._-]+/gu, "_") || "dashboard";
-  return `${safe}${DASHBOARD_FILE_EXTENSION}`;
+  return `${safeFileName(name, "dashboard")}${DASHBOARD_FILE_EXTENSION}`;
 }

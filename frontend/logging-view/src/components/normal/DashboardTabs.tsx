@@ -40,6 +40,7 @@ import {
   dashboardFileName,
   serializeDashboard,
 } from "../../lib/normal/dashboardStorage";
+import { downloadText } from "../../lib/download";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useStore } from "../../store/store";
 import { getPanes } from "../../lib/normal/layout";
@@ -261,16 +262,12 @@ export default function DashboardTabs({
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
   const focusActive = useRef(false);
   const importDashboard = useStore((state) => state.importNormalDashboard);
-  const exportDashboard = (dashboard: NormalDashboard) => {
-    const url = URL.createObjectURL(
-      new Blob([serializeDashboard(dashboard)], { type: "application/json" }),
+  const exportDashboard = (dashboard: NormalDashboard) =>
+    downloadText(
+      dashboardFileName(dashboard.name),
+      serializeDashboard(dashboard),
+      "application/json",
     );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = dashboardFileName(dashboard.name);
-    link.click();
-    URL.revokeObjectURL(url);
-  };
   const pickDashboardFile = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -391,171 +388,174 @@ export default function DashboardTabs({
             aria-label="Dashboards"
             className="h-auto min-w-0 justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0"
           >
-        {dashboards.map((dashboard, index) => (
-          <Popover
-            key={dashboard.id}
-            open={editingId === dashboard.id}
-            onOpenChange={(open) => {
-              if (!open) setEditingId(null);
-            }}
-          >
-            <PopoverAnchor asChild>
-              <div
-                className={`group relative shrink-0 ${draggingId === dashboard.id ? "opacity-50" : ""}`}
-                onContextMenu={() => setContextId(dashboard.id)}
-                draggable={!dashboard.locked && editingId !== dashboard.id}
-                onDragStart={(event) => {
-                  if (
-                    dashboard.locked ||
-                    (event.target as HTMLElement).closest("[data-tab-action]")
-                  ) {
-                    event.preventDefault();
-                    return;
-                  }
-                  event.dataTransfer.setData(
-                    "application/x-logging-dashboard",
-                    dashboard.id,
-                  );
-                  event.dataTransfer.effectAllowed = "move";
-                  setDraggingId(dashboard.id);
-                }}
-                onDragEnd={() => {
-                  setDraggingId(null);
-                  setDropIndex(null);
+            {dashboards.map((dashboard, index) => (
+              <Popover
+                key={dashboard.id}
+                open={editingId === dashboard.id}
+                onOpenChange={(open) => {
+                  if (!open) setEditingId(null);
                 }}
               >
-                <TabsTrigger
-                  ref={(element) => {
-                    if (element) tabRefs.current.set(dashboard.id, element);
-                    else tabRefs.current.delete(dashboard.id);
-                  }}
-                  value={dashboard.id}
-                  aria-label={dashboard.name}
-                  className="border-border bg-muted/60 text-muted-foreground hover:bg-muted data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground dark:data-[state=active]:border-border dark:data-[state=active]:bg-background relative h-9 max-w-64 min-w-44 justify-start gap-2 rounded-t-lg rounded-b-none border border-b-0 px-3 pr-16 text-xs data-[state=active]:font-semibold data-[state=active]:shadow-none"
-                  style={{
-                    boxShadow: `inset 0 2px 0 ${dashboard.color ?? "var(--muted-foreground)"}`,
-                  }}
-                  title={`${dashboard.name}${dashboard.locked ? " · locked" : " · drag to reorder"} · double-click or press F2 for settings`}
-                  onDoubleClick={() => startEditing(dashboard.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "F2") {
-                      event.preventDefault();
-                      startEditing(dashboard.id);
-                    }
-                    if (
-                      event.altKey &&
-                      event.shiftKey &&
-                      (event.key === "ArrowLeft" || event.key === "ArrowRight")
-                    ) {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      focusActive.current = true;
-                      moveDashboard(
+                <PopoverAnchor asChild>
+                  <div
+                    className={`group relative shrink-0 ${draggingId === dashboard.id ? "opacity-50" : ""}`}
+                    onContextMenu={() => setContextId(dashboard.id)}
+                    draggable={!dashboard.locked && editingId !== dashboard.id}
+                    onDragStart={(event) => {
+                      if (
+                        dashboard.locked ||
+                        (event.target as HTMLElement).closest(
+                          "[data-tab-action]",
+                        )
+                      ) {
+                        event.preventDefault();
+                        return;
+                      }
+                      event.dataTransfer.setData(
+                        "application/x-logging-dashboard",
                         dashboard.id,
-                        index + (event.key === "ArrowLeft" ? -1 : 1),
                       );
-                    }
-                    if (
-                      event.altKey &&
-                      event.shiftKey &&
-                      (event.key === "Home" || event.key === "End")
-                    ) {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      focusActive.current = true;
-                      moveDashboard(
-                        dashboard.id,
-                        event.key === "Home" ? 0 : dashboards.length - 1,
-                      );
-                    }
-                  }}
-                >
-                  {dashboard.color ? (
-                    <span
-                      aria-hidden="true"
-                      className="size-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: dashboard.color }}
-                    />
-                  ) : (
-                    <LayoutDashboard className="size-3.5" />
-                  )}
-                  <span className="truncate">{dashboard.name}</span>
-                  {dashboard.locked && (
-                    <Lock aria-hidden="true" className="size-3 shrink-0" />
-                  )}
-                  <span
-                    aria-hidden="true"
-                    className="text-muted-foreground ml-auto text-[10px] tabular-nums"
+                      event.dataTransfer.effectAllowed = "move";
+                      setDraggingId(dashboard.id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      setDropIndex(null);
+                    }}
                   >
-                    {dashboard.settings.layoutState.ids.length}
-                  </span>
-                </TabsTrigger>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  data-tab-action
-                  className="text-muted-foreground absolute top-1.5 right-8 size-6"
+                    <TabsTrigger
+                      ref={(element) => {
+                        if (element) tabRefs.current.set(dashboard.id, element);
+                        else tabRefs.current.delete(dashboard.id);
+                      }}
+                      value={dashboard.id}
+                      aria-label={dashboard.name}
+                      className="border-border bg-muted/60 text-muted-foreground hover:bg-muted data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground dark:data-[state=active]:border-border dark:data-[state=active]:bg-background relative h-9 max-w-64 min-w-44 justify-start gap-2 rounded-t-lg rounded-b-none border border-b-0 px-3 pr-16 text-xs data-[state=active]:font-semibold data-[state=active]:shadow-none"
+                      style={{
+                        boxShadow: `inset 0 2px 0 ${dashboard.color ?? "var(--muted-foreground)"}`,
+                      }}
+                      title={`${dashboard.name}${dashboard.locked ? " · locked" : " · drag to reorder"} · double-click or press F2 for settings`}
+                      onDoubleClick={() => startEditing(dashboard.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "F2") {
+                          event.preventDefault();
+                          startEditing(dashboard.id);
+                        }
+                        if (
+                          event.altKey &&
+                          event.shiftKey &&
+                          (event.key === "ArrowLeft" ||
+                            event.key === "ArrowRight")
+                        ) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          focusActive.current = true;
+                          moveDashboard(
+                            dashboard.id,
+                            index + (event.key === "ArrowLeft" ? -1 : 1),
+                          );
+                        }
+                        if (
+                          event.altKey &&
+                          event.shiftKey &&
+                          (event.key === "Home" || event.key === "End")
+                        ) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          focusActive.current = true;
+                          moveDashboard(
+                            dashboard.id,
+                            event.key === "Home" ? 0 : dashboards.length - 1,
+                          );
+                        }
+                      }}
+                    >
+                      {dashboard.color ? (
+                        <span
+                          aria-hidden="true"
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: dashboard.color }}
+                        />
+                      ) : (
+                        <LayoutDashboard className="size-3.5" />
+                      )}
+                      <span className="truncate">{dashboard.name}</span>
+                      {dashboard.locked && (
+                        <Lock aria-hidden="true" className="size-3 shrink-0" />
+                      )}
+                      <span
+                        aria-hidden="true"
+                        className="text-muted-foreground ml-auto text-[10px] tabular-nums"
+                      >
+                        {dashboard.settings.layoutState.ids.length}
+                      </span>
+                    </TabsTrigger>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      data-tab-action
+                      className="text-muted-foreground absolute top-1.5 right-8 size-6"
+                      aria-label={`Settings for ${dashboard.name}`}
+                      title="Tab settings"
+                      tabIndex={dashboard.id === activeId ? 0 : -1}
+                      onClick={() => startEditing(dashboard.id)}
+                    >
+                      <Settings2 className="size-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      data-tab-action
+                      className="text-muted-foreground absolute top-1.5 right-1.5 size-6"
+                      aria-label={`Close ${dashboard.name}`}
+                      title={
+                        dashboard.locked
+                          ? "Unlock this dashboard to close it"
+                          : `Close ${dashboard.name}`
+                      }
+                      disabled={dashboard.locked}
+                      tabIndex={dashboard.id === activeId ? 0 : -1}
+                      onClick={(event) =>
+                        requestClose([dashboard.id], event.currentTarget)
+                      }
+                    >
+                      <X className="size-3" />
+                    </Button>
+                    {(dropIndex === index ||
+                      (dropIndex === dashboards.length &&
+                        index === dashboards.length - 1)) && (
+                      <span
+                        aria-hidden="true"
+                        className={`bg-primary pointer-events-none absolute inset-y-0 w-0.5 ${dropIndex === dashboards.length ? "right-0" : "left-0"}`}
+                      />
+                    )}
+                  </div>
+                </PopoverAnchor>
+                <PopoverContent
+                  align="start"
                   aria-label={`Settings for ${dashboard.name}`}
-                  title="Tab settings"
-                  tabIndex={dashboard.id === activeId ? 0 : -1}
-                  onClick={() => startEditing(dashboard.id)}
+                  className="w-80 max-w-[calc(100vw-2rem)]"
+                  onInteractOutside={() => {
+                    restoreEditorFocus.current = false;
+                  }}
+                  onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    if (restoreEditorFocus.current)
+                      tabRefs.current.get(dashboard.id)?.focus();
+                  }}
                 >
-                  <Settings2 className="size-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  data-tab-action
-                  className="text-muted-foreground absolute top-1.5 right-1.5 size-6"
-                  aria-label={`Close ${dashboard.name}`}
-                  title={
-                    dashboard.locked
-                      ? "Unlock this dashboard to close it"
-                      : `Close ${dashboard.name}`
-                  }
-                  disabled={dashboard.locked}
-                  tabIndex={dashboard.id === activeId ? 0 : -1}
-                  onClick={(event) =>
-                    requestClose([dashboard.id], event.currentTarget)
-                  }
-                >
-                  <X className="size-3" />
-                </Button>
-                {(dropIndex === index ||
-                  (dropIndex === dashboards.length &&
-                    index === dashboards.length - 1)) && (
-                  <span
-                    aria-hidden="true"
-                    className={`bg-primary pointer-events-none absolute inset-y-0 w-0.5 ${dropIndex === dashboards.length ? "right-0" : "left-0"}`}
+                  <TabEditor
+                    dashboard={dashboard}
+                    position={index}
+                    count={dashboards.length}
+                    onSave={(settings) => {
+                      configureDashboard(dashboard.id, settings);
+                      setEditingId(null);
+                    }}
                   />
-                )}
-              </div>
-            </PopoverAnchor>
-            <PopoverContent
-              align="start"
-              aria-label={`Settings for ${dashboard.name}`}
-              className="w-80 max-w-[calc(100vw-2rem)]"
-              onInteractOutside={() => {
-                restoreEditorFocus.current = false;
-              }}
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                if (restoreEditorFocus.current)
-                  tabRefs.current.get(dashboard.id)?.focus();
-              }}
-            >
-              <TabEditor
-                dashboard={dashboard}
-                position={index}
-                count={dashboards.length}
-                onSave={(settings) => {
-                  configureDashboard(dashboard.id, settings);
-                  setEditingId(null);
-                }}
-              />
-            </PopoverContent>
-          </Popover>
-        ))}
+                </PopoverContent>
+              </Popover>
+            ))}
           </TabsList>
         </ContextMenuTrigger>
         <ContextMenuContent aria-label="Dashboard tab actions">
@@ -721,7 +721,9 @@ export default function DashboardTabs({
                 : `Close ${closing.length} tabs?`}
             </DialogTitle>
             <DialogDescription>
-              {closingDashboard ? "This dashboard contains" : "These dashboards contain"}{" "}
+              {closingDashboard
+                ? "This dashboard contains"
+                : "These dashboards contain"}{" "}
               {closingCharts}{" "}
               {closingDashboard
                 ? "charts. Closing it will discard its charts, layout, and time settings."

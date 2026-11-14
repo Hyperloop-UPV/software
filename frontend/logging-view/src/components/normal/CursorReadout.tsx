@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { Button } from "@hyperloopupv/frontend-kit/components";
 import { X } from "@hyperloopupv/frontend-kit/icons";
 import { valueAt } from "../../lib/normal/cursors";
+import type { Cell } from "../../lib/normal/tableExport";
+import TableExportButtons from "./TableExportButtons";
 import {
   TIME_DIVISORS,
   type ComparisonSignal,
@@ -47,6 +49,46 @@ export default function CursorReadout({
   const deltaMs = a !== null && b !== null ? b - a : null;
   const deltaTime = deltaMs === null ? null : deltaMs / TIME_DIVISORS[timeUnit];
 
+  const exportRows = (): Cell[][] => {
+    const divisor = TIME_DIVISORS[timeUnit];
+    const at = (cursor: number | null) =>
+      cursor === null ? null : cursor / divisor;
+    return [
+      [
+        "Board",
+        "Signal",
+        "Unit",
+        `A (${timeUnit})`,
+        `B (${timeUnit})`,
+        "At A",
+        "At B",
+        "Δ (B − A)",
+        `Δ / ${timeUnit}`,
+      ],
+      ...rows.map(({ signal, atA, atB }) => {
+        const state = (value: number | null): Cell =>
+          value === null
+            ? null
+            : signal.discrete
+              ? (signal.enumLabels?.[Math.round(value)] ?? value)
+              : value;
+        const delta =
+          atA !== null && atB !== null && !signal.discrete ? atB - atA : null;
+        return [
+          signal.board,
+          signal.name,
+          signal.discrete ? "State" : (signal.units ?? ""),
+          at(a),
+          at(b),
+          state(atA),
+          state(atB),
+          delta,
+          delta === null || !deltaTime ? null : delta / deltaTime,
+        ];
+      }),
+    ];
+  };
+
   return (
     <section
       id="cursor-readout"
@@ -87,6 +129,12 @@ export default function CursorReadout({
           )}
         </div>
         <div className="flex items-center gap-1">
+          <TableExportButtons
+            name="cursors"
+            label="cursor measurements"
+            rows={exportRows}
+            disabled={rows.length === 0 || (a === null && b === null)}
+          />
           <Button
             type="button"
             variant="ghost"

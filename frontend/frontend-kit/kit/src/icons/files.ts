@@ -2,6 +2,7 @@ export {
   Copy,
   FileCode2,
   FileDown,
+  FileSpreadsheet,
   Folder,
   FolderOpen,
   Trash2,
