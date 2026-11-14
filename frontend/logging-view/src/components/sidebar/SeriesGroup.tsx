@@ -46,7 +46,7 @@ import {
 } from "@hyperloopupv/frontend-kit/components";
 import { ChevronRight, GripVertical, Layers, Plus } from "@hyperloopupv/frontend-kit/icons";
 import { cn, getTypeBadgeClass } from "@hyperloopupv/frontend-kit/lib";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { useAssignSignalsToPlot } from "../simple/hooks/useStudioSignals";
 import type { AdjMeasurement, AdjPacket } from "../../types/session";
@@ -80,18 +80,21 @@ interface SeriesRowProps {
   checked: boolean;
   meta?: AdjMeasurement;
   period: string | null;
-  onToggle: () => void;
+  /** Gets the click when there is one (not for keyboard activation). */
+  onToggle: (click?: MouseEvent) => void;
   /** Ids to drag when a drag starts from this row (whole selection, or just this row). */
   dragIds: string[];
   onContextTarget: (target: ContextTarget) => void;
   /** tanstack-virtual's remeasure ref — rows vary in height (badges/enum
    *  lists), so actual size is measured after mount rather than assumed. */
   measureRef?: (el: HTMLElement | null) => void;
+  /** Normal mode: a double-click adds the measurement to the active plot. */
+  quickAdd?: boolean;
 }
 
 // Own component (not inlined in the .map() below) because useDraggable is a
 // hook — it must be called once per row, not once for the whole list.
-function SeriesRow({ selectionLocked, dragKey, measId, checked, meta, period, onToggle, dragIds, onContextTarget, measureRef }: SeriesRowProps) {
+function SeriesRow({ selectionLocked, dragKey, measId, checked, meta, period, onToggle, dragIds, onContextTarget, measureRef, quickAdd }: SeriesRowProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: dragKey,
     disabled: selectionLocked,
@@ -116,14 +119,15 @@ function SeriesRow({ selectionLocked, dragKey, measId, checked, meta, period, on
         className={cn("pb-1", isDragging && "opacity-30")}
       >
       <SidebarMenuSubButton
-        onClick={selectionLocked ? undefined : onToggle}
+        onClick={selectionLocked ? undefined : (event) => onToggle(event.nativeEvent)}
+        title={quickAdd ? "Double-click to add to the active plot" : undefined}
         aria-disabled={selectionLocked}
         className="group/row h-auto min-w-0 cursor-grab gap-2 py-1.5 active:cursor-grabbing"
       >
         <Checkbox
           checked={checked}
           disabled={selectionLocked}
-          onCheckedChange={onToggle}
+          onCheckedChange={() => onToggle()}
           className="pointer-events-none size-3.5 shrink-0"
         />
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -182,8 +186,9 @@ interface BoardSectionProps {
   totalSelectedCount: number;
   measurementMeta: Record<string, AdjMeasurement>;
   measPacket: Record<string, AdjPacket>;
-  toggleSeries: (key: string) => void;
+  toggleSeries: (key: string, click?: MouseEvent) => void;
   plots: Array<{ id: string; name: string }>;
+  quickAdd: boolean;
   canCreatePlot: boolean;
   onCreatePlot: (signalIds: string[]) => void;
   onAddToPlot: (plotId: string, signalIds: string[]) => void;
@@ -194,7 +199,7 @@ interface BoardSectionProps {
 function BoardSection({
   selectionLocked,
   boardName, measIds, selectedSeries, totalSelectedCount, measurementMeta, measPacket,
-  toggleSeries, plots, canCreatePlot, onCreatePlot, onAddToPlot,
+  toggleSeries, plots, canCreatePlot, onCreatePlot, onAddToPlot, quickAdd,
 }: BoardSectionProps) {
   const [contextTarget, setContextTarget] = useState<ContextTarget | null>(null);
   // Controlled (not defaultOpen) so opening re-renders BoardSection itself —
@@ -296,7 +301,8 @@ function BoardSection({
                           checked={checked}
                           meta={meta}
                           period={period}
-                          onToggle={() => toggleSeries(key)}
+                          onToggle={(click) => toggleSeries(key, click)}
+                          quickAdd={quickAdd}
                           dragIds={dragIds}
                           onContextTarget={setContextTarget}
                         />
@@ -362,6 +368,48 @@ const SeriesGroup = () => {
     ),
   );
   const assignStudioSignals = useAssignSignalsToPlot();
+  const addToTargetNormalPlot = useStore((s) => s.addToTargetNormalPlot);
+
+  // Normal mode: a double-click adds the measurement to the active plot. Its
+  // first click has already toggled the row and may have shifted the list
+  // (the selection bar appears above it), so the second click can land on
+  // something else entirely. Remember where the first one hit, and take the
+  // second click from the document.
+  const lastClickRef = useRef<{ key: string; x: number; y: number } | null>(
+    null,
+  );
+  const toggleRow = (key: string, click?: MouseEvent) => {
+    // Second and later clicks of a burst never toggle; see the effect below.
+    if (click && click.detail >= 2) return;
+    lastClickRef.current =
+      isNormal && click
+        ? { key, x: click.clientX, y: click.clientY }
+        : null;
+    toggleSeries(key);
+  };
+  const quickAddRef = useRef<(key: string) => void>(() => {});
+  useEffect(() => {
+    quickAddRef.current = (key: string) => {
+      toggleSeries(key);
+      addToTargetNormalPlot([key]);
+    };
+  });
+  useEffect(() => {
+    if (!isNormal) return;
+    const onClick = (event: MouseEvent) => {
+      if (event.detail !== 2) return;
+      const first = lastClickRef.current;
+      lastClickRef.current = null;
+      // The browser already requires both clicks to be close in time.
+      if (
+        first &&
+        Math.hypot(event.clientX - first.x, event.clientY - first.y) < 6
+      )
+        quickAddRef.current(first.key);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [isNormal]);
 
   // Computed once for the whole list (not per row).
   const plots = useMemo(
@@ -446,7 +494,8 @@ const SeriesGroup = () => {
               totalSelectedCount={totalSelectedCount}
               measurementMeta={measurementMeta}
               measPacket={measPacket}
-              toggleSeries={toggleSeries}
+              toggleSeries={toggleRow}
+              quickAdd={isNormal}
               plots={plots}
               canCreatePlot={!isNormal || plots.length < 8}
               onCreatePlot={createPlot}

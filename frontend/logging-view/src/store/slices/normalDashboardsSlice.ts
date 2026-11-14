@@ -157,6 +157,25 @@ export function sessionNormalDashboards(
   };
 }
 
+/**
+ * The plot a quick add (double-click in the sidebar, the search box) lands
+ * in: the last plot clicked, else the expanded one, else the first empty one,
+ * else the first one.
+ */
+export function targetPaneId(
+  dashboard: NormalDashboard,
+  activePaneId: string | null,
+): string | null {
+  const panes = getPanes(dashboard.settings.layoutState.tree);
+  const exists = (id: string | null) =>
+    !!id && panes.some((pane) => pane.id === id);
+  if (exists(activePaneId)) return activePaneId;
+  if (exists(dashboard.settings.focusedId)) return dashboard.settings.focusedId;
+  return (
+    (panes.find((pane) => pane.signalIds.length === 0) ?? panes[0])?.id ?? null
+  );
+}
+
 export interface FormulaEditorRequest {
   /** Edit this formula; absent creates a new one. */
   formulaId?: string;
@@ -194,6 +213,13 @@ export interface NormalDashboardsSlice {
   // Transient: which formula the shared dialog is editing. The toolbar and
   // the plots live in sibling trees, so the request travels through here.
   normalFormulaEditor: FormulaEditorRequest | null;
+  /** Last plot the user clicked; where quick adds go. Not persisted. */
+  normalActivePaneId: string | null;
+  setNormalActivePaneId: (id: string | null) => void;
+  /** Adds measurements to the target plot of the active dashboard. */
+  addToTargetNormalPlot: (signalIds: string[]) => void;
+  normalSignalSearchOpen: boolean;
+  setNormalSignalSearchOpen: (open: boolean) => void;
   openNormalFormulaEditor: (request?: FormulaEditorRequest) => void;
   closeNormalFormulaEditor: () => void;
   toggleNormalSeries: (id: string) => void;
@@ -455,6 +481,22 @@ export const createNormalDashboardsSlice: StateCreator<
   normalPlotWarning: null,
   setNormalPlotWarning: (message) => set({ normalPlotWarning: message }),
   normalFormulaEditor: null,
+  normalActivePaneId: null,
+  setNormalActivePaneId: (id) =>
+    get().normalActivePaneId === id
+      ? undefined
+      : set({ normalActivePaneId: id }),
+  addToTargetNormalPlot: (signalIds) => {
+    const state = get();
+    const dashboard = state.normalDashboards.find(
+      (item) => item.id === state.activeNormalDashboardId,
+    );
+    if (!dashboard || dashboard.locked || signalIds.length === 0) return;
+    const target = targetPaneId(dashboard, state.normalActivePaneId);
+    if (target) state.assignNormalSignalsToPlot(target, signalIds);
+  },
+  normalSignalSearchOpen: false,
+  setNormalSignalSearchOpen: (open) => set({ normalSignalSearchOpen: open }),
   openNormalFormulaEditor: (request = {}) =>
     set({ normalFormulaEditor: request }),
   closeNormalFormulaEditor: () => set({ normalFormulaEditor: null }),

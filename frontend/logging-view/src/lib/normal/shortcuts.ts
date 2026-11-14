@@ -9,6 +9,7 @@ export type ShortcutId =
   | "resetZoom"
   | "newPlot"
   | "newFormula"
+  | "search"
   | "statistics"
   | "cursors"
   | "orders"
@@ -95,6 +96,13 @@ export const NORMAL_SHORTCUTS: ShortcutDefinition[] = [
     group: "Plots",
   },
   {
+    id: "search",
+    keys: ["/"],
+    label: "/",
+    description: "Search measurements and add one to the active plot",
+    group: "Plots",
+  },
+  {
     id: "newFormula",
     keys: ["m"],
     label: "M",
@@ -162,6 +170,10 @@ export const NORMAL_GESTURES: { label: string; description: string }[] = [
     description: "Place cursor A · B (with cursors on)",
   },
   { label: "Double click", description: "Add a marker" },
+  {
+    label: "Double-click a measurement",
+    description: "Add it to the active plot",
+  },
 ];
 
 export function shortcutForKey(event: KeyboardEvent): ShortcutId | null {

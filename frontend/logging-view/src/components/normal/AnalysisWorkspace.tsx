@@ -62,6 +62,7 @@ import { useDashboardSetting } from "../../hooks/useDashboardSetting";
 import { useDashboardTimeWindow } from "../../hooks/useDashboardTimeWindow";
 import { useSeriesSelection } from "../../hooks/useSeriesSelection";
 import { useStore } from "../../store/store";
+import { targetPaneId } from "../../store/slices/normalDashboardsSlice";
 import {
   arrangePanes,
   getPanes,
@@ -227,6 +228,16 @@ function ComparisonPane({
   // popover, so the menu's focus restore does not dismiss it (see below).
   const reopenConfigRef = useRef(false);
   const menuOpenedAtRef = useRef(0);
+  const setActivePane = useStore((state) => state.setNormalActivePaneId);
+  const active = useStore(
+    (state) =>
+      state.activeNormalDashboardId === dashboardId &&
+      state.normalDashboards.some(
+        (dashboard) =>
+          dashboard.id === dashboardId &&
+          targetPaneId(dashboard, state.normalActivePaneId) === node.id,
+      ),
+  );
   const chartHandleRef = useRef<ChartHandle>(null);
   const exportName = () =>
     safeFileName(node.title || `Plot ${index + 1}`, "plot");
@@ -358,9 +369,18 @@ function ComparisonPane({
           className={`border-border/80 flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-[border-color,box-shadow] dark:bg-[#21252c] ${isOver ? "border-primary ring-primary/25 ring-2" : ""}`}
           aria-label={`Chart panel ${index + 1}`}
           data-pane-id={node.id}
+          data-active={active || undefined}
+          onPointerDownCapture={() => setActivePane(node.id)}
         >
           <div className="border-border/60 bg-muted/35 flex min-h-11 shrink-0 items-center gap-2 border-b px-3 py-1.5">
-            <span className="text-muted-foreground text-[10px] font-semibold tabular-nums">
+            <span
+              className={`text-[10px] font-semibold tabular-nums ${active ? "text-primary" : "text-muted-foreground"}`}
+              title={
+                active
+                  ? "Active plot: double-clicked and searched measurements land here"
+                  : undefined
+              }
+            >
               {String(index + 1).padStart(2, "0")}
             </span>
             {!linkTimeAxis && (
@@ -1327,6 +1347,7 @@ export default function AnalysisWorkspace({
   const { selectedSeries } = useSeriesSelection();
   const addPlot = useStore((state) => state.addNormalPlot);
   const openFormulaEditor = useStore((state) => state.openNormalFormulaEditor);
+  const openSearch = useStore((state) => state.setNormalSignalSearchOpen);
   const selectedIds = useMemo(
     () => Object.keys(selectedSeries).filter((key) => selectedSeries[key]),
     [selectedSeries],
@@ -1559,6 +1580,9 @@ export default function AnalysisWorkspace({
       else setCursors({ a: null, b: null });
     },
     help: () => setShortcutsOpen(true),
+    search: () => {
+      if (!dashboard.locked) openSearch(true);
+    },
   });
   const statisticsGroups = useMemo<StatisticsGroup[]>(() => {
     if (linkTimeAxis)

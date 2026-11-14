@@ -1,11 +1,16 @@
 import { expect, test } from "@playwright/test";
 import {
   gotoNormal,
+  openBoard,
   openSession,
+  pane,
+  panes,
   patchSettings,
   pickPaneItem,
   plotSignals,
   readDownload,
+  settings,
+  sidebar,
 } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
@@ -88,4 +93,61 @@ test("a plot exports its image and the samples in its window", async ({
     "LCU,position,,50,3",
     "LCU,position,,100,2",
   ]);
+});
+
+test("double-clicking a measurement adds it to the plot last clicked", async ({
+  page,
+}) => {
+  await page.keyboard.press("n");
+  await expect(panes(page)).toHaveCount(2);
+  // The plot clicked last is the target.
+  await pane(page, 2).click();
+  await openBoard(page);
+  await sidebar(page).getByText("temperature", { exact: true }).dblclick();
+  await expect(
+    pane(page, 2).getByRole("button", { name: /LCU \/ temperature/ }),
+  ).toBeVisible();
+
+  await pane(page, 1).click();
+  await sidebar(page).getByText("temperature", { exact: true }).dblclick();
+  await expect(
+    pane(page, 1).getByRole("button", { name: /LCU \/ temperature/ }),
+  ).toBeVisible();
+  // The two clicks of a double-click leave the selection untouched.
+  await expect(page.locator("header")).toContainText("0 selected");
+});
+
+test("the search box adds measurements to the active plot or a new one", async ({
+  page,
+}) => {
+  await page.keyboard.press("/");
+  const dialog = page.getByRole("dialog", { name: "Add a measurement" });
+  const search = dialog.getByRole("combobox", { name: "Search measurements" });
+  await search.fill("temp");
+  await expect(dialog.getByRole("option")).toHaveCount(1);
+  await search.press("Enter");
+  await expect(dialog.getByRole("status")).toHaveText(
+    "Added LCU / temperature",
+  );
+  expect((await settings(page)).layoutState.ids).toContain("LCU/temperature");
+
+  await search.fill("lcu");
+  await expect(dialog.getByRole("option")).toHaveCount(3);
+  await search.press("ArrowDown");
+  await expect(dialog.getByRole("option").nth(1)).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await search.press("Shift+Enter");
+  // The modal hides the plots from the accessibility tree; ask the store.
+  await expect
+    .poll(async () => {
+      const tree = (await settings(page)).layoutState.tree;
+      return tree.type === "split" ? tree.second.signalIds : [];
+    })
+    .toEqual(["LCU/temperature"]);
+  await search.fill("nothing like this");
+  await expect(dialog).toContainText("No measurement matches");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
 });

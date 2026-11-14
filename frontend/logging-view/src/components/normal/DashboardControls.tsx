@@ -16,6 +16,7 @@ import {
 } from "@hyperloopupv/frontend-kit/components";
 import {
   Calculator,
+  Search,
   ChartNoAxesCombined,
   Ruler,
   ChevronDown,
@@ -93,6 +94,7 @@ export default function DashboardControls({
   const addNormalPlot = useStore((state) => state.addNormalPlot);
   const assignSignals = useStore((state) => state.assignNormalSignalsToPlot);
   const openFormulaEditor = useStore((state) => state.openNormalFormulaEditor);
+  const openSearch = useStore((state) => state.setNormalSignalSearchOpen);
   const updateSettings = useStore(
     (state) => state.updateNormalDashboardSettings,
   );
@@ -493,6 +495,17 @@ export default function DashboardControls({
             : "ml-auto flex max-w-full flex-wrap items-center gap-2"
         }
       >
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-xs"
+          aria-label="Search measurements"
+          title="Search measurements (/)"
+          onClick={() => openSearch(true)}
+        >
+          <Search className="size-3.5" />
+          <span className="hidden lg:inline">Add</span>
+        </Button>
         {mathMenu}
         {viewMenu}
         {!compact && (

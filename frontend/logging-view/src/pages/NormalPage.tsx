@@ -7,6 +7,7 @@ import AnalysisWorkspace from "../components/normal/AnalysisWorkspace";
 import DashboardTabs from "../components/normal/DashboardTabs";
 import DashboardControls from "../components/normal/DashboardControls";
 import FormulaDialog from "../components/normal/FormulaDialog";
+import SignalSearch from "../components/normal/SignalSearch";
 import {
   evaluateFormula,
   parseFormula,
@@ -308,6 +309,7 @@ function SessionComparison() {
         />
       </TabsContent>
       <FormulaDialog dashboard={dashboard} />
+      <SignalSearch dashboard={dashboard} />
     </Tabs>
   );
 }
