@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
+import type { CloudLogsAPI } from "@hyperloopupv/frontend-kit/core";
 
 interface ElectronAPI {
+  cloudLogs?: CloudLogsAPI;
   switchView: (view: string, query?: Record<string, string>) => Promise<string>;
   // Present only inside the Electron shell; the folder picker in a plain
   // browser never yields a path, so recent sessions are Electron-only.
