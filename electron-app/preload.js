@@ -24,6 +24,23 @@ const { contextBridge, ipcRenderer } = require("electron");
  * await window.electronAPI.saveConfig({ database: { host: "localhost" } });
  */
 contextBridge.exposeInMainWorld("electronAPI", {
+  cloudLogs: {
+    getCredentialsStatus: () => ipcRenderer.invoke("cloud-logs:credentials-status"),
+    setCredentials: (input) => ipcRenderer.invoke("cloud-logs:credentials-save", input),
+    clearCredentials: () => ipcRenderer.invoke("cloud-logs:credentials-clear"),
+    getLocalSessions: () => ipcRenderer.invoke("cloud-logs:local-sessions"),
+    selectSession: () => ipcRenderer.invoke("cloud-logs:select-session"),
+    list: (cursor) => ipcRenderer.invoke("cloud-logs:list", cursor),
+    autocompleteTags: (query) => ipcRenderer.invoke("cloud-logs:tags", query),
+    upload: (input) => ipcRenderer.invoke("cloud-logs:upload", input),
+    download: (input) => ipcRenderer.invoke("cloud-logs:download", input),
+    getDownloads: () => ipcRenderer.invoke("cloud-logs:downloads"),
+    onProgress: (callback) => {
+      const listener = (_event, progress) => callback(progress);
+      ipcRenderer.on("cloud-logs:progress", listener);
+      return () => ipcRenderer.removeListener("cloud-logs:progress", listener);
+    },
+  },
   // Get the currently loaded view name
   getCurrentView: () => ipcRenderer.invoke("get-current-view"),
   // Switch to a different view by name, optionally passing query params
