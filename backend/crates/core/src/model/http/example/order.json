@@ -26,11 +26,7 @@
                     "min": 0.0,
                     "max": 50.0
                   },
-                  "severity": "fault",
-                  "time": {
-                    "secs": 0,
-                    "nanos": 0
-                  }
+                  "severity": "fault"
                 },
                 {
                   "id": 2,
@@ -39,10 +35,7 @@
                     "limit": 40.0
                   },
                   "severity": "warning",
-                  "time": {
-                    "secs": 0,
-                    "nanos": 500000000
-                  }
+                  "time": "200ms"
                 }
               ]
             }

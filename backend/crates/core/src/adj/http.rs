@@ -1,7 +1,7 @@
 use crate::{
     adj::Adj,
     model::{
-        MeasurementKind, PacketType,
+        AdjId, MeasurementKind, PacketType,
         http::{
             data::{
                 DataBoardResponse, DataMeasurementKind, DataMeasurementResponse,
@@ -15,6 +15,8 @@ use crate::{
         },
     },
 };
+
+use std::time::Duration;
 
 impl Adj {
     /// Builds the data catalog without modifying or consuming the ADJ.
@@ -47,19 +49,7 @@ impl Adj {
                                     alias: measurement.alias.clone(),
                                     name: measurement.name.clone(),
                                     display_units: measurement.display_units.clone(),
-                                    kind: match &measurement.kind {
-                                        MeasurementKind::Numeric { wire_type } => {
-                                            DataMeasurementKind::Numeric {
-                                                wire_type: *wire_type,
-                                            }
-                                        }
-                                        MeasurementKind::Boolean => DataMeasurementKind::Boolean,
-                                        MeasurementKind::Enum { options } => {
-                                            DataMeasurementKind::Enum {
-                                                options: options.clone(),
-                                            }
-                                        }
-                                    },
+                                    kind: match_measurement_kind(&measurement.kind),
                                 })
                                 .collect(),
                         })
@@ -109,27 +99,15 @@ impl Adj {
                                     alias: measurement.alias.clone(),
                                     name: measurement.name.clone(),
                                     display_units: measurement.display_units.clone(),
-                                    kind: match &measurement.kind {
-                                        MeasurementKind::Numeric { wire_type } => {
-                                            DataMeasurementKind::Numeric {
-                                                wire_type: *wire_type,
-                                            }
-                                        }
-                                        MeasurementKind::Boolean => DataMeasurementKind::Boolean,
-                                        MeasurementKind::Enum { options } => {
-                                            DataMeasurementKind::Enum {
-                                                options: options.clone(),
-                                            }
-                                        }
-                                    },
+                                    kind: match_measurement_kind(&measurement.kind),
                                     protections: measurement
                                         .protections
                                         .iter()
                                         .map(|protection| OrderProtectionResponse {
-                                            id: protection.id,
+                                            id: AdjId((protection.id.0 << 13) | measurement.id.0),
                                             kind: protection.kind,
                                             severity: protection.severity,
-                                            time: protection.time,
+                                            time: protection_time_to_nanos(protection.time),
                                         })
                                         .collect(),
                                 })
@@ -178,7 +156,7 @@ impl Adj {
                     measurement_id: measurement.id,
                     kind: protection.kind,
                     severity: protection.severity,
-                    time: protection.time,
+                    time: protection_time_to_nanos(protection.time),
                 })
             })
             .collect();
@@ -201,5 +179,36 @@ impl Adj {
             .collect();
 
         ProtectionResponse { protections, info }
+    }
+}
+
+// Returns Some("(time)xs") if the time is not 0
+fn protection_time_to_nanos(time: Duration) -> Option<String> {
+    if time == Duration::new(0, 0) {
+        None
+    } else {
+        // If the duration is in nanoseconds (default)
+        let mut res = format!("{}ns", time.as_nanos().to_string());
+
+        if time.as_millis() > 0 {
+            res = format!("{}ms", time.as_millis().to_string());
+        } else if time.as_micros() > 0 {
+            res = format!("{}us", time.as_micros().to_string());
+        }
+
+        Some(res)
+    }
+}
+
+// Matches the kind of measurement and returns the specific type/structure
+fn match_measurement_kind(measurement: &MeasurementKind) -> DataMeasurementKind {
+    match measurement {
+        MeasurementKind::Numeric { wire_type } => DataMeasurementKind::Numeric {
+            wire_type: *wire_type,
+        },
+        MeasurementKind::Boolean => DataMeasurementKind::Boolean,
+        MeasurementKind::Enum { options } => DataMeasurementKind::Enum {
+            options: options.clone(),
+        },
     }
 }

@@ -1,6 +1,6 @@
 //! Flat ADJ v3 protection catalog returned by `/backend/adj/ProtectionPackets`.
 
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 use serde::Serialize;
 
@@ -42,8 +42,9 @@ pub struct ProtectionInfoResponse {
     /// Severity serialized as `fault` or `warning`.
     #[serde(serialize_with = "serialize_severity")]
     pub severity: Severity,
-    /// Required duration, serialized as `{"secs": ..., "nanos": ...}`.
-    pub time: Duration,
+    /// Optional duration.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time: Option<String>,
 }
 
 /// Display metadata for one entry of `general_info.json`'s `protectionTypes`.
@@ -55,6 +56,6 @@ pub struct ProtectionTypeResponse {
     /// Display template; `{}` marks bounds and `%` the measured value.
     pub text: String,
     /// Optional time-related display template, omitted if absent from the ADJ.
-    #[serde(rename = "textTime", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub text_time: Option<String>,
 }

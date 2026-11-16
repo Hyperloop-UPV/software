@@ -1,7 +1,5 @@
 //! ADJ v3 order catalog returned by `/backend/adj/OrderPackets`.
 
-use std::time::Duration;
-
 use serde::Serialize;
 
 use crate::{
@@ -68,7 +66,7 @@ pub struct OrderMeasurementResponse {
 /// A parameter protection's definition, not a triggered protection event.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct OrderProtectionResponse {
-    /// One-based protection position within its measurement, not a packet id.
+    /// id of the protection, composed as specified
     #[serde(serialize_with = "serialize_adj_id")]
     pub id: AdjId,
     /// Trigger condition, serialized with its type and named bounds.
@@ -77,6 +75,7 @@ pub struct OrderProtectionResponse {
     /// Severity serialized as `fault` or `warning`.
     #[serde(serialize_with = "serialize_severity")]
     pub severity: Severity,
-    /// Required duration, serialized as `{"secs": ..., "nanos": ...}`.
-    pub time: Duration,
+    /// Optional duration.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time: Option<String>,
 }

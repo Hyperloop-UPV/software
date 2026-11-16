@@ -20,10 +20,13 @@ mod error;
 mod info;
 mod raw;
 
+// To activate this module the feature "http" is required
+// The structures used in this module aren't used for any other reason
 #[cfg(feature = "http")]
-/// asdfasd
+/// Strctures for the responses of the HTTP requests
 pub mod http;
 
+// Imports for the "git" feature
 #[cfg(feature = "git")]
 use std::path::PathBuf;
 #[cfg(feature = "git")]
