@@ -1,6 +1,17 @@
 use crate::model::{AdjId, BoardId, NumericKind, ProtectionKind, Severity};
 use serde::{Serialize, Serializer};
 
+// EXPLANATION OF THE OBJECT SERIALIZER 
+// When using the macro #[serde(serialize_with = "")] you specify a function
+// which takes to arguments:
+// - 1st with the type of the atribute you apply the object
+// - 2nd with the type `Serializer`
+// The second one is just for setting the specified value obtained in the function
+// when the serialization occurs. Very simple.
+// 
+// If you want to serialize a structure you have to implement the trait Serialize,
+// which 
+
 // Serialize domain types locally without changing the internal model.
 pub(crate) fn serialize_board_id<S: Serializer>(
     id: &BoardId,
@@ -38,6 +49,7 @@ pub(crate) fn serialize_numeric_kind<S: Serializer>(
 
 // A remote derive keeps the JSON representation here, without changing model.
 #[derive(Serialize)]
+// Mirroring the struct `ProtectionKind`, we our rules for serialization.
 #[serde(remote = "ProtectionKind", tag = "type", rename_all = "snake_case")]
 enum ProtectionKindDef {
     Above { limit: f64 },
@@ -51,26 +63,8 @@ pub(crate) fn serialize_protection_kind<S: Serializer>(
     kind: &ProtectionKind,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
+    // We apply the serialization to this specific enum, with rules setted in the definition
     ProtectionKindDef::serialize(kind, serializer)
-}
-
-// This endpoint indexes general_info.json's protectionTypes by the original
-// ADJ names. Keep the order response's existing snake_case format unchanged.
-#[derive(Serialize)]
-#[serde(remote = "ProtectionKind", tag = "type")]
-enum AdjProtectionKindDef {
-    Above { limit: f64 },
-    Below { limit: f64 },
-    Equal { target: f64 },
-    NotEqual { target: f64 },
-    Range { min: f64, max: f64 },
-}
-
-pub(crate) fn serialize_adj_protection_kind<S: Serializer>(
-    kind: &ProtectionKind,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    AdjProtectionKindDef::serialize(kind, serializer)
 }
 
 pub(crate) fn serialize_severity<S: Serializer>(

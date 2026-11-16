@@ -29,11 +29,14 @@ impl Adj {
             .pod_data
             .boards
             .values()
+            // For each board
             .map(|board| {
                 let mut packets: Vec<DataPacketResponse> = board
                     .packets
                     .values()
+                    // For each packet of this board
                     .filter_map(|packet| {
+                        // If the PacketType is Data, return Some(DataPacketResponse) -> Will be a Vec<DataPacketResponse>
                         let PacketType::Data(measurements) = &packet.packet_type else {
                             return None;
                         };
@@ -57,13 +60,17 @@ impl Adj {
                     .collect();
                 packets.sort_unstable_by_key(|packet| packet.id.0);
 
+                // Set up each packet
                 DataBoardResponse {
                     id: board.id,
                     name: board.name.clone(),
                     packets,
                 }
             })
+            // Obtain a Vec<> of all the packets
             .collect();
+
+        // Sort the responses by board.id
         boards.sort_unstable_by_key(|board| board.id.0);
 
         DataResponse { boards }
@@ -79,15 +86,19 @@ impl Adj {
             .pod_data
             .boards
             .values()
+            // For each board
             .map(|board| {
                 let mut orders: Vec<OrderPacketResponse> = board
                     .packets
                     .values()
+                    // For each order of this board
                     .filter_map(|packet| {
+                        // If the packet is an Order...
                         let PacketType::Order(measurements) = &packet.packet_type else {
                             return None;
                         };
 
+                        // Setup of the response
                         Some(OrderPacketResponse {
                             id: packet.id,
                             name: packet.name.clone(),
@@ -114,6 +125,7 @@ impl Adj {
                                 .collect(),
                         })
                     })
+                    // Collect all the OrderPacketResponses
                     .collect();
                 orders.sort_unstable_by_key(|order| order.id.0);
 
@@ -140,8 +152,10 @@ impl Adj {
             .pod_data
             .boards
             .values()
+            // For each board
             .flat_map(|board| board.packets.values())
             .filter_map(|packet| {
+                // If the packet is of type Protection...
                 let PacketType::Protection(measurement) = &packet.packet_type else {
                     return None;
                 };
