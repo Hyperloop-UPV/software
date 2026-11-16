@@ -16,6 +16,7 @@ import SeriesGroup from "./SeriesGroup";
 import SeriesSelectionBar from "./SeriesSelectionBar";
 import SidebarToggleHandle from "./SidebarToggleHandle";
 import ThemeToggleItem from "./ThemeToggleItem";
+import CloudLogsDialog from "../cloudLogs/CloudLogsDialog";
 
 const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
   const hasLoadedSession = useStore((s) => s.folderName !== null);
@@ -35,6 +36,7 @@ const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
       </SidebarContent>
 
       <SidebarFooter>
+        <CloudLogsDialog />
         {hasLoadedSession && (
           <>
             <OrdersTimelineControl />

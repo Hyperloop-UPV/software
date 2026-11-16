@@ -18,12 +18,11 @@ import {
   readConfig,
   writeConfig,
 } from "../config/configInstance.js";
-import {
-  getBackendWorkingDir,
-  restartBackend,
-} from "../processes/backend.js";
+import { getBackendWorkingDir, restartBackend } from "../processes/backend.js";
 import { logger } from "../utils/logger.js";
 import { getAppPath } from "../utils/paths.js";
+import { setupCloudLogsHandlers } from "../cloudLogs/handlers.js";
+import { getLogsRoot } from "../cloudLogs/sessions.js";
 import {
   getCurrentView,
   getMainWindow,
@@ -39,6 +38,7 @@ import {
  * setupIpcHandlers();
  */
 function setupIpcHandlers() {
+  setupCloudLogsHandlers();
   /**
    * @event get-current-view
    * @description Returns the identifier of the currently loaded view.
@@ -56,7 +56,10 @@ function setupIpcHandlers() {
       await restartBackend();
     } catch (error) {
       logger.electron.error("Failed to restart backend:", error);
-      dialog.showErrorBox("Restart Failed", `Could not restart backend:\n\n${error.message}`);
+      dialog.showErrorBox(
+        "Restart Failed",
+        `Could not restart backend:\n\n${error.message}`,
+      );
     } finally {
       loadView("testing-view");
     }
@@ -109,7 +112,7 @@ function setupIpcHandlers() {
     ];
     const rendererDir = join(getAppPath(), "renderer");
     return ALL_VIEWS.filter(({ mode }) =>
-      fs.existsSync(join(rendererDir, `${mode}-view`))
+      fs.existsSync(join(rendererDir, `${mode}-view`)),
     );
   });
 
@@ -126,8 +129,6 @@ function setupIpcHandlers() {
     loadView(view, query ? { query } : undefined);
     return view;
   });
-
-  
 
   /**
    * @event save-config
@@ -196,6 +197,7 @@ function setupIpcHandlers() {
       const mainWindow = getMainWindow();
       const result = await dialog.showOpenDialog(mainWindow, {
         title: "Select Logging Folder",
+        defaultPath: await getLogsRoot(),
         properties: ["openDirectory"],
       });
 
@@ -247,36 +249,29 @@ function setupIpcHandlers() {
     }
   };
 
-  // A session is <dir>/logger_settings.json, <dir>/data/<BOARD>/*.csv and
-  // <dir>/order/order.csv — exactly what the renderer's openSession reads.
-  // Walking only those three shapes keeps a huge parent folder from being
-  // scanned, and Dirent.isDirectory()/isFile() skip symlinks.
+  // A recording is identified by logger_settings.json. Walk its contents so
+  // future logger subfolders are preserved and their CSVs can be read locally.
   const SESSION_FILE_LIMIT = 4000;
 
   const listSessionEntries = async (dir) => {
     const entries = [];
-    if (fs.existsSync(join(dir, "logger_settings.json"))) {
-      entries.push("logger_settings.json");
-    }
-    if (fs.existsSync(join(dir, "order", "order.csv"))) {
-      entries.push("order/order.csv");
-    }
-    let boards = [];
-    try {
-      boards = await readdir(join(dir, "data"), { withFileTypes: true });
-    } catch {
-      return entries;
-    }
-    for (const board of boards) {
-      if (!board.isDirectory()) continue;
-      const files = await readdir(join(dir, "data", board.name), {
+    const walk = async (relative = "") => {
+      const children = await readdir(join(dir, relative), {
         withFileTypes: true,
       });
-      for (const file of files) {
-        if (!file.isFile() || !file.name.endsWith(".csv")) continue;
-        entries.push(`data/${board.name}/${file.name}`);
-        if (entries.length >= SESSION_FILE_LIMIT) return entries;
+      for (const child of children) {
+        if (child.isSymbolicLink()) continue;
+        const name = relative ? join(relative, child.name) : child.name;
+        if (child.isDirectory()) await walk(name);
+        else if (child.isFile() && name !== "cloud-log.json")
+          entries.push(name.split(sep).join("/"));
+        if (entries.length >= SESSION_FILE_LIMIT) return;
       }
+    };
+    try {
+      await walk();
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
     }
     return entries;
   };

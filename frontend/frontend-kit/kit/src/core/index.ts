@@ -3,3 +3,4 @@ export * from "./loggerColors";
 export * from "./minMaxDownsample";
 export * from "./types";
 export * from "./websocket";
+export type * from "./cloudLogs";
