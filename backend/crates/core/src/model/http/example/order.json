@@ -20,7 +20,7 @@
               },
               "protections": [
                 {
-                  "id": 1,
+                  "id": 11193,
                   "kind": {
                     "type": "range",
                     "min": 0.0,
@@ -29,7 +29,7 @@
                   "severity": "fault"
                 },
                 {
-                  "id": 2,
+                  "id": 19385,
                   "kind": {
                     "type": "above",
                     "limit": 40.0
