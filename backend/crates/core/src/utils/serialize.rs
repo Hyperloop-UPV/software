@@ -1,7 +1,8 @@
-use crate::model::{
-    AdjId, BoardId, NumericKind, ProtectionKind, Severity, http::data::DataMeasurementKind,
-};
+use crate::model::{AdjId, BoardId, NumericKind, ProtectionKind, Severity};
 use serde::{Serialize, Serializer};
+
+#[cfg(feature = "http")]
+use crate::model::http::data::DataMeasurementKind;
 
 // EXPLANATION OF THE OBJECT SERIALIZER
 // When using the macro #[serde(serialize_with = "")] you specify a function
@@ -82,6 +83,7 @@ struct EnumKind {
     options: Vec<String>,
 }
 
+#[cfg(feature = "http")]
 // Serializes the type of the data of the measurement, depends on each kind of measurement
 pub(crate) fn serialize_data_measurement_type<S: Serializer>(
     kind: &DataMeasurementKind,
