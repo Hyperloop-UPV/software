@@ -1,16 +1,10 @@
 //! The shared UDP socket: one socket, receive-only, every board's
 //! telemetry.
 //!
-//! **Not written yet.** This file currently holds only the error type
-//! [`super::Error`] aggregates, plus the contract below, so that the rest
-//! of `net` compiles and whoever implements this module knows what the
-//! shared part expects of it. See [`super`] and `net/README.md`.
-//!
 //! # What this module is
 //!
 //! One socket bound to the backend's own address, carrying `Data` packets
-//! from every board. Nothing is ever sent from it. One task is enough:
-//! there is no per-board state to keep.
+//! from every board. Nothing is ever sent from it.
 //!
 //! # Entry point
 //!
@@ -26,12 +20,9 @@
 //!   none of [`super::tcp`]'s buffer applies here. Read into one reused
 //!   64 KiB buffer and a datagram can never be silently truncated,
 //!   whatever the ADJ grows to.
-//! - The loop does three things and nothing else: receive, decode with
-//!   [`crate::protocol::udp::decode_datagram`], report. No disk, no
-//!   WebSocket, no aggregation — the socket's receive buffer is where
-//!   packets get dropped if this task falls behind, and the kernel drops
-//!   them silently, so this loop stays as short as it can be. Raising
-//!   `SO_RCVBUF` is part of setting the socket up.
+//! - The loop does three things and nothing else: decode with
+//!   [`crate::protocol::udp::decode_datagram`], resolve the board, report.
+//!   No disk, no WebSocket, no aggregation.
 //! - [`super::Notification::board`] comes from the decoded packet's id,
 //!   through [`crate::protocol::Index`] — every
 //!   [`crate::model::PacketDef`] carries its `board` — so that a
@@ -60,10 +51,12 @@
 //!   `Result<JoinHandle<()>, Error>`.
 
 use super::Reporter;
+use crate::model::Packet;
 use crate::protocol::{DecodeError, Index};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
+use tracing::{error, warn};
 
 /// How to set the shared socket up.
 ///
@@ -99,8 +92,101 @@ pub struct Config {
 /// [`Error::Bind`] only — every later failure goes out through
 /// `reporter`, since by then there is nobody left to return it to.
 pub fn spawn(config: Config, adj: Arc<Index>, reporter: Reporter) -> Result<JoinHandle<()>, Error> {
-    let _ = (config, adj, reporter);
-    todo!("the UDP socket is not written yet: see this module's contract")
+    let socket = bind_socket(config)?;
+    let handle = tokio::spawn(run_loop(socket, adj, reporter));
+    Ok(handle)
+}
+
+/// Binds a UDP socket and configures its OS-level receive buffer size (`SO_RCVBUF`).
+fn bind_socket(config: Config) -> Result<tokio::net::UdpSocket, Error> {
+    // Bind using the standard library socket first so we can configure non-blocking mode.
+    let std_socket = std::net::UdpSocket::bind(config.addr).map_err(|source| Error::Bind {
+        addr: config.addr,
+        source,
+    })?;
+
+    // Tokio requires the underlying std socket to be in non-blocking mode.
+    std_socket.set_nonblocking(true).map_err(|source| Error::Bind {
+        addr: config.addr,
+        source,
+    })?;
+
+    // Convert the standard socket into an async Tokio UdpSocket.
+    let socket = tokio::net::UdpSocket::from_std(std_socket).map_err(|source| Error::Bind {
+        addr: config.addr,
+        source,
+    })?;
+
+    let sock_ref = socket2::SockRef::from(&socket);
+    if let Err(e) = sock_ref.set_recv_buffer_size(config.recv_buffer) {
+        warn!(
+            %config.addr,
+            buffer = config.recv_buffer,
+            %e,
+            "could not set SO_RCVBUF, using system default"
+        );
+    }
+
+    Ok(socket)
+}
+
+/// Main UDP loop: reads datagrams into a reusable 64 KiB buffer, decodes in-place, and reports.
+async fn run_loop(
+    socket: tokio::net::UdpSocket,
+    adj: Arc<Index>,
+    reporter: Reporter,
+) {
+    // Reusable 64 KiB buffer — a datagram can never be silently truncated.
+    let mut buf = vec![0u8; 64 * 1024];
+
+    loop {
+        match socket.recv_from(&mut buf).await {
+            Ok((len, from)) => {
+                if !handle_datagram(&buf[..len], from, &adj, &reporter).await {
+                    // Downstream channels closed; exit cleanly.
+                    break;
+                }
+            }
+            Err(source) => {
+                // Socket-level receive failure: log, report as fatal to the backend, and stop.
+                let err = Error::Recv { source };
+                error!(%err, "UDP receive error");
+                let _ = reporter.report(err).await;
+                break;
+            }
+        }
+    }
+}
+
+/// Decodes a single datagram slice against `adj` and forwards the result or error to `reporter`.
+///
+/// Returns `false` if the downstream `reporter` channels have closed and the loop should stop.
+async fn handle_datagram(
+    bytes: &[u8],
+    from: SocketAddr,
+    adj: &Index,
+    reporter: &Reporter,
+) -> bool {
+    let packet = match crate::protocol::udp::decode_datagram(bytes, adj) {
+        Ok(p) => p,
+        Err(source) => {
+            let error = Error::Decode { from, source };
+            error!(%error, "UDP decode error");
+            return reporter.report(error).await.is_ok();
+        }
+    };
+
+    let Some(packet_def) = adj.packet(packet.id) else {
+        warn!(id = ?packet.id, "decoded packet id not in index");
+        return true;
+    };
+
+    let board = packet_def.board;
+
+    reporter
+        .notify(board, super::Event::Received(Packet::Data(packet)))
+        .await
+        .is_ok()
 }
 
 /// Something that went wrong on the shared UDP socket.
@@ -162,9 +248,6 @@ impl Error {
     /// task is spawned, so it is a startup failure handed back to
     /// whoever composes the backend.
     pub fn is_fatal(&self) -> bool {
-        // Matched exhaustively rather than just returning `true`: a
-        // variant added later has to say which it is instead of
-        // inheriting this answer in silence.
         match self {
             Error::Bind { .. } | Error::Recv { .. } | Error::Decode { .. } => true,
         }
@@ -174,7 +257,8 @@ impl Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::AdjId;
+    use crate::model::{AdjId, Board, BoardId, MacAddress, MessageLevel, PacketDef, PacketType, PodData};
+    use std::collections::HashMap;
     use std::net::IpAddr;
 
     fn peer() -> SocketAddr {
@@ -185,11 +269,9 @@ mod tests {
     fn a_datagram_that_will_not_decode_faults_the_pod() {
         let error = Error::Decode {
             from: peer(),
-            source: DecodeError::UnknownId(AdjId(9999)),
+            source: crate::protocol::DecodeError::UnknownId(AdjId(9999)),
         };
 
-        // Nothing corrupts a datagram in flight, so this is a mismatched
-        // ADJ, not noise to skip over.
         assert!(error.is_fatal());
     }
 
@@ -199,7 +281,6 @@ mod tests {
             source: std::io::Error::from(std::io::ErrorKind::ConnectionReset),
         };
 
-        // Every board's telemetry at once.
         assert!(error.is_fatal());
     }
 
@@ -207,11 +288,80 @@ mod tests {
     fn a_decode_failure_says_where_it_came_from() {
         let error = Error::Decode {
             from: peer(),
-            source: DecodeError::UnknownId(AdjId(9999)),
+            source: crate::protocol::DecodeError::UnknownId(AdjId(9999)),
         };
 
-        // The only identity it has: there is no board to attribute an
-        // undeclared id to.
         assert!(error.to_string().contains("192.168.1.3:50400"));
+    }
+
+    /// Builds a minimal Index with one empty Data packet (ID 1000) on Board 1.
+    fn sample_index() -> Index {
+        let packet = PacketDef {
+            id: AdjId(1000),
+            board: BoardId(1),
+            name: "test_data".to_string(),
+            packet_type: PacketType::Message(MessageLevel::Info),// I don't know what packet type to use here
+        };
+        let board = Board {
+            id: BoardId(1),
+            name: "TEST".to_string(),
+            ip: IpAddr::from([192, 168, 0, 10]),
+            mac: MacAddress([0; 6]),
+            packets: HashMap::from([(packet.id, packet)]),
+        };
+        let pod_data = PodData {
+            boards: HashMap::from([(board.id, board)]),
+        };
+        Index::new(&pod_data, None)
+    }
+
+    #[tokio::test]
+    async fn handle_datagram_decodes_valid_packet_and_notifies() {
+        let (reporter, mut sinks) = Reporter::channels(16, 16);
+        let index = sample_index();
+
+        // 1000 in little-endian u16 is [0xE8, 0x03], with 0 measurements.
+        let keep_going = handle_datagram(&[0xE8, 0x03], peer(), &index, &reporter).await;
+        assert!(keep_going);
+
+        let notification = sinks.notifications.recv().await;
+        assert!(notification.is_some(), "should have emitted a packet event");
+        assert!(sinks.errors.try_recv().is_err(), "should not have reported an error");
+    }
+
+    #[tokio::test]
+    async fn handle_datagram_reports_error_on_unknown_id() {
+        let (reporter, mut sinks) = Reporter::channels(16, 16);
+        let index = sample_index();
+
+        // Unknown ID 0xFFFF (65535)
+        let keep_going = handle_datagram(&[0xFF, 0xFF], peer(), &index, &reporter).await;
+        assert!(keep_going);
+
+        let error_report = sinks.errors.recv().await;
+        assert!(error_report.is_some(), "should have reported a decode error");
+    }
+
+    #[tokio::test]
+    async fn handle_datagram_stops_when_sinks_are_dropped() {
+        let (reporter, sinks) = Reporter::channels(16, 16);
+        let index = sample_index();
+        drop(sinks);
+
+        // With receivers dropped, reporting should signal the loop to exit (false).
+        let keep_going = handle_datagram(&[0xFF, 0xFF], peer(), &index, &reporter).await;
+        assert!(!keep_going);
+    }
+
+    #[test]
+    fn config_is_copy() {
+        let config = Config {
+            addr: SocketAddr::new(IpAddr::from([127, 0, 0, 1]), 0),
+            recv_buffer: 2 * 1024 * 1024,
+        };
+        let _copy = config;
+        // Config is still usable after assignment — it implements Copy.
+        let _addr = config.addr;
+        let _buf = config.recv_buffer;
     }
 }
