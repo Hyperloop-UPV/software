@@ -5,7 +5,7 @@
       "name": "LCU_temperature_1_protection_1",
       "board_id": 1,
       "measurement_id": 3000,
-      "kind": {
+      "type": {
         "type": "range",
         "min": 0.0,
         "max": 100.0
@@ -18,7 +18,7 @@
       "name": "HVBMS_pack_voltage_protection_1",
       "board_id": 2,
       "measurement_id": 3100,
-      "kind": {
+      "type": {
         "type": "range",
         "min": 300.0,
         "max": 500.0
@@ -30,7 +30,7 @@
       "name": "LCU_temperature_1_protection_2",
       "board_id": 1,
       "measurement_id": 3000,
-      "kind": {
+      "type": {
         "type": "below",
         "limit": 10.0
       },

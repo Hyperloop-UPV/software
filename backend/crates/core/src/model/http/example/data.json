@@ -14,10 +14,7 @@
               "alias": "temperature_1",
               "name": "Motor temperature",
               "display_units": "ºC",
-              "kind": {
-                "type": "numeric",
-                "wire_type": "float32"
-              }
+              "type": "float32"
             }
           ]
         },
@@ -31,10 +28,7 @@
               "alias": "levitation_distance",
               "name": "Levitation distance",
               "display_units": "mm",
-              "kind": {
-                "type": "numeric",
-                "wire_type": "float32"
-              }
+              "type": "float32"
             }
           ]
         }
@@ -54,10 +48,7 @@
               "alias": "pack_voltage",
               "name": "Pack voltage",
               "display_units": "V",
-              "kind": {
-                "type": "numeric",
-                "wire_type": "float32"
-              }
+              "type":  "float32"
             }
           ]
         },
@@ -71,9 +62,7 @@
               "alias": "contactor_closed",
               "name": "Contactor closed",
               "display_units": "",
-              "kind": {
-                "type": "boolean"
-              }
+              "type": "boolean"
             }
           ]
         }

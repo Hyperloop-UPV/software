@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::{
     model::{AdjId, BoardId, NumericKind},
-    utils::serialize::{serialize_adj_id, serialize_board_id, serialize_numeric_kind},
+    utils::serialize::{serialize_adj_id, serialize_board_id, serialize_data_measurement_type},
 };
 
 /// Data packet definitions grouped by board.
@@ -56,25 +56,29 @@ pub struct DataMeasurementResponse {
     pub name: String,
     /// Unit label displayed to the user.
     pub display_units: String,
-    /// Numeric, boolean or enum metadata.
+    /// Measurement type metadata, serialized under the JSON key `type`.
+    /// Numeric and boolean types are strings; enums are objects with options.
+    #[serde(rename = "type", serialize_with = "serialize_data_measurement_type")]
     pub kind: DataMeasurementKind,
 }
 
-/// Measurement metadata tagged with an explicit `type` field in JSON.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+/// Measurement type metadata used by the custom response serializer.
+///
+/// As a measurement's JSON `type` value, numeric types become their ADJ wire
+/// type name, booleans become `"boolean"`, and enums become an object with
+/// `"type": "enum"` and an `options` array.
+#[derive(Debug, Clone, PartialEq)]
 pub enum DataMeasurementKind {
-    /// Numeric measurement, including its binary representation.
+    /// Numeric measurement, serialized as a wire type string such as `"float32"`.
     Numeric {
-        /// Wire type, serialized with its ADJ name, e.g. `float32`.
-        #[serde(serialize_with = "serialize_numeric_kind")]
+        /// Selects the ADJ type name; no separate `wire_type` JSON field is emitted.
         wire_type: NumericKind,
     },
-    /// Boolean measurement, serialized as `{"type":"boolean"}`.
+    /// Boolean measurement, serialized as the string `"boolean"`.
     Boolean,
-    /// Enumeration with variants in ADJ order.
+    /// Enumeration, serialized as `{"type":"enum","options":[...]}`.
     Enum {
-        /// Allowed variant names.
+        /// Allowed variant names, preserved in ADJ order.
         options: Vec<String>,
     },
 }

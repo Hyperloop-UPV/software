@@ -37,7 +37,7 @@ pub struct ProtectionInfoResponse {
     #[serde(serialize_with = "serialize_adj_id")]
     pub measurement_id: AdjId,
     /// Trigger condition; `type` preserves the ADJ name to index `info` directly.
-    #[serde(serialize_with = "serialize_protection_kind")]
+    #[serde(rename = "type", serialize_with = "serialize_protection_kind")]
     pub kind: ProtectionKind,
     /// Severity serialized as `fault` or `warning`.
     #[serde(serialize_with = "serialize_severity")]

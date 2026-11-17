@@ -5,7 +5,8 @@ use serde::Serialize;
 use crate::{
     model::{AdjId, BoardId, ProtectionKind, Severity},
     utils::serialize::{
-        serialize_adj_id, serialize_board_id, serialize_protection_kind, serialize_severity,
+        serialize_adj_id, serialize_board_id, serialize_data_measurement_type,
+        serialize_protection_kind, serialize_severity,
     },
 };
 
@@ -58,6 +59,7 @@ pub struct OrderMeasurementResponse {
     /// Unit label displayed to the user.
     pub display_units: String,
     /// Same numeric, boolean or enum metadata used by data measurements.
+    #[serde(rename = "type", serialize_with = "serialize_data_measurement_type")]
     pub kind: DataMeasurementKind,
     /// Protection definitions in ADJ order; empty when none are declared.
     pub protections: Vec<OrderProtectionResponse>,
@@ -70,7 +72,7 @@ pub struct OrderProtectionResponse {
     #[serde(serialize_with = "serialize_adj_id")]
     pub id: AdjId,
     /// Trigger condition, serialized with its type and named bounds.
-    #[serde(serialize_with = "serialize_protection_kind")]
+    #[serde(rename = "type", serialize_with = "serialize_protection_kind")]
     pub kind: ProtectionKind,
     /// Severity serialized as `fault` or `warning`.
     #[serde(serialize_with = "serialize_severity")]

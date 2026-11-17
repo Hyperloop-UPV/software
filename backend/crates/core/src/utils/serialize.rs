@@ -1,16 +1,20 @@
-use crate::model::{AdjId, BoardId, NumericKind, ProtectionKind, Severity};
+use crate::{
+    model::{
+        AdjId, BoardId, NumericKind, ProtectionKind, Severity, http::data::DataMeasurementKind,
+    }
+};
 use serde::{Serialize, Serializer};
 
-// EXPLANATION OF THE OBJECT SERIALIZER 
+// EXPLANATION OF THE OBJECT SERIALIZER
 // When using the macro #[serde(serialize_with = "")] you specify a function
 // which takes to arguments:
 // - 1st with the type of the atribute you apply the object
 // - 2nd with the type `Serializer`
 // The second one is just for setting the specified value obtained in the function
 // when the serialization occurs. Very simple.
-// 
+//
 // If you want to serialize a structure you have to implement the trait Serialize,
-// which 
+// which
 
 // Serialize domain types locally without changing the internal model.
 pub(crate) fn serialize_board_id<S: Serializer>(
@@ -28,11 +32,8 @@ pub(crate) fn serialize_adj_id<S: Serializer>(
 }
 
 // Serialize numeric kind to match ADJv3 types.
-pub(crate) fn serialize_numeric_kind<S: Serializer>(
-    kind: &NumericKind,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    let name = match kind {
+pub(crate) fn get_numeric_kind(kind: &NumericKind) -> &str {
+    match kind {
         NumericKind::U8 => "uint8",
         NumericKind::U16 => "uint16",
         NumericKind::U32 => "uint32",
@@ -43,8 +44,7 @@ pub(crate) fn serialize_numeric_kind<S: Serializer>(
         NumericKind::I64 => "int64",
         NumericKind::F32 => "float32",
         NumericKind::F64 => "float64",
-    };
-    serializer.serialize_str(name)
+    }
 }
 
 // A remote derive keeps the JSON representation here, without changing model.
@@ -75,4 +75,34 @@ pub(crate) fn serialize_severity<S: Serializer>(
         Severity::Fault => "fault",
         Severity::Warning => "warning",
     })
+}
+
+// Little helper for serialize the data measurement type
+#[derive(Serialize)]
+struct EnumKind {
+    #[serde(rename = "type")]
+    type_kind: String,
+    options: Vec<String>,
+}
+
+pub(crate) fn serialize_data_measurement_type<S: Serializer>(
+    kind: &DataMeasurementKind,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    match kind {
+        DataMeasurementKind::Numeric { wire_type } => {
+            serializer.serialize_str(get_numeric_kind(wire_type))
+        }
+        DataMeasurementKind::Boolean => serializer.serialize_str("boolean"),
+        DataMeasurementKind::Enum { options } => {
+            let options = options.clone();
+
+            let enum_kind = EnumKind {
+                type_kind: "enum".to_string(),
+                options,
+            };
+
+            EnumKind::serialize(&enum_kind, serializer)
+        }
+    }
 }

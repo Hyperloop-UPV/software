@@ -14,14 +14,11 @@
               "alias": "target_speed",
               "name": "Target speed",
               "display_units": "m/s",
-              "kind": {
-                "type": "numeric",
-                "wire_type": "float32"
-              },
+              "type": "float32",
               "protections": [
                 {
                   "id": 11193,
-                  "kind": {
+                  "type": {
                     "type": "range",
                     "min": 0.0,
                     "max": 50.0
@@ -30,7 +27,7 @@
                 },
                 {
                   "id": 19385,
-                  "kind": {
+                  "type": {
                     "type": "above",
                     "limit": 40.0
                   },
