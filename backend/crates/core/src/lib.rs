@@ -4,7 +4,7 @@ pub mod hello_world;
 
 /// # Git module
 /// Handles updates and changes within the ADJ.  
-/// Checks the ADJ Github repository and 
+/// Checks the ADJ Github repository and
 #[cfg(feature = "git")]
 pub mod git;
 
@@ -25,3 +25,12 @@ pub mod adj;
 /// [`adj`] declares as the schema. See [`protocol::wire`],
 /// [`protocol::tcp`], [`protocol::udp`].
 pub mod protocol;
+
+/// Everything a recording needs on disk: writing CSV, text and JSON
+/// files without knowing what is in them ([`logger::CsvFile`]), moving
+/// those files around ([`logger::files`], feature `files`) and the
+/// snapshot of the machine that produced them ([`logger::host`],
+/// feature `host`). The policy — which files a recording has, what goes
+/// in each row — belongs to whoever calls this.
+#[cfg(feature = "logger")]
+pub mod logger;
