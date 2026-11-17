@@ -118,7 +118,7 @@ impl Adj {
                                             id: AdjId((protection.id.0 << 13) | measurement.id.0),
                                             kind: protection.kind,
                                             severity: protection.severity,
-                                            time: protection_time_to_nanos(protection.time),
+                                            time: format_protection_time(protection.time),
                                         })
                                         .collect(),
                                 })
@@ -170,7 +170,7 @@ impl Adj {
                     measurement_id: measurement.id,
                     kind: protection.kind,
                     severity: protection.severity,
-                    time: protection_time_to_nanos(protection.time),
+                    time: format_protection_time(protection.time),
                 })
             })
             .collect();
@@ -197,20 +197,21 @@ impl Adj {
 }
 
 // Returns Some("(time)xs") if the time is not 0
-fn protection_time_to_nanos(time: Duration) -> Option<String> {
+fn format_protection_time(time: Duration) -> Option<String> {
     if time == Duration::new(0, 0) {
         None
     } else {
         // If the duration is in nanoseconds (default)
-        let mut res = format!("{}ns", time.as_nanos().to_string());
+        let ns = time.as_nanos();
 
-        if time.as_millis() > 0 {
-            res = format!("{}ms", time.as_millis().to_string());
-        } else if time.as_micros() > 0 {
-            res = format!("{}us", time.as_micros().to_string());
+        // Adjust the result
+        if ns.is_multiple_of(1_000_000) {
+            Some(format!("{}ms", ns / 1_000_000))
+        } else if ns.is_multiple_of(1_000) {
+            Some(format!("{}us", ns / 1_000))
+        } else {
+            Some(format!("{}ns", ns))
         }
-
-        Some(res)
     }
 }
 
