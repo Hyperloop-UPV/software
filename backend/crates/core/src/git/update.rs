@@ -39,13 +39,14 @@ const ADJ_URL: &str = "https://github.com/Hyperloop-UPV/adj.git";
 pub fn update_adj(path: Option<PathBuf>, branch: &str) -> Result<String, GitError> {
     let (repo, dir) = adj_exists_repo(path)?;
 
-    if check_internet_connection() && branch != "" {
+    if check_internet_connection() && !branch.is_empty() {
         info!(path = ?dir, branch, "starting ADJ update");
         // Release repository handles before moving the existing cache directory.
         drop(repo);
         git_replace(&dir, branch, ADJ_URL)
     } else if let Some(repo) = repo {
-        if branch == "" {
+        
+        if branch.is_empty() {
             warn!(path = ?dir, requested_branch = branch,
                 "branch not specified; using cached ADJ with current branch");
         } else {

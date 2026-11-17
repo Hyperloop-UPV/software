@@ -1,0 +1,68 @@
+{
+  "boards": [
+    {
+      "id": 1,
+      "name": "LCU",
+      "orders": [
+        {
+          "id": 1001,
+          "name": "Set target speed",
+          "type": "order",
+          "measurements": [
+            {
+              "id": 3001,
+              "alias": "target_speed",
+              "name": "Target speed",
+              "display_units": "m/s",
+              "type": "float32",
+              "protections": [
+                {
+                  "id": 11193,
+                  "type": {
+                    "type": "range",
+                    "min": 0.0,
+                    "max": 50.0
+                  },
+                  "severity": "fault"
+                },
+                {
+                  "id": 19385,
+                  "type": {
+                    "type": "above",
+                    "limit": 40.0
+                  },
+                  "severity": "warning",
+                  "time": "200ms"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 1002,
+          "name": "Stop",
+          "type": "order",
+          "measurements": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "HVBMS",
+      "orders": [
+        {
+          "id": 2001,
+          "name": "Open Contactors",
+          "type": "order",
+          "measurements": []
+        },
+        {
+          "id": 2003,
+          "name": "Start Precharge",
+          "type": "order",
+          "measurements": []
+        }
+      ]
+    }
+  ]
+}

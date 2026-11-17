@@ -17,6 +17,9 @@ mod packet;
 mod protections;
 mod value;
 
+#[cfg(feature = "http")]
+pub mod http;
+
 pub use board::{Board, PacketDef, PacketType, PodData};
 pub use id::{AdjId, BoardId, MacAddress, Port};
 pub use measurement::{Measurement, MeasurementKind, NumericKind, Range};

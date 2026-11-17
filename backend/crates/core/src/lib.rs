@@ -26,6 +26,8 @@ pub mod adj;
 /// [`protocol::tcp`], [`protocol::udp`].
 pub mod protocol;
 
+// Utils module
+pub(crate) mod utils;
 /// Everything a recording needs on disk: writing CSV, text and JSON
 /// files without knowing what is in them ([`logger::CsvFile`]), moving
 /// those files around ([`logger::files`], feature `files`) and the

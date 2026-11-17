@@ -31,6 +31,8 @@ files = ["logger"]
 host = ["logger", "dep:whoami", "dep:rlimit"]
 # Reusable tracing/diagnostics setup (console + non-blocking file + stderr layers)
 trace = ["dep:tracing-subscriber", "dep:tracing-appender"]
+# Structure responses for HTTP petitions
+http = []
 
 [dependencies]
 bytes.workspace = true
