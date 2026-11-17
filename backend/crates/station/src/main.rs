@@ -26,7 +26,7 @@ async fn main() -> std::io::Result<()> {
     // Just testing, not the actual address
     let listener = TcpListener::bind("127.0.0.1:8080").await?;
 
-    http::serve(listener, &adj).await?;
+    http::serve(listener, &adj, None).await?;
 
     tracing::info!("demo finalizada");
 
