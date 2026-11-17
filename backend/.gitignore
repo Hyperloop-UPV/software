@@ -1,22 +1,7 @@
-log
-trace.json
-
+/target
 /bin
 
-# Test coverage
-*testfile
-
-# Build artifacts
-/bin/
-backend
-trace.json
-
-# Test data
-*.out
-c.out
-
-# Logs
-cmd/logger/
-cmd/cmd
-cmd/adj
+# Backend runtime output
 /logger/
+*.log
+*.csv

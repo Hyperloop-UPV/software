@@ -1,0 +1,304 @@
+[
+  {
+    "id": 559,
+    "alias": "frequency",
+    "name": "Frequency  Commutation hz",
+    "type": "uint32",
+    "displayUnits": "Hz"
+  },
+  {
+    "id": 560,
+    "alias": "modulation_frequency",
+    "name": "Modulation Frequency",
+    "type": "float32",
+    "displayUnits": "Hz"
+  },
+  {
+    "id": 561,
+    "alias": "duty_u",
+    "name": "Duty U",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 562,
+    "alias": "duty_v",
+    "name": "Duty V",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 563,
+    "alias": "duty_w",
+    "name": "Duty W",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 564,
+    "alias": "voltage_battery_a",
+    "name": "Voltage Battery A",
+    "type": "float32"
+  },
+  {
+    "id": 565,
+    "alias": "voltage_battery_b",
+    "name": "Voltage Battery B",
+    "type": "float32"
+  },
+  {
+    "id": 566,
+    "alias": "v_ref",
+    "name": "Reference Voltage",
+    "type": "float32"
+  },
+  {
+    "id": 567,
+    "alias": "frequency_to_send_svpwm",
+    "name": "Frequency Modulation hz",
+    "type": "float32",
+    "displayUnits": "Hz"
+  },
+  {
+    "id": 568,
+    "alias": "frequency_to_send_pwm",
+    "name": "Frequency Commutation hz",
+    "type": "float32",
+    "displayUnits": "Hz"
+  },
+  {
+    "id": 569,
+    "alias": "current_sensor_u_a",
+    "name": "Current Sensor U Connector A",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 570,
+    "alias": "current_sensor_u_b",
+    "name": "Current Sensor U Connector B",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 571,
+    "alias": "current_sensor_v_a",
+    "name": "Current Sensor V Connector A",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 572,
+    "alias": "current_sensor_v_b",
+    "name": "Current Sensor V Connector B",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 573,
+    "alias": "current_sensor_w_a",
+    "name": "Current Sensor W Connector A",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 574,
+    "alias": "current_sensor_w_b",
+    "name": "Current Sensor W Connector B",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 575,
+    "alias": "state",
+    "name": "State",
+    "type": "enum",
+    "enumValues": [
+      "Connecting",
+      "Idle",
+      "Accelerating",
+      "Fault"
+    ]
+  },
+  {
+    "id": 576,
+    "alias": "current_ref",
+    "name": "Current Ref",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 577,
+    "alias": "freq_to_send_svpwm",
+    "name": "Frequency Modulation hz",
+    "type": "float32",
+    "displayUnits": "Hz"
+  },
+  {
+    "id": 578,
+    "alias": "freq_to_send_pwm",
+    "name": "Frequency Commutation hz",
+    "type": "float32",
+    "displayUnits": "Hz"
+  },
+  {
+    "id": 579,
+    "alias": "current_Peak",
+    "name": "Max Current Peak",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 580,
+    "alias": "error_pi",
+    "name": "Actual Current Error",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 581,
+    "alias": "vf_control",
+    "name": "Variable frecuency control",
+    "type": "bool"
+  },
+  {
+    "id": 582,
+    "alias": "slip_motor",
+    "name": "Slip Motor",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 583,
+    "alias": "imu_speed_km_h",
+    "name": "Speed IMU",
+    "type": "float64",
+    "displayUnits": "km/h"
+  },
+  {
+    "id": 584,
+    "alias": "imu_position_m",
+    "name": "IMU Position",
+    "type": "float32",
+    "displayUnits": "m"
+  },
+  {
+    "id": 585,
+    "alias": "target_voltage",
+    "name": "Target Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 586,
+    "alias": "vmax",
+    "name": "Max Voltage",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 587,
+    "alias": "speed_ref",
+    "name": "Reference Speed",
+    "type": "float32",
+    "displayUnits": "km/h"
+  },
+  {
+    "id": 588,
+    "alias": "svpwm_time",
+    "name": "SVPWM Time",
+    "type": "float32",
+    "displayUnits": "s"
+  },
+  {
+    "id": 589,
+    "alias": "target_speed",
+    "name": "Target Speed KM/H",
+    "type": "float32",
+    "displayUnits": "km/h"
+  },
+  {
+    "id": 590,
+    "alias": "speed_error",
+    "name": "Speed Error",
+    "type": "float64",
+    "displayUnits": "km/h"
+  },
+  {
+    "id": 591,
+    "alias": "actual_current_ref",
+    "name": "Control Current ref",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 592,
+    "alias": "imod",
+    "name": "Modulation Index",
+    "type": "float32"
+  },
+  {
+    "id": 593,
+    "alias": "gd_fault_a",
+    "name": "GateDriver A Fault",
+    "type": "bool",
+    "displayUnits": "",
+    "protections": [
+      {
+        "type": "Equal",
+        "value": [
+          1
+        ],
+        "fault": true
+      }
+    ]
+  },
+  {
+    "id": 594,
+    "alias": "gd_fault_b",
+    "name": "GateDriver B Fault",
+    "type": "bool",
+    "displayUnits": "",
+    "protections": [
+      {
+        "type": "Equal",
+        "value": [
+          1
+        ],
+        "fault": true
+      }
+    ]
+  },
+  {
+    "id": 595,
+    "alias": "gd_ready_a",
+    "name": "GateDriver A Ready",
+    "type": "bool",
+    "displayUnits": "",
+    "protections": [
+      {
+        "type": "Equal",
+        "value": [
+          1
+        ],
+        "fault": true
+      }
+    ]
+  },
+  {
+    "id": 596,
+    "alias": "gd_ready_b",
+    "name": "GateDriver B Ready",
+    "type": "bool",
+    "displayUnits": "",
+    "protections": [
+      {
+        "type": "Equal",
+        "value": [
+          1
+        ],
+        "fault": true
+      }
+    ]
+  }
+]
