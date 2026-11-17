@@ -13,7 +13,9 @@ use tokio::sync::mpsc;
 
 /// Immutable state shared by all requests without a mutex.
 pub(super) struct HttpState {
+    // the three response JSON pre-serialized
     responses: Responses,
+    // the websocket channel
     websocket_connections: Option<mpsc::Sender<WebSocket>>,
 }
 

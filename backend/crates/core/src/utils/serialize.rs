@@ -82,6 +82,7 @@ struct EnumKind {
     options: Vec<String>,
 }
 
+// Serializes the type of the data of the measurement, depends on each kind of measurement
 pub(crate) fn serialize_data_measurement_type<S: Serializer>(
     kind: &DataMeasurementKind,
     serializer: S,
