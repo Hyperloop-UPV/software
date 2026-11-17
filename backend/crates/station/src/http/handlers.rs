@@ -77,7 +77,7 @@ pub(super) async fn websocket(
 
     upgrade
         .on_failed_upgrade(|error| {
-            tracing::warn!(%error, "falló el upgrade WebSocket");
+            tracing::warn!(%error, "WebSocket upgrade failed");
         })
         .on_upgrade(move |socket| async move {
             // The receiver now owns the socket and manages its lifetime and

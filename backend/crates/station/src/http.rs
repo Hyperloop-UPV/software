@@ -6,27 +6,24 @@
 
 use std::io;
 
+use axum::extract::ws::WebSocket;
 use software_core::adj::Adj;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::mpsc};
 
-mod configure;
+use crate::http::server::setup_router;
+
 mod handlers;
 mod server;
-
-pub use server::serve_with_websocket;
-// The test main still uses the listener-based entry point. Configuration will
-// be connected by the application startup when its config module is available.
-#[allow(
-    unused_imports,
-    reason = "The test startup does not use configuration yet"
-)]
-pub use configure::{CachePolicy, HttpConfig, configure_server};
 
 /// Serves the catalogs without connecting a WebSocket consumer yet.
 ///
 /// Preserves the entry point used by the test startup code. Upgrade requests
 /// to `/backend` receive `503` until [`serve_with_websocket`] is used with a
 /// channel connected to the future WebSocket module.
-pub async fn serve(listener: TcpListener, adj: &Adj) -> io::Result<()> {
-    serve_with_websocket(listener, adj, None).await
+pub async fn serve(
+    listener: TcpListener,
+    adj: &Adj,
+    ws: Option<mpsc::Sender<WebSocket>>,
+) -> io::Result<()> {
+    axum::serve(listener, setup_router(adj, ws)?).await
 }
