@@ -1,7 +1,5 @@
-use crate::{
-    model::{
-        AdjId, BoardId, NumericKind, ProtectionKind, Severity, http::data::DataMeasurementKind,
-    }
+use crate::model::{
+    AdjId, BoardId, NumericKind, ProtectionKind, Severity, http::data::DataMeasurementKind,
 };
 use serde::{Serialize, Serializer};
 
@@ -13,8 +11,7 @@ use serde::{Serialize, Serializer};
 // The second one is just for setting the specified value obtained in the function
 // when the serialization occurs. Very simple.
 //
-// If you want to serialize a structure you have to implement the trait Serialize,
-// which
+// Serialize delegates the value's representation to a generic Serializer.
 
 // Serialize domain types locally without changing the internal model.
 pub(crate) fn serialize_board_id<S: Serializer>(
@@ -90,10 +87,13 @@ pub(crate) fn serialize_data_measurement_type<S: Serializer>(
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     match kind {
+        // for example: NumericKind::F32 -> "type": "float32"
         DataMeasurementKind::Numeric { wire_type } => {
             serializer.serialize_str(get_numeric_kind(wire_type))
         }
+        // "type": "boolean"
         DataMeasurementKind::Boolean => serializer.serialize_str("boolean"),
+        // Enum types become an object containing "type": "enum" and the declared options.
         DataMeasurementKind::Enum { options } => {
             let options = options.clone();
 

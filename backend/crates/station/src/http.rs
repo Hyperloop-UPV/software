@@ -15,11 +15,7 @@ use crate::http::server::setup_router;
 mod handlers;
 mod server;
 
-/// Serves the catalogs without connecting a WebSocket consumer yet.
-///
-/// Preserves the entry point used by the test startup code. Upgrade requests
-/// to `/backend` receive `503` until [`serve_with_websocket`] is used with a
-/// channel connected to the future WebSocket module.
+/// Serves the ADJ catalogs and the WebSocket upgrade endpoint.
 pub async fn serve(
     listener: TcpListener,
     adj: &Adj,

@@ -79,8 +79,7 @@ impl Adj {
     /// Builds the order catalog without modifying or consuming the ADJ.
     ///
     /// Boards and orders are sorted by id. Boards without orders are retained with
-    /// an empty list. Parameters and their protections keep their ADJ order;
-    /// protection ids remain their one-based positions within each measurement.
+    /// an empty list. Parameters and their protections keep their ADJ order.
     pub fn order_response(&self) -> OrderResponse {
         let mut boards: Vec<OrderBoardResponse> = self
             .pod_data
@@ -105,6 +104,7 @@ impl Adj {
                             packet_type: "order".to_string(),
                             measurements: measurements
                                 .iter()
+                                // Convert each parameter into its HTTP response representation
                                 .map(|measurement| OrderMeasurementResponse {
                                     id: measurement.id,
                                     alias: measurement.alias.clone(),
@@ -114,6 +114,7 @@ impl Adj {
                                     protections: measurement
                                         .protections
                                         .iter()
+                                        // Convert each protection
                                         .map(|protection| OrderProtectionResponse {
                                             id: AdjId((protection.id.0 << 13) | measurement.id.0),
                                             kind: protection.kind,

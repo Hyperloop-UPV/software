@@ -86,6 +86,7 @@ pub(super) async fn websocket(
         })
 }
 
+// Builds an HTTP JSON response from already serialized bytes.
 fn json_response(body: Bytes) -> Response {
     // Do not wrap these bytes in Json: that would serialize the content again.
     ([(header::CONTENT_TYPE, "application/json")], body).into_response()
