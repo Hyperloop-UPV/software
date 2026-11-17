@@ -49,7 +49,6 @@ pub fn update_adj(path: Option<PathBuf>, branch: &str) -> Result<String, GitErro
         if branch.is_empty() {
             warn!(path = ?dir, requested_branch = branch,
                 "branch not specified; using cached ADJ with current branch");
-
         } else {
             warn!(path = ?dir, requested_branch = branch,
                 "connectivity probe failed; using cached ADJ without switching branches");
@@ -133,7 +132,8 @@ mod tests {
 
     // Distinguish missing, invalid, and valid local repositories.
     #[test]
-    fn detects_missing_and_invalid_repositories() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn detects_missing_and_invalid_repositories()
+    -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let temp = tempfile::tempdir()?;
         let path = temp.path().join("adj");
         assert!(adj_exists_repo(Some(path.clone()))?.0.is_none());
