@@ -8,13 +8,12 @@ pub mod hello_world;
 #[cfg(feature = "git")]
 pub mod git;
 
-/// NTP server
-#[cfg(feature = "ntp")]
-pub mod ntp;
-
 /// Basic domain types: identifiers, values, measurements, protections,
 /// packets and boards.
 pub mod model;
+/// NTP server
+#[cfg(feature = "ntp")]
+pub mod ntp;
 
 /// Parses an ADJ (Architecture Description JSON) directory into
 /// [`model::PodData`], plus backend-session metadata not modeled as
@@ -26,13 +25,20 @@ pub mod adj;
 /// [`protocol::tcp`], [`protocol::udp`].
 pub mod protocol;
 
+/// Owns the real tokio sockets and reports what arrives on them, calling
+/// into [`protocol`] to decode. See [`net::tcp`], [`net::udp`].
+#[cfg(feature = "net")]
+pub mod net;
+
 // Utils module
 pub(crate) mod utils;
+
 /// Everything a recording needs on disk: writing CSV, text and JSON
 /// files without knowing what is in them ([`logger::CsvFile`]), moving
 /// those files around ([`logger::files`], feature `files`) and the
 /// snapshot of the machine that produced them ([`logger::host`],
 /// feature `host`). The policy — which files a recording has, what goes
 /// in each row — belongs to whoever calls this.
+
 #[cfg(feature = "logger")]
 pub mod logger;
