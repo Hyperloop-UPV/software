@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum SendError {
     /// No order with this id is declared in the loaded ADJ: the id is absent
-    /// or belongs to another packet type. Returned by [`super::Handles::send`]
+    /// or belongs to another packet type. Returned by [`super::BoardClients::send`]
     /// during routing, before encoding or queueing.
     #[error("no order is declared with id {0:?}")]
     UnknownId(AdjId),

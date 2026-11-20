@@ -14,7 +14,7 @@
 //!
 //! # Entry point
 //!
-//! [`spawn`], taking [`Config`], an `Arc<Index>` and a
+//! [`spawn`], taking [`UdpConfig`], an `Arc<Index>` and a
 //! [`super::Reporter`] — written out with its reasoning on the items
 //! themselves. No handle comes back beyond the `JoinHandle`: there is no
 //! writing side.
@@ -70,7 +70,7 @@ use tokio::task::JoinHandle;
 /// Everything here is resolved by `station` before `net` is reached: this
 /// module reads no config file and no ADJ of its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Config {
+pub struct UdpConfig {
     /// Where to bind: the backend's own address, `backend_ip` +
     /// `ports["UDP"]` in the ADJ's general info.
     pub addr: SocketAddr,
@@ -98,7 +98,11 @@ pub struct Config {
 ///
 /// [`Error::Bind`] only — every later failure goes out through
 /// `reporter`, since by then there is nobody left to return it to.
-pub fn spawn(config: Config, adj: Arc<Index>, reporter: Reporter) -> Result<JoinHandle<()>, Error> {
+pub fn spawn(
+    config: UdpConfig,
+    adj: Arc<Index>,
+    reporter: Reporter,
+) -> Result<JoinHandle<()>, Error> {
     let _ = (config, adj, reporter);
     todo!("the UDP socket is not written yet: see this module's contract")
 }

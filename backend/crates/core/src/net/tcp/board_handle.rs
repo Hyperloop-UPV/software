@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 /// are queued through a bounded channel. The future connection task owns the
 /// receiving end and the socket; this handle owns neither of them.
 /// [`super::spawn`] starts the supervisor that owns the receiver and sessions.
-/// Public access is read-only: submit orders through [`super::Handles::send`]
+/// Public access is read-only: submit orders through [`super::BoardClients::send`]
 /// so their destination is always resolved from the index.
 #[derive(Debug)]
 pub struct BoardHandle {
@@ -33,7 +33,7 @@ impl BoardHandle {
     /// the socket or received by the board. Encoding runs before waiting for
     /// capacity and uses the existing protocol checks, not application safety
     /// rules. Internal callers must first resolve the destination through
-    /// [`super::Handles::send`]; this method does not repeat that lookup.
+    /// [`super::BoardClients::send`]; this method does not repeat that lookup.
     ///
     /// # Errors
     ///
@@ -202,7 +202,7 @@ mod tests {
     async fn rejects_unknown_and_non_order_ids_when_called_directly() {
         let (handle, mut receiver) = board_channel(1);
 
-        // Bypassing Handles must not bypass the protocol's ID and packet-type checks.
+        // Bypassing BoardClients must not bypass the protocol's ID and packet-type checks.
         for (id, source) in [
             (AdjId(999), EncodeError::UnknownId(AdjId(999))),
             (
@@ -352,7 +352,7 @@ mod tests {
     async fn direct_sends_keep_the_callers_selected_board() {
         let (mut handle, mut receiver) = board_channel(1);
 
-        // Direct sends validate encoding, not destination ownership; routing stays in Handles.
+        // Direct sends validate encoding, not destination ownership; routing stays in BoardClients.
         handle.board = BoardId(9);
         assert_eq!(
             handle.send(OrderPacket::new(AdjId(600), vec![])).await,

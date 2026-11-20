@@ -41,7 +41,7 @@ pub(super) async fn connect(
         socket.set_keepalive(false)?;
         socket.set_zero_linger()?;
         socket.set_nodelay(true)?;
-        socket.bind(SocketAddr::new(local_ip, link.local_port))?;
+        socket.bind(SocketAddr::new(local_ip, link.local_port.0))?;
 
         timeout(connect_timeout, socket.connect(link.addr))
             .await
@@ -104,7 +104,7 @@ pub(super) async fn connect_with_backoff(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::BoardId;
+    use crate::model::{BoardId, Port};
     use std::{
         future::{Future, poll_fn},
         pin::Pin,
@@ -124,7 +124,7 @@ mod tests {
         let link = BoardLink {
             board: BoardId(3),
             addr: listener.local_addr()?,
-            local_port: 0,
+            local_port: Port(0),
         };
 
         // Port zero lets parallel tests obtain distinct client ports from the OS.
@@ -179,7 +179,7 @@ mod tests {
         let link = BoardLink {
             board: BoardId(7),
             addr: occupied.local_addr()?,
-            local_port: occupied.local_addr()?.port(),
+            local_port: Port(occupied.local_addr()?.port()),
         };
         let Err(error) = connect(&link, TEST_TIMEOUT).await else {
             unreachable!("binding an occupied local port must fail");
@@ -204,7 +204,7 @@ mod tests {
         let link = BoardLink {
             board: BoardId(9),
             addr: unavailable.local_addr()?,
-            local_port: 0,
+            local_port: Port(0),
         };
         let Err(error) = connect(&link, TEST_TIMEOUT).await else {
             unreachable!("a bound but non-listening peer cannot accept the connection");
@@ -227,7 +227,7 @@ mod tests {
         let link = BoardLink {
             board: BoardId(7),
             addr: occupied.local_addr()?,
-            local_port: occupied.local_addr()?.port(),
+            local_port: Port(occupied.local_addr()?.port()),
         };
         Ok((occupied, link))
     }
@@ -250,7 +250,7 @@ mod tests {
         let link = BoardLink {
             board: BoardId(3),
             addr: listener.local_addr()?,
-            local_port: 0,
+            local_port: Port(0),
         };
         let (reporter, mut sinks) = Reporter::channels(1, 1);
         let mut backoff = Backoff::new(60_000, 240_000);
@@ -284,7 +284,7 @@ mod tests {
         let link = BoardLink {
             board: BoardId(9),
             addr: unavailable.local_addr()?,
-            local_port: 0,
+            local_port: Port(0),
         };
         let (reporter, mut sinks) = Reporter::channels(1, 16);
         let mut backoff = Backoff::new(10, 40);

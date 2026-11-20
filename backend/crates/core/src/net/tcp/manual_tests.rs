@@ -1,6 +1,101 @@
 use super::*;
 use crate::model::{AdjId, OrderPacket, Value};
+use crate::net::{Notification, Sinks};
 use std::{io, path::Path};
+
+struct ProbeConfig {
+    board_name: String,
+    link: BoardLink,
+    index: Arc<Index>,
+    config: TcpConfig,
+}
+
+fn load_probe_config() -> Result<ProbeConfig, Box<dyn std::error::Error>> {
+    let adj_path = std::env::var_os("ADJ_DIR").ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "set ADJ_DIR to the matching ADJ directory",
+        )
+    })?;
+    let board_name = std::env::var("TCP_BOARD")?;
+    let local_port = Port(match std::env::var("TCP_LOCAL_PORT") {
+        Ok(value) => value.parse::<u16>()?,
+        Err(std::env::VarError::NotPresent) => 0,
+        Err(error) => return Err(error.into()),
+    });
+    let keep_alive_ms = match std::env::var("TCP_KEEP_ALIVE_MS") {
+        Ok(value) => value.parse::<u64>()?,
+        Err(std::env::VarError::NotPresent) => 1000,
+        Err(error) => return Err(error.into()),
+    };
+    let adj = crate::adj::load_from_dir(Path::new(&adj_path))?;
+    let board = adj
+        .pod_data
+        .boards
+        .values()
+        .find(|board| board.name == board_name)
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("board {board_name:?} is not declared in the supplied ADJ"),
+            )
+        })?;
+    let port = adj.info.ports.get("TCP_SERVER").ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "the supplied ADJ has no TCP_SERVER port",
+        )
+    })?;
+    let link = BoardLink {
+        board: board.id,
+        addr: SocketAddr::new(board.ip, port.0),
+        local_port,
+    };
+    let index = Arc::new(Index::new(&adj.pod_data, Some(&adj.info.message_levels)));
+    let config = TcpConfig {
+        boards: vec![link],
+        connect_timeout: Duration::from_secs(5),
+        backoff: Backoff::new(500, 5000),
+        write_timeout: Duration::from_secs(2),
+        keep_alive: Duration::from_millis(keep_alive_ms),
+    };
+    Ok(ProbeConfig {
+        board_name,
+        link,
+        index,
+        config,
+    })
+}
+
+fn start_probe(probe: ProbeConfig) -> (BoardClients, Sinks) {
+    let (reporter, sinks) = Reporter::channels(256, 16);
+    let handles = spawn(probe.config, probe.index, reporter);
+    (handles, sinks)
+}
+
+/// Drains both channels concurrently; the hook must not block reporting.
+async fn display_reports(sinks: &mut Sinks, mut on_notification: impl FnMut(&Notification)) {
+    tokio::join!(
+        async {
+            while let Some(notification) = sinks.notifications.recv().await {
+                println!("{notification:#?}");
+                on_notification(&notification);
+            }
+        },
+        async {
+            while let Some(report) = sinks.errors.recv().await {
+                eprintln!("{report:#?}");
+            }
+        },
+    );
+}
+
+fn stop_probe(handles: BoardClients, sinks: &mut Sinks) {
+    // Consumer closure asks detached supervisors to stop, without joining them.
+    sinks.notifications.close();
+    sinks.errors.close();
+    drop(handles);
+}
 
 #[tokio::test]
 #[ignore = "manual test: start the documented nc listener on 127.0.0.1:50500 first"]
@@ -32,7 +127,7 @@ async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
     let link = BoardLink {
         board: BoardId(1),
         addr,
-        local_port: 0,
+        local_port: Port(0),
     };
 
     // Connect to netcat; this test is ignored by the normal automated suite.
@@ -67,7 +162,7 @@ async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Preserves station's original supervised probe, now driven through spawn/Handles.
+/// Preserves station's original supervised probe, now driven through spawn/BoardClients.
 ///
 /// From backend/, with the ADJ matching the selected firmware:
 /// ```text
@@ -91,60 +186,12 @@ async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::test]
 #[ignore = "manual probe: requires ADJ_DIR, TCP_BOARD and a real board or simulator; sends order 1001"]
 async fn manual_tcp_supervisor() -> Result<(), Box<dyn std::error::Error>> {
-    let adj_path = std::env::var_os("ADJ_DIR").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "set ADJ_DIR to the matching ADJ directory",
-        )
-    })?;
-    let board_name = std::env::var("TCP_BOARD")?;
-    let local_port = match std::env::var("TCP_LOCAL_PORT") {
-        Ok(value) => value.parse::<u16>()?,
-        Err(std::env::VarError::NotPresent) => 0,
-        Err(error) => return Err(error.into()),
-    };
-    let keep_alive_ms = match std::env::var("TCP_KEEP_ALIVE_MS") {
-        Ok(value) => value.parse::<u64>()?,
-        Err(std::env::VarError::NotPresent) => 1000,
-        Err(error) => return Err(error.into()),
-    };
-    let adj = crate::adj::load_from_dir(Path::new(&adj_path))?;
-    let board = adj
-        .pod_data
-        .boards
-        .values()
-        .find(|board| board.name == board_name)
-        .ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("board {board_name:?} is not declared in the supplied ADJ"),
-            )
-        })?;
-    let port = adj.info.ports.get("TCP_SERVER").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "the supplied ADJ has no TCP_SERVER port",
-        )
-    })?;
-    let link = BoardLink {
-        board: board.id,
-        addr: SocketAddr::new(board.ip, port.0),
-        local_port,
-    };
-    let index = Arc::new(Index::new(&adj.pod_data, Some(&adj.info.message_levels)));
-    let config = Config {
-        boards: vec![link],
-        connect_timeout: Duration::from_secs(5),
-        backoff: Backoff::new(500, 5000),
-        write_timeout: Duration::from_secs(2),
-        keep_alive: Duration::from_millis(keep_alive_ms),
-    };
+    let probe = load_probe_config()?;
     println!(
-        "Manual TCP probe: {board_name} at {}; order 1001(5.0) once; press Ctrl+C to stop",
-        link.addr
+        "Manual TCP probe: {} at {}; order 1001(5.0) once; press Ctrl+C to stop",
+        probe.board_name, probe.link.addr
     );
-    let (reporter, mut sinks) = Reporter::channels(256, 16);
-    let handles = spawn(config, index, reporter);
+    let (handles, mut sinks) = start_probe(probe);
     let running = async {
         handles
             .send(OrderPacket::new(AdjId(1001), vec![Value::Number(-5.0)]))
@@ -152,27 +199,11 @@ async fn manual_tcp_supervisor() -> Result<(), Box<dyn std::error::Error>> {
         tokio::signal::ctrl_c().await?;
         Ok::<_, Box<dyn std::error::Error>>(())
     };
-    let display = async {
-        tokio::join!(
-            async {
-                while let Some(notification) = sinks.notifications.recv().await {
-                    println!("{notification:#?}");
-                }
-            },
-            async {
-                while let Some(report) = sinks.errors.recv().await {
-                    eprintln!("{report:#?}");
-                }
-            },
-        );
-    };
     let result = tokio::select! {
         result = running => result,
-        () = display => Err(io::Error::new(io::ErrorKind::BrokenPipe, "TCP reporting stopped before Ctrl+C").into()),
+        () = display_reports(&mut sinks, |_| {}) => Err(io::Error::new(io::ErrorKind::BrokenPipe, "TCP reporting stopped before Ctrl+C").into()),
     };
-    sinks.notifications.close();
-    sinks.errors.close();
-    drop(handles);
+    stop_probe(handles, &mut sinks);
     result
 }
 
@@ -190,96 +221,31 @@ async fn manual_tcp_supervisor() -> Result<(), Box<dyn std::error::Error>> {
 /// For a loopback simulator, use a private ADJ copy with the board IP set to
 /// 127.0.0.1 and observe the configured port, e.g. `nc -l 50500`.
 ///
-/// Ctrl+C closes the reporting consumers and drops Handles. There is not yet an
+/// Ctrl+C closes the reporting consumers and drops BoardClients. There is not yet an
 /// explicit task join, so this is a manual probe rather than a shutdown test.
 #[tokio::test]
 #[ignore = "manual spawn probe: requires ADJ_DIR, TCP_BOARD and a real board or simulator"]
 async fn manual_tcp_spawn() -> Result<(), Box<dyn std::error::Error>> {
-    let adj_path = std::env::var_os("ADJ_DIR").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "set ADJ_DIR to the matching ADJ directory",
-        )
-    })?;
-    let board_name = std::env::var("TCP_BOARD")?;
-    let local_port = match std::env::var("TCP_LOCAL_PORT") {
-        Ok(value) => value.parse::<u16>()?,
-        Err(std::env::VarError::NotPresent) => 0,
-        Err(error) => return Err(error.into()),
-    };
-    let keep_alive_ms = match std::env::var("TCP_KEEP_ALIVE_MS") {
-        Ok(value) => value.parse::<u64>()?,
-        Err(std::env::VarError::NotPresent) => 1000,
-        Err(error) => return Err(error.into()),
-    };
-    let adj = crate::adj::load_from_dir(Path::new(&adj_path))?;
-    let board = adj
-        .pod_data
-        .boards
-        .values()
-        .find(|board| board.name == board_name)
-        .ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("board {board_name:?} is not declared in the supplied ADJ"),
-            )
-        })?;
-    let port = adj.info.ports.get("TCP_SERVER").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "the supplied ADJ has no TCP_SERVER port",
-        )
-    })?;
-    let link = BoardLink {
-        board: board.id,
-        addr: SocketAddr::new(board.ip, port.0),
-        local_port,
-    };
-    let index = Arc::new(Index::new(&adj.pod_data, Some(&adj.info.message_levels)));
-    let config = Config {
-        boards: vec![link],
-        connect_timeout: Duration::from_secs(5),
-        backoff: Backoff::new(500, 5000),
-        write_timeout: Duration::from_secs(2),
-        keep_alive: Duration::from_millis(keep_alive_ms),
-    };
+    let probe = load_probe_config()?;
     println!(
-        "Manual TCP spawn probe: {board_name} at {}; no orders; press Ctrl+C to stop",
-        link.addr
+        "Manual TCP spawn probe: {} at {}; no orders; press Ctrl+C to stop",
+        probe.board_name, probe.link.addr
     );
-    let (reporter, mut sinks) = Reporter::channels(256, 16);
-    let handles = spawn(config, index, reporter);
+    let (handles, mut sinks) = start_probe(probe);
     let running = tokio::signal::ctrl_c();
-    let display = async {
-        tokio::join!(
-            async {
-                while let Some(notification) = sinks.notifications.recv().await {
-                    println!("{notification:#?}");
-                }
-            },
-            async {
-                while let Some(report) = sinks.errors.recv().await {
-                    eprintln!("{report:#?}");
-                }
-            },
-        );
-    };
     let result = tokio::select! {
         stopped = running => stopped,
-        () = display => Err(io::Error::new(
+        () = display_reports(&mut sinks, |_| {}) => Err(io::Error::new(
             io::ErrorKind::BrokenPipe,
             "TCP reporting stopped before Ctrl+C",
         )),
     };
-    // As in station main, consumer closure asks detached supervisors to stop.
-    sinks.notifications.close();
-    sinks.errors.close();
-    drop(handles);
+    stop_probe(handles, &mut sinks);
     result?;
     Ok(())
 }
 
-/// Sends one real fault through spawn/Handles after the first connection.
+/// Sends one real fault through spawn/BoardClients after the first connection.
 ///
 /// WARNING: this actively requests a firmware fault. Use only a safe test
 /// setup or simulator. From backend/:
@@ -304,60 +270,13 @@ async fn manual_tcp_fault() -> Result<(), Box<dyn std::error::Error>> {
     use crate::net::Event;
     use tokio::sync::oneshot;
 
-    let adj_path = std::env::var_os("ADJ_DIR").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "set ADJ_DIR to the matching ADJ directory",
-        )
-    })?;
-    let board_name = std::env::var("TCP_BOARD")?;
-    let local_port = match std::env::var("TCP_LOCAL_PORT") {
-        Ok(value) => value.parse::<u16>()?,
-        Err(std::env::VarError::NotPresent) => 0,
-        Err(error) => return Err(error.into()),
-    };
-    let keep_alive_ms = match std::env::var("TCP_KEEP_ALIVE_MS") {
-        Ok(value) => value.parse::<u64>()?,
-        Err(std::env::VarError::NotPresent) => 1000,
-        Err(error) => return Err(error.into()),
-    };
-    let adj = crate::adj::load_from_dir(Path::new(&adj_path))?;
-    let board = adj
-        .pod_data
-        .boards
-        .values()
-        .find(|board| board.name == board_name)
-        .ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("board {board_name:?} is not declared in the supplied ADJ"),
-            )
-        })?;
-    let port = adj.info.ports.get("TCP_SERVER").ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "the supplied ADJ has no TCP_SERVER port",
-        )
-    })?;
-    let link = BoardLink {
-        board: board.id,
-        addr: SocketAddr::new(board.ip, port.0),
-        local_port,
-    };
-    let index = Arc::new(Index::new(&adj.pod_data, Some(&adj.info.message_levels)));
-    let config = Config {
-        boards: vec![link],
-        connect_timeout: Duration::from_secs(5),
-        backoff: Backoff::new(500, 5000),
-        write_timeout: Duration::from_secs(2),
-        keep_alive: Duration::from_millis(keep_alive_ms),
-    };
+    let probe = load_probe_config()?;
     println!(
-        "WARNING: manual TCP fault probe: {board_name} at {}; sends 00 00 once after connecting; press Ctrl+C to stop",
-        link.addr
+        "WARNING: manual TCP fault probe: {} at {}; sends 00 00 once after connecting; press Ctrl+C to stop",
+        probe.board_name, probe.link.addr
     );
-    let (reporter, mut sinks) = Reporter::channels(256, 16);
-    let handles = spawn(config, index, reporter);
+    let board = probe.link.board;
+    let (handles, mut sinks) = start_probe(probe);
     let (connected, first_connection) = oneshot::channel();
     let running = async {
         // Wait outside the display loops so neither reporting channel is
@@ -369,7 +288,7 @@ async fn manual_tcp_fault() -> Result<(), Box<dyn std::error::Error>> {
             )
         })?;
         println!("First connection established; requesting fault once");
-        if let Err(error) = handles.propagate_fault().await {
+        if let Err(error) = handles.broadcast_fault().await {
             eprintln!("Fault write NOT confirmed: {error}");
             return Err(error.into());
         }
@@ -380,38 +299,23 @@ async fn manual_tcp_fault() -> Result<(), Box<dyn std::error::Error>> {
         // creating another fault request when the supervisor reconnects.
         std::future::pending::<Result<(), Box<dyn std::error::Error>>>().await
     };
-    let display = async {
-        let mut connected = Some(connected);
-        tokio::join!(
-            async {
-                while let Some(notification) = sinks.notifications.recv().await {
-                    let ready = notification.board == link.board
-                        && matches!(&notification.event, Event::Connected);
-                    println!("{notification:#?}");
-                    // Taking the sender makes the trigger one-shot across all
-                    // subsequent Connected events, including reconnections.
-                    if ready && let Some(connected) = connected.take() {
-                        let _ = connected.send(());
-                    }
-                }
-            },
-            async {
-                while let Some(report) = sinks.errors.recv().await {
-                    eprintln!("{report:#?}");
-                }
-            },
-        );
+    let mut connected = Some(connected);
+    let on_notification = |notification: &Notification| {
+        let ready = notification.board == board && matches!(&notification.event, Event::Connected);
+        // Taking the sender makes the trigger one-shot across all subsequent
+        // Connected events, including reconnections.
+        if ready && let Some(connected) = connected.take() {
+            let _ = connected.send(());
+        }
     };
     let result = tokio::select! {
         result = running => result,
         stopped = tokio::signal::ctrl_c() => stopped.map_err(Into::into),
-        () = display => Err(io::Error::new(
+        () = display_reports(&mut sinks, on_notification) => Err(io::Error::new(
             io::ErrorKind::BrokenPipe,
             "TCP reporting stopped before Ctrl+C",
         ).into()),
     };
-    sinks.notifications.close();
-    sinks.errors.close();
-    drop(handles);
+    stop_probe(handles, &mut sinks);
     result
 }

@@ -41,7 +41,7 @@ pub(super) enum SessionEnd {
 ///
 /// Returns the selected reader or writer error unchanged. The caller can report
 /// that single result once; this function does not collect errors from both sides.
-pub(super) async fn run_with_faults(
+pub(super) async fn run(
     stream: TcpStream,
     board: BoardId,
     index: &Index,
@@ -67,38 +67,12 @@ pub(super) async fn run_with_faults(
     }
 }
 
-/// Exercises the same session teardown without a fault channel in focused tests.
-#[cfg(test)]
-async fn run(
-    stream: TcpStream,
-    board: BoardId,
-    index: &Index,
-    reporter: &Reporter,
-    orders: &mut mpsc::Receiver<Vec<u8>>,
-    write_timeout: std::time::Duration,
-    keep_alive: std::time::Duration,
-) -> Result<SessionEnd, Error> {
-    run_with_faults(
-        stream,
-        board,
-        index,
-        reporter,
-        orders,
-        writer::Settings {
-            write_timeout,
-            keep_alive,
-        },
-        None,
-    )
-    .await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
         model::{AdjId, MessageLevel, MessagePacket, Packet, PodData, ShortTimestamp},
-        net::{Event, Notification},
+        net::{Event, Notification, Sinks},
         protocol::{DecodeError, packet::message},
     };
     use std::{
@@ -106,6 +80,7 @@ mod tests {
         future::{Future, poll_fn},
         io,
         net::Ipv4Addr,
+        pin::Pin,
         task::Poll,
         time::Duration,
     };
@@ -120,45 +95,95 @@ mod tests {
     const SECOND: &[u8] = &[0x59, 0x02];
     const BOARD: BoardId = BoardId(42);
 
-    /// A global message definition deliberately has no real connection board.
-    fn sample_message() -> (Index, MessagePacket, Vec<u8>) {
-        let index = Index::new(
-            &PodData {
-                boards: HashMap::new(),
-            },
-            Some(&HashMap::from([(AdjId(3), MessageLevel::Warning)])),
-        );
-        let packet = MessagePacket {
-            id: AdjId(3),
-            timestamp: ShortTimestamp {
-                hour: 12,
-                minute: 30,
-                second: 0,
-                subsecond: 0,
-            },
-            origin: "mock".to_string(),
-            message: "session test".to_string(),
-        };
-        let Ok(bytes) = message::encode(&packet, &index) else {
-            unreachable!("the fixture matches its message definition");
-        };
-        (index, packet, bytes)
+    type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
+
+    struct TestSession {
+        index: Index,
+        reporter: Reporter,
+        orders: mpsc::Receiver<Vec<u8>>,
+        keep_alive: Duration,
     }
 
-    /// Creates ordinary loopback sockets so tests can observe orderly write-side EOF.
-    async fn connected_pair() -> Result<(TcpStream, TcpStream), Box<dyn std::error::Error>> {
+    struct TestPeer {
+        stream: TcpStream,
+        sinks: Sinks,
+        sender: mpsc::Sender<Vec<u8>>,
+    }
+
+    impl TestSession {
+        /// A global message deliberately has no real connection board in the index.
+        fn message(&mut self) -> (MessagePacket, Vec<u8>) {
+            self.index = Index::new(
+                &PodData {
+                    boards: HashMap::new(),
+                },
+                Some(&HashMap::from([(AdjId(3), MessageLevel::Warning)])),
+            );
+            let packet = MessagePacket {
+                id: AdjId(3),
+                timestamp: ShortTimestamp {
+                    hour: 12,
+                    minute: 30,
+                    second: 0,
+                    subsecond: 0,
+                },
+                origin: "mock".to_string(),
+                message: "session test".to_string(),
+            };
+            let Ok(bytes) = message::encode(&packet, &self.index) else {
+                unreachable!("the fixture matches its message definition");
+            };
+            (packet, bytes)
+        }
+
+        async fn run_session_test(&mut self, stream: TcpStream) -> Result<SessionEnd, Error> {
+            run(
+                stream,
+                BOARD,
+                &self.index,
+                &self.reporter,
+                &mut self.orders,
+                writer::Settings {
+                    write_timeout: TEST_TIMEOUT,
+                    keep_alive: self.keep_alive,
+                },
+                None,
+            )
+            .await
+        }
+
+        async fn failure(&mut self, stream: TcpStream) -> TestResult<Error> {
+            timeout(TEST_TIMEOUT, self.run_session_test(stream))
+                .await?
+                .err()
+                .ok_or_else(|| "the session should return an error".into())
+        }
+    }
+
+    /// Uses ordinary sockets for orderly EOF and leaves order-sender lifetime to each test.
+    async fn setup(initial_orders: &[&[u8]]) -> TestResult<(TestSession, TcpStream, TestPeer)> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
         let client = timeout(TEST_TIMEOUT, TcpStream::connect(listener.local_addr()?)).await??;
-        let (peer, _) = timeout(TEST_TIMEOUT, listener.accept()).await??;
-        Ok((client, peer))
-    }
-
-    /// Keeps the sender alive unless a test explicitly initiates writer shutdown.
-    fn queued_orders() -> (mpsc::Sender<Vec<u8>>, mpsc::Receiver<Vec<u8>>) {
-        let (sender, receiver) = mpsc::channel(2);
-        assert!(sender.try_send(FIRST.to_vec()).is_ok());
-        assert!(sender.try_send(SECOND.to_vec()).is_ok());
-        (sender, receiver)
+        let (stream, _) = timeout(TEST_TIMEOUT, listener.accept()).await??;
+        let (reporter, sinks) = Reporter::channels(1, 1);
+        let (sender, orders) = mpsc::channel(initial_orders.len().max(1));
+        for bytes in initial_orders {
+            sender.try_send(bytes.to_vec())?;
+        }
+        Ok((
+            TestSession {
+                index: Index::default(),
+                reporter,
+                orders,
+                keep_alive: Duration::ZERO,
+            },
+            client,
+            TestPeer {
+                stream,
+                sinks,
+                sender,
+            },
+        ))
     }
 
     /// Verifies packet identity and connection identity without introducing lifecycle events.
@@ -171,189 +196,135 @@ mod tests {
     }
 
     /// Requires the cancelled writer to release its write half, not remain idle forever.
-    async fn assert_peer_eof(peer: &mut TcpStream) -> Result<(), Box<dyn std::error::Error>> {
+    async fn assert_peer_eof(peer: &mut TcpStream) -> TestResult {
         let mut rest = vec![];
         timeout(TEST_TIMEOUT, peer.read_to_end(&mut rest)).await??;
         assert!(rest.is_empty());
         Ok(())
     }
 
-    #[tokio::test]
-    async fn exchanges_orders_and_a_split_message_concurrently()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // The peer waits for outbound orders before completing its inbound frame.
-        // Sequentially awaiting either whole loop would deadlock this exchange.
-        let (client, mut peer) = connected_pair().await?;
-        let (index, expected, bytes) = sample_message();
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (_sender, mut orders) = queued_orders();
-        let mut sent = [0; 5];
+    fn assert_no_reports(sinks: &mut Sinks) {
+        assert!(sinks.notifications.try_recv().is_err());
+        assert!(sinks.errors.try_recv().is_err());
+    }
+
+    async fn assert_pending<F: Future>(mut future: Pin<&mut F>) {
+        poll_fn(|cx| {
+            assert!(future.as_mut().poll(cx).is_pending());
+            Poll::Ready(())
+        })
+        .await;
+    }
+
+    fn assert_read_error(error: Error, kind: io::ErrorKind) {
+        assert!(!error.is_fatal());
+        let Error::Read { board, source } = error else {
+            unreachable!("the session must preserve its selected reader error");
+        };
+        assert_eq!(board, BOARD);
+        assert_eq!(source.kind(), kind);
+    }
+
+    /// Complete the inbound frame only after observing the writer's output.
+    async fn exchange_split_message(
+        peer: &mut TestPeer,
+        bytes: &[u8],
+        expected: &MessagePacket,
+        output: &mut [u8],
+    ) -> TestResult<Vec<u8>> {
+        peer.stream.write_all(&bytes[..7]).await?;
+        peer.stream.read_exact(output).await?;
+        peer.stream.write_all(&bytes[7..]).await?;
+        let notification = peer
+            .sinks
+            .notifications
+            .recv()
+            .await
+            .ok_or("reporting stopped")?;
+        assert_message(notification, expected, BOARD);
+        peer.stream.shutdown().await?;
         let mut rest = vec![];
+        peer.stream.read_to_end(&mut rest).await?;
+        Ok(rest)
+    }
+
+    #[tokio::test]
+    async fn exchanges_orders_and_a_split_message_concurrently() -> TestResult {
+        let (mut session, client, mut peer) = setup(&[FIRST, SECOND]).await?;
+        let (expected, bytes) = session.message();
+        let mut sent = [0; 5];
         let (end, exchanged) = timeout(TEST_TIMEOUT, async {
             tokio::join!(
-                run(
-                    client,
-                    BOARD,
-                    &index,
-                    &reporter,
-                    &mut orders,
-                    TEST_TIMEOUT,
-                    Duration::ZERO
-                ),
-                async {
-                    peer.write_all(&bytes[..7]).await?;
-                    peer.read_exact(&mut sent).await?;
-                    peer.write_all(&bytes[7..]).await?;
-                    let Some(notification) = sinks.notifications.recv().await else {
-                        unreachable!("the session keeps its reporter alive");
-                    };
-                    assert_message(notification, &expected, BOARD);
-                    peer.shutdown().await?;
-                    peer.read_to_end(&mut rest).await?;
-                    Ok::<_, io::Error>(())
-                }
+                session.run_session_test(client),
+                exchange_split_message(&mut peer, &bytes, &expected, &mut sent),
             )
         })
         .await?;
-        exchanged?;
+        assert!(exchanged?.is_empty());
         assert_eq!(end?, SessionEnd::PeerClosed);
         assert_eq!(sent.as_slice(), [FIRST, SECOND].concat());
-        assert!(rest.is_empty());
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
+        assert_no_reports(&mut peer.sinks);
         Ok(())
     }
 
     #[tokio::test]
-    async fn keep_alive_continues_while_the_reader_waits_for_a_partial_frame()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // Incomplete inbound data must not prevent the single writer's heartbeat.
-        // Complete the message only after observing ID 1, then close the peer's send side.
-        let (client, mut peer) = connected_pair().await?;
-        let (index, expected, bytes) = sample_message();
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (_sender, mut orders) = mpsc::channel(1);
+    async fn keep_alive_continues_while_the_reader_waits_for_a_partial_frame() -> TestResult {
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        let (expected, bytes) = session.message();
+        session.keep_alive = Duration::from_millis(10);
         let mut heartbeat = [0; 2];
-        let mut rest = vec![];
         let (end, exchanged) = timeout(TEST_TIMEOUT, async {
             tokio::join!(
-                run(
-                    client,
-                    BOARD,
-                    &index,
-                    &reporter,
-                    &mut orders,
-                    TEST_TIMEOUT,
-                    Duration::from_millis(10)
-                ),
-                async {
-                    peer.write_all(&bytes[..7]).await?;
-                    peer.read_exact(&mut heartbeat).await?;
-                    peer.write_all(&bytes[7..]).await?;
-                    let Some(notification) = sinks.notifications.recv().await else {
-                        unreachable!("the session keeps its reporter alive");
-                    };
-                    assert_message(notification, &expected, BOARD);
-                    peer.shutdown().await?;
-                    peer.read_to_end(&mut rest).await?;
-                    Ok::<_, io::Error>(())
-                }
+                session.run_session_test(client),
+                exchange_split_message(&mut peer, &bytes, &expected, &mut heartbeat),
             )
         })
         .await?;
-        exchanged?;
+        let rest = exchanged?;
         assert_eq!(end?, SessionEnd::PeerClosed);
         assert_eq!(heartbeat, [1, 0]);
         // Scheduling can allow more complete heartbeats before the reader observes EOF.
         assert_eq!(rest.len() % 2, 0);
         assert!(rest.chunks(2).all(|frame| frame == [1, 0]));
-        assert!(sinks.errors.try_recv().is_err());
+        assert!(peer.sinks.errors.try_recv().is_err());
         Ok(())
     }
 
     #[tokio::test]
-    async fn peer_eof_cancels_an_idle_writer_and_releases_the_order_receiver()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // Keep the order channel open: writer completion cannot be the reason this ends.
-        // Peer-side EOF afterward proves the waiting writer's half was dropped.
-        let (client, mut peer) = connected_pair().await?;
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (sender, mut orders) = mpsc::channel(1);
-        peer.shutdown().await?;
-        let end = timeout(
-            TEST_TIMEOUT,
-            run(
-                client,
-                BOARD,
-                &Index::default(),
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            ),
-        )
-        .await??;
+    async fn peer_eof_cancels_an_idle_writer_and_releases_the_order_receiver() -> TestResult {
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        peer.stream.shutdown().await?;
+        let end = timeout(TEST_TIMEOUT, session.run_session_test(client)).await??;
         assert_eq!(end, SessionEnd::PeerClosed);
-        assert_peer_eof(&mut peer).await?;
-        sender.try_send(FIRST.to_vec())?;
-        assert_eq!(orders.try_recv(), Ok(FIRST.to_vec()));
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
+        assert_peer_eof(&mut peer.stream).await?;
+        peer.sender.try_send(FIRST.to_vec())?;
+        assert_eq!(session.orders.try_recv(), Ok(FIRST.to_vec()));
+        assert_no_reports(&mut peer.sinks);
         Ok(())
     }
 
     #[tokio::test]
-    async fn a_drained_order_channel_cancels_an_idle_reader()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // The peer stays connected and sends nothing, so the read loop cannot finish itself.
-        // Closing orders must stop the session rather than wait for a read or heartbeat.
-        let (client, mut peer) = connected_pair().await?;
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (sender, mut orders) = mpsc::channel(1);
-        drop(sender);
-        let end = timeout(
-            TEST_TIMEOUT,
-            run(
-                client,
-                BOARD,
-                &Index::default(),
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::from_millis(10),
-            ),
-        )
-        .await??;
+    async fn a_drained_order_channel_cancels_an_idle_reader() -> TestResult {
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        session.keep_alive = Duration::from_millis(10);
+        drop(peer.sender);
+        let end = timeout(TEST_TIMEOUT, session.run_session_test(client)).await??;
         assert_eq!(end, SessionEnd::OrdersDrained);
-        assert_peer_eof(&mut peer).await?;
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
+        assert_peer_eof(&mut peer.stream).await?;
+        assert_no_reports(&mut peer.sinks);
         Ok(())
     }
 
     #[tokio::test]
-    async fn order_channel_shutdown_drains_queued_frames_before_cancelling_the_reader()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // The writer must send both already-queued frames before its normal completion.
-        // Read the whole stream concurrently, without assuming TCP write boundaries.
-        let (client, mut peer) = connected_pair().await?;
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (sender, mut orders) = queued_orders();
-        drop(sender);
-        let index = Index::default();
+    async fn order_channel_shutdown_drains_queued_frames_before_cancelling_the_reader() -> TestResult
+    {
+        let (mut session, client, mut peer) = setup(&[FIRST, SECOND]).await?;
+        drop(peer.sender);
         let mut received = vec![];
         let (end, read) = timeout(TEST_TIMEOUT, async {
             tokio::join!(
-                run(
-                    client,
-                    BOARD,
-                    &index,
-                    &reporter,
-                    &mut orders,
-                    TEST_TIMEOUT,
-                    Duration::ZERO
-                ),
-                peer.read_to_end(&mut received),
+                session.run_session_test(client),
+                peer.stream.read_to_end(&mut received),
             )
         })
         .await?;
@@ -361,248 +332,127 @@ mod tests {
         assert_eq!(end?, SessionEnd::OrdersDrained);
         assert_eq!(received, [FIRST, SECOND].concat());
         assert_eq!(
-            orders.try_recv(),
+            session.orders.try_recv(),
             Err(mpsc::error::TryRecvError::Disconnected)
         );
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
+        assert_no_reports(&mut peer.sinks);
         Ok(())
     }
 
     #[tokio::test]
-    async fn notification_consumer_loss_stops_the_session_and_the_idle_writer()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // Consumer loss is observed by publishing a real packet, not by closing the socket.
-        // Leave orders open to prove the writer is cancelled by the reader's result.
-        let (client, mut peer) = connected_pair().await?;
-        let (index, _expected, bytes) = sample_message();
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        sinks.notifications.close();
-        let (_sender, mut orders) = mpsc::channel(1);
-        peer.write_all(&bytes).await?;
-        let end = timeout(
-            TEST_TIMEOUT,
-            run(
-                client,
-                BOARD,
-                &index,
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            ),
-        )
-        .await??;
+    async fn notification_consumer_loss_stops_the_session_and_the_idle_writer() -> TestResult {
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        let (_, bytes) = session.message();
+        peer.sinks.notifications.close();
+        peer.stream.write_all(&bytes).await?;
+        let end = timeout(TEST_TIMEOUT, session.run_session_test(client)).await??;
         assert_eq!(end, SessionEnd::ConsumerClosed);
-        assert_peer_eof(&mut peer).await?;
-        assert!(sinks.errors.try_recv().is_err());
+        assert_peer_eof(&mut peer.stream).await?;
+        assert!(peer.sinks.errors.try_recv().is_err());
         Ok(())
     }
 
     #[tokio::test]
     async fn partial_eof_returns_the_read_error_and_keeps_already_queued_notifications()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // The first message is published before a second incomplete frame reaches EOF.
-        // Session cleanup must retain that queued notification and must not report the error twice.
-        let (client, mut peer) = connected_pair().await?;
-        let (index, expected, bytes) = sample_message();
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (_sender, mut orders) = mpsc::channel(1);
-        peer.write_all(&bytes).await?;
-        peer.write_all(&bytes[..7]).await?;
-        peer.shutdown().await?;
-        let Err(error) = timeout(
-            TEST_TIMEOUT,
-            run(
-                client,
-                BOARD,
-                &index,
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            ),
-        )
-        .await?
-        else {
-            unreachable!("EOF in the second frame must remain a read error");
-        };
-        assert!(!error.is_fatal());
-        let Error::Read { board, source } = error else {
-            unreachable!("the session must return its selected reader error unchanged");
-        };
-        assert_eq!(board, BOARD);
-        assert_eq!(source.kind(), io::ErrorKind::UnexpectedEof);
-        assert_message(sinks.notifications.try_recv()?, &expected, BOARD);
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
-        assert_peer_eof(&mut peer).await?;
+    -> TestResult {
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        let (expected, bytes) = session.message();
+        peer.stream.write_all(&bytes).await?;
+        peer.stream.write_all(&bytes[..7]).await?;
+        peer.stream.shutdown().await?;
+        let error = session.failure(client).await?;
+        assert_read_error(error, io::ErrorKind::UnexpectedEof);
+        assert_message(peer.sinks.notifications.try_recv()?, &expected, BOARD);
+        assert_no_reports(&mut peer.sinks);
+        assert_peer_eof(&mut peer.stream).await?;
         Ok(())
     }
 
     #[tokio::test]
-    async fn a_terminal_decode_error_cancels_the_writer_and_preserves_fatality()
-    -> Result<(), Box<dyn std::error::Error>> {
-        // Exceed the framing limit with an unknown ID while the writer is idle.
-        // The session must preserve the protocol error, board and fatal classification.
-        let (client, mut peer) = connected_pair().await?;
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (_sender, mut orders) = mpsc::channel(1);
-        peer.write_all(&[0xff; 375]).await?;
-        let Err(error) = timeout(
-            TEST_TIMEOUT,
-            run(
-                client,
-                BOARD,
-                &Index::default(),
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            ),
-        )
-        .await?
-        else {
-            unreachable!("an undecodable suffix above 374 bytes is terminal");
-        };
+    async fn a_terminal_decode_error_cancels_the_writer_and_preserves_fatality() -> TestResult {
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        peer.stream.write_all(&[0xff; 375]).await?;
+        let error = session.failure(client).await?;
         assert!(error.is_fatal());
         let Error::Decode { board, source } = error else {
             unreachable!("the selected decoder error must not be converted into I/O");
         };
         assert_eq!(board, BOARD);
         assert_eq!(source, DecodeError::UnknownId(AdjId(u16::MAX)));
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
-        assert_peer_eof(&mut peer).await?;
+        assert_no_reports(&mut peer.sinks);
+        assert_peer_eof(&mut peer.stream).await?;
         Ok(())
     }
 
     #[tokio::test]
-    async fn a_socket_read_failure_is_returned_without_reporting_it()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn a_socket_read_failure_is_returned_without_reporting_it() -> TestResult {
         // Reset the peer with no queued orders, avoiding a race with a write failure.
         // The connection owner's future reporting path must receive the original read cause.
-        let (client, peer) = connected_pair().await?;
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (_sender, mut orders) = mpsc::channel(1);
-        peer.set_zero_linger()?;
-        drop(peer);
-        let Err(error) = timeout(
-            TEST_TIMEOUT,
-            run(
-                client,
-                BOARD,
-                &Index::default(),
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            ),
-        )
-        .await?
-        else {
-            unreachable!("an abortive peer close must fail the read");
-        };
-        assert!(!error.is_fatal());
-        let Error::Read { board, source } = error else {
-            unreachable!("the idle writer cannot produce this read failure");
-        };
-        assert_eq!(board, BOARD);
-        assert_eq!(source.kind(), io::ErrorKind::ConnectionReset);
-        assert!(sinks.errors.try_recv().is_err());
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        peer.stream.set_zero_linger()?;
+        drop(peer.stream);
+        let error = session.failure(client).await?;
+        assert_read_error(error, io::ErrorKind::ConnectionReset);
+        assert!(peer.sinks.errors.try_recv().is_err());
         Ok(())
     }
 
     #[tokio::test]
     async fn a_write_failure_cancels_the_reader_and_preserves_the_remaining_order_queue()
-    -> Result<(), Box<dyn std::error::Error>> {
+    -> TestResult {
         // Locally shut down only the send side to force BrokenPipe deterministically.
         // The peer remains open and silent, so the reader cannot be the winning branch.
-        let (mut client, _peer) = connected_pair().await?;
+        let (mut session, mut client, mut peer) = setup(&[FIRST, SECOND]).await?;
         client.shutdown().await?;
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (sender, mut orders) = queued_orders();
-        let Err(error) = timeout(
-            TEST_TIMEOUT,
-            run(
-                client,
-                BOARD,
-                &Index::default(),
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            ),
-        )
-        .await?
-        else {
-            unreachable!("writing after a local send shutdown must fail");
-        };
+        let error = session.failure(client).await?;
         assert!(!error.is_fatal());
         let Error::Write { board, source } = error else {
             unreachable!("the session must preserve its selected writer error");
         };
         assert_eq!(board, BOARD);
         assert_eq!(source.kind(), io::ErrorKind::BrokenPipe);
-        assert_eq!(orders.try_recv(), Ok(SECOND.to_vec()));
-        assert_eq!(orders.try_recv(), Err(mpsc::error::TryRecvError::Empty));
-        sender.try_send(FIRST.to_vec())?;
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
+        assert_eq!(session.orders.try_recv(), Ok(SECOND.to_vec()));
+        assert_eq!(
+            session.orders.try_recv(),
+            Err(mpsc::error::TryRecvError::Empty)
+        );
+        peer.sender.try_send(FIRST.to_vec())?;
+        assert_no_reports(&mut peer.sinks);
         Ok(())
     }
 
     #[tokio::test]
-    async fn cancelling_the_session_releases_its_socket_and_receiver_borrow()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn cancelling_the_session_releases_its_socket_and_receiver_borrow() -> TestResult {
         // Poll until both loops wait, then drop the session future externally.
         // No spawned task may keep the write side or the borrowed receiver alive.
-        let (client, mut peer) = connected_pair().await?;
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        let (sender, mut orders) = mpsc::channel(1);
-        let index = Index::default();
+        let (mut session, client, mut peer) = setup(&[]).await?;
         {
-            let running = run(
-                client,
-                BOARD,
-                &index,
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            );
+            let running = session.run_session_test(client);
             tokio::pin!(running);
-            poll_fn(|cx| {
-                assert!(running.as_mut().poll(cx).is_pending());
-                Poll::Ready(())
-            })
-            .await;
+            assert_pending(running.as_mut()).await;
         }
-        assert_peer_eof(&mut peer).await?;
-        sender.try_send(FIRST.to_vec())?;
-        assert_eq!(orders.try_recv(), Ok(FIRST.to_vec()));
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
+        assert_peer_eof(&mut peer.stream).await?;
+        peer.sender.try_send(FIRST.to_vec())?;
+        assert_eq!(session.orders.try_recv(), Ok(FIRST.to_vec()));
+        assert_no_reports(&mut peer.sinks);
         Ok(())
     }
 
     #[tokio::test]
-    async fn order_shutdown_cancels_a_reader_blocked_on_notification_capacity()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn order_shutdown_cancels_a_reader_blocked_on_notification_capacity() -> TestResult {
         // Fill Reporter, then make a complete frame readable before polling the session.
         // Immediate cancellation can discard its blocked publication, but must retain
         // the already-queued notification. This is explicitly not lossless shutdown.
-        let (client, mut peer) = connected_pair().await?;
-        let (index, expected, bytes) = sample_message();
-        let (reporter, mut sinks) = Reporter::channels(1, 1);
-        reporter
+        let (mut session, client, mut peer) = setup(&[]).await?;
+        let (expected, bytes) = session.message();
+        session
+            .reporter
             .notify(
                 BoardId(99),
                 Event::Received(Packet::Message(expected.clone())),
             )
             .await?;
-        let (sender, mut orders) = mpsc::channel(1);
-        peer.write_all(&bytes).await?;
+        peer.stream.write_all(&bytes).await?;
         let mut preview = vec![0; bytes.len()];
         timeout(TEST_TIMEOUT, async {
             while client.peek(&mut preview).await? < bytes.len() {
@@ -612,31 +462,18 @@ mod tests {
         })
         .await??;
         {
-            let running = run(
-                client,
-                BOARD,
-                &index,
-                &reporter,
-                &mut orders,
-                TEST_TIMEOUT,
-                Duration::ZERO,
-            );
+            let running = session.run_session_test(client);
             tokio::pin!(running);
-            poll_fn(|cx| {
-                assert!(running.as_mut().poll(cx).is_pending());
-                Poll::Ready(())
-            })
-            .await;
-            drop(sender);
+            assert_pending(running.as_mut()).await;
+            drop(peer.sender);
             assert_eq!(
                 timeout(TEST_TIMEOUT, running).await??,
                 SessionEnd::OrdersDrained
             );
         }
-        assert_message(sinks.notifications.try_recv()?, &expected, BoardId(99));
-        assert!(sinks.notifications.try_recv().is_err());
-        assert!(sinks.errors.try_recv().is_err());
-        assert_peer_eof(&mut peer).await?;
+        assert_message(peer.sinks.notifications.try_recv()?, &expected, BoardId(99));
+        assert_no_reports(&mut peer.sinks);
+        assert_peer_eof(&mut peer.stream).await?;
         Ok(())
     }
 }

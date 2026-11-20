@@ -1,8 +1,39 @@
 use super::*;
+use crate::net::{Notification, Sinks};
 use crate::protocol::DecodeError;
+use tokio::{io::AsyncReadExt, net::TcpStream};
 
 fn io_error() -> std::io::Error {
     std::io::Error::from(std::io::ErrorKind::ConnectionRefused)
+}
+
+async fn next_notification(
+    sinks: &mut Sinks,
+    missing: &str,
+) -> Result<Notification, Box<dyn std::error::Error>> {
+    sinks
+        .notifications
+        .recv()
+        .await
+        .ok_or_else(|| missing.into())
+}
+
+async fn assert_fault_broadcast(
+    handles: &BoardClients,
+    first: &mut TcpStream,
+    second: &mut TcpStream,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (mut a, mut b) = ([0xff; 2], [0xff; 2]);
+    let (broadcast, read_a, read_b) = tokio::join!(
+        handles.broadcast_fault(),
+        first.read_exact(&mut a),
+        second.read_exact(&mut b)
+    );
+    assert_eq!(broadcast, Ok(()));
+    read_a?;
+    read_b?;
+    assert_eq!((a, b), ([0, 0], [0, 0]));
+    Ok(())
 }
 
 #[tokio::test]
@@ -10,22 +41,22 @@ async fn broadcasts_faults_over_active_clients_without_replaying_after_reconnect
 -> Result<(), Box<dyn std::error::Error>> {
     use crate::net::Event;
     use std::net::Ipv4Addr;
-    use tokio::{io::AsyncReadExt, net::TcpListener, time::timeout};
+    use tokio::{net::TcpListener, time::timeout};
 
     timeout(Duration::from_secs(6), async {
         let first_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
         let third_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
-        let config = Config {
+        let config = TcpConfig {
             boards: vec![
                 BoardLink {
                     board: BoardId(1),
                     addr: first_listener.local_addr()?,
-                    local_port: 0,
+                    local_port: Port(0),
                 },
                 BoardLink {
                     board: BoardId(3),
                     addr: third_listener.local_addr()?,
-                    local_port: 0,
+                    local_port: Port(0),
                 },
             ],
             connect_timeout: Duration::from_millis(100),
@@ -39,65 +70,35 @@ async fn broadcasts_faults_over_active_clients_without_replaying_after_reconnect
         let (first, third) = tokio::try_join!(first_listener.accept(), third_listener.accept())?;
         let (mut first, mut third) = (first.0, third.0);
         for _ in 0..2 {
-            let notification = sinks
-                .notifications
-                .recv()
-                .await
-                .ok_or("reporting stopped")?;
+            let notification = next_notification(&mut sinks, "reporting stopped").await?;
             assert!(matches!(notification.event, Event::Connected));
         }
 
-        let (mut a, mut b) = ([0xff; 2], [0xff; 2]);
-        let (broadcast, read_a, read_b) = tokio::join!(
-            handles.propagate_fault(),
-            first.read_exact(&mut a),
-            third.read_exact(&mut b)
-        );
-        assert_eq!(broadcast, Ok(()));
-        read_a?;
-        read_b?;
-        assert_eq!((a, b), ([0, 0], [0, 0]));
+        assert_fault_broadcast(&handles, &mut first, &mut third).await?;
 
         drop(first);
-        let notification = sinks
-            .notifications
-            .recv()
-            .await
-            .ok_or("missing disconnection")?;
+        let notification = next_notification(&mut sinks, "missing disconnection").await?;
         assert_eq!(notification.board, BoardId(1));
         assert!(matches!(notification.event, Event::Disconnected));
         // The offline board fails, without preventing the healthy board's write.
-        b.fill(0xff);
-        let (broadcast, read_b) = tokio::join!(handles.propagate_fault(), third.read_exact(&mut b));
+        let mut b = [0xff; 2];
+        let (broadcast, read_b) = tokio::join!(handles.broadcast_fault(), third.read_exact(&mut b));
         assert_eq!(broadcast, Err(Unreachable(vec![BoardId(1)])));
         read_b?;
         assert_eq!(b, [0, 0]);
 
         let (mut reconnected, _) = first_listener.accept().await?;
-        let notification = sinks
-            .notifications
-            .recv()
-            .await
-            .ok_or("missing reconnection")?;
+        let notification = next_notification(&mut sinks, "missing reconnection").await?;
         assert_eq!(notification.board, BoardId(1));
         assert!(matches!(notification.event, Event::Connected));
         // Neither the successful first fault nor the offline request is replayed.
+        let mut a = [0xff; 2];
         assert!(
             timeout(Duration::from_millis(30), reconnected.read_exact(&mut a))
                 .await
                 .is_err()
         );
-        a.fill(0xff);
-        b.fill(0xff);
-        let (broadcast, read_a, read_b) = tokio::join!(
-            handles.propagate_fault(),
-            reconnected.read_exact(&mut a),
-            third.read_exact(&mut b)
-        );
-        assert_eq!(broadcast, Ok(()));
-        read_a?;
-        read_b?;
-        assert_eq!((a, b), ([0, 0], [0, 0]));
+        assert_fault_broadcast(&handles, &mut reconnected, &mut third).await?;
         sinks.notifications.close();
         sinks.errors.close();
         Ok::<_, Box<dyn std::error::Error>>(())

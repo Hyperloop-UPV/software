@@ -1,12 +1,12 @@
 //! The TCP client: one connection per board, one task each.
 //!
 //! [`spawn`] starts one independent supervisor and bounded order queue per board.
-//! Handles support board lookup, routing, encoding and queueing; each supervisor
+//! BoardClients support board lookup, routing, encoding and queueing; each supervisor
 //! reconnects with queued orders preserved and backoff reset on connection success.
 //! Fault broadcast uses the same writers with priority at frame boundaries.
 //! Explicit task shutdown/joining remains pending. This module
 //! exposes the error type [`super::Error`] aggregates and defines the transport contract.
-//! See [`super`] and `net/README.md`.
+//! See [`super`] and `net/tcp/README.md`.
 //!
 //! # What this module is
 //!
@@ -18,12 +18,12 @@
 //!
 //! # Entry point
 //!
-//! [`spawn`], taking [`Config`], an `Arc<Index>` and a
-//! [`super::Reporter`], and returning [`Handles`] — the API is written
+//! [`spawn`], taking [`TcpConfig`], an `Arc<Index>` and a
+//! [`super::Reporter`], and returning [`BoardClients`] — the API is written
 //! out below, with its reasoning on the items themselves. One call opens
-//! **every** connection: one task per entry in [`Config::boards`], so the
+//! **every** connection: one task per entry in [`TcpConfig::boards`], so the
 //! per-board bookkeeping stays here. The application submits orders through
-//! [`Handles::send`], which resolves their destination from the index.
+//! [`BoardClients::send`], which resolves their destination from the index.
 //!
 //! # Contract
 //!
@@ -42,10 +42,10 @@
 //! - **One writer task per connection.** Orders, the keep-alive and the
 //!   fault all share the socket, so a single task must own the write
 //!   half, or two half-written frames can interleave on the wire. That
-//!   task receives requests through the board's channels in `Handles`.
+//!   task receives requests through the board's channels in `BoardClients`.
 //! - **Be ready to be told to propagate the fault.** The application
 //!   decides when; this module is what can actually write, so it
-//!   exposes [`Handles::propagate_fault`], which puts **the order with id
+//!   exposes [`BoardClients::broadcast_fault`], which puts **the order with id
 //!   0** — the fault, same as the Go backend's `SendFault` — into every
 //!   board's control channel at once, bounded by `write_timeout` for the
 //!   whole attempt. It reports which writes could not be confirmed instead of
@@ -77,16 +77,19 @@
 //!   is what the backoff is for, and only the report goes up.
 
 use super::Reporter;
-use crate::{model::BoardId, protocol::Index};
+use crate::{
+    model::{BoardId, Port},
+    protocol::Index,
+};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc;
 
+mod board_clients;
 mod board_handle;
 mod connection;
 mod error;
 mod fault;
 mod framing;
-mod handles;
 mod reader;
 mod session;
 mod supervisor;
@@ -96,9 +99,9 @@ mod writer;
 // disconnected; configuration of this limit can be added separately.
 const ORDER_QUEUE_CAPACITY: usize = 64;
 
+pub use board_clients::BoardClients;
 pub use board_handle::BoardHandle;
 pub use error::{Error, SendError, Unreachable};
-pub use handles::Handles;
 
 /// One board to keep a connection to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -112,7 +115,7 @@ pub struct BoardLink {
     /// in the Go backend). Being fixed is why `linger = 0` matters: a
     /// dropped connection must not leave this port in `TIME_WAIT`.
     /// Zero requests an OS-assigned port, useful for isolated local tests.
-    pub local_port: u16,
+    pub local_port: Port,
 }
 
 /// How long to wait between reconnection attempts.
@@ -166,7 +169,7 @@ impl Backoff {
 /// module reads no config file, and it does not read the ADJ to find its
 /// peers either. That is also what lets a test point it at a fake peer.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Config {
+pub struct TcpConfig {
     /// One entry per board to connect to, already filtered by what the
     /// config file lists: a board the ADJ declares but the config does
     /// not name gets no client at all.
@@ -190,7 +193,7 @@ pub struct Config {
 /// Opens a connection to every board in `config.boards`.
 ///
 /// One call, one task per board: the per-connection bookkeeping stays in
-/// this module, and the application submits orders through the [`Handles`]
+/// this module, and the application submits orders through the [`BoardClients`]
 /// that come back, letting the index select their destination.
 ///
 /// `adj` is the only part of the ADJ this module needs: it decodes
@@ -209,16 +212,16 @@ pub struct Config {
 ///
 /// Tasks are detached for now: this API does not return join handles or implement
 /// explicit shutdown. Closing either Reporter consumer stops the supervisors;
-/// consume both channels concurrently while running. Dropping Handles closes the
+/// consume both channels concurrently while running. Dropping BoardClients closes the
 /// order senders but does not promise immediate stop during offline retries.
 /// No application handshake or hash exchange is performed. Fault broadcast is
-/// explicit through [`Handles::propagate_fault`], never triggered automatically.
+/// explicit through [`BoardClients::broadcast_fault`], never triggered automatically.
 ///
 /// # Panics
 ///
 /// Starting a nonempty configuration outside a Tokio runtime panics, as does
 /// [`tokio::spawn`].
-pub fn spawn(config: Config, index: Arc<Index>, reporter: Reporter) -> Handles {
+pub fn spawn(config: TcpConfig, index: Arc<Index>, reporter: Reporter) -> BoardClients {
     let mut boards = HashMap::with_capacity(config.boards.len());
     let config = Arc::new(config);
     for &link in &config.boards {
@@ -243,7 +246,7 @@ pub fn spawn(config: Config, index: Arc<Index>, reporter: Reporter) -> Handles {
         let reporter = reporter.clone();
         // Deliberately detached: explicit task ownership/joining is a later step.
         let _task = tokio::spawn(async move {
-            let _ = supervisor::supervise_with_faults(
+            let _ = supervisor::supervise(
                 &link,
                 &config,
                 &index,
@@ -254,7 +257,7 @@ pub fn spawn(config: Config, index: Arc<Index>, reporter: Reporter) -> Handles {
             .await;
         });
     }
-    Handles::new(boards, index, config.write_timeout)
+    BoardClients::new(boards, index, config.write_timeout)
 }
 
 #[cfg(test)]

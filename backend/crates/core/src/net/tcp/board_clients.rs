@@ -16,13 +16,16 @@ use tokio::time::Instant;
 /// belongs to its task, not to the presence of its handle in this map.
 /// The shared, read-only index resolves order IDs to their destination boards.
 #[derive(Debug)]
-pub struct Handles {
+pub struct BoardClients {
+    // All the boards connected by id
     boards: HashMap<BoardId, BoardHandle>,
+    // All the adj packets (orders, packets, protections) by id
     index: Arc<Index>,
+    // Timeout for the TCP reciever buffer to recive the whole packet
     write_timeout: Duration,
 }
 
-impl Handles {
+impl BoardClients {
     /// Assembles the configured handles after their supervisor tasks are started.
     pub(super) fn new(
         boards: HashMap<BoardId, BoardHandle>,
@@ -51,7 +54,7 @@ impl Handles {
     /// capacity and returns once the bytes are queued, not written to TCP.
     /// It does not broadcast reserved IDs or send anything to other boards.
     /// Cancelling while waiting for capacity discards the unqueued frame.
-    /// There is no enqueue timeout; [`super::Config::write_timeout`] bounds
+    /// There is no enqueue timeout; [`super::TcpConfig::write_timeout`] bounds
     /// network writes, not queue admission for normal orders.
     ///
     /// # Errors
@@ -64,6 +67,7 @@ impl Handles {
         let definition = self
             .index
             .packet(order.id)
+            // Check if the packet is typed as order
             .filter(|definition| matches!(&definition.packet_type, PacketType::Order(_)))
             .ok_or(SendError::UnknownId(order.id))?;
         let handle = self
@@ -75,7 +79,7 @@ impl Handles {
 
     /// Requests the reserved fault frame (00 00) from every active board writer.
     ///
-    /// Attempts run concurrently, each bounded by [`super::Config::write_timeout`] from the
+    /// Attempts run concurrently, each bounded by [`super::TcpConfig::write_timeout`] from the
     /// start of this call, including queue capacity and waiting for a frame boundary.
     /// Fault takes priority over heartbeats and queued orders, but never interrupts
     /// a frame already being written. It does not clear the normal order queue or
@@ -93,7 +97,7 @@ impl Handles {
     /// Returns the configured boards whose write completion was not confirmed
     /// (offline, session ended, I/O failure, or deadline elapsed). A failed/partial write is never
     /// retried and ends that session. Failure does not prove no bytes were delivered.
-    pub async fn propagate_fault(&self) -> Result<(), Unreachable> {
+    pub async fn broadcast_fault(&self) -> Result<(), Unreachable> {
         let deadline = Instant::now() + self.write_timeout;
         let mut pending: Vec<_> = self
             .boards
@@ -143,7 +147,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     /// Shares one index between routing and both boards' encoding channels.
-    fn sample_handles() -> (Handles, mpsc::Receiver<Vec<u8>>, mpsc::Receiver<Vec<u8>>) {
+    fn sample_handles() -> (BoardClients, mpsc::Receiver<Vec<u8>>, mpsc::Receiver<Vec<u8>>) {
         let boards = [(1, 600), (3, 601)]
             .into_iter()
             .map(|(board_id, order_id)| {
@@ -186,7 +190,7 @@ mod tests {
         let index = Arc::new(Index::new(&PodData { boards }, Some(&message_levels)));
         let (first_orders, first_receiver) = mpsc::channel(2);
         let (third_orders, third_receiver) = mpsc::channel(2);
-        let handles = Handles {
+        let handles = BoardClients {
             index: Arc::clone(&index),
             write_timeout: Duration::from_secs(2),
             boards: HashMap::from([
@@ -341,7 +345,7 @@ mod tests {
     async fn returns_the_destination_encoding_error_without_queueing_anything() {
         let (handles, mut first_receiver, mut third_receiver) = sample_handles();
 
-        // Handles must propagate protocol validation failures from the destination handle.
+        // BoardClients must propagate protocol validation failures from the destination handle.
         let order = OrderPacket::new(AdjId(600), vec![Value::Bool(true)]);
         assert_eq!(
             handles.send(order).await,
@@ -362,8 +366,8 @@ mod tests {
 
     #[tokio::test]
     async fn an_empty_fault_broadcast_succeeds() {
-        let handles = Handles::new(HashMap::new(), Arc::new(Index::default()), Duration::ZERO);
-        assert_eq!(handles.propagate_fault().await, Ok(()));
+        let handles = BoardClients::new(HashMap::new(), Arc::new(Index::default()), Duration::ZERO);
+        assert_eq!(handles.broadcast_fault().await, Ok(()));
     }
 
     #[tokio::test]
@@ -377,7 +381,7 @@ mod tests {
         let mut first = handles.boards[&BoardId(1)].fault.activate();
         let mut third = handles.boards[&BoardId(3)].fault.activate();
         let (result, ()) = tokio::time::timeout(Duration::from_secs(3), async {
-            tokio::join!(handles.propagate_fault(), async {
+            tokio::join!(handles.broadcast_fault(), async {
                 // Neither board is acknowledged until both requests have arrived:
                 // a sequential implementation would time out here.
                 let (Some(a), Some(b)) = tokio::join!(first.receiver.recv(), third.receiver.recv())
@@ -403,7 +407,7 @@ mod tests {
     -> Result<(), Box<dyn std::error::Error>> {
         let (handles, _first_orders, _third_orders) = sample_handles();
         let mut third = handles.boards[&BoardId(3)].fault.activate();
-        let (result, ()) = tokio::join!(handles.propagate_fault(), async {
+        let (result, ()) = tokio::join!(handles.broadcast_fault(), async {
             let Some(request) = third.receiver.recv().await else {
                 unreachable!("third board has an active session");
             };
@@ -423,7 +427,7 @@ mod tests {
         let _third = handles.boards[&BoardId(3)].fault.activate();
         let started = Instant::now();
         assert_eq!(
-            handles.propagate_fault().await,
+            handles.broadcast_fault().await,
             Err(Unreachable(vec![BoardId(1), BoardId(3)]))
         );
         assert_eq!(started.elapsed(), handles.write_timeout);
