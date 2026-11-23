@@ -39,8 +39,13 @@ const failureMessage = (error: unknown) =>
     /^Error invoking remote method '[^']+': (?:Error: )?/,
     "",
   );
-const dateLabel = (date: string) =>
-  date.replace("T", " · ").replace(/(\d{2})-(\d{2})-(\d{2})$/, "$1:$2:$3");
+const dateLabel = (date: string) => {
+  if (!date) return "";
+  const clean = date.replace(/Z$/, "");
+  return clean
+    .replace("T", " · ")
+    .replace(/(\d{2})[-:](\d{2})[-:](\d{2})$/, "$1:$2:$3");
+};
 const sizeLabel = (bytes: number) => `${(bytes / 1024 ** 2).toFixed(1)} MB`;
 const phases = {
   compressing: "Compressing session…",
@@ -202,12 +207,14 @@ function UploadPanel({
     session: LocalLogSession,
     notes: string,
     tags: string[],
+    title?: string,
   ) => Promise<boolean>;
 }) {
   const [sessions, setSessions] = useState<LocalLogSession[]>([]);
   const [selected, setSelected] = useState<LocalLogSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [query, setQuery] = useState("");
@@ -254,10 +261,8 @@ function UploadPanel({
     };
   }, [api, query, ready]);
   const choose = (session: LocalLogSession | null) => {
-    if (session) {
-      setSelected(session);
-      setStopped(false);
-    }
+    setSelected(session);
+    setStopped(false);
   };
   const browse = async () => {
     setLoading(true);
@@ -276,7 +281,21 @@ function UploadPanel({
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (selected) await onUpload(selected, notes, tags);
+        if (selected) {
+          const ok = await onUpload(
+            selected,
+            notes,
+            tags,
+            title.trim() || undefined,
+          );
+          if (ok) {
+            setSelected(null);
+            setTitle("");
+            setNotes("");
+            setTags([]);
+            setStopped(false);
+          }
+        }
       }}
     >
       <p className="text-muted-foreground text-sm">
@@ -346,6 +365,16 @@ function UploadPanel({
       )}
       <fieldset disabled={busy} className="space-y-4">
         <div className="space-y-2">
+          <Label htmlFor="cloud-title">Title (optional)</Label>
+          <Input
+            id="cloud-title"
+            value={title}
+            maxLength={200}
+            placeholder="e.g. Failed precharge (defaults to recording date)"
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="cloud-notes">Notes</Label>
           <Textarea
             id="cloud-notes"
@@ -364,6 +393,16 @@ function UploadPanel({
             maxLength={200}
             disabled={!ready}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const trimmed = query.trim();
+                if (trimmed && !tags.includes(trimmed)) {
+                  setTags((prev) => [...prev, trimmed]);
+                  setQuery("");
+                }
+              }
+            }}
             placeholder="Search tags from Cloud Logs…"
           />
           {tags.length > 0 && (
@@ -458,7 +497,7 @@ function LibraryPanel({
   ready: boolean;
   busy: boolean;
   downloads: DownloadedLog[];
-  onDownload: (id: string) => void;
+  onDownload: (item: CloudLog) => void;
   onOpen: (session: DownloadedLog) => void;
 }) {
   const [items, setItems] = useState<CloudLog[]>([]);
@@ -524,42 +563,48 @@ function LibraryPanel({
           No recordings in Cloud Logs yet.
         </div>
       )}
-      {items.map((item) => (
-        <div key={item.id} className="space-y-2 rounded-lg border p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium">{dateLabel(item.date)}</p>
-              <p className="text-muted-foreground truncate text-xs">
-                {item.user} · {item.id}
-              </p>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => onDownload(item.id)}
-            >
-              <FileDown className="mr-2 size-4" />
-              Download
-            </Button>
-          </div>
-          {item.notes && (
-            <p className="text-xs break-words whitespace-pre-wrap">
-              {item.notes}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-1">
-            {item.tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-muted rounded px-2 py-0.5 text-[11px]"
+      {items.map((item) => {
+        const headline = item.title || item.fileName || dateLabel(item.date);
+        const hasTitleOrFileName = Boolean(item.title || item.fileName);
+        return (
+          <div key={item.id} className="space-y-2 rounded-lg border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{headline}</p>
+                <p className="text-muted-foreground truncate text-xs">
+                  {hasTitleOrFileName
+                    ? `${item.user} · ${dateLabel(item.date)}`
+                    : `${item.user} · ${item.id}`}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => onDownload(item)}
               >
-                {tag}
-              </span>
-            ))}
+                <FileDown className="mr-2 size-4" />
+                Download
+              </Button>
+            </div>
+            {item.notes && (
+              <p className="text-xs break-words whitespace-pre-wrap">
+                {item.notes}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-1">
+              {item.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-muted rounded px-2 py-0.5 text-[11px]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {cursor && (
         <Button
           variant="outline"
@@ -587,8 +632,12 @@ function LibraryPanel({
               className="flex items-center justify-between gap-3 border-b py-2"
             >
               <div className="min-w-0 text-xs">
-                <p>{dateLabel(item.date)}</p>
-                <p className="text-muted-foreground truncate">{item.id}</p>
+                <p className="truncate font-medium">
+                  {item.title || item.fileName || dateLabel(item.date)}
+                </p>
+                <p className="text-muted-foreground truncate">
+                  {dateLabel(item.date)} · {item.id}
+                </p>
               </div>
               <Button
                 variant="outline"
@@ -665,6 +714,22 @@ export default function CloudLogsDialog() {
   const openDownloaded = async (session: DownloadedLog) => {
     if (await openPath(session.path)) setOpen(false);
   };
+  const onDownload = (item: CloudLog) => {
+    if (!api) return;
+    run(async (requestId) => {
+      const downloaded = await api.download({
+        id: item.id,
+        title: item.title,
+        fileName: item.fileName,
+        requestId,
+      });
+      setDownloads((items) => [
+        downloaded,
+        ...items.filter((entry) => entry.id !== downloaded.id),
+      ]);
+      setMessage("Recording downloaded and ready to open.");
+    });
+  };
   const percent = progress?.total
     ? Math.min(
         100,
@@ -734,18 +799,7 @@ export default function CloudLogsDialog() {
                     busy={locked}
                     downloads={downloads}
                     onOpen={(s) => void openDownloaded(s)}
-                    onDownload={(id) =>
-                      void run(async (requestId) => {
-                        const item = await api.download({ id, requestId });
-                        setDownloads((old) => [
-                          item,
-                          ...old.filter((d) => d.id !== id),
-                        ]);
-                        setMessage(
-                          "Recording downloaded. Open it from On this computer.",
-                        );
-                      })
-                    }
+                    onDownload={onDownload}
                   />
                 </TabsContent>
                 <TabsContent
@@ -756,10 +810,11 @@ export default function CloudLogsDialog() {
                     api={api}
                     ready={!!status?.hasApiKey && !!status.user}
                     busy={locked}
-                    onUpload={(session, notes, tags) =>
+                    onUpload={(session, notes, tags, title) =>
                       run(async (requestId) => {
                         await api.upload({
                           sessionId: session.id,
+                          title,
                           notes,
                           tags,
                           requestId,
