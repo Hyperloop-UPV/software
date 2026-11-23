@@ -37,6 +37,7 @@ vi.mock("../../config/configInstance.js", () => ({
 import { compressSession, extractSession } from "../archive.js";
 import {
   findLocalSessions,
+  formatSessionZipName,
   getCloudRoot,
   inspectSession,
 } from "../sessions.js";
@@ -170,6 +171,103 @@ describe("session archives", () => {
     await expect(
       extractSession(zip, path.join(env.root, "out"), vi.fn()),
     ).rejects.toThrow();
+  });
+  it("normalizes single-digit month and day when inspecting a session", async () => {
+    const singleDigitDir = path.join(
+      env.root,
+      "logger",
+      "2026-02-12T17-00-00",
+      "2026-2-12T17-01-46",
+    );
+    await mkdir(singleDigitDir, { recursive: true });
+    await writeFile(
+      path.join(singleDigitDir, "logger_settings.json"),
+      JSON.stringify({ date: "2026-2-12T17-01-46", time_unit: "us" }),
+    );
+    const inspected = await inspectSession(singleDigitDir);
+    expect(inspected.date).toBe("2026-02-12T17-01-46");
+  });
+});
+
+describe("formatSessionZipName", () => {
+  it("formats standard recording dates", () => {
+    expect(formatSessionZipName("2026-11-15T12-30-00")).toBe(
+      "2026-11-15T12-30-00.zip",
+    );
+  });
+
+  it("pads single-digit months, days, and times with leading zero", () => {
+    expect(formatSessionZipName("2026-2-12T17-01-46")).toBe(
+      "2026-02-12T17-01-46.zip",
+    );
+    expect(formatSessionZipName("2026-2-5T9-8-7")).toBe(
+      "2026-02-05T09-08-07.zip",
+    );
+  });
+
+  it("handles colons in timestamps and replaces colons/illegal chars in safe strings", () => {
+    expect(formatSessionZipName("2026-11-15T12:30:00")).toBe(
+      "2026-11-15T12-30-00.zip",
+    );
+    expect(formatSessionZipName("session:custom:name")).toBe(
+      "session-custom-name.zip",
+    );
+    expect(formatSessionZipName("session/path:name.zip")).toBe(
+      "session-path-name.zip",
+    );
+  });
+
+  it("falls back to current UTC timestamp when dateStr is null or undefined", () => {
+    const nullResult = formatSessionZipName(null);
+    expect(nullResult).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.zip$/);
+    expect(nullResult).not.toBe("session.zip");
+    const undefinedResult = formatSessionZipName(undefined);
+    expect(undefinedResult).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.zip$/,
+    );
+    expect(undefinedResult).not.toBe("session.zip");
+    const emptyResult = formatSessionZipName("");
+    expect(emptyResult).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.zip$/);
+    expect(emptyResult).not.toBe("session.zip");
+  });
+
+  it("names the archive after title when non-empty title is provided", () => {
+    expect(formatSessionZipName("2026-11-15T12-30-00", "High Speed Test")).toBe(
+      "High Speed Test.zip",
+    );
+    expect(
+      formatSessionZipName("2026-11-15T12-30-00", "High Speed Test.zip"),
+    ).toBe("High Speed Test.zip");
+    expect(
+      formatSessionZipName("2026-11-15T12-30-00", "  Trimmed Title  "),
+    ).toBe("Trimmed Title.zip");
+  });
+
+  it("cleans illegal characters in title by replacing them with underscores", () => {
+    expect(
+      formatSessionZipName(
+        "2026-11-15T12-30-00",
+        'Run/1:Test*2?3<4>5|6\\7"8.zip',
+      ),
+    ).toBe("Run_1_Test_2_3_4_5_6_7_8.zip");
+  });
+
+  it("falls back to standard date formatting when title is omitted or empty", () => {
+    expect(formatSessionZipName("2026-11-15T12-30-00", "")).toBe(
+      "2026-11-15T12-30-00.zip",
+    );
+    expect(formatSessionZipName("2026-11-15T12-30-00", "   ")).toBe(
+      "2026-11-15T12-30-00.zip",
+    );
+    expect(formatSessionZipName("2026-11-15T12-30-00", null)).toBe(
+      "2026-11-15T12-30-00.zip",
+    );
+    expect(formatSessionZipName("2026-11-15T12-30-00", undefined)).toBe(
+      "2026-11-15T12-30-00.zip",
+    );
+    const emptyBoth = formatSessionZipName(null, "");
+    expect(emptyBoth).not.toBe("session.zip");
+    expect(emptyBoth).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.zip$/);
   });
 });
 
