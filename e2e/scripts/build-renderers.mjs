@@ -10,10 +10,11 @@ if (!pnpmCli) throw new Error("Run this build through pnpm --dir e2e build");
 
 for (const view of ["testing", "competition", "logging", "adj"]) {
   // Preserve Testing's E2E build; do not rebuild it in normal mode afterwards.
+  const isJs = /\.(c|m)?js$/i.test(pnpmCli);
   execFileSync(
-    process.execPath,
+    isJs ? process.execPath : pnpmCli,
     [
-      pnpmCli,
+      ...(isJs ? [pnpmCli] : []),
       "--filter",
       `${view}-view`,
       view === "testing" ? "build:e2e" : "build",
