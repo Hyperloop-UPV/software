@@ -34,7 +34,11 @@ documented in [tcp/README.md](tcp/README.md).
 its timestamp. `Event` is `Connected`, `Disconnected` or `Received(Packet)`;
 connection lifecycle events are TCP-only. `ErrorReport { at, error }` contains
 the failure's own identity through the corresponding `net::Error` variant.
-The transport's `Reporter` stamps events when publishing them.
+The transport's `Reporter` stamps events when publishing them. Validated TCP
+order failures also arrive here as `net::Error::Tcp(tcp::TcpError::Send { board, order, source })`;
+normal send success is returned to its caller after complete socket write.
+Routing/encoding failures are returned only. See the TCP send contract for
+writer waits, cancellation and reporting backpressure.
 
 Consume **both** channels concurrently with application operations. Both apply
 backpressure rather than dropping on congestion, so leaving either consumer
