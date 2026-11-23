@@ -19,9 +19,9 @@ use super::{tcp, udp};
 /// [`crate::protocol::DecodeError`].
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// On a board's TCP connection.
+    /// On a board's TCP connection; wraps [`tcp::TcpError`].
     #[error(transparent)]
-    Tcp(#[from] tcp::Error),
+    Tcp(#[from] tcp::TcpError),
     /// On the shared UDP socket.
     #[error(transparent)]
     Udp(#[from] udp::Error),

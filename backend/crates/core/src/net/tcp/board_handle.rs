@@ -1,363 +1,230 @@
-use super::SendError;
-use crate::model::{BoardId, OrderPacket};
-use crate::protocol::{Index, tcp};
-use std::sync::Arc;
-use tokio::sync::mpsc;
+//! Read-only board identity and direct, session-bound normal order writes.
+use super::{SendError, TcpError, endpoint};
+use crate::{
+    model::{BoardId, OrderPacket},
+    net::Reporter,
+    protocol::{Index, tcp},
+};
+use std::{io, sync::Arc, time::Duration};
+use tokio::time::Instant;
 
-/// Access to one board's TCP client, independent of its current socket.
-///
-/// Orders are validated and encoded against the shared index before their bytes
-/// are queued through a bounded channel. The future connection task owns the
-/// receiving end and the socket; this handle owns neither of them.
-/// [`super::spawn`] starts the supervisor that owns the receiver and sessions.
-/// Public access is read-only: submit orders through [`super::BoardClients::send`]
-/// so their destination is always resolved from the index.
+/// A configured board, including while disconnected. Presence does not imply a
+/// live socket. Submit orders through BoardClients so the index controls routing.
 #[derive(Debug)]
 pub struct BoardHandle {
     pub(super) board: BoardId,
     pub(super) index: Arc<Index>,
-    pub(super) orders: mpsc::Sender<Vec<u8>>,
-    pub(super) fault: super::fault::Endpoint,
+    pub(super) endpoint: endpoint::Endpoint,
+    pub(super) write_timeout: Duration,
+    pub(super) reporter: Reporter,
 }
-
 impl BoardHandle {
-    /// The board this handle belongs to.
+    /// The configured board's identity; independent of connection state.
     #[must_use]
     pub fn board(&self) -> BoardId {
         self.board
     }
 
-    /// Validates, encodes and queues an order, waiting if the channel is full.
-    ///
-    /// Returns once the encoded bytes are queued, not once they are written to
-    /// the socket or received by the board. Encoding runs before waiting for
-    /// capacity and uses the existing protocol checks, not application safety
-    /// rules. Internal callers must first resolve the destination through
-    /// [`super::BoardClients::send`]; this method does not repeat that lookup.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`SendError::Encode`] if the protocol encoder rejects the ID,
-    /// packet type or parameters. No bytes are queued on encoding failure,
-    /// even if the channel is full or closed.
-    /// Returns [`SendError::Gone`] if encoding succeeds but the receiver has been
-    /// closed or dropped, including while this call was waiting for queue capacity.
-    /// This indicates an unavailable consumer, not a TCP disconnection.
+    /// Encoding precedes writing. A send snapshots one session, waits for its
+    /// writer within write_timeout, and never waits for reconnection. Failed
+    /// transport attempts are reported once here; encoding failures are returned
+    /// only. Reporting backpressure is outside write_timeout.
     pub(super) async fn send(&self, order: OrderPacket) -> Result<(), SendError> {
-        let bytes = tcp::encode_order(&order, &self.index).map_err(|source| SendError::Encode {
-            board: self.board,
-            source,
+        let started = Instant::now();
+        tracing::debug!(board = ?self.board, order = ?order.id, "Attempting TCP order send");
+        let bytes = tcp::encode_order(&order, &self.index).map_err(|source| {
+            tracing::debug!(board = ?self.board, order = ?order.id, error = ?source,
+                elapsed_ms = started.elapsed().as_millis(), "TCP order encoding failed");
+            SendError::Encode {
+                board: self.board,
+                source,
+            }
         })?;
-        self.orders
-            .send(bytes)
-            .await
-            .map_err(|_| SendError::Gone(self.board))
+        let result = match self.endpoint.current_writer() {
+            Some(writer) => {
+                writer
+                    .write_order(self.board, &bytes, self.write_timeout)
+                    .await
+            }
+            None => Err(SendError::Disconnected(self.board)),
+        };
+        if let Err(error) = &result {
+            let source = match error {
+                SendError::Disconnected(_) => Arc::new(io::Error::new(
+                    io::ErrorKind::NotConnected,
+                    "TCP session ended or has not connected",
+                )),
+                SendError::Timeout(_) => Arc::new(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "TCP order write timed out",
+                )),
+                SendError::Write { source, .. } => Arc::clone(source),
+                _ => unreachable!("routing and encoding finish before writing"),
+            };
+            tracing::warn!(board = ?self.board, order = ?order.id, error = ?error,
+                frame_len = bytes.len(), elapsed_ms = started.elapsed().as_millis(),
+                "TCP order send failed");
+            let _ = self
+                .reporter
+                .report(TcpError::Send {
+                    board: self.board,
+                    order: order.id,
+                    source,
+                })
+                .await;
+        } else {
+            tracing::debug!(board = ?self.board, order = ?order.id,
+                frame_len = bytes.len(), elapsed_ms = started.elapsed().as_millis(),
+                "TCP order write completed");
+        }
+        result
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{
-        model::{
-            AdjId, Board, MacAddress, Measurement, MeasurementKind, NumericKind, PacketDef,
-            PacketType, PodData, Value,
+        model::AdjId,
+        net::{
+            Reporter,
+            tcp::{SendError, TcpError, spawn, test_support::*},
         },
-        protocol::EncodeError,
     };
     use std::{
-        collections::HashMap,
-        error::Error as _,
-        future::{Future, poll_fn},
-        net::Ipv4Addr,
-        task::Poll,
+        future::Future,
+        net::{Ipv4Addr, SocketAddr},
+        time::Duration,
+    };
+    use tokio::{
+        io::AsyncReadExt,
+        net::{TcpListener, TcpSocket},
+        time::timeout,
     };
 
-    /// Builds a socket-free channel with empty orders, one u8 order and a data ID.
-    fn board_channel(capacity: usize) -> (BoardHandle, mpsc::Receiver<Vec<u8>>) {
-        let parameter = Measurement {
-            id: AdjId(100),
-            alias: "value".to_string(),
-            name: "Value".to_string(),
-            display_units: String::new(),
-            kind: MeasurementKind::Numeric {
-                wire_type: NumericKind::U8,
-            },
-            protections: vec![],
-        };
-        let packets = [
-            (600, PacketType::Order(vec![])),
-            (601, PacketType::Order(vec![])),
-            (602, PacketType::Order(vec![parameter])),
-            (1600, PacketType::Data(vec![])),
-        ]
-        .into_iter()
-        .map(|(id, packet_type)| {
-            let packet = PacketDef {
-                id: AdjId(id),
-                board: BoardId(3),
-                name: "sample".to_string(),
-                packet_type,
-            };
-            (packet.id, packet)
-        })
-        .collect();
-        let board = Board {
-            id: BoardId(3),
-            name: "MOCK".to_string(),
-            ip: Ipv4Addr::LOCALHOST.into(),
-            mac: MacAddress([0; 6]),
-            packets,
-        };
-        let index = Arc::new(Index::new(
-            &PodData {
-                boards: HashMap::from([(board.id, board)]),
-            },
-            None,
-        ));
-        let (orders, receiver) = mpsc::channel(capacity);
-        (
-            BoardHandle {
-                board: BoardId(3),
-                index,
-                orders,
-                fault: super::super::fault::Endpoint::default(),
-            },
-            receiver,
-        )
-    }
-
     #[tokio::test]
-    async fn queues_encoded_orders_in_send_order() {
-        let (handle, mut receiver) = board_channel(2);
-        let first = OrderPacket::new(AdjId(602), vec![Value::Number(42.0)]);
-        let second = OrderPacket::new(AdjId(601), vec![]);
-
-        // Check exact little-endian IDs and payload bytes, not just encoder equality.
-        assert_eq!(handle.send(first).await, Ok(()));
-        assert_eq!(handle.send(second).await, Ok(()));
-
-        assert_eq!(receiver.try_recv(), Ok(vec![0x5a, 0x02, 42]));
-        assert_eq!(receiver.try_recv(), Ok(vec![0x59, 0x02]));
-        assert_eq!(receiver.try_recv(), Err(mpsc::error::TryRecvError::Empty));
-    }
-
-    #[tokio::test]
-    async fn waits_for_capacity_without_dropping_orders() {
-        let (handle, mut receiver) = board_channel(1);
-        let first = OrderPacket::new(AdjId(600), vec![]);
-        let second = OrderPacket::new(AdjId(601), vec![]);
-        assert_eq!(handle.send(first).await, Ok(()));
-
-        let blocked = handle.send(second);
-        tokio::pin!(blocked);
-
-        // Poll explicitly so the test proves backpressure without timing sleeps.
-        poll_fn(|cx| {
-            assert!(blocked.as_mut().poll(cx).is_pending());
-            Poll::Ready(())
-        })
-        .await;
-
-        assert_eq!(receiver.try_recv(), Ok(vec![0x58, 0x02]));
-        assert_eq!(blocked.await, Ok(()));
-        assert_eq!(receiver.try_recv(), Ok(vec![0x59, 0x02]));
-    }
-
-    #[tokio::test]
-    async fn reports_the_board_when_the_receiver_is_dropped() {
-        let (handle, receiver) = board_channel(1);
-        // A valid order must report consumer loss rather than an encoding failure.
-        drop(receiver);
-
-        let order = OrderPacket::new(AdjId(600), vec![]);
-        assert_eq!(handle.send(order).await, Err(SendError::Gone(BoardId(3))));
-    }
-
-    #[tokio::test]
-    async fn a_waiting_send_fails_when_the_receiver_closes() {
-        let (handle, mut receiver) = board_channel(1);
-        let first = OrderPacket::new(AdjId(600), vec![]);
-        // Closing the receiver must retain bytes queued before the blocked send.
-        assert_eq!(handle.send(first).await, Ok(()));
-
-        let blocked = handle.send(OrderPacket::new(AdjId(601), vec![]));
-        tokio::pin!(blocked);
-        poll_fn(|cx| {
-            assert!(blocked.as_mut().poll(cx).is_pending());
-            Poll::Ready(())
-        })
-        .await;
-
-        receiver.close();
-        assert_eq!(blocked.await, Err(SendError::Gone(BoardId(3))));
-        assert_eq!(receiver.try_recv(), Ok(vec![0x58, 0x02]));
-        assert_eq!(
-            receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Disconnected)
-        );
-    }
-
-    #[tokio::test]
-    async fn rejects_unknown_and_non_order_ids_when_called_directly() {
-        let (handle, mut receiver) = board_channel(1);
-
-        // Bypassing BoardClients must not bypass the protocol's ID and packet-type checks.
-        for (id, source) in [
-            (AdjId(999), EncodeError::UnknownId(AdjId(999))),
-            (
-                AdjId(1600),
-                EncodeError::WrongPacketType { id: AdjId(1600) },
-            ),
-        ] {
-            assert_eq!(
-                handle.send(OrderPacket::new(id, vec![])).await,
-                Err(SendError::Encode {
-                    board: BoardId(3),
-                    source
-                })
+    async fn zero_write_budget_reports_once_without_writing_or_reconnecting() -> TestResult {
+        bounded(async {
+            let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let mut config = config(listener.local_addr()?);
+            config.write_timeout = Duration::ZERO;
+            let (reporter, mut sinks) = Reporter::channels(16, 16);
+            let clients = spawn(config, index(), reporter);
+            let (mut peer, _) = listener.accept().await?;
+            connected(&mut sinks).await?;
+            assert!(matches!(
+                clients.send(order(600, 22.0)).await,
+                Err(SendError::Timeout(BOARD))
+            ));
+            let report = sinks.errors.recv().await.ok_or("missing send report")?;
+            assert!(
+                matches!(report.error, crate::net::Error::Tcp(TcpError::Send {
+                board: BOARD, order: AdjId(600), source
+            }) if source.kind() == std::io::ErrorKind::TimedOut)
             );
-            assert_eq!(receiver.try_recv(), Err(mpsc::error::TryRecvError::Empty));
-        }
-    }
-
-    #[tokio::test]
-    async fn rejects_missing_and_extra_parameters_without_queueing_bytes() {
-        let (handle, mut receiver) = board_channel(1);
-
-        // Both missing and extra parameters must fail before any frame enters the queue.
-        for values in [vec![], vec![Value::Number(1.0), Value::Number(2.0)]] {
-            let got = values.len();
-            assert_eq!(
-                handle.send(OrderPacket::new(AdjId(602), values)).await,
-                Err(SendError::Encode {
-                    board: BoardId(3),
-                    source: EncodeError::WrongFieldCount { expected: 1, got },
-                })
+            let mut bytes = [0; 3];
+            assert!(
+                timeout(Duration::from_millis(20), peer.read(&mut bytes))
+                    .await
+                    .is_err()
             );
-            assert_eq!(receiver.try_recv(), Err(mpsc::error::TryRecvError::Empty));
-        }
-    }
-
-    #[tokio::test]
-    async fn rejects_a_wrong_parameter_type_without_queueing_bytes() {
-        let (handle, mut receiver) = board_channel(1);
-
-        // A boolean cannot stand in for the numeric field declared in the index.
-        assert_eq!(
-            handle
-                .send(OrderPacket::new(AdjId(602), vec![Value::Bool(true)]))
-                .await,
-            Err(SendError::Encode {
-                board: BoardId(3),
-                source: EncodeError::TypeMismatch,
-            })
-        );
-        assert_eq!(receiver.try_recv(), Err(mpsc::error::TryRecvError::Empty));
-    }
-
-    #[tokio::test]
-    async fn preserves_numeric_range_errors_without_queueing_bytes() {
-        let (handle, mut receiver) = board_channel(1);
-
-        // Preserve the encoder's bounds and rejected value, including NaN and infinity.
-        for number in [-1.0, 256.0, f64::NAN, f64::INFINITY] {
-            let result = handle
-                .send(OrderPacket::new(AdjId(602), vec![Value::Number(number)]))
-                .await;
-            let Err(SendError::Encode {
-                board,
-                source: EncodeError::OutOfRange { value, min, max },
-            }) = result
-            else {
-                unreachable!("these values cannot be encoded as u8");
-            };
-            assert_eq!(board, BoardId(3));
-            assert!(value == number || (value.is_nan() && number.is_nan()));
-            assert_eq!((min, max), (0.0, 255.0));
-            assert_eq!(receiver.try_recv(), Err(mpsc::error::TryRecvError::Empty));
-        }
-    }
-
-    #[tokio::test]
-    async fn rejects_an_invalid_order_before_waiting_for_capacity() {
-        let (handle, mut receiver) = board_channel(1);
-        assert_eq!(
-            handle.send(OrderPacket::new(AdjId(600), vec![])).await,
+            assert!(sinks.notifications.try_recv().is_err());
+            assert!(sinks.errors.try_recv().is_err());
+            sinks.errors.close();
+            peer_closed(&mut peer).await?;
             Ok(())
-        );
-
-        // Explicit polling proves validation returns immediately despite a full queue.
-        let invalid = handle.send(OrderPacket::new(AdjId(602), vec![]));
-        tokio::pin!(invalid);
-        let result = poll_fn(|cx| match invalid.as_mut().poll(cx) {
-            Poll::Ready(result) => Poll::Ready(result),
-            Poll::Pending => unreachable!("invalid orders must not wait for queue capacity"),
         })
-        .await;
-        assert_eq!(
-            result,
-            Err(SendError::Encode {
-                board: BoardId(3),
-                source: EncodeError::WrongFieldCount {
-                    expected: 1,
-                    got: 0
-                },
-            })
-        );
-        assert_eq!(receiver.try_recv(), Ok(vec![0x58, 0x02]));
-        assert_eq!(receiver.try_recv(), Err(mpsc::error::TryRecvError::Empty));
+        .await
     }
 
     #[tokio::test]
-    async fn reports_encoding_failure_before_a_closed_receiver() {
-        let (handle, receiver) = board_channel(1);
-        drop(receiver);
-
-        // Encoding precedes channel access, so invalid input remains an input error.
-        assert_eq!(
-            handle.send(OrderPacket::new(AdjId(602), vec![])).await,
-            Err(SendError::Encode {
-                board: BoardId(3),
-                source: EncodeError::WrongFieldCount {
-                    expected: 1,
-                    got: 0
-                },
-            })
-        );
-    }
-
-    #[tokio::test]
-    async fn encoding_errors_expose_the_original_protocol_source() {
-        let (handle, _receiver) = board_channel(1);
-
-        // Callers can inspect the original error through the standard error chain.
-        let Err(error) = handle.send(OrderPacket::new(AdjId(602), vec![])).await else {
-            unreachable!("the numeric parameter is missing");
-        };
-        let source = error
-            .source()
-            .and_then(|source| source.downcast_ref::<EncodeError>());
-        assert_eq!(
-            source,
-            Some(&EncodeError::WrongFieldCount {
-                expected: 1,
-                got: 0
-            })
-        );
-        assert!(error.to_string().contains("BoardId(3)"));
-    }
-
-    #[tokio::test]
-    async fn direct_sends_keep_the_callers_selected_board() {
-        let (mut handle, mut receiver) = board_channel(1);
-
-        // Direct sends validate encoding, not destination ownership; routing stays in BoardClients.
-        handle.board = BoardId(9);
-        assert_eq!(
-            handle.send(OrderPacket::new(AdjId(600), vec![])).await,
+    async fn concurrent_orders_and_fault_use_the_same_complete_frame_writer() -> TestResult {
+        bounded(async {
+            let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let (reporter, mut sinks) = Reporter::channels(16, 16);
+            let clients = spawn(config(listener.local_addr()?), index(), reporter);
+            let (mut peer, _) = listener.accept().await?;
+            connected(&mut sinks).await?;
+            let (first, fault, second) = tokio::join!(
+                clients.send(order(600, 11.0)),
+                clients.broadcast_fault(),
+                clients.send(order(600, 22.0)),
+            );
+            first?;
+            fault?;
+            second?;
+            let mut bytes = [0; 8];
+            peer.read_exact(&mut bytes).await?;
+            // Concurrent calls have no promised invocation order. Every frame
+            // must still be intact, with each order and the fault appearing once.
+            let mut offset = 0;
+            let mut values = Vec::new();
+            let mut faults = 0;
+            while offset < bytes.len() {
+                let id = u16::from_le_bytes([bytes[offset], bytes[offset + 1]]);
+                offset += 2;
+                match id {
+                    0 => faults += 1,
+                    600 => {
+                        values.push(bytes[offset]);
+                        offset += 1;
+                    }
+                    _ => return Err(format!("interleaved frame ID {id}").into()),
+                }
+            }
+            values.sort_unstable();
+            assert_eq!(values, [11, 22]);
+            assert_eq!(faults, 1);
+            assert!(sinks.errors.try_recv().is_err());
+            sinks.errors.close();
+            peer_closed(&mut peer).await?;
             Ok(())
-        );
-        assert_eq!(receiver.try_recv(), Ok(vec![0x58, 0x02]));
+        })
+        .await
+    }
+
+    #[tokio::test]
+    async fn reporting_backpressure_never_defers_a_rejected_order_into_a_new_connection()
+    -> TestResult {
+        bounded(async {
+            let socket = TcpSocket::new_v4()?;
+            socket.bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))?;
+            let (reporter, mut sinks) = Reporter::channels(16, 1);
+            let clients = spawn(config(socket.local_addr()?), index(), reporter);
+            assert!(matches!(
+                clients.send(order(600, 11.0)).await,
+                Err(SendError::Disconnected(BOARD))
+            ));
+            let mut rejected = Box::pin(clients.send(order(600, 22.0)));
+            std::future::poll_fn(|cx| {
+                assert!(rejected.as_mut().poll(cx).is_pending());
+                std::task::Poll::Ready(())
+            })
+            .await; // The second send waits only to publish its failure.
+            let listener = socket.listen(8)?;
+            let (mut peer, _) = listener.accept().await?;
+            connected(&mut sinks).await?;
+            sinks.errors.recv().await.ok_or("missing first rejection")?;
+            assert!(matches!(
+                rejected.await,
+                Err(SendError::Disconnected(BOARD))
+            ));
+            sinks
+                .errors
+                .recv()
+                .await
+                .ok_or("missing second rejection")?;
+            clients.send(order(600, 33.0)).await?;
+            let mut bytes = [0; 3];
+            peer.read_exact(&mut bytes).await?;
+            assert_eq!(bytes, [0x58, 2, 33]);
+            assert!(
+                timeout(Duration::from_millis(20), peer.read(&mut bytes))
+                    .await
+                    .is_err()
+            );
+            sinks.notifications.close();
+            Ok(())
+        })
+        .await
     }
 }

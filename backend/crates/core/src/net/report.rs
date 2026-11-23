@@ -88,9 +88,8 @@ pub enum Event {
     /// [`Packet`] is the whole umbrella, so this one variant covers data,
     /// protections and messages alike, with no second enum repeating that
     /// split. Its [`Packet::Order`] variant is never produced while
-    /// receiving; it is what an eventual "the order really did go out on
-    /// the wire" report would use, which only `net` is in a position to
-    /// make.
+    /// receiving. Normal TCP send success is returned directly to its caller;
+    /// failed transport attempts use ErrorReport, not Received(Order).
     Received(Packet),
 }
 
@@ -193,13 +192,12 @@ impl Reporter {
     ///
     /// Takes anything that converts into [`Error`], so a submodule
     /// reports its own error type directly:
-    /// `reporter.report(tcp::Error::Connect { .. }).await`.
+    /// `reporter.report(tcp::TcpError::Connect { .. }).await`.
     ///
-    /// Reporting is not deciding: by the time an error gets here its
-    /// submodule has already done whatever it was going to do about it
-    /// (reconnect, carry on with the next datagram), and has already
-    /// logged it through `tracing`. This channel is only for telling the
-    /// operator, through the frontend.
+    /// Reporting does not decide application policy. The transport handles
+    /// socket teardown/reconnection independently; a rejected send may leave
+    /// its session usable. This channel informs the application, which can
+    /// expose failures to the operator through the frontend.
     pub(super) async fn report(&self, error: impl Into<Error>) -> Result<(), Closed> {
         let report = ErrorReport {
             at: SystemTime::now(),

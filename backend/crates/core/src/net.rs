@@ -32,7 +32,7 @@
 //! one shared socket for UDP, so nothing needs telling apart beyond it.
 //!
 //! Addresses are for the operator, not for the domain types: they show
-//! up interpolated in each submodule's error messages (`tcp::Error`,
+//! up interpolated in each submodule's error messages (`tcp::TcpError`,
 //! `udp::Error`), which is where somebody actually reads them.
 
 mod error;

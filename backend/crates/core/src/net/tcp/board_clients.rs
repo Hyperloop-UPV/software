@@ -17,11 +17,11 @@ use tokio::time::Instant;
 /// The shared, read-only index resolves order IDs to their destination boards.
 #[derive(Debug)]
 pub struct BoardClients {
-    // All the boards connected by id
+    // Configured boards by ID, including disconnected destinations.
     boards: HashMap<BoardId, BoardHandle>,
-    // All the adj packets (orders, packets, protections) by id
+    // Immutable ADJ packet definitions used to resolve order destinations.
     index: Arc<Index>,
-    // Timeout for the TCP reciever buffer to recive the whole packet
+    // Absolute budget for each fault attempt, including frame-boundary waits.
     write_timeout: Duration,
 }
 
@@ -47,22 +47,22 @@ impl BoardClients {
         self.boards.get(&board)
     }
 
-    /// Resolves an order's destination through the index and queues it there.
+    /// Resolves, validates and writes an order to the current destination session.
     ///
-    /// Only IDs declared as orders are accepted. The destination handle validates
-    /// and encodes the parameters before queueing the bytes. This waits for queue
-    /// capacity and returns once the bytes are queued, not written to TCP.
-    /// It does not broadcast reserved IDs or send anything to other boards.
-    /// Cancelling while waiting for capacity discards the unqueued frame.
-    /// There is no enqueue timeout; [`super::TcpConfig::write_timeout`] bounds
-    /// network writes, not queue admission for normal orders.
+    /// Success confirms complete write_all acceptance, not firmware receipt or
+    /// execution. Offline sessions fail immediately. Connected callers wait for
+    /// the same mutex as heartbeats and faults; write_timeout bounds waiting and
+    /// writing together. No request survives reconnection and no background task
+    /// retains orders. Cancelling while waiting writes nothing; cancelling an
+    /// unfinished write closes that session.
+    ///
+    /// Routing/encoding failures are returned only. Transport failures also
+    /// publish [`super::TcpError::Send`]; consume both Reporter channels concurrently,
+    /// as reporting backpressure is outside write_timeout.
     ///
     /// # Errors
-    ///
-    /// Returns [`SendError::UnknownId`] if the ID is absent or declared as a
-    /// different packet type, [`SendError::NoClient`] if the destination board
-    /// has no configured handle, [`SendError::Encode`] if encoding fails, or
-    /// [`SendError::Gone`] if encoding succeeds but its receiver is closed.
+    /// UnknownId, NoClient and Encode reject invalid input before writing.
+    /// Disconnected, Timeout and Write describe the transport attempt.
     pub async fn send(&self, order: OrderPacket) -> Result<(), SendError> {
         let definition = self
             .index
@@ -77,36 +77,42 @@ impl BoardClients {
         handle.send(order).await
     }
 
-    /// Requests the reserved fault frame (00 00) from every active board writer.
+    /// Writes the reserved fault frame (00 00) through every current board writer.
     ///
-    /// Attempts run concurrently, each bounded by [`super::TcpConfig::write_timeout`] from the
-    /// start of this call, including queue capacity and waiting for a frame boundary.
-    /// Fault takes priority over heartbeats and queued orders, but never interrupts
-    /// a frame already being written. It does not clear the normal order queue or
-    /// prevent subsequent normal sends; application-level fault policy stays outside net.
-    /// Disconnected boards fail immediately; no reconnection or automatic replay is
-    /// attempted. Requests are session-scoped and expired/cancelled pending requests
-    /// are discarded. Concurrent calls are bounded by a separate one-slot queue.
+    /// Attempts run concurrently, each bounded by [`super::TcpConfig::write_timeout`]
+    /// from the start of this call, including waiting for the writer. Faults use
+    /// the same mutex as orders and heartbeats, without a priority reservation or
+    /// separate control queue. An in-progress frame is never interrupted by a fault.
     ///
-    /// Success confirms write_all completion, not firmware receipt or execution.
-    /// An empty configuration succeeds. Cancelling this call discards requests not
-    /// yet started; a write in progress still finishes or hits its original deadline.
+    /// Disconnected boards fail immediately; no reconnection or automatic replay
+    /// is attempted. Each attempt snapshots its session. Cancelling before writing
+    /// sends nothing; cancelling an unfinished write closes that session. An empty
+    /// configuration succeeds. Success confirms write_all, not firmware execution.
+    /// A persistent fault latch and recovery policy belong to the application.
     ///
     /// # Errors
-    ///
     /// Returns the configured boards whose write completion was not confirmed
-    /// (offline, session ended, I/O failure, or deadline elapsed). A failed/partial write is never
-    /// retried and ends that session. Failure does not prove no bytes were delivered.
+    /// (offline, session ended, I/O failure, or deadline elapsed). A failed/partial
+    /// write is never retried and ends that session. Expiry while waiting leaves
+    /// it usable. Failure does not prove that no bytes were delivered.
     pub async fn broadcast_fault(&self) -> Result<(), Unreachable> {
-        let deadline = Instant::now() + self.write_timeout;
+        let started = Instant::now();
+        let deadline = started + self.write_timeout;
+        tracing::info!(board_count = self.boards.len(), write_timeout = ?self.write_timeout,
+            "TCP fault broadcast requested");
         let mut pending: Vec<_> = self
             .boards
             .values()
-            .map(|handle| (handle.board, Box::pin(handle.fault.request(deadline))))
+            .map(|handle| {
+                (
+                    handle.board,
+                    Box::pin(handle.endpoint.request_fault(deadline)),
+                )
+            })
             .collect();
         let mut failed = Vec::new();
         // Poll every board without spawning detached tasks or serialising waits.
-        // Dropping this future drops all outstanding completion receivers as well.
+        // Dropping this future cancels every pending attempt in its captured session.
         poll_fn(|cx| {
             pending.retain_mut(|(board, request)| match request.as_mut().poll(cx) {
                 Poll::Ready(success) => {
@@ -125,9 +131,17 @@ impl BoardClients {
         })
         .await;
         if failed.is_empty() {
+            tracing::info!(
+                board_count = self.boards.len(),
+                elapsed_ms = started.elapsed().as_millis(),
+                "TCP fault broadcast writes completed"
+            );
             Ok(())
         } else {
             failed.sort_unstable_by_key(|board| board.0);
+            tracing::warn!(board_count = self.boards.len(), unconfirmed_boards = ?failed,
+                elapsed_ms = started.elapsed().as_millis(),
+                "TCP fault broadcast has unconfirmed writes");
             Err(Unreachable(failed))
         }
     }
@@ -137,299 +151,213 @@ impl BoardClients {
 mod tests {
     use super::*;
     use crate::{
-        model::{
-            AdjId, Board, MacAddress, Measurement, MeasurementKind, MessageLevel, NumericKind,
-            PacketDef, PodData, Value,
+        model::{AdjId, OrderPacket, Port, Value},
+        net::{
+            Notification, Reporter, Sinks,
+            tcp::{Backoff, BoardLink, TcpConfig, spawn, test_support::*},
         },
         protocol::EncodeError,
     };
-    use std::net::IpAddr;
-    use tokio::sync::mpsc;
+    use std::net::{Ipv4Addr, SocketAddr};
+    use tokio::{
+        io::AsyncReadExt,
+        net::{TcpListener, TcpSocket, TcpStream},
+    };
 
-    /// Shares one index between routing and both boards' encoding channels.
-    fn sample_handles() -> (BoardClients, mpsc::Receiver<Vec<u8>>, mpsc::Receiver<Vec<u8>>) {
-        let boards = [(1, 600), (3, 601)]
-            .into_iter()
-            .map(|(board_id, order_id)| {
-                let order = PacketDef {
-                    id: AdjId(order_id),
-                    board: BoardId(board_id),
-                    name: "order".to_string(),
-                    packet_type: PacketType::Order(if board_id == 1 {
-                        vec![Measurement {
-                            id: AdjId(100),
-                            alias: "value".to_string(),
-                            name: "Value".to_string(),
-                            display_units: String::new(),
-                            kind: MeasurementKind::Numeric {
-                                wire_type: NumericKind::U8,
-                            },
-                            protections: vec![],
-                        }]
-                    } else {
-                        vec![]
-                    }),
-                };
-                let data = PacketDef {
-                    id: AdjId(order_id + 1000),
-                    board: BoardId(board_id),
-                    name: "data".to_string(),
-                    packet_type: PacketType::Data(vec![]),
-                };
-                let board = Board {
-                    id: BoardId(board_id),
-                    name: "MOCK".to_string(),
-                    ip: IpAddr::from([127, 0, 0, 1]),
-                    mac: MacAddress([0; 6]),
-                    packets: HashMap::from([(order.id, order), (data.id, data)]),
-                };
-                (board.id, board)
-            })
-            .collect();
-        let message_levels = HashMap::from([(AdjId(2), MessageLevel::Fault)]);
-        let index = Arc::new(Index::new(&PodData { boards }, Some(&message_levels)));
-        let (first_orders, first_receiver) = mpsc::channel(2);
-        let (third_orders, third_receiver) = mpsc::channel(2);
-        let handles = BoardClients {
-            index: Arc::clone(&index),
-            write_timeout: Duration::from_secs(2),
-            boards: HashMap::from([
-                (
-                    BoardId(1),
-                    BoardHandle {
-                        board: BoardId(1),
-                        index: Arc::clone(&index),
-                        orders: first_orders,
-                        fault: super::super::fault::Endpoint::default(),
-                    },
-                ),
-                (
-                    BoardId(3),
-                    BoardHandle {
-                        board: BoardId(3),
-                        index: Arc::clone(&index),
-                        orders: third_orders,
-                        fault: super::super::fault::Endpoint::default(),
-                    },
-                ),
-            ]),
-        };
-
-        (handles, first_receiver, third_receiver)
+    async fn next_notification(
+        sinks: &mut Sinks,
+        missing: &str,
+    ) -> Result<Notification, Box<dyn std::error::Error>> {
+        sinks
+            .notifications
+            .recv()
+            .await
+            .ok_or_else(|| missing.into())
     }
 
-    #[test]
-    fn finds_each_configured_board_without_a_socket() {
-        let (handles, _first_receiver, _third_receiver) = sample_handles();
-
-        // Lookup and encoding share one immutable index, without opening sockets.
-        assert_eq!(
-            handles.board(BoardId(1)).map(BoardHandle::board),
-            Some(BoardId(1))
+    async fn assert_fault_broadcast(
+        handles: &BoardClients,
+        first: &mut TcpStream,
+        second: &mut TcpStream,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let (mut a, mut b) = ([0xff; 2], [0xff; 2]);
+        let (broadcast, read_a, read_b) = tokio::join!(
+            handles.broadcast_fault(),
+            first.read_exact(&mut a),
+            second.read_exact(&mut b)
         );
-        assert_eq!(
-            handles.board(BoardId(3)).map(BoardHandle::board),
-            Some(BoardId(3))
-        );
-        for handle in handles.boards.values() {
-            assert!(Arc::ptr_eq(&handles.index, &handle.index));
-        }
-    }
-
-    #[test]
-    fn returns_none_for_an_unconfigured_board() {
-        let (handles, _first_receiver, _third_receiver) = sample_handles();
-
-        // The index alone does not create handles for unconfigured boards.
-        assert!(handles.board(BoardId(2)).is_none());
+        assert_eq!(broadcast, Ok(()));
+        read_a?;
+        read_b?;
+        assert_eq!((a, b), ([0, 0], [0, 0]));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn routes_each_order_only_to_its_declared_board() {
-        let (handles, mut first_receiver, mut third_receiver) = sample_handles();
-        let first = OrderPacket::new(AdjId(600), vec![Value::Number(42.0)]);
-        let third = OrderPacket::new(AdjId(601), vec![]);
-
-        // Routing must deliver encoded bytes only to the declared destination.
-        assert_eq!(handles.send(first).await, Ok(()));
-        assert_eq!(first_receiver.try_recv(), Ok(vec![0x58, 0x02, 42]));
-        assert_eq!(
-            third_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-
-        assert_eq!(handles.send(third).await, Ok(()));
-        assert_eq!(third_receiver.try_recv(), Ok(vec![0x59, 0x02]));
-        assert_eq!(
-            first_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-    }
-
-    #[tokio::test]
-    async fn rejects_an_unknown_id_without_queueing_anything() {
-        let (handles, mut first_receiver, mut third_receiver) = sample_handles();
-        let order = OrderPacket::new(AdjId(999), vec![]);
-
-        // Unknown IDs fail during routing, before any board channel is touched.
-        assert_eq!(
-            handles.send(order).await,
-            Err(SendError::UnknownId(AdjId(999)))
-        );
-        assert_eq!(
-            first_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-        assert_eq!(
-            third_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-    }
-
-    #[tokio::test]
-    async fn rejects_non_order_ids_without_queueing_anything() {
-        let (handles, mut first_receiver, mut third_receiver) = sample_handles();
-
-        // Message IDs also resolve through Index, but are not outbound orders.
-        for id in [AdjId(1600), AdjId(1601), AdjId(2)] {
-            let order = OrderPacket::new(id, vec![]);
-            assert_eq!(handles.send(order).await, Err(SendError::UnknownId(id)));
-        }
-
-        assert_eq!(
-            first_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-        assert_eq!(
-            third_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-    }
-
-    #[tokio::test]
-    async fn reports_an_unconfigured_destination_without_using_another_board() {
-        let (mut handles, mut first_receiver, mut third_receiver) = sample_handles();
-        handles.boards.remove(&BoardId(3));
-        let order = OrderPacket::new(AdjId(601), vec![]);
-
-        // A missing destination must not fall back to an unrelated board's queue.
-        assert_eq!(
-            handles.send(order).await,
-            Err(SendError::NoClient(BoardId(3)))
-        );
-        assert_eq!(
-            first_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-        assert_eq!(
-            third_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Disconnected)
-        );
-    }
-
-    #[tokio::test]
-    async fn reports_the_destination_when_its_receiver_is_gone() {
-        let (handles, mut first_receiver, third_receiver) = sample_handles();
-        drop(third_receiver);
-        let order = OrderPacket::new(AdjId(601), vec![]);
-
-        // Valid encoding must preserve Gone from the selected board's closed channel.
-        assert_eq!(handles.send(order).await, Err(SendError::Gone(BoardId(3))));
-        assert_eq!(
-            first_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-    }
-
-    #[tokio::test]
-    async fn returns_the_destination_encoding_error_without_queueing_anything() {
-        let (handles, mut first_receiver, mut third_receiver) = sample_handles();
-
-        // BoardClients must propagate protocol validation failures from the destination handle.
-        let order = OrderPacket::new(AdjId(600), vec![Value::Bool(true)]);
-        assert_eq!(
-            handles.send(order).await,
-            Err(SendError::Encode {
-                board: BoardId(1),
-                source: EncodeError::TypeMismatch,
-            })
-        );
-        assert_eq!(
-            first_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-        assert_eq!(
-            third_receiver.try_recv(),
-            Err(mpsc::error::TryRecvError::Empty)
-        );
-    }
-
-    #[tokio::test]
-    async fn an_empty_fault_broadcast_succeeds() {
-        let handles = BoardClients::new(HashMap::new(), Arc::new(Index::default()), Duration::ZERO);
-        assert_eq!(handles.broadcast_fault().await, Ok(()));
-    }
-
-    #[tokio::test]
-    async fn broadcasts_concurrently_without_using_the_adj_or_full_order_queues()
-    -> Result<(), Box<dyn std::error::Error>> {
-        let (handles, mut first_orders, mut third_orders) = sample_handles();
-        for handle in handles.boards.values() {
-            handle.orders.try_send(vec![0xaa])?;
-            handle.orders.try_send(vec![0xbb])?;
-        }
-        let mut first = handles.boards[&BoardId(1)].fault.activate();
-        let mut third = handles.boards[&BoardId(3)].fault.activate();
-        let (result, ()) = tokio::time::timeout(Duration::from_secs(3), async {
-            tokio::join!(handles.broadcast_fault(), async {
-                // Neither board is acknowledged until both requests have arrived:
-                // a sequential implementation would time out here.
-                let (Some(a), Some(b)) = tokio::join!(first.receiver.recv(), third.receiver.recv())
-                else {
-                    unreachable!("both session control channels are open");
-                };
-                assert!(a.pending() && b.pending());
-                assert!(a.complete.send(()).is_ok());
-                assert!(b.complete.send(()).is_ok());
-            })
+    async fn routes_and_encodes_each_order_only_to_its_destination() -> TestResult {
+        bounded(async {
+            let first = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let second = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let mut config = config(first.local_addr()?);
+            config.boards.push(BoardLink {
+                board: BoardId(9),
+                addr: second.local_addr()?,
+                local_port: Port(0),
+            });
+            let (reporter, mut sinks) = Reporter::channels(16, 16);
+            let clients = spawn(config, index(), reporter);
+            let ((mut a, _), (mut b, _)) = tokio::try_join!(first.accept(), second.accept())?;
+            connected(&mut sinks).await?;
+            connected(&mut sinks).await?;
+            assert_eq!(clients.board(BOARD).map(BoardHandle::board), Some(BOARD));
+            assert!(clients.board(BoardId(10)).is_none());
+            clients.send(order(600, 42.0)).await?;
+            clients.send(order(601, 99.0)).await?;
+            let (mut aa, mut bb) = ([0; 3], [0; 3]);
+            a.read_exact(&mut aa).await?;
+            b.read_exact(&mut bb).await?;
+            assert_eq!(aa, [0x58, 2, 42]);
+            assert_eq!(bb, [0x59, 2, 99]);
+            assert!(sinks.errors.try_recv().is_err());
+            sinks.notifications.close();
+            peer_closed(&mut a).await?;
+            peer_closed(&mut b).await?;
+            Ok(())
         })
-        .await?;
-        assert_eq!(result, Ok(()));
-        assert_eq!(first_orders.try_recv(), Ok(vec![0xaa]));
-        assert_eq!(first_orders.try_recv(), Ok(vec![0xbb]));
-        assert_eq!(third_orders.try_recv(), Ok(vec![0xaa]));
-        assert_eq!(third_orders.try_recv(), Ok(vec![0xbb]));
+        .await
+    }
+
+    #[tokio::test]
+    async fn validation_and_unconfigured_destination_fail_before_transport_admission() -> TestResult
+    {
+        let (reporter, mut sinks) = Reporter::channels(16, 16);
+        let clients = spawn(
+            TcpConfig {
+                boards: vec![],
+                ..config(SocketAddr::from((Ipv4Addr::LOCALHOST, 1)))
+            },
+            index(),
+            reporter,
+        );
+        assert!(matches!(
+            clients.send(order(999, 1.0)).await,
+            Err(SendError::UnknownId(AdjId(999)))
+        ));
+        assert!(matches!(
+            clients.send(order(1600, 1.0)).await,
+            Err(SendError::UnknownId(AdjId(1600)))
+        ));
+        assert!(matches!(
+            clients.send(order(600, 1.0)).await,
+            Err(SendError::NoClient(BOARD))
+        ));
+        assert!(clients.broadcast_fault().await.is_ok());
+        assert!(sinks.errors.try_recv().is_err());
+        let socket = TcpSocket::new_v4()?;
+        socket.bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))?;
+        let (reporter, mut sinks) = Reporter::channels(16, 16);
+        let clients = spawn(config(socket.local_addr()?), index(), reporter);
+        assert!(matches!(
+            clients
+                .send(OrderPacket::new(AdjId(600), vec![Value::Bool(true)]))
+                .await,
+            Err(SendError::Encode {
+                board: BOARD,
+                source: EncodeError::TypeMismatch
+            })
+        ));
+        assert!(matches!(
+            clients.send(OrderPacket::new(AdjId(600), vec![])).await,
+            Err(SendError::Encode {
+                source: EncodeError::WrongFieldCount {
+                    expected: 1,
+                    got: 0
+                },
+                ..
+            })
+        ));
+        assert!(matches!(
+            clients.send(order(600, 256.0)).await,
+            Err(SendError::Encode {
+                source: EncodeError::OutOfRange { .. },
+                ..
+            })
+        ));
+        assert!(sinks.errors.try_recv().is_err()); // Spawned task has not been polled.
+        sinks.notifications.close();
         Ok(())
     }
 
     #[tokio::test]
-    async fn reports_only_boards_whose_write_was_not_confirmed()
+    async fn broadcasts_faults_over_active_clients_without_replaying_after_reconnect()
     -> Result<(), Box<dyn std::error::Error>> {
-        let (handles, _first_orders, _third_orders) = sample_handles();
-        let mut third = handles.boards[&BoardId(3)].fault.activate();
-        let (result, ()) = tokio::join!(handles.broadcast_fault(), async {
-            let Some(request) = third.receiver.recv().await else {
-                unreachable!("third board has an active session");
-            };
-            assert!(request.complete.send(()).is_ok());
-        });
-        assert_eq!(result, Err(Unreachable(vec![BoardId(1)])));
-        // A running supervisor is not an active TCP connection.
-        assert_eq!(handles.boards[&BoardId(1)].orders.capacity(), 2);
-        Ok(())
-    }
+        use crate::net::Event;
+        use std::net::Ipv4Addr;
+        use tokio::{net::TcpListener, time::timeout};
 
-    #[tokio::test(start_paused = true)]
-    async fn all_unconfirmed_boards_share_the_budget_and_return_sorted() {
-        let (mut handles, _first_orders, _third_orders) = sample_handles();
-        handles.write_timeout = Duration::from_millis(10);
-        let _first = handles.boards[&BoardId(1)].fault.activate();
-        let _third = handles.boards[&BoardId(3)].fault.activate();
-        let started = Instant::now();
-        assert_eq!(
-            handles.broadcast_fault().await,
-            Err(Unreachable(vec![BoardId(1), BoardId(3)]))
-        );
-        assert_eq!(started.elapsed(), handles.write_timeout);
+        timeout(Duration::from_secs(6), async {
+            let first_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let third_listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+            let config = TcpConfig {
+                boards: vec![
+                    BoardLink {
+                        board: BoardId(1),
+                        addr: first_listener.local_addr()?,
+                        local_port: Port(0),
+                    },
+                    BoardLink {
+                        board: BoardId(3),
+                        addr: third_listener.local_addr()?,
+                        local_port: Port(0),
+                    },
+                ],
+                connect_timeout: Duration::from_millis(100),
+                backoff: Backoff::new(1000, 1000),
+                write_timeout: Duration::from_millis(200),
+                keep_alive: Duration::ZERO,
+            };
+            let (reporter, mut sinks) = Reporter::channels(32, 16);
+            // Reserved ID 0 must work with no ADJ orders declared at all.
+            let handles = spawn(config, Arc::new(Index::default()), reporter);
+            let (first, third) =
+                tokio::try_join!(first_listener.accept(), third_listener.accept())?;
+            let (mut first, mut third) = (first.0, third.0);
+            for _ in 0..2 {
+                let notification = next_notification(&mut sinks, "reporting stopped").await?;
+                assert!(matches!(notification.event, Event::Connected));
+            }
+
+            assert_fault_broadcast(&handles, &mut first, &mut third).await?;
+
+            drop(first);
+            let notification = next_notification(&mut sinks, "missing disconnection").await?;
+            assert_eq!(notification.board, BoardId(1));
+            assert!(matches!(notification.event, Event::Disconnected));
+            // The offline board fails, without preventing the healthy board's write.
+            let mut b = [0xff; 2];
+            let (broadcast, read_b) =
+                tokio::join!(handles.broadcast_fault(), third.read_exact(&mut b));
+            assert_eq!(broadcast, Err(Unreachable(vec![BoardId(1)])));
+            read_b?;
+            assert_eq!(b, [0, 0]);
+
+            let (mut reconnected, _) = first_listener.accept().await?;
+            let notification = next_notification(&mut sinks, "missing reconnection").await?;
+            assert_eq!(notification.board, BoardId(1));
+            assert!(matches!(notification.event, Event::Connected));
+            // Neither the successful first fault nor the offline request is replayed.
+            let mut a = [0xff; 2];
+            assert!(
+                timeout(Duration::from_millis(30), reconnected.read_exact(&mut a))
+                    .await
+                    .is_err()
+            );
+            assert_fault_broadcast(&handles, &mut reconnected, &mut third).await?;
+            sinks.notifications.close();
+            sinks.errors.close();
+            Ok::<_, Box<dyn std::error::Error>>(())
+        })
+        .await??;
+        Ok(())
     }
 }

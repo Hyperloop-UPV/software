@@ -11,8 +11,9 @@ use std::io::Cursor;
 ///
 /// Append incoming bytes with `BytesMut::extend_from_slice`, then call this
 /// repeatedly until it returns `Ok(None)`. That result means the buffer is empty
-/// or the next frame needs more bytes. Each connection session must own its own
-/// buffer; never carry pending bytes into a reconnected session.
+/// or decoding has been deferred until more bytes arrive; it does not prove the
+/// suffix is valid. Each connection session must own its own buffer; never carry
+/// pending bytes into a reconnected session.
 ///
 /// All decode errors are deferred while the pending suffix is at most 374 bytes,
 /// assuming well-formed firmware output. The limit is checked after decoding:
@@ -27,7 +28,7 @@ pub(super) fn next_frame(
     pending: &mut BytesMut,
     index: &Index,
 ) -> Result<Option<TcpFrame>, DecodeError> {
-    // Max length of a message frame
+    // Largest supported inbound frame: message ID + timestamp + origin + text.
     const MAX_FRAME_LEN: usize = 374;
 
     if pending.is_empty() {
@@ -39,11 +40,9 @@ pub(super) fn next_frame(
         Ok(frame) => {
             let consumed = cursor.position() as usize;
             pending.advance(consumed);
-            // Everything ok, returns the frame
             Ok(Some(frame))
         }
-        // if the function returns an error and the pending bytes
-        // are greater than the max frame sneds an error
+        // Defer even definite decode errors until the undecodable suffix exceeds the limit.
         Err(error) if pending.len() > MAX_FRAME_LEN => Err(error),
         Err(_) => Ok(None),
     }
@@ -51,101 +50,12 @@ pub(super) fn next_frame(
 
 #[cfg(test)]
 mod tests {
+    use super::super::test_support::inbound_frames as sample_frames;
     use super::*;
-    use crate::model::{
-        AdjId, Board, BoardId, MacAddress, Measurement, MeasurementKind, MessageLevel,
-        MessagePacket, NumericKind, PacketDef, PacketType, PodData, ProtectionPacket,
-        ShortTimestamp, Value,
+    use crate::{
+        model::{AdjId, MessagePacket, ShortTimestamp},
+        protocol::packet::message,
     };
-    use crate::protocol::packet::{message, protection};
-    use std::{collections::HashMap, net::IpAddr};
-
-    fn sample_frames() -> (Index, Vec<(TcpFrame, Vec<u8>)>) {
-        let packets = [
-            (100, MeasurementKind::Boolean),
-            (
-                101,
-                MeasurementKind::Numeric {
-                    wire_type: NumericKind::F64,
-                },
-            ),
-        ]
-        .into_iter()
-        .map(|(id, kind)| {
-            let id = AdjId(id);
-            let definition = PacketDef {
-                id: AdjId((1 << 13) | id.0),
-                board: BoardId(1),
-                name: "protection".to_string(),
-                packet_type: PacketType::Protection(Measurement {
-                    id,
-                    alias: "watched".to_string(),
-                    name: "Watched".to_string(),
-                    display_units: String::new(),
-                    kind,
-                    protections: vec![],
-                }),
-            };
-            (definition.id, definition)
-        })
-        .collect();
-        let board = Board {
-            id: BoardId(1),
-            name: "MOCK".to_string(),
-            ip: IpAddr::from([127, 0, 0, 1]),
-            mac: MacAddress([0; 6]),
-            packets,
-        };
-        let pod = PodData {
-            boards: HashMap::from([(board.id, board)]),
-        };
-        let levels = HashMap::from([(AdjId(10), MessageLevel::Fault)]);
-        let index = Index::new(&pod, Some(&levels));
-        let timestamp = ShortTimestamp {
-            hour: 12,
-            minute: 30,
-            second: 0,
-            subsecond: 0,
-        };
-        let frames = [
-            TcpFrame::Protection(ProtectionPacket {
-                id: AdjId((1 << 13) | 100),
-                timestamp,
-                value: Value::Bool(true),
-            }),
-            TcpFrame::Message(MessagePacket {
-                id: AdjId(10),
-                timestamp,
-                origin: "LCU".to_string(),
-                message: "temperature \u{00b0}C".to_string(),
-            }),
-            TcpFrame::Protection(ProtectionPacket {
-                id: AdjId((1 << 13) | 101),
-                timestamp,
-                value: Value::Number(42.25),
-            }),
-            TcpFrame::Message(MessagePacket {
-                id: AdjId(10),
-                timestamp,
-                origin: String::new(),
-                message: String::new(),
-            }),
-        ]
-        .into_iter()
-        .map(|frame| {
-            let encoded = match &frame {
-                TcpFrame::Protection(packet) => protection::encode(packet, &index),
-                TcpFrame::Message(packet) => message::encode(packet, &index),
-            };
-            let Ok(bytes) = encoded else {
-                unreachable!("the sample frames match their index definitions");
-            };
-            (frame, bytes)
-        })
-        .collect();
-
-        (index, frames)
-    }
 
     #[test]
     fn an_empty_buffer_needs_more_bytes() {

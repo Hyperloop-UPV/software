@@ -1,6 +1,6 @@
 //! Reading and reporting ordinary frames from one established TCP session.
 
-use super::{Error, framing};
+use super::{TcpError, framing};
 use crate::{
     model::{BoardId, Packet},
     net::{Event, Reporter},
@@ -22,8 +22,8 @@ pub(super) enum ReceiveEnd {
 
 /// Reads ordinary frames and publishes each one through `reporter` in order.
 ///
-/// The caller must complete any application handshake before handing over the
-/// read half. The buffer is local to this invocation and is never reused across
+/// The read half must be ready for ordinary message/protection frames; this
+/// reader performs no handshake. Its buffer is never reused across
 /// sessions. The connection supplies board identity, including for global
 /// message IDs whose index definitions do not belong to a real board.
 ///
@@ -39,34 +39,31 @@ pub(super) enum ReceiveEnd {
 ///
 /// # Errors
 ///
-/// Returns [`Error::Read`] for socket failures or EOF in a partial frame, and
-/// [`Error::Decode`] for a terminal framing error. Completed preceding frames
+/// Returns [`TcpError::Read`] for socket failures or EOF in a partial frame, and
+/// [`TcpError::Decode`] for a terminal framing error. Completed preceding frames
 /// have already been published. The read half is dropped when the function ends.
 pub(super) async fn receive(
     mut reader: OwnedReadHalf,
     board: BoardId,
     index: &Index,
     reporter: &Reporter,
-) -> Result<ReceiveEnd, Error> {
-    // pending bytes to be processed by framing function
+) -> Result<ReceiveEnd, TcpError> {
+    // Retain incomplete frame bytes between socket reads.
     let mut pending = BytesMut::new();
-    // Chunk of the maximus size of a TCP stream (of bytes)
+    // Per-read buffer size, independent of stream length and frame boundaries.
     let mut chunk = [0; 1024];
 
     loop {
-        // returns the number of bytes read
         let read = reader
-            // modifies the chunk with the readed data
             .read(&mut chunk)
             .await
-            .map_err(|source| Error::Read { board, source })?;
+            .map_err(|source| TcpError::Read { board, source })?;
 
-        // if no bytes are readed
         if read == 0 {
             return if pending.is_empty() {
                 Ok(ReceiveEnd::PeerClosed)
             } else {
-                Err(Error::Read {
+                Err(TcpError::Read {
                     board,
                     source: io::Error::new(
                         io::ErrorKind::UnexpectedEof,
@@ -76,17 +73,27 @@ pub(super) async fn receive(
             };
         }
 
-        // adds only the bytes readed (modified) of the chunk to the pending ones
         pending.extend_from_slice(&chunk[..read]);
+        tracing::trace!(
+            ?board,
+            bytes_read = read,
+            buffered_bytes = pending.len(),
+            "TCP socket read completed"
+        );
         while let Some(frame) = framing::next_frame(&mut pending, index)
-            .map_err(|source| Error::Decode { board, source })?
+            .map_err(|source| TcpError::Decode { board, source })?
         {
-            let packet = match frame {
-                TcpFrame::Message(message) => Packet::Message(message),
-                TcpFrame::Protection(protection) => Packet::Protection(protection),
+            let (packet_id, packet) = match frame {
+                TcpFrame::Message(message) => (message.id, Packet::Message(message)),
+                TcpFrame::Protection(protection) => (protection.id, Packet::Protection(protection)),
             };
+            tracing::trace!(
+                ?board,
+                ?packet_id,
+                buffered_bytes = pending.len(),
+                "TCP frame decoded"
+            );
 
-            // if the reporter succeeds notifying the event
             if reporter
                 .notify(board, Event::Received(packet))
                 .await
@@ -100,105 +107,49 @@ pub(super) async fn receive(
 
 #[cfg(test)]
 mod tests {
+    use super::super::test_support::{TestResult, inbound_frames, socket_pair};
     use super::*;
-    use crate::{
-        model::{
-            AdjId, Board, MacAddress, Measurement, MeasurementKind, MessageLevel, MessagePacket,
-            PacketDef, PacketType, PodData, ProtectionPacket, ShortTimestamp, Value,
-        },
-        protocol::{
-            DecodeError,
-            packet::{message, protection},
-        },
-    };
+    use crate::{model::AdjId, protocol::DecodeError};
     use std::{
-        collections::HashMap,
         future::{Future, poll_fn},
-        net::Ipv4Addr,
         task::Poll,
         time::Duration,
     };
     use tokio::{
         io::AsyncWriteExt,
-        net::{TcpListener, TcpStream, tcp::OwnedWriteHalf},
+        net::{TcpStream, tcp::OwnedWriteHalf},
         time::timeout,
     };
 
     const TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
     fn sample_frames() -> (Index, Vec<(Packet, Vec<u8>)>) {
-        let definition = PacketDef {
-            id: AdjId((1 << 13) | 100),
-            board: BoardId(7),
-            name: "protection".to_string(),
-            packet_type: PacketType::Protection(Measurement {
-                id: AdjId(100),
-                alias: "watched".to_string(),
-                name: "Watched".to_string(),
-                display_units: String::new(),
-                kind: MeasurementKind::Boolean,
-                protections: vec![],
-            }),
-        };
-        let board = Board {
-            id: BoardId(7),
-            name: "MOCK".to_string(),
-            ip: Ipv4Addr::LOCALHOST.into(),
-            mac: MacAddress([0; 6]),
-            packets: HashMap::from([(definition.id, definition)]),
-        };
-        let pod = PodData {
-            boards: HashMap::from([(board.id, board)]),
-        };
-        let levels = HashMap::from([(AdjId(3), MessageLevel::Warning)]);
-        let index = Index::new(&pod, Some(&levels));
-        let timestamp = ShortTimestamp {
-            hour: 12,
-            minute: 30,
-            second: 0,
-            subsecond: 0,
-        };
-        let frames = [
-            Packet::Message(MessagePacket {
-                id: AdjId(3),
-                timestamp,
-                origin: "mock".to_string(),
-                message: "hello".to_string(),
-            }),
-            Packet::Protection(ProtectionPacket {
-                id: AdjId((1 << 13) | 100),
-                timestamp,
-                value: Value::Bool(true),
-            }),
-        ]
-        .into_iter()
-        .map(|packet| {
-            let encoded = match &packet {
-                Packet::Message(packet) => message::encode(packet, &index),
-                Packet::Protection(packet) => protection::encode(packet, &index),
-                _ => unreachable!("the fixture contains only inbound TCP frames"),
-            };
-            let Ok(bytes) = encoded else {
-                unreachable!("the sample packets match their index definitions");
-            };
-            (packet, bytes)
-        })
-        .collect();
+        let (index, frames) = inbound_frames();
+        // Message first, then a boolean protection: preserve the reader tests'
+        // complete-prefix/partial-suffix setup while sharing the codec fixture.
+        let frames = frames
+            .into_iter()
+            .take(2)
+            .rev()
+            .map(|(frame, bytes)| {
+                let packet = match frame {
+                    TcpFrame::Message(packet) => Packet::Message(packet),
+                    TcpFrame::Protection(packet) => Packet::Protection(packet),
+                };
+                (packet, bytes)
+            })
+            .collect();
         (index, frames)
     }
 
-    async fn connected_pair()
-    -> Result<(OwnedReadHalf, OwnedWriteHalf, TcpStream), Box<dyn std::error::Error>> {
-        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
-        let client = timeout(TEST_TIMEOUT, TcpStream::connect(listener.local_addr()?)).await??;
-        let (peer, _) = timeout(TEST_TIMEOUT, listener.accept()).await??;
+    async fn connected_pair() -> TestResult<(OwnedReadHalf, OwnedWriteHalf, TcpStream)> {
+        let (client, peer) = socket_pair(TEST_TIMEOUT).await?;
         let (reader, writer) = client.into_split();
         Ok((reader, writer, peer))
     }
 
     #[tokio::test]
-    async fn reports_a_mixed_burst_in_order_with_the_connection_board()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn reports_a_mixed_burst_in_order_with_the_connection_board() -> TestResult {
         let (index, frames) = sample_frames();
         let (reader, _writer, mut peer) = connected_pair().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
@@ -243,8 +194,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn waits_for_more_bytes_without_publishing_a_partial_frame()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn waits_for_more_bytes_without_publishing_a_partial_frame() -> TestResult {
         let (index, frames) = sample_frames();
         let (mut reader, _writer, mut peer) = connected_pair().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
@@ -281,8 +231,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_empty_peer_closure_is_normal_and_emits_no_events()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn an_empty_peer_closure_is_normal_and_emits_no_events() -> TestResult {
         let (reader, _writer, mut peer) = connected_pair().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
 
@@ -300,8 +249,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn eof_in_a_partial_frame_is_a_nonfatal_read_error_after_the_valid_prefix()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn eof_in_a_partial_frame_is_a_nonfatal_read_error_after_the_valid_prefix() -> TestResult
+    {
         let (index, frames) = sample_frames();
         let (reader, _writer, mut peer) = connected_pair().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
@@ -319,7 +268,7 @@ mod tests {
             unreachable!("EOF cannot complete the pending protection value");
         };
         assert!(!error.is_fatal());
-        let Error::Read { board, source } = error else {
+        let TcpError::Read { board, source } = error else {
             unreachable!("a truncated connection is a read failure, not an ADJ mismatch");
         };
         assert_eq!(board, BoardId(42));
@@ -336,8 +285,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_oversized_invalid_suffix_is_fatal_after_publishing_the_valid_prefix()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn an_oversized_invalid_suffix_is_fatal_after_publishing_the_valid_prefix() -> TestResult
+    {
         let (index, frames) = sample_frames();
         let (reader, _writer, mut peer) = connected_pair().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
@@ -355,7 +304,7 @@ mod tests {
             unreachable!("an undecodable suffix above 374 bytes must terminate the session");
         };
         assert!(error.is_fatal());
-        let Error::Decode { board, source } = error else {
+        let TcpError::Decode { board, source } = error else {
             unreachable!("framing errors must retain the protocol decoder error");
         };
         assert_eq!(board, BoardId(42));
@@ -372,8 +321,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_socket_reset_preserves_the_io_error_and_is_not_fatal()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn a_socket_reset_preserves_the_io_error_and_is_not_fatal() -> TestResult {
         let (reader, _writer, peer) = connected_pair().await?;
         let (reporter, _sinks) = Reporter::channels(1, 1);
 
@@ -389,7 +337,7 @@ mod tests {
             unreachable!("an abortive peer close must fail the socket read");
         };
         assert!(!error.is_fatal());
-        let Error::Read { board, source } = error else {
+        let TcpError::Read { board, source } = error else {
             unreachable!("a connection reset is a read failure");
         };
         assert_eq!(board, BoardId(42));
@@ -398,8 +346,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_closed_notification_consumer_stops_instead_of_requesting_reconnection()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn a_closed_notification_consumer_stops_instead_of_requesting_reconnection() -> TestResult
+    {
         let (index, frames) = sample_frames();
         let (reader, _writer, mut peer) = connected_pair().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
@@ -418,8 +366,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn backpressure_waits_for_capacity_or_consumer_closure()
-    -> Result<(), Box<dyn std::error::Error>> {
+    async fn backpressure_waits_for_capacity_or_consumer_closure() -> TestResult {
         let (index, frames) = sample_frames();
         for close_consumer in [false, true] {
             let (mut reader, _writer, mut peer) = connected_pair().await?;

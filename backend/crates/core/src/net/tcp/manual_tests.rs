@@ -118,6 +118,8 @@ fn stop_probe(handles: BoardClients, sinks: &mut Sinks) {
 // The test prints each complete frame, then finishes when nc closes the connection.
 //
 // This test checks connection, framing and reporting by displaying notifications.
+// Initial connection failures use 500..5000 ms exponential backoff and are printed
+// while retrying. The 30-second overall deadline covers connection and receiving.
 async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
     // Load the fixture ADJ so the real protocol decoder can resolve message ID 3.
     let adj_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/adj/test/adj");
@@ -130,22 +132,41 @@ async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
         local_port: Port(0),
     };
 
-    // Connect to netcat; this test is ignored by the normal automated suite.
-    let stream = connection::connect(&link, Duration::from_secs(5)).await?;
-    let (read_half, _write_half) = stream.into_split();
     let (reporter, mut sinks) = Reporter::channels(1, 1);
     let receiving = async {
-        let result = reader::receive(read_half, link.board, &index, &reporter).await;
-        // Close the notification channel after either success or failure so printing ends.
+        let result = async {
+            // The probe uses the same retrying entry point as the supervisor.
+            // Its overall test deadline also covers connection attempts/backoff.
+            let mut backoff = Backoff::new(500, 5000);
+            let stream =
+                connection::connect(&link, Duration::from_secs(5), &mut backoff, &reporter).await?;
+            let (read_half, _write_half) = stream.into_split();
+            Ok::<_, Box<dyn std::error::Error>>(
+                reader::receive(read_half, link.board, &index, &reporter).await?,
+            )
+        }
+        .await;
+        // Drop both report senders after connection/reading ends so consumers drain.
         drop(reporter);
         result
     };
     let displaying = async {
-        let mut frames = 0;
-        while let Some(notification) = sinks.notifications.recv().await {
-            println!("Received notification: {notification:?}");
-            frames += 1;
-        }
+        let (frames, ()) = tokio::join!(
+            async {
+                let mut frames = 0;
+                while let Some(notification) = sinks.notifications.recv().await {
+                    println!("Received notification: {notification:?}");
+                    frames += 1;
+                }
+                frames
+            },
+            async {
+                // A one-slot error channel must not park connection retries.
+                while let Some(report) = sinks.errors.recv().await {
+                    eprintln!("Connection error: {report:?}");
+                }
+            },
+        );
         frames
     };
 
@@ -174,9 +195,9 @@ async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
 /// For a local simulator, use a private ADJ copy with the board IP 127.0.0.1
 /// and start `nc -l 50500 | od -An -tx1 -v -w2` if TCP_SERVER is 50500.
 ///
-/// WARNING: this test sends order 1001 with numeric parameter 5.0 once. Use only
+/// WARNING: this test sends order 1001 with numeric parameter -5.0 once. Use only
 /// the intended TEST board/firmware or simulator, not an arbitrary real board.
-/// For a float32 parameter, its bytes are e9 03 00 00 a0 40; keep-alive is 01 00.
+/// For a float32 parameter, its bytes are e9 03 00 00 a0 c0; keep-alive is 01 00.
 /// Closing and reopening the simulator should reconnect without repeating the
 /// order. Backoff grows from 500 to 5000 ms on failures and resets on success.
 ///
@@ -188,21 +209,40 @@ async fn manual_tcp_receive() -> Result<(), Box<dyn std::error::Error>> {
 async fn manual_tcp_supervisor() -> Result<(), Box<dyn std::error::Error>> {
     let probe = load_probe_config()?;
     println!(
-        "Manual TCP probe: {} at {}; order 1001(5.0) once; press Ctrl+C to stop",
+        "Manual TCP probe: {} at {}; order 1001(-5.0) once after Connected; press Ctrl+C to stop",
         probe.board_name, probe.link.addr
     );
     let (handles, mut sinks) = start_probe(probe);
     let running = async {
-        handles
-            .send(OrderPacket::new(AdjId(1001), vec![Value::Number(-5.0)]))
-            .await?;
-        tokio::signal::ctrl_c().await?;
-        Ok::<_, Box<dyn std::error::Error>>(())
+        let mut sent = false;
+        loop {
+            tokio::select! {
+                result = tokio::signal::ctrl_c() => { result?; return Ok::<_, Box<dyn std::error::Error>>(()); }
+                notification = sinks.notifications.recv() => {
+                    let notification = notification.ok_or("TCP notifications stopped")?;
+                    println!("{notification:#?}");
+                    if !sent && matches!(notification.event, crate::net::Event::Connected) {
+                        // Even this send can time out or return Disconnected if a
+                        // heartbeat/fault/session teardown races the event.
+                        // Never retry a hardware order automatically.
+                        sent = true;
+                        let sending = handles.send(OrderPacket::new(AdjId(1001), vec![Value::Number(-5.0)]));
+                        tokio::pin!(sending);
+                        loop {
+                            tokio::select! {
+                                result = &mut sending => { result?; break; }
+                                report = sinks.errors.recv() => println!("{:#?}", report.ok_or("TCP errors stopped")?),
+                                notification = sinks.notifications.recv() => println!("{:#?}", notification.ok_or("TCP notifications stopped")?),
+                                result = tokio::signal::ctrl_c() => { result?; return Ok(()); }
+                            }
+                        }
+                    }
+                }
+                report = sinks.errors.recv() => println!("{:#?}", report.ok_or("TCP errors stopped")?),
+            }
+        }
     };
-    let result = tokio::select! {
-        result = running => result,
-        () = display_reports(&mut sinks, |_| {}) => Err(io::Error::new(io::ErrorKind::BrokenPipe, "TCP reporting stopped before Ctrl+C").into()),
-    };
+    let result = running.await;
     stop_probe(handles, &mut sinks);
     result
 }
@@ -280,7 +320,7 @@ async fn manual_tcp_fault() -> Result<(), Box<dyn std::error::Error>> {
     let (connected, first_connection) = oneshot::channel();
     let running = async {
         // Wait outside the display loops so neither reporting channel is
-        // blocked by admission or completion of the fault write.
+        // blocked while waiting for or writing the fault frame.
         first_connection.await.map_err(|_| {
             io::Error::new(
                 io::ErrorKind::BrokenPipe,

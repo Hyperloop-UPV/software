@@ -1,6 +1,11 @@
-//! TCP connection attempts and initial retries, independent of session supervision.
+//! Startup and recovery use one connection routine with capped exponential backoff.
+//!
+//! Socket setup and a single timed attempt are private details. All sibling
+//! callers use connect(), which reports failures and retries until success or
+//! reporting consumer loss. The supervisor owns the per-board backoff state and
+//! the delay after an established session ends; this routine owns failure retries.
 
-use super::{Backoff, BoardLink, Error};
+use super::{Backoff, BoardLink, TcpError};
 use crate::net::{Closed, Reporter};
 use std::{
     io,
@@ -12,7 +17,65 @@ use tokio::{
     time::{sleep, timeout},
 };
 
-/// Opens one board's connection, binding its local port before connecting.
+/// Retries connection attempts until one succeeds or reporting detects consumer loss.
+///
+/// This is the only connection entry point for startup, recovery and manual
+/// probes. Every call retries failures with the supplied per-board backoff.
+/// The first attempt in this routine is immediate. After a session ends, the
+/// supervisor consumes one backoff interval before calling this same routine;
+/// a successful preceding connection reset that interval to the initial value.
+/// Each failure is logged and published through
+/// [`Reporter::report`], then this helper waits for the next `backoff` interval.
+/// Reporting applies backpressure: the interval starts after the error is queued,
+/// not when the attempt fails. Consume the error channel concurrently to avoid
+/// parking retries behind a full channel. Each attempt has its own
+/// `connect_timeout`; reporting and backoff are outside that timeout.
+///
+/// Failed attempts advance the caller's backoff state. A successful connection
+/// resets it before returning the stream, so a later disconnection starts at the
+/// initial interval. Keep that state across sessions instead of constructing a
+/// fresh backoff for each failure. Retries have no limit. Zero intervals add no deliberate
+/// retry delay and may generate errors rapidly.
+///
+/// Success returns the connected stream immediately without emitting lifecycle
+/// events, exchanging a hash, starting session I/O or reconnecting a later session.
+/// No tasks are spawned. Dropping this future cancels the pending attempt, report
+/// or wait; already queued errors remain available to the consumer.
+///
+/// # Errors
+///
+/// Returns [`Closed`] when publishing a failed attempt detects a closed error
+/// consumer. Transport failures are reported, not returned. Consumer closure is
+/// checked only when reporting, not proactively during a connection or wait.
+pub(super) async fn connect(
+    link: &BoardLink,
+    connect_timeout: Duration,
+    backoff: &mut Backoff,
+    reporter: &Reporter,
+) -> Result<TcpStream, Closed> {
+    loop {
+        tracing::debug!(board = ?link.board, addr = %link.addr, "Attempting TCP connection");
+        match connect_once(link, connect_timeout).await {
+            Ok(stream) => {
+                backoff.reset();
+                tracing::debug!(board = ?link.board, addr = %link.addr, "TCP connection established");
+                return Ok(stream);
+            }
+            Err(error) => {
+                tracing::debug!(board = ?link.board, addr = %link.addr, error = ?error,
+                    "TCP connection attempt failed");
+                reporter.report(error).await?;
+                let retry_delay = backoff.get_interval();
+                tracing::debug!(board = ?link.board, addr = %link.addr, ?retry_delay,
+                    "Waiting before TCP connection retry");
+                sleep(retry_delay).await;
+            }
+        }
+    }
+}
+
+/// One private socket attempt for the retry loop; sibling modules cannot bypass
+/// the retry/reporting policy. Binds the local port before connecting.
 ///
 /// The remote address selects IPv4 or IPv6. The local address is unspecified
 /// so routing selects the interface; local port zero requests an ephemeral port.
@@ -26,13 +89,10 @@ use tokio::{
 ///
 /// # Errors
 ///
-/// Returns [`Error::Connect`] with the board ID and original I/O error if socket
+/// Returns [`TcpError::Connect`] with the board ID and original I/O error if socket
 /// creation, configuration, binding or connecting fails. An elapsed timeout is
 /// represented by [`io::ErrorKind::TimedOut`]; its pending socket is dropped.
-pub(super) async fn connect(
-    link: &BoardLink,
-    connect_timeout: Duration,
-) -> Result<TcpStream, Error> {
+async fn connect_once(link: &BoardLink, connect_timeout: Duration) -> Result<TcpStream, TcpError> {
     let result = async {
         let (socket, local_ip) = match link.addr {
             SocketAddr::V4(_) => (TcpSocket::new_v4()?, IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
@@ -49,56 +109,10 @@ pub(super) async fn connect(
     }
     .await;
 
-    result.map_err(|source| Error::Connect {
+    result.map_err(|source| TcpError::Connect {
         board: link.board,
         source,
     })
-}
-
-/// Retries connection attempts until one succeeds or reporting detects consumer loss.
-///
-/// The first attempt is immediate. Each failure is logged and published through
-/// [`Reporter::report`], then this helper waits for the next `backoff` interval.
-/// Reporting applies backpressure: the interval starts after the error is queued,
-/// not when the attempt fails. Consume the error channel concurrently to avoid
-/// parking retries behind a full channel. Each attempt has its own
-/// `connect_timeout`; reporting and backoff are outside that timeout.
-///
-/// Failed attempts advance the caller's backoff state. A successful connection
-/// resets it before returning the stream, so a later disconnection starts at the
-/// initial interval. Retries have no limit. Zero intervals add no deliberate
-/// retry delay and may generate errors rapidly.
-///
-/// Success returns the connected stream immediately without emitting lifecycle
-/// events, exchanging a hash, starting session I/O or reconnecting a later session.
-/// No tasks are spawned. Dropping this future cancels the pending attempt, report
-/// or wait; already queued errors remain available to the consumer.
-///
-/// # Errors
-///
-/// Returns [`Closed`] when publishing a failed attempt detects a closed error
-/// consumer. Transport failures are reported, not returned. Consumer closure is
-/// checked only when reporting, not proactively during a connection or wait.
-pub(super) async fn connect_with_backoff(
-    link: &BoardLink,
-    connect_timeout: Duration,
-    backoff: &mut Backoff,
-    reporter: &Reporter,
-) -> Result<TcpStream, Closed> {
-    loop {
-        match connect(link, connect_timeout).await {
-            Ok(stream) => {
-                backoff.reset();
-                return Ok(stream);
-            }
-            Err(error) => {
-                tracing::warn!(board = ?link.board, addr = %link.addr, %error,
-                    "TCP connection attempt failed");
-                reporter.report(error).await?;
-                sleep(backoff.get_interval()).await;
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -115,7 +129,6 @@ mod tests {
         sync::mpsc::error::TryRecvError,
         time::{Instant, advance},
     };
-
     const TEST_TIMEOUT: Duration = Duration::from_secs(2);
 
     async fn check_loopback_connection(
@@ -128,7 +141,7 @@ mod tests {
         };
 
         // Port zero lets parallel tests obtain distinct client ports from the OS.
-        let stream = connect(&link, TEST_TIMEOUT).await?;
+        let stream = connect_once(&link, TEST_TIMEOUT).await?;
         let (_peer, source) = timeout(TEST_TIMEOUT, listener.accept()).await??;
         assert_eq!(stream.peer_addr()?, link.addr);
         assert_eq!(source, stream.local_addr()?);
@@ -181,13 +194,13 @@ mod tests {
             addr: occupied.local_addr()?,
             local_port: Port(occupied.local_addr()?.port()),
         };
-        let Err(error) = connect(&link, TEST_TIMEOUT).await else {
+        let Err(error) = connect_once(&link, TEST_TIMEOUT).await else {
             unreachable!("binding an occupied local port must fail");
         };
 
         // Setup failures must retain both identity and cause, without faulting the pod.
         assert!(!error.is_fatal());
-        let Error::Connect { board, source } = error else {
+        let TcpError::Connect { board, source } = error else {
             unreachable!("a bind failure belongs to the connection attempt");
         };
         assert_eq!(board, BoardId(7));
@@ -206,14 +219,14 @@ mod tests {
             addr: unavailable.local_addr()?,
             local_port: Port(0),
         };
-        let Err(error) = connect(&link, TEST_TIMEOUT).await else {
+        let Err(error) = connect_once(&link, TEST_TIMEOUT).await else {
             unreachable!("a bound but non-listening peer cannot accept the connection");
         };
 
         // A refused connection is a retryable network failure, not a decode fault.
         assert!(!error.is_fatal());
-        let Error::Connect { board, source } = error else {
-            unreachable!("a refused connection must return Error::Connect");
+        let TcpError::Connect { board, source } = error else {
+            unreachable!("a refused connection must return TcpError::Connect");
         };
         assert_eq!(board, BoardId(9));
         assert_eq!(source.kind(), io::ErrorKind::ConnectionRefused);
@@ -257,7 +270,7 @@ mod tests {
         assert_eq!(backoff.get_interval(), Duration::from_secs(60));
         let stream = timeout(
             TEST_TIMEOUT,
-            connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter),
+            connect(&link, TEST_TIMEOUT, &mut backoff, &reporter),
         )
         .await??;
         assert_eq!(backoff.get_interval(), Duration::from_secs(60));
@@ -288,14 +301,13 @@ mod tests {
         };
         let (reporter, mut sinks) = Reporter::channels(1, 16);
         let mut backoff = Backoff::new(10, 40);
-        let connecting =
-            async { connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter).await };
+        let connecting = async { connect(&link, TEST_TIMEOUT, &mut backoff, &reporter).await };
         let serving = async {
             let Some(report) = sinks.errors.recv().await else {
                 unreachable!("the helper reports its initial connection failure");
             };
             assert!(
-                matches!(report.error, crate::net::Error::Tcp(Error::Connect { board, source })
+                matches!(report.error, crate::net::Error::Tcp(TcpError::Connect { board, source })
                 if board == link.board && source.kind() == io::ErrorKind::ConnectionRefused)
             );
             let listener = unavailable.listen(1)?;
@@ -322,14 +334,14 @@ mod tests {
         let (_occupied, link) = occupied_link().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
         let mut backoff = Backoff::new(100, 700);
-        let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+        let connecting = connect(&link, TEST_TIMEOUT, &mut backoff, &reporter);
         tokio::pin!(connecting);
         let started = Instant::now();
         assert_pending_once(connecting.as_mut()).await;
         assert_eq!(started.elapsed(), Duration::ZERO);
         let first = sinks.errors.try_recv()?;
         assert!(
-            matches!(first.error, crate::net::Error::Tcp(Error::Connect { board, source })
+            matches!(first.error, crate::net::Error::Tcp(TcpError::Connect { board, source })
             if board == link.board && source.kind() == io::ErrorKind::AddrInUse)
         );
 
@@ -343,7 +355,7 @@ mod tests {
             assert_pending_once(connecting.as_mut()).await;
             let report = sinks.errors.try_recv()?;
             assert!(
-                matches!(report.error, crate::net::Error::Tcp(Error::Connect { board, source })
+                matches!(report.error, crate::net::Error::Tcp(TcpError::Connect { board, source })
                 if board == link.board && source.kind() == io::ErrorKind::AddrInUse)
             );
             assert!(matches!(sinks.errors.try_recv(), Err(TryRecvError::Empty)));
@@ -365,7 +377,7 @@ mod tests {
         let mut backoff = Backoff::new(100, 700);
         assert_eq!(backoff.get_interval(), Duration::from_millis(100));
         {
-            let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+            let connecting = connect(&link, TEST_TIMEOUT, &mut backoff, &reporter);
             tokio::pin!(connecting);
             assert_pending_once(connecting.as_mut()).await;
             sinks.errors.try_recv()?;
@@ -388,7 +400,7 @@ mod tests {
         let (_occupied, link) = occupied_link().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 1);
         let mut backoff = Backoff::new(100, 700);
-        let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+        let connecting = connect(&link, TEST_TIMEOUT, &mut backoff, &reporter);
         tokio::pin!(connecting);
         assert_pending_once(connecting.as_mut()).await;
         // Leave the first report queued. The second failure cannot be published
@@ -420,7 +432,7 @@ mod tests {
         let mut backoff = Backoff::new(60_000, 60_000);
         let result = timeout(
             TEST_TIMEOUT,
-            connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter),
+            connect(&link, TEST_TIMEOUT, &mut backoff, &reporter),
         )
         .await?;
         assert!(matches!(result, Err(Closed)));
@@ -433,7 +445,7 @@ mod tests {
         let (_occupied, link) = occupied_link().await?;
         let (reporter, sinks) = Reporter::channels(1, 1);
         let mut backoff = Backoff::new(100, 700);
-        let connecting = connect_with_backoff(&link, TEST_TIMEOUT, &mut backoff, &reporter);
+        let connecting = connect(&link, TEST_TIMEOUT, &mut backoff, &reporter);
         tokio::pin!(connecting);
         assert_pending_once(connecting.as_mut()).await;
         advance(Duration::from_millis(100)).await;
@@ -454,12 +466,7 @@ mod tests {
         let (_occupied, link) = occupied_link().await?;
         let (reporter, mut sinks) = Reporter::channels(1, 16);
         let mut backoff = Backoff::new(100, 700);
-        let mut connecting = Box::pin(connect_with_backoff(
-            &link,
-            TEST_TIMEOUT,
-            &mut backoff,
-            &reporter,
-        ));
+        let mut connecting = Box::pin(connect(&link, TEST_TIMEOUT, &mut backoff, &reporter));
         assert_pending_once(connecting.as_mut()).await;
         drop(connecting);
         // Cancellation owns no background task: advancing past many retries
