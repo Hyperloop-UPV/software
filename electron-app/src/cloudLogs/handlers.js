@@ -18,6 +18,7 @@ import * as client from "./client.js";
 import { compressSession, extractSession } from "./archive.js";
 import {
   findLocalSessions,
+  formatSessionZipName,
   getCloudRoot,
   getLogsRoot,
   inspectSession,
@@ -46,6 +47,18 @@ function text(value, max = 500) {
   return value;
 }
 
+function cleanClientError(error) {
+  if (!error) return new Error("Cloud Logs operation failed.");
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : String(error);
+  const sanitized = client.sanitizeMessage(raw).trim();
+  return new Error(sanitized || "Cloud Logs operation failed.");
+}
+
 export function setupCloudLogsHandlers() {
   const selected = new Map();
   let transferRunning = false;
@@ -57,7 +70,7 @@ export function setupCloudLogsHandlers() {
     });
   const register = (event, session, dir) => {
     const id = randomUUID();
-    selected.set(id, { owner: event.sender.id, dir });
+    selected.set(id, { owner: event.sender.id, dir, date: session.date });
     // Bound stale folder grants from repeated discovery/pickers.
     if (selected.size > 2000) selected.delete(selected.keys().next().value);
     const { files, ...summary } = session;
@@ -124,51 +137,83 @@ export function setupCloudLogsHandlers() {
     const dir = result.filePaths[0];
     return register(event, await inspectSession(dir), dir);
   });
-  handle("list", async (_event, cursor) =>
-    client.listLogs({
-      credentials: await auth(),
-      cursor: cursor === undefined ? undefined : text(cursor),
-    }),
-  );
+  handle("list", async (_event, cursor) => {
+    let sanitizedCursor;
+    if (cursor !== undefined && cursor !== null) {
+      if (typeof cursor !== "string") {
+        throw new Error("Invalid Cloud Logs request.");
+      }
+      const trimmed = cursor.trim();
+      if (trimmed.length > 0) {
+        sanitizedCursor = text(trimmed);
+      }
+    }
+    try {
+      return await client.listLogs({
+        credentials: await auth(),
+        cursor: sanitizedCursor,
+      });
+    } catch (error) {
+      throw cleanClientError(error);
+    }
+  });
   handle("tags", async (_event, query) => {
     if (typeof query !== "string" || query.length > 200)
       throw new Error("Invalid tag query.");
-    return client.autocompleteTags({ credentials: await auth(), query });
+    try {
+      return await client.autocompleteTags({
+        credentials: await auth(),
+        query,
+      });
+    } catch (error) {
+      throw cleanClientError(error);
+    }
   });
   handle("upload", (event, input) =>
     transfer(event, input, async (report) => {
-      const grant = selected.get(input.sessionId);
+      const grant = selected.get(input?.sessionId);
       if (!grant || grant.owner !== event.sender.id)
         throw new Error("Select the session again before uploading.");
       if (
-        typeof input.notes !== "string" ||
+        typeof input?.notes !== "string" ||
         input.notes.length > 10000 ||
         !Array.isArray(input.tags) ||
         input.tags.length > 30
       )
         throw new Error("Invalid notes or tags.");
+      const title =
+        typeof input?.title === "string" && input.title.trim()
+          ? text(input.title.trim(), 200)
+          : "";
       const tags = [...new Set(input.tags.map((tag) => text(tag, 100)))];
       const account = await auth();
       const temp = await mkdtemp(path.join(tmpdir(), "cloud-logs-upload-"));
       try {
         report("compressing", 0);
-        const archivePath = path.join(temp, "session.zip");
+        const archiveName = formatSessionZipName(grant.date, title);
+        const archivePath = path.join(temp, archiveName);
         const session = await compressSession(
           grant.dir,
           archivePath,
           (n, total) => report("compressing", n, total),
         );
         report("uploading");
-        return await client.uploadLog({
-          credentials: account,
-          archivePath,
-          metadata: {
-            user: account.user,
-            notes: input.notes.trim(),
-            tags,
-            date: session.date,
-          },
-        });
+        try {
+          return await client.uploadLog({
+            credentials: account,
+            archivePath,
+            metadata: {
+              fileName: archiveName,
+              title: title || undefined,
+              user: account.user,
+              notes: input.notes.trim(),
+              tags,
+              date: session.date,
+            },
+          });
+        } catch (error) {
+          throw cleanClientError(error);
+        }
       } finally {
         await rm(temp, { recursive: true, force: true });
       }
@@ -176,7 +221,27 @@ export function setupCloudLogsHandlers() {
   );
   handle("download", (event, input) =>
     transfer(event, input, async (report) => {
-      const id = text(input.id);
+      const id = text(input?.id);
+      const title =
+        typeof input?.title === "string" && input.title.trim()
+          ? text(input.title.trim(), 200)
+          : "";
+      const rawFileName =
+        typeof input?.fileName === "string" && input.fileName.trim()
+          ? text(input.fileName.trim(), 255)
+          : "";
+      const fileName = rawFileName
+        ? path.basename(rawFileName).replace(/[/\\?%*:|"<>]/g, "_")
+        : "";
+      const archiveName = fileName
+        ? fileName.endsWith(".zip")
+          ? fileName
+          : `${fileName}.zip`
+        : title
+          ? `${title.replace(/[/\\?%*:|"<>]/g, "_")}.zip`
+          : `${id}.zip`;
+      const derivedTitle =
+        title || (fileName ? fileName.replace(/\.zip$/i, "") : "");
       const account = await auth();
       const root = await getCloudRoot();
       const destination = path.join(
@@ -190,21 +255,35 @@ export function setupCloudLogsHandlers() {
         if (info.id !== id)
           throw new Error("Downloaded session identity mismatch.");
         const session = await inspectSession(destination);
-        return { id, path: destination, date: session.date };
+        return {
+          id,
+          path: destination,
+          date: session.date,
+          title:
+            info.title ||
+            (info.fileName ? info.fileName.replace(/\.zip$/i, "") : ""),
+          fileName: info.fileName || "",
+        };
       } catch (error) {
-        if (error.code !== "ENOENT") throw error;
+        if (error.code !== "ENOENT") {
+          await rm(destination, { recursive: true, force: true });
+        }
       }
       // Staging on the destination filesystem makes the final rename atomic.
       const temp = await mkdtemp(path.join(root, ".download-"));
       try {
-        const archivePath = path.join(temp, "session.zip");
+        const archivePath = path.join(temp, archiveName);
         report("downloading");
-        await client.downloadLog({
-          credentials: account,
-          id,
-          destination: archivePath,
-          maxBytes: MAX_BYTES,
-        });
+        try {
+          await client.downloadLog({
+            credentials: account,
+            id,
+            destination: archivePath,
+            maxBytes: MAX_BYTES,
+          });
+        } catch (error) {
+          throw cleanClientError(error);
+        }
         if ((await stat(archivePath)).size > MAX_BYTES)
           throw new Error("Downloaded archive exceeds 4 GiB.");
         report("extracting", 0);
@@ -216,10 +295,22 @@ export function setupCloudLogsHandlers() {
         );
         await writeFile(
           path.join(extracted, "cloud-log.json"),
-          JSON.stringify({ id, date: session.date }),
+          JSON.stringify({
+            id,
+            date: session.date,
+            title: derivedTitle,
+            fileName: fileName || archiveName,
+          }),
         );
+        await rm(destination, { recursive: true, force: true });
         await rename(extracted, destination);
-        return { id, path: destination, date: session.date };
+        return {
+          id,
+          path: destination,
+          date: session.date,
+          title: derivedTitle,
+          fileName: fileName || archiveName,
+        };
       } finally {
         await rm(temp, { recursive: true, force: true });
       }
@@ -236,7 +327,15 @@ export function setupCloudLogsHandlers() {
           await readFile(path.join(dir, "cloud-log.json"), "utf8"),
         );
         const session = await inspectSession(dir);
-        items.push({ id: text(info.id), date: session.date, path: dir });
+        items.push({
+          id: text(info.id),
+          date: session.date,
+          path: dir,
+          title:
+            info.title ||
+            (info.fileName ? info.fileName.replace(/\.zip$/i, "") : ""),
+          fileName: info.fileName || "",
+        });
       } catch {
         /* Do not expose partial or invalid downloads. */
       }

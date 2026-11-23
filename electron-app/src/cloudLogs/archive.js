@@ -62,14 +62,18 @@ export async function extractSession(archivePath, destination, onProgress) {
         zip.on("end", resolve);
         zip.on("entry", (entry) => {
           void (async () => {
-            const name = entry.fileName;
-            const mode = (entry.externalFileAttributes >>> 16) & 0o170000;
+            const name = entry.fileName.replace(/\\/g, "/");
+            const madeBy = entry.versionMadeBy >> 8;
+            const mode =
+              madeBy === 3
+                ? (entry.externalFileAttributes >>> 16) & 0o170000
+                : 0;
             if (
               ++entries > MAX_FILES ||
               name.startsWith("/") ||
-              /[\\:]/.test(name) ||
+              name.includes(":") ||
               name.split("/").some((p) => p === ".." || p === ".") ||
-              (mode && mode !== 0o100000 && mode !== 0o040000) ||
+              (mode != 0 && mode !== 0o100000 && mode !== 0o040000) ||
               entry.generalPurposeBitFlag & 1
             ) {
               throw new Error(

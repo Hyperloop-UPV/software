@@ -28,6 +28,44 @@ export async function getCloudRoot() {
   return root;
 }
 
+export function formatSessionZipName(dateStr, title) {
+  if (typeof title === "string" && title.trim()) {
+    const cleaned = title
+      .trim()
+      .replace(/\.zip$/i, "")
+      .replace(/[/\\?%*:|"<>]/g, "_");
+    if (cleaned) {
+      return `${cleaned}.zip`;
+    }
+  }
+
+  const pad = (v) => String(v).padStart(2, "0");
+  if (!dateStr || typeof dateStr !== "string" || !dateStr.trim()) {
+    const now = new Date();
+    const y = now.getUTCFullYear();
+    const m = pad(now.getUTCMonth() + 1);
+    const d = pad(now.getUTCDate());
+    const h = pad(now.getUTCHours());
+    const min = pad(now.getUTCMinutes());
+    const s = pad(now.getUTCSeconds());
+    return `${y}-${m}-${d}T${h}-${min}-${s}.zip`;
+  }
+
+  const match = dateStr.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})[T_ ](\d{1,2})[-:](\d{1,2})[-:](\d{1,2})/,
+  );
+  if (match) {
+    const [, y, m, d, h, min, s] = match;
+    return `${y}-${pad(m)}-${pad(d)}T${pad(h)}-${pad(min)}-${pad(s)}.zip`;
+  }
+
+  const cleaned = dateStr
+    .trim()
+    .replace(/\.zip$/i, "")
+    .replace(/[/\\?%*:|"<>]/g, "-");
+  return `${cleaned}.zip`;
+}
+
 /** Validate one recording, not the parent app launch. Refuse symlinks. */
 export async function inspectSession(dir) {
   if (!(await lstat(dir)).isDirectory())
@@ -61,15 +99,19 @@ export async function inspectSession(dir) {
   const settings = JSON.parse(
     await readFile(path.join(dir, "logger_settings.json"), "utf8"),
   );
-  if (
-    typeof settings.date !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}[-:]\d{2}[-:]\d{2}/.test(settings.date)
-  )
-    throw new Error("Session has no valid recording date.");
+  const dateMatch =
+    typeof settings.date === "string" &&
+    settings.date.match(
+      /^(\d{4})-(\d{1,2})-(\d{1,2})[T_ ](\d{1,2})[-:](\d{1,2})[-:](\d{1,2})/,
+    );
+  if (!dateMatch) throw new Error("Session has no valid recording date.");
+  const [, y, m, d, h, min, s] = dateMatch;
+  const pad = (v) => v.padStart(2, "0");
+  const normalizedDate = `${y}-${pad(m)}-${pad(d)}T${pad(h)}-${pad(min)}-${pad(s)}`;
   return {
     name: path.basename(dir),
     launch: path.basename(path.dirname(dir)),
-    date: settings.date,
+    date: normalizedDate,
     bytes,
     fileCount: files.length,
     files: files.sort((a, b) => a.name.localeCompare(b.name)),

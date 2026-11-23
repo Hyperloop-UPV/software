@@ -295,8 +295,21 @@ function setupIpcHandlers() {
     if (!stats.isDirectory()) {
       throw new Error(`Not a folder: ${dir}`);
     }
+    let folderName = basename(dir) || "Session";
+    try {
+      const info = JSON.parse(
+        await readFile(join(dir, "cloud-log.json"), "utf8"),
+      );
+      if (info.title) {
+        folderName = info.title;
+      } else if (info.fileName) {
+        folderName = info.fileName.replace(/\.zip$/i, "");
+      }
+    } catch {
+      // Not a cloud log folder
+    }
     return {
-      folderName: basename(dir) || "Session",
+      folderName,
       entries: await listSessionEntries(dir),
     };
   });
