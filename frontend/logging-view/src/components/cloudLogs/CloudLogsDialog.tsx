@@ -276,9 +276,24 @@ function UploadPanel({
     }
   };
 
+  const handleAddTag = (rawTag?: string) => {
+    const candidate = (rawTag ?? query).trim();
+    if (!candidate || tags.includes(candidate) || tags.length >= 30) return;
+    setTags((prev) => [...prev, candidate]);
+    setQuery("");
+  };
+
   return (
     <form
       className="space-y-4"
+      onKeyDown={(e) => {
+        if (
+          e.key === "Enter" &&
+          (e.target as HTMLElement)?.tagName === "INPUT"
+        ) {
+          e.preventDefault();
+        }
+      }}
       onSubmit={async (e) => {
         e.preventDefault();
         if (selected) {
@@ -387,24 +402,36 @@ function UploadPanel({
         </div>
         <div className="space-y-2">
           <Label htmlFor="cloud-tags">Tags</Label>
-          <Input
-            id="cloud-tags"
-            value={query}
-            maxLength={200}
-            disabled={!ready}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                const trimmed = query.trim();
-                if (trimmed && !tags.includes(trimmed)) {
-                  setTags((prev) => [...prev, trimmed]);
-                  setQuery("");
+          <div className="flex gap-2">
+            <Input
+              id="cloud-tags"
+              value={query}
+              maxLength={100}
+              disabled={!ready}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddTag();
                 }
+              }}
+              placeholder="Search or type a tag and press Enter…"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={
+                !ready ||
+                !query.trim() ||
+                tags.includes(query.trim()) ||
+                tags.length >= 30
               }
-            }}
-            placeholder="Search tags from Cloud Logs…"
-          />
+              onClick={() => handleAddTag()}
+            >
+              Add
+            </Button>
+          </div>
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {tags.map((tag) => (
@@ -445,10 +472,7 @@ function UploadPanel({
                   size="sm"
                   key={tag}
                   disabled={tags.length >= 30}
-                  onClick={() => {
-                    setTags((items) => [...items, tag]);
-                    setQuery("");
-                  }}
+                  onClick={() => handleAddTag(tag)}
                 >
                   {tag}
                 </Button>
