@@ -33,6 +33,8 @@ host = ["logger", "dep:whoami", "dep:rlimit"]
 trace = ["dep:tracing-subscriber", "dep:tracing-appender"]
 # Structure responses for HTTP petitions
 http = []
+# JSON payloads for frontend WebSocket topics; no socket or runtime dependency.
+websocket = []
 
 [dependencies]
 bytes.workspace = true

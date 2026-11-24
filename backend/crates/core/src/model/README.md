@@ -8,6 +8,9 @@ The domain types describe vehicle definitions and decoded packets. With the
 `http` feature enabled, `model::http` also exposes separate, serializable catalog
 response models; see [section 7](#7-http-http-feature).
 
+With the `websocket` feature, `model::websocket` exposes the live-update and
+request payloads used by the frontend; see [section 8](#8-websocket-websocket-feature).
+
 ## 1. `board.rs`
 All structs and enums needed for the Pod can be found defined in this file.
 ### 1.1 `PacketType`
@@ -301,3 +304,14 @@ This module defines no HTTP server, routes, CORS, or cache policy.
 
 See the [HTTP response models README](http/README.md) for usage, JSON type
 notation, field omission rules, and concrete examples.
+
+## 8. `websocket` (`websocket` feature)
+
+`model/websocket.rs` publicly re-exports the payload types for telemetry,
+connections, orders, messages, protection events, and logger control.
+Published structures implement `serde::Serialize`; order requests implement
+`serde::Deserialize`. These models describe the payload inside a
+`{topic, payload}` message; socket handling and the broker belong to `station`.
+
+See the [WebSocket message models README](websocket/README.md) for the topic
+list, usage, JSON type notation, and complete message examples.
