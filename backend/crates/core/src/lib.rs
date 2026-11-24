@@ -23,3 +23,4 @@ pub mod protocol;
 /// into [`protocol`] to decode. See [`net::tcp`], [`net::udp`].
 #[cfg(feature = "net")]
 pub mod net;
+pub mod pipeline;
