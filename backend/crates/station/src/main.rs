@@ -11,3 +11,7 @@ fn main() {
     let _greeting = software_core::hello_world::greet(&name);
     tracing::info!("demo finalizada");
 }
+
+mod http;
+mod vehicle;
+mod websocket;
