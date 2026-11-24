@@ -283,4 +283,10 @@ mod tests {
 
         for _ in 0..5 {
             let msg = sub.recv().await.unwrap();
-            assert_eq!(msg
+            assert_eq!(msg.board, BoardId(5));
+        }
+
+        drop(reporter);
+        pipeline.handle.await.unwrap();
+    }
+}
