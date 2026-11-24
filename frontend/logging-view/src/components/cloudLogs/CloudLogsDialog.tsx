@@ -17,6 +17,8 @@ import {
   Textarea,
 } from "@hyperloopupv/frontend-kit/components";
 import {
+  AlertCircle,
+  CheckCircle2,
   Database,
   FileDown,
   FolderOpen,
@@ -54,20 +56,34 @@ const phases = {
   extracting: "Extracting session…",
 };
 
+const noticeTones = {
+  info: "bg-muted/40 text-muted-foreground",
+  success:
+    "border-green-600/30 bg-green-600/10 text-green-700 dark:text-green-400",
+  // The theme's dark `--destructive` is too dim for text on a dark background.
+  error: "border-red-600/30 bg-red-600/10 text-red-700 dark:text-red-400",
+};
+
+/** Inline feedback: grey for hints, green when an operation worked, red when it failed. */
 function Notice({
   children,
   error = false,
+  success = false,
 }: {
   children: React.ReactNode;
   error?: boolean;
+  success?: boolean;
 }) {
+  const tone = error ? "error" : success ? "success" : "info";
+  const Icon = error ? AlertCircle : success ? CheckCircle2 : null;
   return (
-    <p
+    <div
       role={error ? "alert" : "status"}
-      className={`rounded-md border px-3 py-2 text-xs ${error ? "border-destructive/30 bg-destructive/5 text-destructive" : "bg-muted/40 text-muted-foreground"}`}
+      className={`flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${noticeTones[tone]}`}
     >
-      {children}
-    </p>
+      {Icon && <Icon aria-hidden className="mt-px size-3.5 shrink-0" />}
+      <p className="min-w-0 break-words">{children}</p>
+    </div>
   );
 }
 
@@ -157,7 +173,7 @@ function CredentialsPanel({
         </p>
       </div>
       {error && <Notice error>{error}</Notice>}
-      {message && <Notice>{message}</Notice>}
+      {message && <Notice success>{message}</Notice>}
       <div className="flex flex-wrap gap-2">
         <Button
           type="submit"
@@ -894,7 +910,7 @@ export default function CloudLogsDialog() {
               {(error || failure) && (
                 <Notice error>{error || failure?.message}</Notice>
               )}
-              {message && <Notice>{message}</Notice>}
+              {message && <Notice success>{message}</Notice>}
             </>
           )}
         </DialogContent>
