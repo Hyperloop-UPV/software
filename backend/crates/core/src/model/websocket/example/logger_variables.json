@@ -1,0 +1,8 @@
+{
+  "topic": "logger/variables",
+  "payload": [
+    "temperature_1",
+    "contactor_closed",
+    "state"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "topic": "message/update",
+  "payload": {
+    "kind": "info",
+    "payload": "Order Sent",
+    "board": "LCU",
+    "name": "1001",
+    "timestamp": {
+      "counter": 0,
+      "second": 5,
+      "minute": 30,
+      "hour": 12,
+      "day": 24,
+      "month": 11,
+      "year": 2026
+    }
+  }
+}

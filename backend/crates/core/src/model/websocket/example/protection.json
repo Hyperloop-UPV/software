@@ -1,0 +1,13 @@
+{
+  "topic": "protection/update",
+  "payload": {
+    "id": 11192,
+    "value": 105.5,
+    "timestamp": {
+      "hour": 12,
+      "minute": 30,
+      "second": 6,
+      "subsecond": 0
+    }
+  }
+}

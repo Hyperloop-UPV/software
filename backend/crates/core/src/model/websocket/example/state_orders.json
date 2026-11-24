@@ -1,0 +1,10 @@
+{
+  "topic": "order/stateOrders",
+  "payload": {
+    "LCU": [
+      1001,
+      1002
+    ],
+    "HVBMS": []
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "topic": "connection/update",
+  "payload": {
+    "LCU": {
+      "name": "LCU",
+      "isConnected": true
+    },
+    "HVBMS": {
+      "name": "HVBMS",
+      "isConnected": false
+    }
+  }
+}
