@@ -12,8 +12,8 @@ mod protection;
 mod serialize;
 
 pub use connection::{Connection, ConnectionUpdate};
-pub use data::{DataPacketUpdate, DataUpdate, MeasurementUpdate};
-pub use message::{MessageKind, MessagePayload, MessageTimestamp, MessageUpdate};
+pub use data::{DataPacketUpdate, DataUpdate};
+pub use message::{MessageUpdate};
 pub use order::{OrderField, OrderSend, StateOrdersUpdate};
 pub use protection::{ProtectionPayload, ProtectionUpdate};
 

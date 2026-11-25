@@ -44,8 +44,7 @@ let payload_json = serde_json::to_string(&protection)?;
 
 Published structures implement `serde::Serialize`; `OrderSend` and `OrderField`
 implement `serde::Deserialize`. The logger aliases use the primitive types'
-Serde implementations. All payload types are re-exported from
-`crate::websocket::payload` within station.
+Serde implementations. The payload module is internal to the station library.
 
 Deserializing an order checks its JSON structure. Parameter types, ranges and
 their correspondence with the ADJ must be validated by the application before

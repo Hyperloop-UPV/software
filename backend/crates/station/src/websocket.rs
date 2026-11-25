@@ -41,7 +41,7 @@ pub(crate) enum LoggerCommand {
 
 /// Destinations for requests received over WebSocket.
 #[derive(Debug, Clone, Default)]
-pub(crate) struct Commands {
+pub struct Commands {
     /// Validates frontend orders before queuing them for the vehicle.
     pub(crate) orders: Option<OrderForwarder>,
     /// Queues recording and variable selection requests for the logger.
@@ -95,7 +95,7 @@ pub struct WsMessage {
 
 /// Runs one task per upgraded socket so a slow client stays isolated.
 /// Closing the HTTP handoff channel ends socket intake. Existing sessions end independently.
-pub(crate) async fn run(
+pub async fn run(
     mut connections: mpsc::Receiver<WebSocket>,
     broker: BrokerClient,
     commands: Commands,

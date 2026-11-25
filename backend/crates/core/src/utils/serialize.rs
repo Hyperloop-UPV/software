@@ -1,6 +1,4 @@
-use crate::model::Value;
 use crate::model::{AdjId, BoardId, NumericKind, ProtectionKind, Severity};
-use serde::{Deserialize, Deserializer};
 use serde::{Serialize, Serializer};
 
 #[cfg(feature = "http")]

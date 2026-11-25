@@ -12,6 +12,3 @@ fn main() {
     tracing::info!("demo finalizada");
 }
 
-mod http;
-mod vehicle;
-mod websocket;

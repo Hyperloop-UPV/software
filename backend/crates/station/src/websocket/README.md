@@ -45,10 +45,14 @@ Pending telemetry is flushed when the broker finishes processing its input.
 The publisher supplies packet counts, cycle times, measurement values and
 averages; the broker preserves them as received.
 
-The station binary currently runs a greeting demo. To expose `/backend/ws`,
-bind a listener and call `http::serve` with the sender of a bounded socket
-channel. Start `Broker::run` and pass the channel receiver, a `BrokerClient`,
-the command destinations, and a heartbeat timeout to `websocket::run`.
+The station binary currently runs a greeting demo. To expose `/backend/ws`
+from a caller, bind a listener and pass it and the sender of a bounded socket
+channel to `station::http::serve`. Create the broker and client with
+`station::websocket::broker::Broker::new()` and start `broker.run()` as a Tokio task.
+Pass the socket receiver, the `BrokerClient`, the command destinations, and a
+heartbeat timeout to `station::websocket::run`.
+`Commands::default()` leaves the order and logger destinations unset.
+
 Each socket has independent reading and writing futures, coordinated by
 `handler.rs`. Either future finishing closes the session.
 
