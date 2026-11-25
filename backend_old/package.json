@@ -1,0 +1,13 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Hyperloop UPV Team",
+  "license": "MIT",
+  "scripts": {
+    "dev": "go run ./cmd --config ./cmd/dev-config.toml",
+    "dev:main": "go run ./cmd --config ./cmd/config.toml",
+    "build": "go build -o bin/backend ./cmd",
+    "build:ci": "go build"
+  }
+}

@@ -1,0 +1,34 @@
+[
+    {
+        "id": "target",
+        "name": "target",
+        "type": "enum",
+        "enumValues": [
+            "VCU",
+            "HVBMS",
+            "LVBMS",
+            "PCU",
+            "LCU"
+        ]
+    },
+    {
+    "id": "general_state_machine",
+    "name": "General State Machine",
+    "type": "enum",
+    "enumValues": [
+      "Connecting",
+      "Operational",
+      "Fault"
+    ]
+  },
+  {
+    "id": "operational_state_machine",
+    "name": "Operational state machine",
+    "type": "enum",
+    "enumValues": [
+      "Idle",
+      "Flashing"
+    ]
+  }
+
+]
