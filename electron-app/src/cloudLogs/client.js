@@ -1,16 +1,68 @@
+/**
+ * @module cloudLogs
+ * @description HTTP client and network transfer operations for the Cloud Logs service.
+ * Handles authentication, listing, tag autocomplete, and upload/download streams.
+ */
+
 import { createReadStream, createWriteStream, openAsBlob } from "node:fs";
 import { stat, unlink } from "node:fs/promises";
 import path from "node:path";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { readConfig } from "../config/configInstance.js";
 
 const DEFAULT_BASE_URL = "https://cloud-logs.hyperloopupv.com/api/v1";
 const DEFAULT_MAX_BYTES = 4 * 1024 * 1024 * 1024; // 4 GiB
+const TAG_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+let tagCache = {
+  timestamp: 0,
+  tags: [],
+  key: "",
+};
 
 /**
- * Normalizes an API base URL without trailing slashes.
- * @param {string} raw
- * @returns {string}
+ * Clears the in-memory cache for tag suggestions.
+ */
+export function clearTagCache() {
+  tagCache = {
+    timestamp: 0,
+    tags: [],
+    key: "",
+  };
+}
+
+/**
+ * Merges an optional caller AbortSignal with a timeout signal (default 15,000 ms).
+ * @param {AbortSignal} [callerSignal] - Optional caller-provided signal.
+ * @param {number} [timeoutMs=15000] - Timeout duration in milliseconds.
+ * @returns {AbortSignal} Merged abort signal that aborts when either the timeout fires or the caller aborts.
+ */
+function createTimeoutSignal(callerSignal, timeoutMs = 15000) {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  if (!callerSignal) return timeoutSignal;
+  if (typeof AbortSignal.any === "function") {
+    return AbortSignal.any([callerSignal, timeoutSignal]);
+  }
+  const controller = new AbortController();
+  const onAbort = () =>
+    controller.abort(callerSignal.reason || timeoutSignal.reason);
+  if (callerSignal.aborted || timeoutSignal.aborted) {
+    controller.abort(
+      callerSignal.aborted ? callerSignal.reason : timeoutSignal.reason,
+    );
+    return controller.signal;
+  }
+  callerSignal.addEventListener("abort", onAbort, { once: true });
+  timeoutSignal.addEventListener("abort", onAbort, { once: true });
+  return controller.signal;
+}
+
+/**
+ * Normalizes the Cloud Logs API base URL (HTTP/HTTPS only, no trailing or duplicate path slashes).
+ * @param {string} [raw] - The raw URL string to normalize.
+ * @returns {string} The normalized base URL.
+ * @throws {Error} If the URL is invalid or uses an unsupported protocol.
  */
 export function normalizeApiUrl(raw) {
   if (
@@ -46,8 +98,9 @@ export function normalizeApiUrl(raw) {
 }
 
 /**
- * Resolves the Cloud Logs API base URL from env, config or default.
- * @returns {Promise<string>}
+ * Resolves the Cloud Logs API base URL from environment, configuration, or default fallback.
+ * Precedence: env var CLOUD_LOGS_API_URL > config file > DEFAULT_BASE_URL.
+ * @returns {Promise<string>} The resolved and normalized API base URL.
  */
 export async function getBaseUrl() {
   let raw = process.env.CLOUD_LOGS_API_URL;
@@ -63,9 +116,9 @@ export async function getBaseUrl() {
 }
 
 /**
- * Converts a logger date string (e.g. "YYYY-MM-DDTHH-mm-ss") to ISO 8601 "YYYY-MM-DDTHH:mm:ssZ".
- * @param {string|undefined} dateStr
- * @returns {string|undefined}
+ * Converts filesystem-safe date strings (e.g. YYYY-MM-DDTHH-mm-ss) to ISO 8601 UTC.
+ * @param {string} [dateStr] - The raw date string to convert.
+ * @returns {string | undefined} The formatted ISO 8601 string, or undefined if input is invalid.
  */
 export function convertDateToIso(dateStr) {
   if (!dateStr || typeof dateStr !== "string") return undefined;
@@ -74,9 +127,10 @@ export function convertDateToIso(dateStr) {
   );
   if (match) {
     const [, y, m, d, h, min, s] = match;
-    const pad = (v) => v.padStart(2, "0");
+    const pad = (v) => String(v).padStart(2, "0");
     return `${y}-${pad(m)}-${pad(d)}T${pad(h)}:${pad(min)}:${pad(s)}Z`;
   }
+  // Assume UTC if timezone is omitted
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?$/.test(dateStr)) {
     return dateStr.endsWith("Z") ? dateStr : `${dateStr}Z`;
   }
@@ -84,9 +138,11 @@ export function convertDateToIso(dateStr) {
 }
 
 /**
- * Returns auth headers for API requests. Never includes undefined or empty values.
- * @param {{apiKey?: string, user?: string}} [credentials]
- * @returns {Record<string, string>}
+ * Constructs authentication headers (Bearer token, X-API-Key, and optional X-User).
+ * @param {Object} [credentials] - Credentials object.
+ * @param {string} [credentials.apiKey] - The API key / bearer token.
+ * @param {string} [credentials.user] - Optional username.
+ * @returns {Record<string, string>} Headers object for HTTP requests.
  */
 export function getAuthHeaders(credentials) {
   const headers = {};
@@ -101,14 +157,16 @@ export function getAuthHeaders(credentials) {
 }
 
 /**
- * Sanitizes strings, error messages, and stacks to ensure no API keys or tokens leak.
- * @param {string} text
- * @param {string} [apiKey]
- * @returns {string}
+ * Redacts secrets (API keys, Bearer tokens, query parameters) from a string
+ * to prevent leaking credentials in UI messages or logs.
+ * @param {string} text - The input string to sanitize.
+ * @param {string} [apiKey] - The active API key to specifically redact.
+ * @returns {string} The sanitized text with sensitive tokens replaced.
  */
 export function sanitizeMessage(text, apiKey) {
   if (typeof text !== "string") return String(text);
   let result = text;
+  // Only redact keys >= 4 chars to prevent replacing trivial substrings
   if (typeof apiKey === "string" && apiKey.trim().length >= 4) {
     result = result.replaceAll(apiKey, "[REDACTED]");
     if (apiKey.trim() !== apiKey) {
@@ -128,10 +186,10 @@ export function sanitizeMessage(text, apiKey) {
 }
 
 /**
- * Sanitizes an error to prevent leaking secrets.
- * @param {Error|any} err
- * @param {string} [apiKey]
- * @returns {Error}
+ * Redacts secrets from an Error message and stack trace, preserving error code and HTTP status.
+ * @param {Error | unknown} err - The error object to sanitize.
+ * @param {string} [apiKey] - The active API key to redact.
+ * @returns {Error} A new sanitized Error instance.
  */
 export function sanitizeError(err, apiKey) {
   if (!err) return new Error("Unknown error");
@@ -146,24 +204,61 @@ export function sanitizeError(err, apiKey) {
   return sanitized;
 }
 
+/**
+ * Extracts error details from an HTTP error response and throws a sanitized Error.
+ * @param {Response} response - The Fetch Response object.
+ * @param {Object} [credentials] - Credentials containing the apiKey to redact.
+ * @param {string} [credentials.apiKey] - The API key.
+ * @returns {Promise<never>}
+ * @throws {Error} Sanitized error with HTTP status and detail message.
+ */
 export async function handleResponseError(response, credentials) {
-  let detail = "";
+  let raw = "";
   try {
-    const data = await response.json();
-    if (typeof data?.detail === "string") {
-      detail = data.detail;
-    } else if (data?.detail != null) {
-      detail = JSON.stringify(data.detail);
-    } else {
-      detail = data?.message || JSON.stringify(data);
+    if (typeof response.text === "function") {
+      raw = await response.text();
+    } else if (typeof response.json === "function") {
+      const parsed = await response.json();
+      raw = typeof parsed === "string" ? parsed : JSON.stringify(parsed);
     }
   } catch {
+    // If reading body fails, fall back to statusText
+  }
+
+  let detail = "";
+  if (typeof raw === "string" && raw.trim().length > 0) {
     try {
-      detail = await response.text();
+      const data = JSON.parse(raw);
+      if (typeof data?.detail === "string" && data.detail.trim().length > 0) {
+        detail = data.detail;
+      } else if (data?.detail != null) {
+        detail = JSON.stringify(data.detail);
+      } else if (
+        typeof data?.message === "string" &&
+        data.message.trim().length > 0
+      ) {
+        detail = data.message;
+      } else if (
+        typeof data?.error === "string" &&
+        data.error.trim().length > 0
+      ) {
+        detail = data.error;
+      } else if (data != null && typeof data === "object") {
+        detail = JSON.stringify(data);
+      }
     } catch {
-      detail = response.statusText;
+      detail = raw
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 300);
     }
   }
+
+  if (!detail) {
+    detail = response.statusText || "";
+  }
+
   const err = new Error(
     `Request failed with status ${response.status}: ${detail}`,
   );
@@ -172,10 +267,16 @@ export async function handleResponseError(response, credentials) {
 }
 
 /**
- * @param {{credentials?: {apiKey?: string, user?: string}, cursor?: string}} params
- * @returns {Promise<{items: Array<{id:string,user:string,notes:string,tags:string[],date:string}>,nextCursor?:string}>}
+ * Fetches paginated log records from the Cloud Logs API and normalizes schema fields for the UI.
+ * @param {Object} [options] - Request options.
+ * @param {Object} [options.credentials] - User credentials.
+ * @param {string} [options.credentials.apiKey] - The API key.
+ * @param {string} [options.credentials.user] - The username.
+ * @param {string} [options.cursor] - Pagination cursor or page number.
+ * @returns {Promise<{items: Array<Object>, nextCursor?: string}>} Paginated log items and next cursor if available.
+ * @throws {Error} If the request fails or returns an error status.
  */
-export async function listLogs({ credentials, cursor } = {}) {
+export async function listLogs({ credentials, cursor, signal } = {}) {
   try {
     const baseUrl = await getBaseUrl();
     const page = Math.max(1, parseInt(cursor, 10) || 1);
@@ -187,6 +288,7 @@ export async function listLogs({ credentials, cursor } = {}) {
         ...getAuthHeaders(credentials),
         Accept: "application/json",
       },
+      signal: createTimeoutSignal(signal),
     });
 
     if (!res.ok) {
@@ -195,6 +297,7 @@ export async function listLogs({ credentials, cursor } = {}) {
 
     const data = await res.json();
     const rawItems = Array.isArray(data?.items) ? data.items : [];
+    // Normalize heterogeneous schema fields from different backend service versions
     const items = rawItems.map((item) => ({
       id: String(item.id),
       user: item.creator || item.user || item.clientMetadata?.clientUser || "",
@@ -223,7 +326,8 @@ export async function listLogs({ credentials, cursor } = {}) {
     const total =
       typeof data?.total === "number" ? data.total : rawItems.length;
     const result = { items };
-    if (page * pageSize < total) {
+    const effectivePageSize = Number(data?.pageSize) || pageSize;
+    if (page * effectivePageSize < total) {
       result.nextCursor = String(page + 1);
     }
     return result;
@@ -233,27 +337,54 @@ export async function listLogs({ credentials, cursor } = {}) {
 }
 
 /**
- * @param {{credentials?: {apiKey?: string, user?: string}, query?: string}} params
- * @returns {Promise<string[]>}
+ * Retrieves tag suggestions from the Cloud Logs API, optionally filtered by a search query.
+ * @param {Object} [options] - Request options.
+ * @param {Object} [options.credentials] - User credentials.
+ * @param {string} [options.credentials.apiKey] - The API key.
+ * @param {string} [options.credentials.user] - The username.
+ * @param {string} [options.query] - Optional query substring to filter tags.
+ * @param {AbortSignal} [options.signal] - Optional caller AbortSignal.
+ * @returns {Promise<string[]>} List of matching tag names.
+ * @throws {Error} If the request fails.
  */
-export async function autocompleteTags({ credentials, query } = {}) {
+export async function autocompleteTags({ credentials, query, signal } = {}) {
   try {
     const baseUrl = await getBaseUrl();
-    const url = `${baseUrl}/logs/tags`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        ...getAuthHeaders(credentials),
-        Accept: "application/json",
-      },
-    });
+    const cacheKey = `${baseUrl}:${credentials?.apiKey || ""}`;
+    const now = Date.now();
+    let allTags;
 
-    if (!res.ok) {
-      await handleResponseError(res, credentials);
+    if (
+      tagCache.key === cacheKey &&
+      now - tagCache.timestamp < TAG_CACHE_TTL_MS &&
+      Array.isArray(tagCache.tags)
+    ) {
+      allTags = tagCache.tags;
+    } else {
+      const url = `${baseUrl}/logs/tags`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          ...getAuthHeaders(credentials),
+          Accept: "application/json",
+        },
+        signal: createTimeoutSignal(signal),
+      });
+
+      if (!res.ok) {
+        await handleResponseError(res, credentials);
+      }
+
+      const data = await res.json();
+      allTags = Array.isArray(data) ? data : [];
+      tagCache = {
+        timestamp: now,
+        tags: allTags,
+        key: cacheKey,
+      };
     }
 
-    const data = await res.json();
-    let tags = Array.isArray(data) ? data : [];
+    let tags = allTags;
     if (typeof query === "string" && query.trim()) {
       const q = query.trim().toLowerCase();
       tags = tags.filter(
@@ -267,13 +398,28 @@ export async function autocompleteTags({ credentials, query } = {}) {
 }
 
 /**
- * @param {{credentials?: {apiKey?: string, user?: string}, archivePath: string, metadata: {user?: string, notes?: string, tags?: string[], date?: string}}} params
- * @returns {Promise<{id:string,user:string,notes:string,tags:string[],date:string}>}
+ * Uploads a log archive directly to cloud storage using the initiate -> upload -> complete workflow.
+ * @param {Object} [options] - Upload options.
+ * @param {Object} [options.credentials] - User credentials.
+ * @param {string} [options.credentials.apiKey] - The API key.
+ * @param {string} [options.credentials.user] - The username.
+ * @param {string} options.archivePath - Absolute path to the zip archive file.
+ * @param {Object} [options.metadata] - Optional session metadata.
+ * @param {string} [options.metadata.fileName] - Name of the archive file.
+ * @param {string} [options.metadata.title] - Human-readable session title.
+ * @param {string} [options.metadata.logDate] - Session date string.
+ * @param {string} [options.metadata.date] - Alternate session date string.
+ * @param {string} [options.metadata.user] - Owner username.
+ * @param {string} [options.metadata.notes] - Notes or description.
+ * @param {string[]} [options.metadata.tags] - Array of tags.
+ * @returns {Promise<Object>} Upload summary containing session ID and metadata.
+ * @throws {Error} If initiation, upload stream, or completion fails.
  */
 export async function uploadLog({
   credentials,
   archivePath,
   metadata = {},
+  signal,
 } = {}) {
   let sessionId = null;
   let baseUrl;
@@ -292,12 +438,23 @@ export async function uploadLog({
       clientMetadata.title = metadata.title;
     }
 
+    const note =
+      typeof metadata.notes === "string" && metadata.notes.trim()
+        ? metadata.notes.trim()
+        : null;
+
+    const tags = Array.isArray(metadata.tags)
+      ? metadata.tags
+          .filter((t) => typeof t === "string" && t.trim().length > 0)
+          .map((t) => t.trim())
+      : [];
+
     const initiateBody = {
       fileName,
       fileSize,
       logDate,
-      tags: Array.isArray(metadata.tags) ? metadata.tags : [],
-      note: metadata.notes,
+      tags,
+      note,
       user,
       clientMetadata,
     };
@@ -310,6 +467,7 @@ export async function uploadLog({
         Accept: "application/json",
       },
       body: JSON.stringify(initiateBody),
+      signal: createTimeoutSignal(signal),
     });
 
     if (!initiateRes.ok) {
@@ -327,8 +485,7 @@ export async function uploadLog({
 
     let driveFileId;
     try {
-      // Step 2: PUT binary stream of archivePath to uploadUrl
-      // DO NOT send Authorization or X-API-Key headers to uploadUrl
+      // Stream binary directly to storage; omit auth headers to avoid credential leakage and signature errors
       let body;
       if (typeof openAsBlob === "function") {
         body = await openAsBlob(archivePath);
@@ -342,7 +499,8 @@ export async function uploadLog({
           "Content-Type": "application/zip",
         },
         body,
-        duplex: "half",
+        duplex: "half", // Required by Fetch API for streaming request bodies
+        signal,
       });
 
       if (!putRes.ok) {
@@ -363,14 +521,13 @@ export async function uploadLog({
           driveFileId = putData.id;
         }
       } catch {
-        // Body may not be JSON
+        // Storage responses are not guaranteed to be JSON (e.g. empty 200 OK)
       }
     } catch (putErr) {
       await attemptAbort(baseUrl, sessionId, credentials, putErr.message);
       throw putErr;
     }
 
-    // Step 3: POST to /logs/{id}/complete with JSON body { driveFileId }
     try {
       const completeBody = driveFileId ? { driveFileId } : {};
       const completeRes = await fetch(
@@ -383,6 +540,7 @@ export async function uploadLog({
             Accept: "application/json",
           },
           body: JSON.stringify(completeBody),
+          signal: createTimeoutSignal(signal),
         },
       );
 
@@ -408,6 +566,14 @@ export async function uploadLog({
   }
 }
 
+/**
+ * Sends a best-effort abort request to the API server; suppresses errors to preserve the root cause.
+ * @param {string} baseUrl - The API base URL.
+ * @param {string} sessionId - The upload session identifier.
+ * @param {Object} credentials - User credentials for authentication.
+ * @param {string} [reason] - Abort reason description.
+ * @returns {Promise<void>}
+ */
 async function attemptAbort(baseUrl, sessionId, credentials, reason) {
   if (!sessionId || !baseUrl) return;
   try {
@@ -418,6 +584,7 @@ async function attemptAbort(baseUrl, sessionId, credentials, reason) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ reason: reason || "Upload failed" }),
+      signal: createTimeoutSignal(undefined, 5000),
     });
   } catch {
     // Suppress abort failures to preserve the primary error
@@ -425,24 +592,44 @@ async function attemptAbort(baseUrl, sessionId, credentials, reason) {
 }
 
 /**
- * @param {{credentials?: {apiKey?: string, user?: string}, id: string, destination: string, maxBytes?: number}} params
+ * Downloads a log archive, streaming directly to disk while handling redirects and size limits.
+ * @param {Object} [options] - Download options.
+ * @param {Object} [options.credentials] - User credentials.
+ * @param {string} [options.credentials.apiKey] - The API key.
+ * @param {string} [options.credentials.user] - The username.
+ * @param {string} options.id - The Cloud Log ID to download.
+ * @param {string} options.destination - Absolute destination file path for the archive.
+ * @param {number} [options.maxBytes] - Maximum allowed byte size (defaults to 4 GiB).
+ * @param {AbortSignal} [options.signal] - Optional caller AbortSignal.
  * @returns {Promise<void>}
+ * @throws {Error} If the download fails, redirect is invalid, or size limit is exceeded.
  */
 export async function downloadLog({
   credentials,
   id,
   destination,
   maxBytes,
+  signal,
 } = {}) {
   const limit = typeof maxBytes === "number" ? maxBytes : DEFAULT_MAX_BYTES;
   const abortController = new AbortController();
-  let fileStream = null;
+
+  if (signal) {
+    if (signal.aborted) {
+      abortController.abort(signal.reason);
+    } else {
+      signal.addEventListener(
+        "abort",
+        () => abortController.abort(signal.reason),
+        { once: true },
+      );
+    }
+  }
 
   try {
     const baseUrl = await getBaseUrl();
     const downloadEndpoint = `${baseUrl}/logs/${encodeURIComponent(id)}/download`;
 
-    // Step 1: GET /logs/{id}/download with redirect: 'manual' and auth headers
     const initialRes = await fetch(downloadEndpoint, {
       method: "GET",
       headers: getAuthHeaders(credentials),
@@ -453,6 +640,7 @@ export async function downloadLog({
     let downloadRes;
     const status = initialRes.status;
 
+    // Strip auth headers before redirect to external storage to prevent token leakage
     if ([301, 302, 303, 307, 308].includes(status)) {
       const location = initialRes.headers.get("location");
       if (!location) {
@@ -461,7 +649,6 @@ export async function downloadLog({
         );
       }
       const targetUrl = new URL(location, downloadEndpoint).href;
-      // Step 2: Fetch download URL WITHOUT auth headers
       downloadRes = await fetch(targetUrl, {
         method: "GET",
         signal: abortController.signal,
@@ -480,63 +667,41 @@ export async function downloadLog({
       throw new Error("Download response body is empty");
     }
 
-    fileStream = createWriteStream(destination);
-    fileStream.on("error", () => {}); // Avoid unhandled error crash
-
     let totalBytes = 0;
-    let exceeded = false;
-
-    for await (const chunk of downloadRes.body) {
-      const chunkLength = chunk.byteLength ?? chunk.length ?? 0;
-      totalBytes += chunkLength;
-      if (totalBytes > limit) {
-        exceeded = true;
-        abortController.abort();
-        break;
-      }
-      if (!fileStream.write(chunk)) {
-        await new Promise((resolve, reject) => {
-          fileStream.once("drain", resolve);
-          fileStream.once("error", reject);
-        });
-      }
-    }
-
-    if (exceeded) {
-      fileStream.destroy();
-      await new Promise((resolve) => {
-        if (fileStream.closed) return resolve();
-        fileStream.once("close", resolve);
-      });
-      try {
-        await unlink(destination);
-      } catch {
-        // Best-effort cleanup
-      }
-      throw new Error(
-        `Download exceeded maximum allowed size of ${limit} bytes`,
-      );
-    }
-
-    // Wait for write stream to close before resolving
-    await new Promise((resolve, reject) => {
-      if (fileStream.closed) return resolve();
-      fileStream.on("error", reject);
-      fileStream.on("close", resolve);
-      fileStream.end();
+    const limitTransform = new Transform({
+      transform(chunk, _encoding, callback) {
+        const chunkLength = chunk.byteLength ?? chunk.length ?? 0;
+        totalBytes += chunkLength;
+        if (totalBytes > limit) {
+          try {
+            abortController.abort();
+          } catch {
+            // Ignore abort error
+          }
+          callback(
+            new Error(
+              `Download exceeded maximum allowed size of ${limit} bytes`,
+            ),
+          );
+          return;
+        }
+        callback(null, chunk);
+      },
     });
+
+    const readable =
+      typeof downloadRes.body.pipe === "function"
+        ? downloadRes.body
+        : Readable.fromWeb(downloadRes.body);
+
+    const fileStream = createWriteStream(destination);
+
+    await pipeline(readable, limitTransform, fileStream);
   } catch (err) {
     try {
       abortController.abort();
     } catch {
       // Ignore abort errors
-    }
-    if (fileStream) {
-      fileStream.destroy();
-      await new Promise((resolve) => {
-        if (fileStream.closed) return resolve();
-        fileStream.once("close", resolve);
-      });
     }
     try {
       await unlink(destination);

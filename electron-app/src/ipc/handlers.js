@@ -5,6 +5,8 @@
  * - View management
  * - Configuration management
  * - Folder selection dialogs
+ * - Session file management
+ * - Cloud logs integration
  */
 
 import { app, dialog, ipcMain, shell } from "electron";
@@ -39,6 +41,7 @@ import {
  */
 function setupIpcHandlers() {
   setupCloudLogsHandlers();
+
   /**
    * @event get-current-view
    * @description Returns the identifier of the currently loaded view.
@@ -65,6 +68,11 @@ function setupIpcHandlers() {
     }
   });
 
+  /**
+   * @event get-app-version
+   * @description Returns the application version string from package metadata.
+   * @returns {string} The application version.
+   */
   ipcMain.handle("get-app-version", () => app.getVersion());
 
   /**
@@ -102,6 +110,11 @@ function setupIpcHandlers() {
     }
   });
 
+  /**
+   * @event get-available-views
+   * @description Returns the list of views available in the current build.
+   * @returns {Array<{mode: string, label: string}>} Available views list.
+   */
   ipcMain.handle("get-available-views", () => {
     const ALL_VIEWS = [
       { mode: "testing", label: "Testing View" },
@@ -118,9 +131,9 @@ function setupIpcHandlers() {
 
   /**
    * @event switch-view
-   * @description Switches the main window to the specified view.
+   * @description Switches to the specified view.
    * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
-   * @param {string} view - The name of the view to switch to (e.g., "ethernet-view", "control-station").
+   * @param {string} view - The name of the view to switch to.
    * @param {Record<string, string>} [query] - Optional query params passed through to the
    *   loaded view's URL (e.g. `{ commit: hash }` so adj-view can auto-load a commit).
    * @returns {string} The view name that was loaded.
@@ -240,8 +253,12 @@ function setupIpcHandlers() {
   // browser File objects, so reopening a recent session from its path needs
   // the main process to list and read it.
 
-  // Guard: these two read arbitrary paths, so only the window that actually
-  // hosts the views may call them (same spirit as the About window's check).
+  /**
+   * Restricts session file IPC access strictly to the main window webContents.
+   * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
+   * @throws {Error} If the sender is not the main window.
+   * @returns {void}
+   */
   const assertSessionSender = (event) => {
     const mainWindow = getMainWindow();
     if (!mainWindow || event.sender !== mainWindow.webContents) {
@@ -249,20 +266,27 @@ function setupIpcHandlers() {
     }
   };
 
-  // A recording is identified by logger_settings.json. Walk its contents so
-  // future logger subfolders are preserved and their CSVs can be read locally.
-  const SESSION_FILE_LIMIT = 4000;
+  // A recording is identified by logger_settings.json. Walk its contents up to 10,000 files
+  // and depth 8, matching cloud-logs session limits, so future logger subfolders can be read.
+  const SESSION_FILE_LIMIT = 10000;
+  const MAX_SESSION_DEPTH = 8;
 
+  /**
+   * Recursively collects file entries within a session directory up to SESSION_FILE_LIMIT and MAX_SESSION_DEPTH.
+   * @param {string} dir - The session root directory path.
+   * @returns {Promise<string[]>} Array of slash-separated relative file paths.
+   */
   const listSessionEntries = async (dir) => {
     const entries = [];
-    const walk = async (relative = "") => {
+    const walk = async (relative = "", depth = 0) => {
+      if (depth > MAX_SESSION_DEPTH) return;
       const children = await readdir(join(dir, relative), {
         withFileTypes: true,
       });
       for (const child of children) {
         if (child.isSymbolicLink()) continue;
         const name = relative ? join(relative, child.name) : child.name;
-        if (child.isDirectory()) await walk(name);
+        if (child.isDirectory()) await walk(name, depth + 1);
         else if (child.isFile() && name !== "cloud-log.json")
           entries.push(name.split(sep).join("/"));
         if (entries.length >= SESSION_FILE_LIMIT) return;
@@ -297,6 +321,7 @@ function setupIpcHandlers() {
     }
     let folderName = basename(dir) || "Session";
     try {
+      // If cloud-log.json is present, use its title or archive filename instead of the raw directory name.
       const info = JSON.parse(
         await readFile(join(dir, "cloud-log.json"), "utf8"),
       );
@@ -337,6 +362,12 @@ function setupIpcHandlers() {
   // BLCU — only the file picker runs through IPC; all API calls go directly
   // from the renderer to http://localhost:8000.
 
+  /**
+   * @event blcu-select-file
+   * @async
+   * @description Opens a native file dialog to select a firmware file (.bin, .hex, .elf).
+   * @returns {Promise<string | null>} The selected file path, or null if canceled.
+   */
   ipcMain.handle("blcu-select-file", async () => {
     try {
       const mainWindow = getMainWindow();
@@ -352,6 +383,14 @@ function setupIpcHandlers() {
     }
   });
 
+  /**
+   * @event blcu-read-file
+   * @async
+   * @description Reads a firmware file from disk into a buffer.
+   * @param {import("electron").IpcMainInvokeEvent} _event - The IPC event object.
+   * @param {string} filePath - Absolute path to the firmware file.
+   * @returns {Promise<Buffer>} The file contents buffer.
+   */
   ipcMain.handle("blcu-read-file", async (_event, filePath) => {
     return await readFile(filePath);
   });
