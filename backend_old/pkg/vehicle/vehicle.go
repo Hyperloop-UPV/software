@@ -31,6 +31,7 @@ type Vehicle struct {
 	updateFactory *update_factory.UpdateFactory
 	idToBoardName map[abstraction.PacketId]string
 	ipToBoardId   map[string]abstraction.BoardId
+	ipToBoardName map[string]string
 	BlcuId        abstraction.BoardId
 
 	trace zerolog.Logger

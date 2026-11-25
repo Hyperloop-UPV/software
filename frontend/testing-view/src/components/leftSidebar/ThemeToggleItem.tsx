@@ -1,5 +1,5 @@
-import { SidebarMenuButton } from "@workspace/ui";
-import { SunMoon } from "@workspace/ui/icons";
+import { SidebarMenuButton } from "@hyperloopupv/frontend-kit";
+import { SunMoon } from "@hyperloopupv/frontend-kit/icons";
 import { useStore } from "../../store/store";
 
 const ThemeToggleItem = () => {

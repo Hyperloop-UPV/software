@@ -21,9 +21,7 @@ function EmptyState() {
         ))}
       </div>
 
-      {/* NOTE: the theme's --spacing-sm/md tokens hijack Tailwind's named
-          max-w-sm/md sizes (8px/16px!), so explicit rem values are required */}
-      <div className="w-full max-w-[24rem] text-center">
+      <div className="w-full max-w-sm text-center">
         <h2 className="text-foreground mb-2 text-xl font-semibold">No plots yet</h2>
         <p className="text-muted-foreground text-sm leading-relaxed">
           All session series are ready to plot — use the{" "}
@@ -32,7 +30,7 @@ function EmptyState() {
       </div>
 
       {/* Steps */}
-      <div className="border-border bg-card/60 flex w-full max-w-[28rem] items-start justify-around gap-2 rounded-xl border px-6 py-5 shadow-sm">
+      <div className="border-border bg-card/60 flex w-full max-w-md items-start justify-around gap-2 rounded-xl border px-6 py-5 shadow-sm">
         {[
           { step: "1", label: "Add plot",      desc: "Toolbar or Plots panel" },
           { step: "2", label: "Assign series", desc: "Any series, grouped by board" },

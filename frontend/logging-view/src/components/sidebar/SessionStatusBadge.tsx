@@ -1,9 +1,9 @@
 // Persistent green/yellow/red status pill shown in the sidebar for the currently
 // open session (logger settings / CSV / ADJ availability). See SessionStatus in
 // types/session.ts for the cascade this reflects.
-import { Badge } from "@workspace/ui/components";
-import { AlertTriangle } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { Badge } from "@hyperloopupv/frontend-kit/components";
+import { AlertTriangle } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import type { SessionStatus } from "../../types/session";
 import { adjWarningClass, sessionStatusStyles } from "./sessionStatusStyles";
 

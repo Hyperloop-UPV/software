@@ -3,6 +3,7 @@ package vehicle
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/HyperloopUPV-H8/h9-backend/pkg/abstraction"
@@ -82,8 +83,18 @@ func (vehicle *Vehicle) handlePacketNotification(notification transport.PacketNo
 		}
 
 	case *protection.Packet:
-		boardID := vehicle.ipToBoardId[strings.Split(notification.From, ":")[0]]
-		err := vehicle.broker.Push(message_topic.Push(p, vehicle.idToBoardName[p.Id()]))
+		ip, _, err := net.SplitHostPort(notification.From)
+		if err != nil {
+			ip = notification.From
+		}
+		boardName := vehicle.ipToBoardName[ip]
+		if boardName == "" {
+			boardName = vehicle.idToBoardName[p.Id()]
+		}
+		if boardName == "" {
+			boardName = ip
+		}
+		err = vehicle.broker.Push(message_topic.PushFromBoard(p, boardName))
 		if err != nil {
 			vehicle.trace.Error().Stack().Err(err).Msg("broker push")
 			return errors.Join(fmt.Errorf("update protection to frontend (%s protection with id %d and kind %d from %s to %s)", p.Severity(), p.Id(), p.Kind, notification.From, notification.To), err)
@@ -92,7 +103,7 @@ func (vehicle *Vehicle) handlePacketNotification(notification transport.PacketNo
 		// Log protection
 		err = vehicle.logger.PushRecord(&protection_logger.Record{
 			Packet:    p,
-			BoardId:   boardID,
+			BoardId:   vehicle.ipToBoardId[ip],
 			From:      notification.From,
 			To:        notification.To,
 			Timestamp: notification.Timestamp,
