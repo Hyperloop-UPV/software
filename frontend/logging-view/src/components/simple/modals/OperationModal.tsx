@@ -8,8 +8,8 @@ import {
   DialogTitle,
   Input,
   Label,
-} from "@workspace/ui/components";
-import { cn } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit/components";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 import { performOperation } from "../../../lib/plotStudio/operations";
 import { useStore } from "../../../store/store";

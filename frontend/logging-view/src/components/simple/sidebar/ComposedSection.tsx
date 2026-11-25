@@ -1,7 +1,7 @@
 // Composed Series: signals derived from session data — math operations
 // (A ∘ B) and expression transforms f(x) — managed in a single panel.
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components";
-import { Trash2 } from "@workspace/ui/icons";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@hyperloopupv/frontend-kit/components";
+import { Trash2 } from "@hyperloopupv/frontend-kit/icons";
 import { useState } from "react";
 import { useStore } from "../../../store/store";
 import OperationModal from "../modals/OperationModal";

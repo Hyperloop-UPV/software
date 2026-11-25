@@ -1,7 +1,7 @@
 // Sidebar toggle handle — click to open/close the sidebar.
-import { useSidebar } from "@workspace/ui/components";
-import { ChevronLeft, ChevronRight } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+import { useSidebar } from "@hyperloopupv/frontend-kit/components";
+import { ChevronLeft, ChevronRight } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 
 const SidebarToggleHandle = () => {

@@ -1,5 +1,5 @@
-import { SidebarMenuButton } from "@workspace/ui/components";
-import { Keyboard } from "@workspace/ui/icons";
+import { SidebarMenuButton } from "@hyperloopupv/frontend-kit/components";
+import { Keyboard } from "@hyperloopupv/frontend-kit/icons";
 
 interface ShortcutsItemProps {
   onShowShortcuts: () => void;

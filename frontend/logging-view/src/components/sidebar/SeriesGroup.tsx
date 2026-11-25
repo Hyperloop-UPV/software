@@ -43,9 +43,9 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@workspace/ui/components";
-import { ChevronRight, GripVertical, Layers, Plus } from "@workspace/ui/icons";
-import { cn, getTypeBadgeClass } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit/components";
+import { ChevronRight, GripVertical, Layers, Plus } from "@hyperloopupv/frontend-kit/icons";
+import { cn, getTypeBadgeClass } from "@hyperloopupv/frontend-kit/lib";
 import { useMemo, useRef, useState } from "react";
 import { useAssignSignalsToPlot } from "../simple/hooks/useStudioSignals";
 import type { PlotState } from "../../types/plotStudio";

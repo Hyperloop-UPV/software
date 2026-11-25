@@ -1,6 +1,6 @@
-import { Skeleton } from "@workspace/ui/components";
-import { Send } from "@workspace/ui/icons";
-import { useWebSocket } from "@workspace/ui/hooks";
+import { Skeleton } from "@hyperloopupv/frontend-kit/components";
+import { Send } from "@hyperloopupv/frontend-kit/icons";
+import { useWebSocket } from "@hyperloopupv/frontend-kit/hooks";
 import useOrdersCatalog from "../../../hooks/useOrdersCatalog";
 import { useStore } from "../../../store/store";
 import OrdersList from "../../Orders/components/OrdersList";

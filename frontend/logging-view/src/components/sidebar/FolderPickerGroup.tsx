@@ -9,7 +9,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-} from "@workspace/ui/components";
+} from "@hyperloopupv/frontend-kit/components";
 import {
   AlertTriangle,
   BookOpen,
@@ -18,8 +18,8 @@ import {
   GitCommit,
   Timer,
   X,
-} from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useCallback, useRef, useState } from "react";
 import { useStore } from "../../store/store";
 import type { DroppedFile } from "../../types/session";

@@ -1,4 +1,4 @@
-import { Separator, SidebarTrigger } from "@workspace/ui/components";
+import { Separator, SidebarTrigger } from "@hyperloopupv/frontend-kit/components";
 import { useLocation } from "react-router";
 import { BOARDS } from "../../constants/measurements";
 import { PAGES } from "../../constants/pages";

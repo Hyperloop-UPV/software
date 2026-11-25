@@ -8,11 +8,16 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap');
 
+    * {
+      box-sizing: border-box;
+    }
+
     html,
     body {
-      min-height: 100vh;
+      height: 100%;
       margin: 0;
       overflow: hidden;
+      background: transparent;
     }
 
     body {
@@ -21,7 +26,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #111;
+      box-sizing: border-box;
       color: #fff;
       padding: 16px;
     }
@@ -31,13 +36,39 @@
       background: #20274c;
       padding: clamp(22px, 3.5vw, 32px);
       border-radius: 24px;
-      width: min(660px, 100%);
-      max-width: 660px;
-      max-height: calc(100vh - 48px);
+      width: min(726px, 100%);
+      max-height: calc(100vh - 32px);
       text-align: center;
       box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
       border: 1px solid rgba(237, 238, 240, 0.08);
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      min-height: 0;
+      padding: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #edeef0;
+    }
+
+    .close-button:hover {
+      background: rgba(237, 238, 240, 0.15);
+      transform: none;
+    }
+
+    button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 3px;
     }
 
     .top-logo {
@@ -50,7 +81,7 @@
     .logo-background {
       position: absolute;
       left: 50%;
-      bottom: -14px;
+      bottom: 0;
       width: clamp(260px, 60vw, 380px);
       max-width: 90%;
       transform: translateX(-50%);
@@ -217,7 +248,7 @@
       }
 
       .logo-background {
-        bottom: -12px;
+        bottom: 0;
       }
 
       .button-grid {
@@ -233,6 +264,11 @@
 
 <body>
   <div class="card">
+    <button class="close-button" id="close-selector" type="button" aria-label="Close Control Station" title="Close Control Station">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="m6 6 12 12M18 6 6 18" />
+      </svg>
+    </button>
     <img src="src/Subsystem.png" alt="Departamento" class="logo-background" />
     <div class="top-logo">
       <img src="src/logo.svg" alt="Logo Hyperloop UPV" class="logo-main" />
@@ -254,11 +290,13 @@
     </div>
   </div>
   <script>
+    document.getElementById('close-selector').addEventListener('click', () => window.close());
+
     const sendMode = (mode) => {
       if (window.electronAPI && window.electronAPI.setInitialMode) {
-        window.electronAPI.setInitialMode(mode).catch(() => { }).finally(() => window.close());
+        window.electronAPI.setInitialMode(mode).catch(() => { });
       } else {
-        try { window.ipcRenderer && window.ipcRenderer.send('set-initial-mode', mode); window.close(); } catch (e) { }
+        try { window.ipcRenderer && window.ipcRenderer.send('mode-selected', mode); } catch (e) { }
       }
     };
 

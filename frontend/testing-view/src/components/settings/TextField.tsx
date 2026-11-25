@@ -1,5 +1,5 @@
-import { Input } from "@workspace/ui/components/shadcn/input";
-import { Label } from "@workspace/ui/components/shadcn/label";
+import { Input } from "@hyperloopupv/frontend-kit/components/shadcn/input";
+import { Label } from "@hyperloopupv/frontend-kit/components/shadcn/label";
 import type { FieldProps } from "../../types/common/settings";
 
 /**

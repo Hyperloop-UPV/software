@@ -1,5 +1,5 @@
-import { Button } from "@workspace/ui";
-import { RefreshCw, Terminal } from "@workspace/ui/icons";
+import { Button } from "@hyperloopupv/frontend-kit";
+import { RefreshCw, Terminal } from "@hyperloopupv/frontend-kit/icons";
 import { useEffect, useState } from "react";
 import errorGif from "../assets/error.gif";
 import { useStore } from "../store/store";

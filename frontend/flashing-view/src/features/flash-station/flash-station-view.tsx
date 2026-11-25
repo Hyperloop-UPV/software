@@ -1,8 +1,8 @@
-import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@workspace/ui/components";
-import { FileCode2, Loader2, SunMoon, Upload } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib/utils";
+import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@hyperloopupv/frontend-kit/components";
+import { FileCode2, Loader2, SunMoon, Upload } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import logo from "@workspace/ui/outreach/h11/h11-isotipo_black.svg";
+import logo from "@hyperloopupv/frontend-kit/outreach/h11/h11-isotipo_black.svg";
 import { BoardCard } from "./components/board-card";
 import { SectionCard } from "./components/section-card";
 import type { Board, BoardsResponse, GeneralState, OperationalState } from "./types";
