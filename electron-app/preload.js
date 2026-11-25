@@ -6,24 +6,28 @@
 
 const { contextBridge, ipcRenderer } = require("electron");
 
-/**
- * Exposes Electron APIs to the renderer process via contextBridge.
- * All methods use ipcRenderer.invoke for secure two-way communication with the main process.
- * @type {Object}
- * @property {function(): Promise<string>} getCurrentView - Gets the name of the currently loaded view.
- * @property {function(string): Promise<string>} switchView - Switches to a different view.
- * @property {function(Object): Promise<boolean>} saveConfig - Saves the configuration object.
- * @property {function(): Promise<Object>} getConfig - Gets the current configuration object.
- * @property {function(): Promise<boolean>} importConfig - Imports configuration from a file dialog.
- * @property {function(): Promise<string | null>} selectFolder - Opens a folder selection dialog.
- * @example
- * // In renderer process:
- * const view = await window.electronAPI.getCurrentView();
- * await window.electronAPI.switchView("control-station");
- * const config = await window.electronAPI.getConfig();
- * await window.electronAPI.saveConfig({ database: { host: "localhost" } });
- */
 contextBridge.exposeInMainWorld("electronAPI", {
+  // Cloud Logs API: credentials, sync, and transfer progress
+  cloudLogs: {
+    getCredentialsStatus: () =>
+      ipcRenderer.invoke("cloud-logs:credentials-status"),
+    setCredentials: (input) =>
+      ipcRenderer.invoke("cloud-logs:credentials-save", input),
+    clearCredentials: () => ipcRenderer.invoke("cloud-logs:credentials-clear"),
+    getLocalSessions: () => ipcRenderer.invoke("cloud-logs:local-sessions"),
+    selectSession: () => ipcRenderer.invoke("cloud-logs:select-session"),
+    list: (cursor) => ipcRenderer.invoke("cloud-logs:list", cursor),
+    autocompleteTags: (query) => ipcRenderer.invoke("cloud-logs:tags", query),
+    upload: (input) => ipcRenderer.invoke("cloud-logs:upload", input),
+    download: (input) => ipcRenderer.invoke("cloud-logs:download", input),
+    getDownloads: () => ipcRenderer.invoke("cloud-logs:downloads"),
+    // Subscribe to transfer progress; returns an unsubscribe callback
+    onProgress: (callback) => {
+      const listener = (_event, progress) => callback(progress);
+      ipcRenderer.on("cloud-logs:progress", listener);
+      return () => ipcRenderer.removeListener("cloud-logs:progress", listener);
+    },
+  },
   // Get the currently loaded view name
   getCurrentView: () => ipcRenderer.invoke("get-current-view"),
   // Switch to a different view by name, optionally passing query params
@@ -61,7 +65,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.send("mode-selected", mode);
     return Promise.resolve();
   },
-  // Receive log message from backend
+  // Subscribes to backend log messages; returns an unsubscribe callback.
   onLog: (callback) => {
     const listener = (_event, value) => callback(value);
     ipcRenderer.removeAllListeners("log");

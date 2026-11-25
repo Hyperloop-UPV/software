@@ -11,6 +11,9 @@ on:
       - "testing-view/**"
     paths:
       - "electron-app/**"
+      - "frontend/frontend-kit/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - ".github/workflows/electron-tests.yaml"
 
 jobs:

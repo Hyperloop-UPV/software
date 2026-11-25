@@ -108,6 +108,66 @@ sudo ifconfig lo0 alias 127.0.0.9 up
 
 - **Mode Selector**: html5 file to chose the mode of the app: testing, competition or flashing. Placed at `renderer/mode-selector`
 
+## Cloud Logs
+
+Cloud Logs is a desktop capability shared by Logging View and Testing View. The
+renderer calls the narrow `window.electronAPI.cloudLogs` interface exposed from
+`preload.js`; it does not access the filesystem, ZIP library, credentials, or
+remote API directly. The IPC handlers in `src/cloudLogs/handlers.js` validate
+that requests come from the local Logging or Testing window and keep local paths
+inside the Electron main process.
+
+The local folder format is `<logging_path>/logger/<app-launch>/<recording>/`.
+Cloud uploads operate on one recording at a time. All regular session files
+(configuration, CSVs, and metadata) are packaged and preserved in the recording
+ZIP, including the root `logger_settings.json` and all current or future telemetry
+subfolders. Launcher traces, symlinks, and directory traversal paths are excluded.
+The date attached to a cloud record comes from the recording's
+`logger_settings.json`, not from the time it was uploaded. Users must confirm
+that recording has stopped; Electron checks that its files did not change while
+it compressed the ZIP and reports compression progress to the requesting view.
+
+Downloaded archives are checked and extracted into
+`<logging_path>/logger/cloud-logs/<sanitized fileName or title>-<hh-mm-ss>/`. Extraction uses a staging
+directory and rejects unsafe paths, links, duplicate entries, unsupported files,
+encrypted ZIPs, and archives over the configured file and byte limits. Logging
+View opens a downloaded recording through the same loader it uses for local
+folders, so analysis works offline after download. `cloud-logs/` is created on
+first use, even when the Go backend is not running.
+
+The shared typed renderer contract is exported as `CloudLogsAPI` from
+`@hyperloopupv/frontend-kit/core`. Testing View already has that type on its
+Electron bridge, so it can call the same service without implementing another
+network or filesystem client. The React implementation currently lives in
+`frontend/logging-view/src/components/cloudLogs/CloudLogsDialog.tsx`.
+
+Credentials are entered in the Cloud Logs dialog and managed by Electron in
+`src/cloudLogs/credentials.js`. The user name and encrypted key are stored in
+`<Electron userData>/cloud-logs.json` when OS secure storage is available. If
+secure storage is unavailable, Electron keeps the key in memory until exit. The
+key is never sent back to the renderer; the renderer only receives the user,
+whether a key is configured, and whether storage is persistent.
+
+### Cloud Logs API Integration
+
+The remote HTTP adapter in `src/cloudLogs/client.js` is fully connected to the
+Cloud Logs API (`https://cloud-logs.hyperloopupv.com/api/v1`, configurable via
+`CLOUD_LOGS_API_URL` or `config.toml`) and supports direct-to-storage uploads
+and downloads:
+
+- **Catalog & Tags**: Lists paginated recordings (`listLogs`) and retrieves tag
+  suggestions for autocomplete (`autocompleteTags`).
+- **Direct-to-Storage Uploads**: Uploads use a two-phase protocol where session
+  metadata is registered with the API (`POST /logs/initiate`) and the ZIP archive
+  is streamed directly to Google Drive via a pre-authenticated resumable upload URL,
+  followed by confirmation (`POST /logs/{id}/complete`).
+- **Direct-to-Storage Downloads**: Downloads stream the ZIP archive directly from
+  storage to disk with size limit enforcement and error sanitization.
+
+All requests are authenticated via `Bearer` token or `X-API-Key`. Detailed API
+specifications, data mappings, and error formats are documented in
+`src/cloudLogs/README.md`.
+
 ## Dependencies
 
 - `electron` - Desktop application framework

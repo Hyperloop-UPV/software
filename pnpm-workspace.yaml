@@ -1,17 +1,19 @@
 packages:
-  # Frontend packages
-  - "frontend/frontend-kit/**"
-  - "frontend/testing-view"
-  - "frontend/competition-view"
-  - "frontend/logging-view"
-  - "frontend/flashing-view"
-  - "frontend/adj-view"
+  - frontend/frontend-kit/**
+  - frontend/testing-view
+  - frontend/competition-view
+  - frontend/logging-view
+  - frontend/flashing-view
+  - frontend/adj-view
+  - backend
+  - blcu-programming
+  - electron-app
+  - e2e
 
-  # Backend packages
-  - "backend"
-  - "blcu-programming"
-  
-  # Electron packages
-  - "electron-app"
-  - "e2e"
-
+onlyBuiltDependencies:
+  - "@swc/core"
+  - core-js
+  - core-js-pure
+  - electron
+  - esbuild
+  - msw
