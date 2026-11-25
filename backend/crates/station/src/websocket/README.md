@@ -56,6 +56,12 @@ heartbeat timeout to `station::websocket::run`.
 Each socket has independent reading and writing futures, coordinated by
 `handler.rs`. Either future finishing closes the session.
 
+With a heartbeat timeout of three seconds, the loss of the last frontend makes
+`websocket::run` return `FrontendDisconnected`. A heartbeat timeout already
+satisfies that period. Other socket closures allow three seconds to reconnect.
+The station startup task can report this error as a `ProblemKind::Fatal` on
+`channels.problems` so `event` requests the fault and stops the backend.
+
 Connect to `/backend/ws` on the listener's address and port and send this
 message to subscribe to `connection/update`.
 

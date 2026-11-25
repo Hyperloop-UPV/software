@@ -64,7 +64,7 @@ mod tests {
         io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
         net::{TcpListener, TcpStream},
         sync::{mpsc, oneshot},
-        time::timeout,
+        time::{Instant, timeout},
     };
     use tower::ServiceExt;
 
@@ -280,7 +280,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn websocket_delivers_protections_and_forwards_orders()
+    async fn websocket_routes_messages_until_the_last_frontend_disconnects()
     -> Result<(), Box<dyn std::error::Error>> {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../core/src/adj/test/adj");
         let adj = load_from_dir(&path)?;
@@ -295,13 +295,14 @@ mod tests {
         let (broker, client) = Broker::new();
         let broker_task = tokio::spawn(broker.run());
         let (sockets, receiver) = mpsc::channel(1);
+        let heartbeat_timeout = Duration::from_secs(3);
         let socket_task = tokio::spawn(websocket::run(
             receiver,
             client.clone(),
             commands,
-            Duration::from_secs(10),
+            heartbeat_timeout,
         ));
-        let (headers, mut socket) = handshake(setup_router(&adj, Some(sockets))?).await?;
+        let (headers, mut socket) = handshake(setup_router(&adj, Some(sockets.clone()))?).await?;
         assert!(headers.starts_with("HTTP/1.1 101 Switching Protocols\r\n"));
 
         timeout(Duration::from_secs(5), async {
@@ -343,8 +344,11 @@ mod tests {
                 ))
             );
 
+            let disconnected_at = Instant::now();
             drop(socket);
-            socket_task.await?;
+            assert_eq!(socket_task.await?, Err(websocket::FrontendDisconnected));
+            assert!(disconnected_at.elapsed() >= heartbeat_timeout);
+            drop(sockets);
             drop(client);
             broker_task.await?;
             Ok::<_, Box<dyn std::error::Error>>(())

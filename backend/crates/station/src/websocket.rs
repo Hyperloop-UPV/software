@@ -7,9 +7,13 @@ use std::time::Duration;
 
 use axum::extract::ws::WebSocket;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
+use tokio::{
+    sync::mpsc,
+    time::{Instant, sleep_until},
+};
 
 use self::broker::BrokerClient;
+use self::handler::SessionEnd;
 pub(crate) use self::order::OrderForwarder;
 use self::payload::{LoggerEnable, LoggerVariables};
 
@@ -93,21 +97,123 @@ pub struct WsMessage {
     pub payload: serde_json::Value,
 }
 
+/// The last frontend's heartbeat or reconnect deadline expired.
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+#[error("lost connection to the last frontend")]
+pub struct FrontendDisconnected;
+
 /// Runs one task per upgraded socket so a slow client stays isolated.
-/// Closing the HTTP handoff channel ends socket intake. Existing sessions end independently.
+///
+/// Returns `FrontendDisconnected` after the last session times out or the
+/// reconnect window expires. Closing the HTTP handoff channel ends socket
+/// intake. Existing sessions end independently.
+///
+/// The caller should report `FrontendDisconnected` to `event` when station
+/// wires the two modules together.
 pub async fn run(
     mut connections: mpsc::Receiver<WebSocket>,
     broker: BrokerClient,
     commands: Commands,
     heartbeat_timeout: Duration,
-) {
-    while let Some(socket) = connections.recv().await {
-        let broker = broker.clone();
-        let commands = commands.clone();
-        tokio::spawn(async move {
-            if let Err(error) = handler::handle(socket, broker, &commands, heartbeat_timeout).await {
-                tracing::warn!(%error, "WebSocket connection ended with an error");
+) -> Result<(), FrontendDisconnected> {
+    let (session_ends, mut ended) = mpsc::channel(16);
+    let mut sessions = FrontendSessions::default();
+
+    loop {
+        tokio::select! {
+            biased;
+            _ = async {
+                if let Some(deadline) = sessions.reconnect_deadline {
+                    sleep_until(deadline).await;
+                }
+            }, if sessions.reconnect_deadline.is_some() => return Err(FrontendDisconnected),
+            socket = connections.recv() => {
+                let Some(socket) = socket else { return Ok(()); };
+                sessions.connected();
+                let broker = broker.clone();
+                let commands = commands.clone();
+                let session_ends = session_ends.clone();
+                tokio::spawn(async move {
+                    handler::handle(socket, broker, &commands, heartbeat_timeout, session_ends).await;
+                });
             }
-        });
+            Some(end) = ended.recv() => {
+                sessions.ended(end, heartbeat_timeout)?;
+            }
+        }
+    }
+}
+
+/// Tracks the active frontend sessions and the reconnect window after the last one ends.
+#[derive(Default)]
+struct FrontendSessions {
+    /// Sessions accepted by the supervisor whose handlers have yet to report an end.
+    active: usize,
+    /// Set after the last session reports `SessionEnd::Closed` and cleared on reconnect.
+    reconnect_deadline: Option<Instant>,
+}
+
+impl FrontendSessions {
+    fn connected(&mut self) {
+        self.active += 1;
+        self.reconnect_deadline = None;
+    }
+
+    fn ended(
+        &mut self,
+        end: SessionEnd,
+        reconnect_window: Duration,
+    ) -> Result<(), FrontendDisconnected> {
+        self.active -= 1;
+        if self.active > 0 {
+            return Ok(());
+        }
+        match end {
+            SessionEnd::HeartbeatTimeout => Err(FrontendDisconnected),
+            SessionEnd::Closed(at) => {
+                self.reconnect_deadline = Some(at + reconnect_window);
+                Ok(())
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(3);
+
+    #[test]
+    fn reconnect_cancels_the_deadline_after_the_last_socket_closes()
+    -> Result<(), FrontendDisconnected> {
+        let mut sessions = FrontendSessions::default();
+        let at = Instant::now();
+
+        assert_eq!(sessions.reconnect_deadline, None);
+        sessions.connected();
+        sessions.connected();
+        sessions.ended(SessionEnd::Closed(at), HEARTBEAT_TIMEOUT)?;
+        assert_eq!(sessions.reconnect_deadline, None);
+        sessions.ended(SessionEnd::Closed(at), HEARTBEAT_TIMEOUT)?;
+        assert_eq!(sessions.reconnect_deadline, Some(at + HEARTBEAT_TIMEOUT));
+
+        sessions.connected();
+        assert_eq!(sessions.reconnect_deadline, None);
+        Ok(())
+    }
+
+    #[test]
+    fn the_last_heartbeat_timeout_is_fatal_immediately() -> Result<(), FrontendDisconnected> {
+        let mut sessions = FrontendSessions::default();
+        sessions.connected();
+        sessions.connected();
+
+        sessions.ended(SessionEnd::HeartbeatTimeout, HEARTBEAT_TIMEOUT)?;
+        assert_eq!(
+            sessions.ended(SessionEnd::HeartbeatTimeout, HEARTBEAT_TIMEOUT),
+            Err(FrontendDisconnected)
+        );
+        Ok(())
     }
 }
