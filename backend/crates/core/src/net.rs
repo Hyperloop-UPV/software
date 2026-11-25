@@ -33,7 +33,7 @@
 //!
 //! Addresses are for the operator, not for the domain types: they show
 //! up interpolated in each submodule's error messages (`tcp::Error`,
-//! `udp::Error`), which is where somebody actually reads them.
+//! `udp::UdpError`), which is where somebody actually reads them.
 
 mod error;
 mod report;

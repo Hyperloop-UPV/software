@@ -57,7 +57,7 @@ pub struct Notification {
 /// board at all — its id is not in the ADJ, so there is no
 /// [`crate::model::PacketDef`] to ask — and all that can be said about
 /// it is the address it came from, which is exactly what
-/// [`super::udp::Error::Decode`] holds.
+/// [`super::udp::UdpError::Decode`] holds.
 #[derive(Debug)]
 pub struct ErrorReport {
     /// The instant the failure was reported, on the same clock as
@@ -207,8 +207,8 @@ mod tests {
         Event::Received(Packet::Data(DataPacket::new(AdjId(1000), vec![])))
     }
 
-    fn an_error() -> udp::Error {
-        udp::Error::Recv {
+    fn an_error() -> udp::UdpError {
+        udp::UdpError::Recv {
             source: std::io::Error::from(std::io::ErrorKind::ConnectionReset),
         }
     }
@@ -333,7 +333,7 @@ mod tests {
         let Some(report) = sinks.errors.recv().await else {
             unreachable!("exactly one error was reported");
         };
-        let Error::Udp(udp::Error::Recv { .. }) = report.error else {
+        let Error::Udp(udp::UdpError::Recv { .. }) = report.error else {
             unreachable!("a udp error should arrive as Error::Udp");
         };
         // Nothing reached the notification channel.
@@ -343,14 +343,14 @@ mod tests {
     #[test]
     fn a_udp_decode_error_keeps_the_address_it_cannot_resolve_to_a_board() {
         let addr = SocketAddr::new(IpAddr::from([192, 168, 1, 3]), 50400);
-        let error = udp::Error::Decode {
+        let error = udp::UdpError::Decode {
             from: addr,
             source: crate::protocol::DecodeError::UnknownId(AdjId(9999)),
         };
 
         // The whole reason an error report carries no board: this one has
         // an address, and no board to attribute it to.
-        let Error::Udp(udp::Error::Decode { from, .. }) = Error::from(error) else {
+        let Error::Udp(udp::UdpError::Decode { from, .. }) = Error::from(error) else {
             unreachable!("a decode error should convert into Error::Udp");
         };
         assert_eq!(from, addr);

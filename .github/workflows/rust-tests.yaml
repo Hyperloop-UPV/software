@@ -13,7 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        crate: [software-core, station]
+        include:
+          # software-core's modules sit behind features (net, git, logger,
+          # ntp, http...) that are all off by default: without
+          # --all-features none of their tests would run, UDP's included.
+          - crate: software-core
+            flags: --all-features
+          - crate: station
+            flags: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -27,4 +34,4 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: cargo test --package ${{ matrix.crate }}
+        run: cargo test --package ${{ matrix.crate }} ${{ matrix.flags }}

@@ -1,4 +1,4 @@
-//! Errors produced while loading an ADJ.
+//! Errors produced while acquiring or loading an ADJ.
 //!
 //! Layered on purpose: [`LoadError`] is the only public error type here —
 //! the one a composition root's own aggregate error would `#[from]`-chain
@@ -10,7 +10,10 @@
 use std::net::AddrParseError;
 use std::path::PathBuf;
 
-/// An error produced while loading an ADJ directory into an [`crate::adj::Adj`].
+#[cfg(feature = "git")]
+use crate::git::GitError;
+
+/// An error produced while acquiring or loading an [`crate::adj::Adj`].
 #[derive(Debug, thiserror::Error)]
 pub enum LoadError {
     /// Couldn't read a file.
@@ -118,6 +121,11 @@ pub enum LoadError {
         #[source]
         source: MeasurementError,
     },
+
+    /// Couldn't resolve the ADJ repository path or update its checkout.
+    #[cfg(feature = "git")]
+    #[error("couldn't prepare ADJ repository: {0}")]
+    Git(#[from] GitError),
 }
 
 /// An error converting a raw measurement into [`crate::model::Measurement`].
