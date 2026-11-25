@@ -40,6 +40,7 @@ export type DetailedPayload =
  * Definition of a MessagePacket as it arrives from the backend.
  */
 export type MessagePacket = {
+  category?: "protection" | "message" | "backend";
   /** Message type */
   kind: "info" | "warning" | "fault" | "ok";
   /** For `info` messages, the payload is a string.

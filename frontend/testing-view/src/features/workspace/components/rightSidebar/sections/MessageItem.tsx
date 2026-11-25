@@ -6,6 +6,7 @@ import {
 } from "@hyperloopupv/frontend-kit";
 import { ChevronDown } from "@hyperloopupv/frontend-kit/icons";
 import { cn } from "@hyperloopupv/frontend-kit/lib";
+import { Rows3, Shield, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { MESSAGE_KIND_COLORS } from "../../../../../constants/messageKindColors";
 import { formatTimestamp } from "../../../../../lib/utils";
@@ -17,6 +18,16 @@ interface MessageItemProps {
 
 export const MessageItem = ({ message }: MessageItemProps) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  let label = "BACKEND (backend)";
+  let Icon: LucideIcon | undefined = Rows3;
+  if (message.category === "protection") {
+    label = `PROTECTION (${message.board})`;
+    Icon = Shield;
+  } else if (message.category === "message") {
+    label = `MESSAGE (${message.board})`;
+    Icon = undefined;
+  }
 
   const renderMessageContent = (payload: any) => {
     // 1. Simple string (Info messages)
@@ -62,9 +73,10 @@ export const MessageItem = ({ message }: MessageItemProps) => {
 
           <Badge
             variant="destructive"
-            className="h-4.5 shrink-0 px-1.5 text-[11px] uppercase"
+            className="h-4.5 shrink-0 px-1.5 text-[11px]"
           >
-            {message.board}
+            {Icon && <Icon aria-hidden="true" />}
+            {label}
           </Badge>
 
           <span className="flex-1 truncate text-sm font-medium">

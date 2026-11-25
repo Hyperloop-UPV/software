@@ -104,6 +104,7 @@ func configureVehicle(
 	vehicle.SetLogger(loggerHandler)
 	vehicle.SetUpdateFactory(updateFactory)
 	vehicle.SetIpToBoardId(ipToBoardID)
+	vehicle.SetBoardAddresses(adj.Info.Addresses)
 	vehicle.SetIdToBoardName(idToBoard)
 	vehicle.SetTransport(transp)
 
