@@ -5,6 +5,7 @@
     "fields": {
       "target_speed": {
         "value": 12.5,
+        "isEnabled": true,
         "type": "float32"
       }
     }

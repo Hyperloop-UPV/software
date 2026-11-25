@@ -46,6 +46,7 @@ fn to_packet(mut request: OrderSend, index: &Index) -> Result<OrderPacket, Order
             .fields
             .remove(alias)
             .ok_or_else(|| OrderError::MissingField(alias.clone()))?;
+        // The legacy isEnabled flag does not change the positional wire layout.
         values.push(field_value(&field, alias, &measurement.kind)?);
     }
     // Removing each declared field leaves only parameters the ADJ does not recognize.
@@ -169,6 +170,7 @@ mod tests {
         };
         let field = OrderField {
             value: json!("ready"),
+            is_enabled: true,
             field_type: "enum".into(),
         };
         assert_eq!(field_value(&field, "mode", &kind)?, Value::Number(1.0));

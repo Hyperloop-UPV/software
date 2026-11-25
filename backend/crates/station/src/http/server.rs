@@ -334,7 +334,7 @@ mod tests {
 
             send_text(
                 &mut socket,
-                r#"{"topic":"order/send","payload":{"id":809,"fields":{"desired_current":{"value":12.5,"type":"float32"},"lpu_id":{"value":2,"type":"uint32"}}}}"#,
+                r#"{"topic":"order/send","payload":{"id":809,"fields":{"desired_current":{"value":12.5,"isEnabled":false,"type":"float32"},"lpu_id":{"value":2,"isEnabled":true,"type":"uint32"}}}}"#,
             )
             .await?;
             assert_eq!(

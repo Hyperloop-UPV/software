@@ -140,6 +140,7 @@ with `isConnected: false`.
     "fields": {
       "<parameter alias>": {
         "value": number, // A boolean or enum string is also possible.
+        "isEnabled": boolean,
         "type": string
       }
     }
@@ -148,6 +149,9 @@ with `isConnected: false`.
 ```
 
 An order without parameters has `fields: {}`. Parameter names are aliases.
+`isEnabled` preserves the legacy frontend flag and defaults to `false` when
+omitted. As in the Go backend, it does not skip validation or encoding:
+all parameters declared by the ADJ must be supplied, even with `isEnabled: false`.
 The application uses the ADJ to place their values in wire order. The `value`
 field remains raw JSON until validation. Integer fields must contain whole
 numbers that fit both the wire type and the packet's `f64` representation.
