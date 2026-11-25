@@ -3,8 +3,8 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@workspace/ui";
-import { SquareLibrary } from "@workspace/ui/icons";
+} from "@hyperloopupv/frontend-kit";
+import { SquareLibrary } from "@hyperloopupv/frontend-kit/icons";
 import { FilterController } from "../features/filtering/components/FilterController";
 import { useGlobalKeyBindings } from "../features/keyBindings/hooks/useGlobalKeyBindings";
 import { DndOverlay } from "../features/workspace/components/DndOverlay";

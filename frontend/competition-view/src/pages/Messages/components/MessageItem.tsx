@@ -1,4 +1,4 @@
-import { Badge } from "@workspace/ui/components";
+import { Badge } from "@hyperloopupv/frontend-kit/components";
 import { memo } from "react";
 import { formatMessageTimestamp, messageContent } from "../../../lib/message";
 import type { Message, MessageKind } from "../../../types/message";
@@ -12,19 +12,30 @@ const KIND_BADGE_CLASS: Record<MessageKind, string> = {
 
 const KIND_ROW_CLASS: Record<MessageKind, string> = {
   info:    "",
-  warning: "bg-amber-50/40 dark:bg-amber-900/10",
-  fault:   "bg-red-50/40   dark:bg-red-900/10",
+  warning: "bg-amber-100 dark:bg-amber-900/10",
+  fault:   "bg-red-100   dark:bg-red-900/10",
   ok:      "",
 };
 
 interface MessageItemProps {
   message: Message;
+  /** Body text size. "base" (default) is used by the dedicated Messages page; the compact Overview panel passes "sm". Ignored when `fontSizePx` is set. */
+  size?: "sm" | "base";
+  /** Overrides `size` with an exact pixel size, driven by the Messages page's font-size slider. */
+  fontSizePx?: number;
 }
 
 // Memoised: message objects are immutable, so once rendered a row never
 // changes — this keeps a new message from re-rendering the whole list.
-const MessageItem = memo(({ message }: MessageItemProps) => {
+/** Badge-to-body ratio that keeps the slider's 16px default at the original 10px badge. */
+const BADGE_SIZE_RATIO = 10 / 16;
+const MIN_BADGE_SIZE_PX = 10;
+
+const MessageItem = memo(({ message, size = "base", fontSizePx }: MessageItemProps) => {
   const time = formatMessageTimestamp(message.timestamp);
+  const badgeSizePx = fontSizePx
+    ? Math.max(MIN_BADGE_SIZE_PX, Math.round(fontSizePx * BADGE_SIZE_RATIO))
+    : undefined;
 
   return (
     <div className={`flex items-start gap-3 border-b px-4 py-2 last:border-0 ${KIND_ROW_CLASS[message.kind]}`}>
@@ -33,11 +44,15 @@ const MessageItem = memo(({ message }: MessageItemProps) => {
       </span>
       <Badge
         variant="outline"
-        className={`shrink-0 text-[10px] font-semibold uppercase ${KIND_BADGE_CLASS[message.kind]}`}
+        className={`shrink-0 font-semibold uppercase ${badgeSizePx ? "" : "text-[10px]"} ${KIND_BADGE_CLASS[message.kind]}`}
+        style={badgeSizePx ? { fontSize: `${badgeSizePx}px` } : undefined}
       >
         {message.kind}
       </Badge>
-      <span className="text-foreground min-w-0 break-words text-sm">
+      <span
+        className={`text-foreground min-w-0 break-words ${fontSizePx ? "" : size === "base" ? "text-base" : "text-sm"}`}
+        style={fontSizePx ? { fontSize: `${fontSizePx}px` } : undefined}
+      >
         {messageContent(message.payload)}
       </span>
     </div>

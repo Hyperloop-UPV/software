@@ -1,5 +1,5 @@
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { cn } from "@workspace/ui/lib";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import type { WorkspaceChartConfig } from "../types/charts";
 import { SortableChart } from "./SortableChart";
 

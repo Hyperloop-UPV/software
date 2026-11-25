@@ -1,4 +1,4 @@
-import { SidebarInset, SidebarProvider } from "@workspace/ui/components";
+import { SidebarInset, SidebarProvider } from "@hyperloopupv/frontend-kit/components";
 import React, { useEffect } from "react";
 import Header from "../components/header/Header";
 import AppSidebar from "../components/leftSidebar/AppSidebar";
@@ -27,7 +27,7 @@ export const AppLayout = ({ children, backendConnected }: AppLayoutProps) => {
   useEffect(() => {
     const root = window.document.documentElement;
     // Remove old schemes if you have more than one
-    root.classList.remove("default", "pink");
+    root.classList.remove("default", "pink", "twight");
     root.classList.add(colorScheme);
   }, [colorScheme]);
 

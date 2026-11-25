@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
-import { Badge } from "@workspace/ui";
-import { cn } from "@workspace/ui/lib";
+import { Badge } from "@hyperloopupv/frontend-kit";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useShallow } from "zustand/shallow";
 import {
   canAddSeriesToChart,

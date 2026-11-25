@@ -1,12 +1,12 @@
-import { logger, socketService } from "@workspace/core";
+import { logger, socketService } from "@hyperloopupv/frontend-kit/core";
 import {
   Badge,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@workspace/ui";
-import { ChevronDown, Play, Send } from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit";
+import { ChevronDown, Play, Send } from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 import { getDefaultParameterValues } from "../../../../../../lib/commandUtils";
 import { useStore } from "../../../../../../store/store";

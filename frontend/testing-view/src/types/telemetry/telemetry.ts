@@ -1,4 +1,4 @@
-import type { TelemetryPacket } from "@workspace/core";
+import type { TelemetryPacket } from "@hyperloopupv/frontend-kit/core";
 
 /**
  * Map of telemetry packets per telemetry packetid.

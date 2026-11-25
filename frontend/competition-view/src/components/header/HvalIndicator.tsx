@@ -1,4 +1,4 @@
-import { Badge } from "@workspace/ui/components";
+import { Badge } from "@hyperloopupv/frontend-kit/components";
 import { useEffect, useState } from "react";
 import { BOARDS, HVAL_THRESHOLD_V, HVBMS } from "../../constants/measurements";
 import useMeasurement from "../../hooks/useMeasurement";

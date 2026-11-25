@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   useSidebar,
-} from "@workspace/ui";
+} from "@hyperloopupv/frontend-kit";
 import {
   ChevronsUpDown,
   Folder,
@@ -15,8 +15,8 @@ import {
   Plus,
   SquareLibrary,
   Trash2,
-} from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
+} from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
 import { useState } from "react";
 import { useStore } from "../../../store/store";
 import type { Workspace } from "../types/workspace";

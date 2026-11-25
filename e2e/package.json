@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter testing-view build:e2e && pnpm --filter hyperloop-control-station build:testing",
+    "build": "node scripts/build-renderers.mjs",
     "test": "pnpm run build && playwright test",
     "test:ui": "pnpm run build && playwright test tests/ui",
-    "test:integration": "pnpm --filter hyperloop-control-station build:testing && playwright test tests/integration",
+    "test:integration": "pnpm run build && playwright test --project=integration",
     "test:fast": "playwright test",
     "test:fast:ui": "playwright test tests/ui",
+    "test:fast:integration": "playwright test --project=integration",
     "report": "playwright show-report"
   },
   "devDependencies": {

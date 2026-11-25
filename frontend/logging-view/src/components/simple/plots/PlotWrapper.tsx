@@ -16,7 +16,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@workspace/ui/components";
+} from "@hyperloopupv/frontend-kit/components";
 import {
   Activity,
   AlertTriangle,
@@ -26,9 +26,9 @@ import {
   RefreshCw,
   Trash2,
   Unlock,
-} from "@workspace/ui/icons";
-import { cn } from "@workspace/ui/lib";
-import logoIcon from "@workspace/ui/outreach/main/logo_icon.svg?inline";
+} from "@hyperloopupv/frontend-kit/icons";
+import { cn } from "@hyperloopupv/frontend-kit/lib";
+import logoIcon from "@hyperloopupv/frontend-kit/outreach/main/logo_icon.svg?inline";
 import Plotly from "plotly.js-dist";
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
