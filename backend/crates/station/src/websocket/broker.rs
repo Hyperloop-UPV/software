@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use super::payload::{
+use crate::payload::{
     Connection, ConnectionUpdate, DataPacketUpdate, DataUpdate, LoggerResponse, MessageUpdate,
     ProtectionUpdate, StateOrdersUpdate,
 };

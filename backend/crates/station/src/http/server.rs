@@ -69,8 +69,9 @@ mod tests {
     use tower::ServiceExt;
 
     use super::setup_router;
-    use crate::websocket::{
-        self, Commands, OrderForwarder, broker::Broker, payload::ProtectionUpdate,
+    use crate::{
+        payload::ProtectionUpdate,
+        websocket::{self, Commands, OrderForwarder, broker::Broker},
     };
 
     pub(in crate::http) const PATHS: [&str; 3] = [
@@ -327,7 +328,7 @@ mod tests {
                 })
                 .await?;
             let expected: serde_json::Value = serde_json::from_str(include_str!(
-                "../websocket/payload/example/protection.json"
+                "../payload/example/protection.json"
             ))?;
             assert_eq!(read_json(&mut socket).await?, expected);
 

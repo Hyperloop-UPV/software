@@ -7,7 +7,7 @@ use software_core::{
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use super::payload::{OrderField, OrderSend};
+use crate::payload::{OrderField, OrderSend};
 
 /// Validates frontend requests against the ADJ and forwards them to the vehicle.
 #[derive(Debug, Clone)]

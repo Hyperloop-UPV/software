@@ -11,17 +11,16 @@ use tokio::{
     sync::mpsc,
     time::{Instant, sleep_until},
 };
+use super::payload::{LoggerEnable, LoggerVariables};
 
 use self::broker::BrokerClient;
 use self::handler::SessionEnd;
 pub(crate) use self::order::OrderForwarder;
-use self::payload::{LoggerEnable, LoggerVariables};
 
 pub mod broker;
 mod error;
 mod handler;
 mod order;
-pub(super) mod payload;
 mod receiver;
 mod sender;
 
