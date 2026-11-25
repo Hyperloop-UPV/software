@@ -1,15 +1,27 @@
-# WebSocket Message Models (`websocket::payload`)
+# WebSocket Message Models (`payload`)
 
 JSON models for telemetry, connections, orders, messages, protection events
-and logger control. The types live in station's `websocket/payload.rs` and
-`websocket/payload/`, alongside the WebSocket implementation.
+and logger control. The public module is `station::payload`, declared in
+[`../payload.rs`](../payload.rs), with its implementation in `src/payload/`.
 
 The Rust types describe the payload of each topic. Messages sent over the
 WebSocket wrap that payload in `{topic, payload}`, as shown in the templates
 and example files below. Connections, subscriptions, channels and the broker
-are handled by the surrounding [WebSocket module](../README.md). Shared
+are handled by the [WebSocket module](../websocket/README.md). Shared
 serialization helpers live in [serialize.rs](serialize.rs), and domain types
 such as `AdjId`, `Value` and `ProtectionPacket` come from `software_core::model`.
+
+## Files
+
+| File | Models and responsibility |
+| --- | --- |
+| [`../payload.rs`](../payload.rs) | Public re-exports and logger payload aliases. |
+| [`data.rs`](data.rs) | `DataUpdate`, `DataPacketUpdate` and measurement values. |
+| [`connection.rs`](connection.rs) | `ConnectionUpdate` and `Connection`. |
+| [`order.rs`](order.rs) | `OrderSend`, `OrderField` and `StateOrdersUpdate`. |
+| [`message.rs`](message.rs) | `MessageUpdate`, its severity, content and calendar timestamp. |
+| [`protection.rs`](protection.rs) | `ProtectionUpdate`, conversion from `ProtectionPacket` and legacy `ProtectionPayload`. |
+| [`serialize.rs`](serialize.rs) | Internal Serde adapters for `AdjId` and `Value`. |
 
 ## Topics
 
@@ -32,10 +44,10 @@ independent of the bundled ADJ fixture and HTTP catalog examples.
 ## Usage
 
 The payload module is compiled as part of station, without a separate feature.
-Within station, with a decoded `packet: software_core::model::ProtectionPacket`:
+With a decoded `packet: software_core::model::ProtectionPacket`:
 
 ```rust
-use crate::websocket::payload::{OrderSend, ProtectionUpdate};
+use station::payload::{OrderSend, ProtectionUpdate};
 
 let request: OrderSend = serde_json::from_str(r#"{"id":1002,"fields":{}}"#)?;
 let protection = ProtectionUpdate::from(packet);
@@ -44,11 +56,15 @@ let payload_json = serde_json::to_string(&protection)?;
 
 Published structures implement `serde::Serialize`; `OrderSend` and `OrderField`
 implement `serde::Deserialize`. The logger aliases use the primitive types'
-Serde implementations. The payload module is internal to the station library.
+Serde implementations. Within station itself, import these types through
+`crate::payload`. The implementation submodules are private; use the types
+re-exported by `payload`.
 
-Deserializing an order checks its JSON structure. Parameter types, ranges and
-their correspondence with the ADJ must be validated by the application before
-converting it to an `OrderPacket`.
+Deserializing an order checks its JSON structure and the unsigned 16-bit ID.
+The [WebSocket order handler](../websocket/order.rs) then validates the order
+ID, parameter aliases, types and wire ranges against the ADJ, arranges the
+values in ADJ order and queues an `OrderPacket` for the vehicle. Callers that
+deserialize `OrderSend` directly must perform that validation themselves.
 
 ## JSON Structure Templates
 
@@ -88,8 +104,9 @@ it as a string.
 ```
 
 The outer key matches the packet's `id`. `count` is the received packet count;
-`cycleTime` is the averaged interval between packet receptions. The publisher
-supplies these statistics and the hexadecimal packet representation.
+`cycleTime` is the averaged interval between packet receptions, in the legacy
+timestamp's units. This module does not convert it. The publisher supplies
+these statistics and the hexadecimal packet representation.
 
 `MeasurementUpdate` has three JSON forms: `{last, average}` for a number,
 a boolean, or an enum variant string. There is no additional discriminator
@@ -110,7 +127,8 @@ around a measurement value.
 ```
 
 The map key matches `name`. The state describes the connection between the
-backend and the board.
+backend and the board. Disconnected boards remain in the broker's snapshot
+with `isConnected: false`.
 
 ### Send Order (`OrderSend`)
 

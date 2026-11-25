@@ -1,10 +1,10 @@
 # WebSocket
 
 `broker.rs` provides `Broker` and the clonable `BrokerClient` for state and event topics,
-using the types from `crate::websocket::payload`.
-See the [payload models README](payload/README.md) for all topic payloads,
+using the types from `crate::payload`, exposed publicly as `station::payload`.
+See the [payload models README](../payload/README.md) for all topic payloads,
 JSON templates, and complete message examples. Their serialization helpers
-live in [`payload/serialize.rs`](payload/serialize.rs).
+live in [`../payload/serialize.rs`](../payload/serialize.rs).
 
 | Topic | Publish through `BrokerClient` | Subscribe through `BrokerClient` | Initial state |
 | --- | --- | --- | --- |
