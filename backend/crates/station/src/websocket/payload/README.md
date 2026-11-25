@@ -130,9 +130,11 @@ backend and the board.
 }
 ```
 
-An order without parameters has `fields: {}`. Parameter names are aliases;
-the application uses the ADJ to place their values in wire order. The `value`
-field remains raw JSON until validation, preserving integer precision.
+An order without parameters has `fields: {}`. Parameter names are aliases.
+The application uses the ADJ to place their values in wire order. The `value`
+field remains raw JSON until validation. Integer fields must contain whole
+numbers that fit both the wire type and the packet's `f64` representation.
+Enum fields use the option name from the ADJ.
 
 Numeric `type` names are `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`,
 `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"float32"` and `"float64"`.
