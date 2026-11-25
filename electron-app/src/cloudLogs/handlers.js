@@ -1,5 +1,15 @@
+/**
+ * @module cloudLogs
+ * @description IPC handlers for Cloud Logs operations between the main process and renderer.
+ * Registers handlers for:
+ * - Credential management
+ * - Session discovery and selection
+ * - Cloud log listing and tag autocomplete
+ * - Archive compression, upload, download, and extraction
+ */
+
 import { BrowserWindow, dialog, ipcMain } from "electron";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   mkdtemp,
   readdir,
@@ -11,13 +21,14 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { getAppPath } from "../utils/paths.js";
 import * as credentials from "./credentials.js";
 import * as client from "./client.js";
 import { compressSession, extractSession } from "./archive.js";
 import {
   findLocalSessions,
+  formatDownloadedFolderName,
   formatSessionZipName,
   getCloudRoot,
   getLogsRoot,
@@ -25,28 +36,83 @@ import {
   MAX_BYTES,
 } from "./sessions.js";
 
-const allowedURLs = ["logging-view", "testing-view"].map(
-  (view) =>
-    pathToFileURL(path.join(getAppPath(), "renderer", view, "index.html")).href,
-);
-
-function assertSender(event) {
-  const url = event.senderFrame?.url?.split(/[?#]/)[0];
+/**
+ * Restricts IPC access to top-level main frames of authorized local views.
+ * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
+ * @throws {Error} If the sender frame is not an authorized local view main frame.
+ * @returns {void}
+ */
+export function assertSender(event) {
   if (
-    event.senderFrame !== event.sender.mainFrame ||
-    !allowedURLs.includes(url)
-  )
+    !event?.sender ||
+    !event?.senderFrame ||
+    event.senderFrame !== event.sender.mainFrame
+  ) {
     throw new Error(
       "Cloud Logs is only available to local Logging and Testing views.",
     );
+  }
+  const rawUrl = event.senderFrame?.url?.split(/[?#]/)[0];
+  if (!rawUrl) {
+    throw new Error(
+      "Cloud Logs is only available to local Logging and Testing views.",
+    );
+  }
+  try {
+    const pathModule = process.platform === "win32" ? path.win32 : path;
+    let filePath;
+    try {
+      filePath = rawUrl.startsWith("file:")
+        ? fileURLToPath(rawUrl, { windows: process.platform === "win32" })
+        : pathModule.resolve(rawUrl);
+    } catch {
+      filePath = pathModule.resolve(rawUrl);
+    }
+    const resolvedPath = pathModule.resolve(filePath);
+    const allowedPaths = ["logging-view", "testing-view"].map((view) =>
+      pathModule.resolve(getAppPath(), "renderer", view, "index.html"),
+    );
+    const isAllowed = allowedPaths.some((target) =>
+      process.platform === "win32"
+        ? target.toLowerCase() === resolvedPath.toLowerCase()
+        : target === resolvedPath,
+    );
+    if (!isAllowed) {
+      throw new Error(
+        "Cloud Logs is only available to local Logging and Testing views.",
+      );
+    }
+  } catch (error) {
+    if (
+      error.message ===
+      "Cloud Logs is only available to local Logging and Testing views."
+    ) {
+      throw error;
+    }
+    throw new Error(
+      "Cloud Logs is only available to local Logging and Testing views.",
+    );
+  }
 }
 
+/**
+ * Validates a non-empty string and enforces a maximum character limit.
+ * @param {unknown} value - Value to validate.
+ * @param {number} [max=500] - Maximum allowed character length.
+ * @returns {string} The validated string.
+ * @throws {Error} If the value is not a string, is empty, or exceeds the limit.
+ */
 function text(value, max = 500) {
   if (typeof value !== "string" || !value.trim() || value.length > max)
     throw new Error("Invalid Cloud Logs request.");
   return value;
 }
 
+/**
+ * Sanitizes client errors to prevent credential or URL leakage in UI alerts.
+ * @param {Error | unknown} error - The error to sanitize.
+ * @returns {Error} A sanitized Error object safe for display in the UI.
+ */
 function cleanClientError(error) {
   if (!error) return new Error("Cloud Logs operation failed.");
   const raw =
@@ -59,15 +125,79 @@ function cleanClientError(error) {
   return new Error(sanitized || "Cloud Logs operation failed.");
 }
 
+/**
+ * Finds an already-downloaded valid session by cloud log ID.
+ * @param {string} root - The cloud logs root directory path.
+ * @param {string} id - The cloud log ID to search for.
+ * @returns {Promise<{dir: string, info: Object, session: Object} | null>} Existing download info, or null if not found.
+ */
+async function findExistingDownload(root, id) {
+  try {
+    for (const entry of await readdir(root, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+      const dir = path.join(root, entry.name);
+      try {
+        const info = JSON.parse(
+          await readFile(path.join(dir, "cloud-log.json"), "utf8"),
+        );
+        if (info.id === id) {
+          const session = await inspectSession(dir);
+          return { dir, info, session };
+        }
+      } catch (err) {
+        // If the directory was specifically for this ID but is corrupt, clean it up
+        if (err.code !== "ENOENT") {
+          try {
+            const raw = await readFile(
+              path.join(dir, "cloud-log.json"),
+              "utf8",
+            );
+            const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const idPattern = new RegExp(`"id"\\s*:\\s*"${escapedId}"`);
+            if (idPattern.test(raw)) {
+              await rm(dir, { recursive: true, force: true });
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+  } catch {
+    /* root may not exist yet */
+  }
+  return null;
+}
+
+/**
+ * Registers all IPC handlers for Cloud Logs management, listing, uploads, and downloads.
+ * Should be called once during main process IPC initialization.
+ * @returns {void}
+ */
 export function setupCloudLogsHandlers() {
   const selected = new Map();
   let transferRunning = false;
   let credentialsQueue = Promise.resolve();
+
+  /**
+   * Helper to register an IPC handler with sender verification.
+   * @param {string} name - Handler channel name suffix (prefixed with "cloud-logs:").
+   * @param {function(import("electron").IpcMainInvokeEvent, any): Promise<any> | any} fn - The handler implementation.
+   * @returns {void}
+   */
   const handle = (name, fn) =>
-    ipcMain.handle(`cloud-logs:${name}`, (event, input) => {
+    ipcMain.handle(`cloud-logs:${name}`, async (event, input) => {
       assertSender(event);
       return fn(event, input);
     });
+
+  /**
+   * Registers a session folder grant for the requesting sender webContents.
+   * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
+   * @param {Object} session - The inspected session data.
+   * @param {string} dir - Directory path of the session.
+   * @returns {Object} Session summary with generated session grant ID.
+   */
   const register = (event, session, dir) => {
     const id = randomUUID();
     selected.set(id, { owner: event.sender.id, dir, date: session.date });
@@ -77,6 +207,12 @@ export function setupCloudLogsHandlers() {
     void files;
     return { ...summary, id };
   };
+
+  /**
+   * Reads and verifies stored credentials, throwing if unconfigured.
+   * @returns {Promise<{user: string, apiKey: string}>} Valid credentials object.
+   * @throws {Error} If credentials are not configured.
+   */
   const auth = async () => {
     await credentialsQueue;
     const value = await credentials.getCredentials();
@@ -84,11 +220,26 @@ export function setupCloudLogsHandlers() {
       throw new Error("Configure your user and API key in Credentials first.");
     return value;
   };
+
+  /**
+   * Queues a credential mutation operation to prevent concurrent writes.
+   * @param {function(): Promise<any>} fn - The operation to execute.
+   * @returns {Promise<any>} The result of the mutation operation.
+   */
   const changeCredentials = (fn) => {
     const result = credentialsQueue.then(fn);
     credentialsQueue = result.catch(() => {});
     return result;
   };
+
+  /**
+   * Locks transfer execution and sets up progress reporting for uploads and downloads.
+   * @param {import("electron").IpcMainInvokeEvent} event - The IPC event object.
+   * @param {Object} input - Transfer input containing requestId.
+   * @param {function(function(string, number=, number=): void): Promise<any>} fn - Transfer worker callback.
+   * @returns {Promise<any>} Result returned by the transfer worker callback.
+   * @throws {Error} If another transfer is currently active.
+   */
   const transfer = async (event, input, fn) => {
     text(input?.requestId, 100);
     if (transferRunning)
@@ -244,31 +395,22 @@ export function setupCloudLogsHandlers() {
         title || (fileName ? fileName.replace(/\.zip$/i, "") : "");
       const account = await auth();
       const root = await getCloudRoot();
-      const destination = path.join(
-        root,
-        createHash("sha256").update(id).digest("hex"),
-      );
-      try {
-        const info = JSON.parse(
-          await readFile(path.join(destination, "cloud-log.json"), "utf8"),
-        );
-        if (info.id !== id)
-          throw new Error("Downloaded session identity mismatch.");
-        const session = await inspectSession(destination);
+      // Return cached copy if already downloaded and valid
+      const existing = await findExistingDownload(root, id);
+      if (existing) {
         return {
           id,
-          path: destination,
-          date: session.date,
+          path: existing.dir,
+          date: existing.session.date,
           title:
-            info.title ||
-            (info.fileName ? info.fileName.replace(/\.zip$/i, "") : ""),
-          fileName: info.fileName || "",
+            existing.info.title ||
+            (existing.info.fileName
+              ? existing.info.fileName.replace(/\.zip$/i, "")
+              : ""),
+          fileName: existing.info.fileName || "",
         };
-      } catch (error) {
-        if (error.code !== "ENOENT") {
-          await rm(destination, { recursive: true, force: true });
-        }
       }
+
       // Staging on the destination filesystem makes the final rename atomic.
       const temp = await mkdtemp(path.join(root, ".download-"));
       try {
@@ -302,6 +444,67 @@ export function setupCloudLogsHandlers() {
             fileName: fileName || archiveName,
           }),
         );
+
+        // Destination folder format: <sanitized fileName or title>-<hh-mm-ss>
+        const folderName = formatDownloadedFolderName(session.date, {
+          fileName,
+          title,
+          id,
+        });
+
+        // Disambiguate folder name if destination already exists for a different session
+        let targetName = folderName;
+        let destination = path.join(root, targetName);
+        let counter = 1;
+        while (true) {
+          try {
+            await stat(destination);
+            let matchesCurrentId = false;
+            try {
+              const existingRaw = await readFile(
+                path.join(destination, "cloud-log.json"),
+                "utf8",
+              );
+              const existingInfo = JSON.parse(existingRaw);
+              if (existingInfo.id === id) {
+                matchesCurrentId = true;
+              }
+            } catch {
+              matchesCurrentId = false;
+            }
+
+            if (matchesCurrentId) {
+              break;
+            }
+
+            counter++;
+            targetName = `${folderName}_${counter}`;
+            destination = path.join(root, targetName);
+          } catch (err) {
+            if (err.code === "ENOENT") break;
+            throw err;
+          }
+        }
+
+        // Remove stale directories matching this cloud log ID
+        try {
+          for (const entry of await readdir(root, { withFileTypes: true })) {
+            if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+            const dir = path.join(root, entry.name);
+            if (dir === destination) continue;
+            try {
+              const info = JSON.parse(
+                await readFile(path.join(dir, "cloud-log.json"), "utf8"),
+              );
+              if (info.id === id) {
+                await rm(dir, { recursive: true, force: true });
+              }
+            } catch {
+              /* skip */
+            }
+          }
+        } catch {}
+
         await rm(destination, { recursive: true, force: true });
         await rename(extracted, destination);
         return {
@@ -320,7 +523,7 @@ export function setupCloudLogsHandlers() {
     const root = await getCloudRoot();
     const items = [];
     for (const entry of await readdir(root, { withFileTypes: true })) {
-      if (!entry.isDirectory() || !/^[a-f0-9]{64}$/.test(entry.name)) continue;
+      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
       const dir = path.join(root, entry.name);
       try {
         const info = JSON.parse(
