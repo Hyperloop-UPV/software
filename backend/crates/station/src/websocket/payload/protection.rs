@@ -1,5 +1,5 @@
 use super::serialize::{serialize_adj_id, serialize_value};
-use serde::{Serialize};
+use serde::Serialize;
 use serde_json::Value as JsonValue;
 
 use software_core::model::{AdjId, ProtectionPacket, ShortTimestamp, Value};
