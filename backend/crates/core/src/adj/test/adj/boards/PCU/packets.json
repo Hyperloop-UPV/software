@@ -1,0 +1,91 @@
+[
+  {
+    "type": "data",
+    "name": "PWM",
+    "variables": [
+      "frequency",
+      "modulation_frequency",
+      "duty_u",
+      "duty_v",
+      "duty_w"
+    ],
+    "id": 550,
+    "period_type": "ms",
+    "period": 16.67,
+    "socket": "control_station_udp"
+  },
+  {
+    "type": "data",
+    "name": "Batteries Voltage",
+    "variables": [
+      "voltage_battery_a",
+      "voltage_battery_b"
+    ],
+    "id": 551,
+    "period_type": "ms",
+    "period": 16.67,
+    "socket": "control_station_udp"
+  },
+  {
+    "type": "data",
+    "name": "Current Sensors",
+    "variables": [
+      "current_sensor_u_a",
+      "current_sensor_v_a",
+      "current_sensor_w_a",
+      "current_sensor_u_b",
+      "current_sensor_v_b",
+      "current_sensor_w_b",
+      "current_Peak",
+      "error_pi",
+      "target_voltage",
+      "svpwm_time",
+      "imod"
+    ],
+    "id": 552,
+    "period_type": "ms",
+    "period": 16.67,
+    "socket": "control_station_udp"
+  },
+  {
+    "type": "data",
+    "name": "State Machine States",
+    "variables": [
+      "state"
+    ],
+    "id": 553,
+    "period_type": "ms",
+    "period": 16.67,
+    "socket": "control_station_udp"
+  },
+  {
+    "type": "data",
+    "name": "Speed Data",
+    "variables": [
+      "target_speed",
+      "speed_error",
+      "actual_current_ref",
+      "slip_motor",
+      "imu_speed_km_h",
+      "imu_position_m"
+    ],
+    "id": 555,
+    "period_type": "ms",
+    "period": 16.67,
+    "socket": "control_station_udp"
+  },
+  {
+    "type": "data",
+    "name": "Gate Driver Reporting",
+    "variables": [
+      "gd_fault_a",
+      "gd_fault_b",
+      "gd_ready_a",
+      "gd_ready_b"
+    ],
+    "id": 558,
+    "period_type": "ms",
+    "period": 16.67,
+    "socket": "control_station_udp"
+  }
+]

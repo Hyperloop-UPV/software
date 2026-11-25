@@ -1,0 +1,752 @@
+[
+  {
+    "id": 819,
+    "alias": "master_state_machine",
+    "name": "Master SM",
+    "type": "enum",
+    "enumValues": [
+      "Connecting",
+      "Idle",
+      "Levitating",
+      "Current Control",
+      "Debug",
+      "Fault"
+    ]
+  },
+  {
+    "id": 820,
+    "alias": "slave_state_machine",
+    "name": "Slave SM",
+    "type": "enum",
+    "enumValues": [
+      "SPI Connecting",
+      "Idle",
+      "Levitating",
+      "Current Control",
+      "Debug",
+      "Fault"
+    ]
+  },
+  {
+    "id": 821,
+    "alias": "desired_current",
+    "name": "Desired Current",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 822,
+    "alias": "fixed_vbat",
+    "name": "Fixed VBAT",
+    "type": "float32",
+    "displayUnits": "V"
+  },
+  {
+    "id": 823,
+    "alias": "desired_distance",
+    "name": "Desired Distance",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 824,
+    "alias": "lpu_id",
+    "name": "LPU ID",
+    "type": "uint32"
+  },
+  {
+    "id": 825,
+    "alias": "fixed_pwm_duty_cycle",
+    "name": "Fixed PWM Duty Cycle",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 826,
+    "alias": "pwm_duty_cycle_1",
+    "name": "Duty Cycle 1",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 827,
+    "alias": "pwm_duty_cycle_2",
+    "name": "Duty Cycle 2",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 828,
+    "alias": "pwm_duty_cycle_3",
+    "name": "Duty Cycle 3",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 829,
+    "alias": "pwm_duty_cycle_4",
+    "name": "Duty Cycle 4",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 830,
+    "alias": "pwm_duty_cycle_5",
+    "name": "Duty Cycle 5",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 831,
+    "alias": "pwm_duty_cycle_6",
+    "name": "Duty Cycle 6",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 832,
+    "alias": "pwm_duty_cycle_7",
+    "name": "Duty Cycle 7",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 833,
+    "alias": "pwm_duty_cycle_8",
+    "name": "Duty Cycle 8",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 834,
+    "alias": "pwm_duty_cycle_9",
+    "name": "Duty Cycle 9",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 835,
+    "alias": "pwm_duty_cycle_10",
+    "name": "Duty Cycle 10",
+    "type": "float32",
+    "displayUnits": "%"
+  },
+  {
+    "id": 836,
+    "alias": "coil_current_1",
+    "name": "Coil Current 1",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 837,
+    "alias": "coil_current_2",
+    "name": "Coil Current 2",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 838,
+    "alias": "coil_current_3",
+    "name": "Coil Current 3",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 839,
+    "alias": "coil_current_4",
+    "name": "Coil Current 4",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 840,
+    "alias": "coil_current_5",
+    "name": "Coil Current 5",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 841,
+    "alias": "coil_current_6",
+    "name": "Coil Current 6",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 842,
+    "alias": "coil_current_7",
+    "name": "Coil Current 7",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 843,
+    "alias": "coil_current_8",
+    "name": "Coil Current 8",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 844,
+    "alias": "coil_current_9",
+    "name": "Coil Current 9",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 845,
+    "alias": "coil_current_10",
+    "name": "Coil Current 10",
+    "type": "float32",
+    "displayUnits": "A"
+  },
+  {
+    "id": 846,
+    "alias": "airgap_1",
+    "name": "Airgap 1",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 847,
+    "alias": "airgap_2",
+    "name": "Airgap 2",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 848,
+    "alias": "airgap_3",
+    "name": "Airgap 3",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 849,
+    "alias": "airgap_4",
+    "name": "Airgap 4",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 850,
+    "alias": "airgap_5",
+    "name": "Airgap 5",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 851,
+    "alias": "airgap_6",
+    "name": "Airgap 6",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 852,
+    "alias": "airgap_7",
+    "name": "Airgap 7",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 853,
+    "alias": "airgap_8",
+    "name": "Airgap 8",
+    "type": "float32",
+    "displayUnits": "mm"
+  },
+  {
+    "id": 854,
+    "alias": "cinema_current",
+    "name": "Cinema Current",
+    "type": "float32"
+  },
+  {
+    "id": 855,
+    "alias": "ctrl_voltage_1",
+    "name": "Control Voltage 1",
+    "type": "float32"
+  },
+  {
+    "id": 856,
+    "alias": "ctrl_voltage_2",
+    "name": "Control Voltage 2",
+    "type": "float32"
+  },
+  {
+    "id": 857,
+    "alias": "ctrl_voltage_3",
+    "name": "Control Voltage 3",
+    "type": "float32"
+  },
+  {
+    "id": 858,
+    "alias": "ctrl_voltage_4",
+    "name": "Control Voltage 4",
+    "type": "float32"
+  },
+  {
+    "id": 859,
+    "alias": "ctrl_voltage_5",
+    "name": "Control Voltage 5",
+    "type": "float32"
+  },
+  {
+    "id": 860,
+    "alias": "ctrl_voltage_6",
+    "name": "Control Voltage 6",
+    "type": "float32"
+  },
+  {
+    "id": 861,
+    "alias": "ctrl_voltage_7",
+    "name": "Control Voltage 7",
+    "type": "float32"
+  },
+  {
+    "id": 862,
+    "alias": "ctrl_voltage_8",
+    "name": "Control Voltage 8",
+    "type": "float32"
+  },
+  {
+    "id": 863,
+    "alias": "ctrl_voltage_9",
+    "name": "Control Voltage 9",
+    "type": "float32"
+  },
+  {
+    "id": 864,
+    "alias": "ctrl_voltage_10",
+    "name": "Control Voltage 10",
+    "type": "float32"
+  },
+  {
+    "id": 865,
+    "alias": "ctrl_gap_local_1",
+    "name": "Control Gap Local 1",
+    "type": "float32"
+  },
+  {
+    "id": 866,
+    "alias": "ctrl_gap_local_2",
+    "name": "Control Gap Local 2",
+    "type": "float32"
+  },
+  {
+    "id": 867,
+    "alias": "ctrl_gap_local_3",
+    "name": "Control Gap Local 3",
+    "type": "float32"
+  },
+  {
+    "id": 868,
+    "alias": "ctrl_gap_local_4",
+    "name": "Control Gap Local 4",
+    "type": "float32"
+  },
+  {
+    "id": 869,
+    "alias": "ctrl_state_1",
+    "name": "Control State 1",
+    "type": "float32"
+  },
+  {
+    "id": 870,
+    "alias": "ctrl_state_2",
+    "name": "Control State 2",
+    "type": "float32"
+  },
+  {
+    "id": 871,
+    "alias": "ctrl_state_3",
+    "name": "Control State 3",
+    "type": "float32"
+  },
+  {
+    "id": 872,
+    "alias": "ctrl_state_4",
+    "name": "Control State 4",
+    "type": "float32"
+  },
+  {
+    "id": 873,
+    "alias": "ctrl_state_5",
+    "name": "Control State 5",
+    "type": "float32"
+  },
+  {
+    "id": 874,
+    "alias": "ctrl_current_ref_1",
+    "name": "Control Current Ref 1",
+    "type": "float32"
+  },
+  {
+    "id": 875,
+    "alias": "ctrl_current_ref_2",
+    "name": "Control Current Ref 2",
+    "type": "float32"
+  },
+  {
+    "id": 876,
+    "alias": "ctrl_current_ref_3",
+    "name": "Control Current Ref 3",
+    "type": "float32"
+  },
+  {
+    "id": 877,
+    "alias": "ctrl_current_ref_4",
+    "name": "Control Current Ref 4",
+    "type": "float32"
+  },
+  {
+    "id": 878,
+    "alias": "ctrl_current_ref_5",
+    "name": "Control Current Ref 5",
+    "type": "float32"
+  },
+  {
+    "id": 879,
+    "alias": "ctrl_current_ref_6",
+    "name": "Control Current Ref 6",
+    "type": "float32"
+  },
+  {
+    "id": 880,
+    "alias": "ctrl_current_ref_7",
+    "name": "Control Current Ref 7",
+    "type": "float32"
+  },
+  {
+    "id": 881,
+    "alias": "ctrl_current_ref_8",
+    "name": "Control Current Ref 8",
+    "type": "float32"
+  },
+  {
+    "id": 882,
+    "alias": "ctrl_current_ref_9",
+    "name": "Control Current Ref 9",
+    "type": "float32"
+  },
+  {
+    "id": 883,
+    "alias": "ctrl_current_ref_10",
+    "name": "Control Current Ref 10",
+    "type": "float32"
+  },
+  {
+    "id": 884,
+    "alias": "ctrl_fe_1",
+    "name": "Control Fe 1",
+    "type": "float32"
+  },
+  {
+    "id": 885,
+    "alias": "ctrl_fe_2",
+    "name": "Control Fe 2",
+    "type": "float32"
+  },
+  {
+    "id": 886,
+    "alias": "ctrl_fe_3",
+    "name": "Control Fe 3",
+    "type": "float32"
+  },
+  {
+    "id": 887,
+    "alias": "ctrl_fa_1",
+    "name": "Control Fa 1",
+    "type": "float32"
+  },
+  {
+    "id": 888,
+    "alias": "ctrl_fa_2",
+    "name": "Control Fa 2",
+    "type": "float32"
+  },
+  {
+    "id": 889,
+    "alias": "ctrl_fa_3",
+    "name": "Control Fa 3",
+    "type": "float32"
+  },
+  {
+    "id": 890,
+    "alias": "ctrl_fa_4",
+    "name": "Control Fa 4",
+    "type": "float32"
+  },
+  {
+    "id": 891,
+    "alias": "ctrl_ef_1",
+    "name": "Control Ef 1",
+    "type": "float32"
+  },
+  {
+    "id": 892,
+    "alias": "ctrl_ef_2",
+    "name": "Control Ef 2",
+    "type": "float32"
+  },
+  {
+    "id": 893,
+    "alias": "ctrl_ef_3",
+    "name": "Control Ef 3",
+    "type": "float32"
+  },
+  {
+    "id": 894,
+    "alias": "ctrl_p_1",
+    "name": "Control P 1",
+    "type": "float32"
+  },
+  {
+    "id": 895,
+    "alias": "ctrl_p_2",
+    "name": "Control P 2",
+    "type": "float32"
+  },
+  {
+    "id": 896,
+    "alias": "ctrl_p_3",
+    "name": "Control P 3",
+    "type": "float32"
+  },
+  {
+    "id": 897,
+    "alias": "ctrl_r_1",
+    "name": "Control R 1",
+    "type": "float32"
+  },
+  {
+    "id": 898,
+    "alias": "ctrl_r_2",
+    "name": "Control R 2",
+    "type": "float32"
+  },
+  {
+    "id": 899,
+    "alias": "ctrl_r_3",
+    "name": "Control R 3",
+    "type": "float32"
+  },
+  {
+    "id": 900,
+    "alias": "ctrl_zz_1",
+    "name": "Control Zz 1",
+    "type": "float32"
+  },
+  {
+    "id": 901,
+    "alias": "ctrl_zz_2",
+    "name": "Control Zz 2",
+    "type": "float32"
+  },
+  {
+    "id": 902,
+    "alias": "ctrl_zz_3",
+    "name": "Control Zz 3",
+    "type": "float32"
+  },
+  {
+    "id": 903,
+    "alias": "ctrl_fe_l_1",
+    "name": "Control Fe L 1",
+    "type": "float32"
+  },
+  {
+    "id": 904,
+    "alias": "ctrl_fe_l_2",
+    "name": "Control Fe L 2",
+    "type": "float32"
+  },
+  {
+    "id": 905,
+    "alias": "ctrl_fe_l_3",
+    "name": "Control Fe L 3",
+    "type": "float32"
+  },
+  {
+    "id": 906,
+    "alias": "ctrl_referencia",
+    "name": "Control Referencia",
+    "type": "float32"
+  },
+  {
+    "id": 907,
+    "alias": "ctrl_i_hems_out_1",
+    "name": "Control I HEMS Out 1",
+    "type": "float32"
+  },
+  {
+    "id": 908,
+    "alias": "ctrl_i_hems_out_2",
+    "name": "Control I HEMS Out 2",
+    "type": "float32"
+  },
+  {
+    "id": 909,
+    "alias": "ctrl_i_hems_out_3",
+    "name": "Control I HEMS Out 3",
+    "type": "float32"
+  },
+  {
+    "id": 910,
+    "alias": "ctrl_i_hems_out_4",
+    "name": "Control I HEMS Out 4",
+    "type": "float32"
+  },
+  {
+    "id": 911,
+    "alias": "ctrl_a_1",
+    "name": "Control A 1",
+    "type": "float32"
+  },
+  {
+    "id": 912,
+    "alias": "ctrl_a_2",
+    "name": "Control A 2",
+    "type": "float32"
+  },
+  {
+    "id": 913,
+    "alias": "ctrl_a_3",
+    "name": "Control A 3",
+    "type": "float32"
+  },
+  {
+    "id": 914,
+    "alias": "ctrl_a_4",
+    "name": "Control A 4",
+    "type": "float32"
+  },
+  {
+    "id": 915,
+    "alias": "ctrl_a_5",
+    "name": "Control A 5",
+    "type": "float32"
+  },
+  {
+    "id": 916,
+    "alias": "ctrl_a_6",
+    "name": "Control A 6",
+    "type": "float32"
+  },
+  {
+    "id": 917,
+    "alias": "ctrl_a_7",
+    "name": "Control A 7",
+    "type": "float32"
+  },
+  {
+    "id": 918,
+    "alias": "ctrl_a_8",
+    "name": "Control A 8",
+    "type": "float32"
+  },
+  {
+    "id": 919,
+    "alias": "ctrl_ak_1",
+    "name": "Control Ak 1",
+    "type": "float32"
+  },
+  {
+    "id": 920,
+    "alias": "ctrl_ak_2",
+    "name": "Control Ak 2",
+    "type": "float32"
+  },
+  {
+    "id": 921,
+    "alias": "ctrl_ak_3",
+    "name": "Control Ak 3",
+    "type": "float32"
+  },
+  {
+    "id": 922,
+    "alias": "ctrl_ak_4",
+    "name": "Control Ak 4",
+    "type": "float32"
+  },
+  {
+    "id": 923,
+    "alias": "ctrl_bk_1",
+    "name": "Control Bk 1",
+    "type": "float32"
+  },
+  {
+    "id": 924,
+    "alias": "ctrl_bk_2",
+    "name": "Control Bk 2",
+    "type": "float32"
+  },
+  {
+    "id": 925,
+    "alias": "ctrl_bk_3",
+    "name": "Control Bk 3",
+    "type": "float32"
+  },
+  {
+    "id": 926,
+    "alias": "ctrl_pi_hems_1",
+    "name": "Control PI HEMS 1",
+    "type": "float32"
+  },
+  {
+    "id": 927,
+    "alias": "ctrl_pi_hems_2",
+    "name": "Control PI HEMS 2",
+    "type": "float32"
+  },
+  {
+    "id": 928,
+    "alias": "ctrl_pi_hems_3",
+    "name": "Control PI HEMS 3",
+    "type": "float32"
+  },
+  {
+    "id": 929,
+    "alias": "ctrl_pi_hems_4",
+    "name": "Control PI HEMS 4",
+    "type": "float32"
+  },
+  {
+    "id": 930,
+    "alias": "ctrl_pi_ems_1",
+    "name": "Control PI EMS 1",
+    "type": "float32"
+  },
+  {
+    "id": 931,
+    "alias": "ctrl_pi_ems_2",
+    "name": "Control PI EMS 2",
+    "type": "float32"
+  },
+  {
+    "id": 932,
+    "alias": "ctrl_pi_ems_3",
+    "name": "Control PI EMS 3",
+    "type": "float32"
+  },
+  {
+    "id": 933,
+    "alias": "ctrl_pi_ems_4",
+    "name": "Control PI EMS 4",
+    "type": "float32"
+  },
+  {
+    "id": 934,
+    "alias": "ctrl_pi_ems_5",
+    "name": "Control PI EMS 5",
+    "type": "float32"
+  },
+  {
+    "id": 935,
+    "alias": "ctrl_pi_ems_6",
+    "name": "Control PI EMS 6",
+    "type": "float32"
+  }
+]

@@ -2,12 +2,14 @@
   "name": "backend",
   "version": "1.0.0",
   "private": true,
-  "author": "Hyperloop UPV Team",
+  "author": "Hyperloop UPV",
   "license": "MIT",
   "scripts": {
-    "dev": "go run ./cmd --config ./cmd/dev-config.toml",
-    "dev:main": "go run ./cmd --config ./cmd/config.toml",
-    "build": "go build -o bin/backend ./cmd",
-    "build:ci": "go build"
+    "dev": "cargo run -p station -- --config ./crates/station/dev-config.toml",
+    "dev:main": "cargo run -p station --release -- --config ./crates/station/config.toml",
+    "build": "cargo build -p station --release",
+    "build:ci": "cargo build --workspace --release",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings",
+    "fmt": "cargo fmt --all"
   }
 }
