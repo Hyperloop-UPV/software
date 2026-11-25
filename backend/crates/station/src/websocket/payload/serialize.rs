@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer, Serializer};
 use software_core::model::{AdjId, Value};
 
-// Serializes the value of a protection message
+/// Emits a scalar JSON value for a protection event. Enums use the variant name.
 pub(super) fn serialize_value<S: Serializer>(
     value: &Value,
     serializer: S,
@@ -13,13 +13,14 @@ pub(super) fn serialize_value<S: Serializer>(
     }
 }
 
-// Deserializer works the other way around as Serializer
+/// Reads an ADJ ID from an unsigned 16-bit JSON integer.
 pub(super) fn deserialize_adj_id<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<AdjId, D::Error> {
     u16::deserialize(deserializer).map(AdjId)
 }
 
+/// Writes an ADJ ID as a JSON integer.
 pub(super) fn serialize_adj_id<S: Serializer>(
     id: &AdjId,
     serializer: S,

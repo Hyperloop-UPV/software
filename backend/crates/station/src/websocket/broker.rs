@@ -1,4 +1,7 @@
 //! Publishes current state and forwards messages and protection events.
+//!
+//! Each `watch` topic holds a complete snapshot and may coalesce intermediate
+//! updates. Each event topic has its own bounded `broadcast` backlog for live subscribers.
 
 use std::time::Duration;
 
@@ -38,6 +41,7 @@ pub struct Broker {
 }
 
 /// Clonable access to publication and subscriptions.
+/// A successful publish means the update entered the broker's input queue.
 #[derive(Debug, Clone)]
 pub struct BrokerClient {
     updates: mpsc::Sender<Update>,
@@ -45,6 +49,7 @@ pub struct BrokerClient {
     state_orders: watch::Receiver<StateOrdersUpdate>,
     logger: watch::Receiver<LoggerResponse>,
     data: watch::Receiver<DataUpdate>,
+    // Weak handles let event channels close when the broker exits.
     messages: broadcast::WeakSender<MessageUpdate>,
     protections: broadcast::WeakSender<ProtectionUpdate>,
 }
@@ -83,10 +88,12 @@ impl Broker {
         )
     }
 
-    /// Processes updates until all publishing clients have been dropped.
+    /// Processes updates as they arrive. After the last client drops, drains the input
+    /// queue and flushes any pending telemetry before exiting.
     pub async fn run(mut self) {
         let period = Duration::from_millis(100);
         let mut tick = interval_at(Instant::now() + period, period);
+        // Skip catch-up ticks and keep only the latest packet per ID in each batch.
         tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
         let mut pending = DataUpdate::new();
         loop {
@@ -99,6 +106,7 @@ impl Broker {
                         Some(Update::StateOrders(orders)) => { self.state_orders.send_replace(orders); }
                         Some(Update::Logger(recording)) => { self.logger.send_replace(recording); }
                         Some(Update::Data(packet)) => { pending.insert(packet.id.0, packet); }
+                        // Zero subscribers is normal for a live event.
                         Some(Update::Message(message)) => { let _ = self.messages.send(message); }
                         Some(Update::Protection(protection)) => { let _ = self.protections.send(protection); }
                         None => {
@@ -114,6 +122,7 @@ impl Broker {
 
     fn flush_data(&self, pending: &mut DataUpdate) {
         if !pending.is_empty() {
+            // Preserve the last value for packets that were quiet during this batch.
             self.data.send_modify(|state| state.extend(pending.drain()));
         }
     }
@@ -193,6 +202,7 @@ impl BrokerClient {
 
 fn subscribe<T>(state: &watch::Receiver<T>) -> watch::Receiver<T> {
     let mut receiver = state.clone();
+    // Callers read the initial snapshot directly. `changed()` then waits for a newer one.
     receiver.borrow_and_update();
     receiver
 }

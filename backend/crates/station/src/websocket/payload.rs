@@ -1,8 +1,8 @@
-//! JSON payloads for frontend WebSocket topics (feature `websocket`).
+//! JSON payloads for station's frontend topics.
 //!
-//! Existing topics preserve the Go backend's JSON shapes; `protection/update`
-//! adds a compact event. Socket handling, subscriptions and publication belong
-//! to `station`. See `websocket/README.md`.
+//! Each model describes the `payload` inside a `{topic, payload}` message.
+//! Serde adapters define the frontend JSON representation for shared domain types.
+//! See `websocket/payload/README.md` for the wire shapes and examples.
 
 mod connection;
 mod data;

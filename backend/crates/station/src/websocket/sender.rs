@@ -16,6 +16,7 @@ pub(super) async fn run(
     let (mut messages, mut protections) = (None, None);
     loop {
         let frame = tokio::select! {
+            // Apply subscription changes first, then give ready protection events priority.
             biased;
             change = subscriptions.recv() => {
                 let Some(change) = change else { return Ok(()); };
@@ -41,6 +42,7 @@ pub(super) async fn run(
     }
 }
 
+/// Installs a subscription and builds its initial snapshot, or drops it on unsubscribe.
 fn subscribe_state<T: Serialize>(
     topic: Topic,
     state: &mut Option<watch::Receiver<T>>,
@@ -58,6 +60,7 @@ async fn next_state<T: Serialize>(
     state: &mut Option<watch::Receiver<T>>,
 ) -> Result<Frame, Error> {
     let Some(state) = state else {
+        // A disabled topic stays idle while select polls other branches.
         return pending().await;
     };
     state.changed().await.map_err(|_| Error::BrokerClosed)?;
@@ -65,6 +68,7 @@ async fn next_state<T: Serialize>(
 }
 
 fn state_frame<T: Serialize>(topic: Topic, state: &mut watch::Receiver<T>) -> Result<Frame, Error> {
+    // Build an owned frame so the watch borrow ends before the socket write awaits.
     encode(topic, &*state.borrow_and_update())
 }
 

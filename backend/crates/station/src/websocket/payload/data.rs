@@ -3,7 +3,7 @@ use serde::Serialize;
 use software_core::model::AdjId;
 use std::collections::HashMap;
 
-/// Payload of `podData/update`, keyed by packet id (JSON object keys are strings).
+/// Latest telemetry per packet for `podData/update`. Packet IDs are JSON object keys.
 pub type DataUpdate = HashMap<u16, DataPacketUpdate>;
 
 /// Current telemetry and statistics for one packet.
@@ -23,7 +23,7 @@ pub struct DataPacketUpdate {
     pub measurement_updates: HashMap<String, MeasurementUpdate>,
 }
 
-/// A number carries statistics; booleans and enums are JSON primitives.
+/// Numeric measurements carry statistics. Booleans and enum names use JSON primitives.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum MeasurementUpdate {

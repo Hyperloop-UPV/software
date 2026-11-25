@@ -31,6 +31,7 @@ impl OrderForwarder {
     }
 }
 
+/// Resolves aliases and emits values in the ADJ's wire order.
 fn to_packet(mut request: OrderSend, index: &Index) -> Result<OrderPacket, OrderError> {
     let Some(PacketType::Order(measurements)) =
         index.packet(request.id).map(|packet| &packet.packet_type)
@@ -47,6 +48,7 @@ fn to_packet(mut request: OrderSend, index: &Index) -> Result<OrderPacket, Order
             .ok_or_else(|| OrderError::MissingField(alias.clone()))?;
         values.push(field_value(&field, alias, &measurement.kind)?);
     }
+    // Removing each declared field leaves only parameters the ADJ does not recognize.
     if let Some(extra) = request.fields.into_keys().next() {
         return Err(OrderError::UnexpectedField(extra));
     }
@@ -85,10 +87,12 @@ fn field_value(
     }
     .ok_or_else(|| OrderError::InvalidValue(alias.into()))?;
 
+    // Apply the same range checks as the vehicle's encoder before queuing the order.
     wire::encode_value(&value, kind).map_err(|_| OrderError::InvalidValue(alias.into()))?;
     Ok(value)
 }
 
+/// Checks that an integer survives conversion to the packet's `f64` representation.
 fn number(value: &JsonValue, kind: NumericKind) -> Option<f64> {
     let JsonValue::Number(raw) = value else {
         return None;
@@ -108,6 +112,7 @@ fn number(value: &JsonValue, kind: NumericKind) -> Option<f64> {
             return None;
         }
     } else if number.fract() != 0.0 || number.abs() >= (1_u64 << 53) as f64 {
+        // Float-form integers must stay within the range where adjacent integers remain distinct.
         return None;
     }
     // The 64-bit upper bounds round up when represented as f64.

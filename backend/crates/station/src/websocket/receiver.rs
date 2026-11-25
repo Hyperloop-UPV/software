@@ -8,23 +8,23 @@ use tokio::{
 };
 
 use super::{
-    HEARTBEAT, ORDER_SEND, OrderForwarder, Topic, WsMessage,
+    Commands, HEARTBEAT, LOGGER_ENABLE, LOGGER_VARIABLES, LoggerCommand, ORDER_SEND, Topic,
+    WsMessage,
     broker::BrokerClient,
-    error::{Error, OrderError},
+    error::{Error, LoggerError, OrderError},
     payload::{
         ConnectionUpdate, DataUpdate, LoggerResponse, MessageUpdate, ProtectionUpdate,
         StateOrdersUpdate,
     },
 };
 
-const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(3);
-
 #[derive(Deserialize)]
 struct Subscription {
+    /// An empty object also opts in. `false` unsubscribes.
     subscribe: Option<bool>,
 }
 
-/// Carries a new topic receiver, or `None` to unsubscribe.
+/// Hands the writer an already-open topic receiver, or `None` to unsubscribe.
 #[derive(Debug)]
 pub(super) enum SubscriptionChange {
     Connections(Option<watch::Receiver<ConnectionUpdate>>),
@@ -58,15 +58,17 @@ impl SubscriptionChange {
     }
 }
 
-/// Handles frontend requests and renews the deadline on each valid JSON message.
+/// Routes frontend requests and tracks application-level liveness.
 pub(super) async fn run(
     mut read: impl Stream<Item = Result<Frame, axum::Error>> + Unpin,
     broker: &BrokerClient,
-    orders: Option<&OrderForwarder>,
+    commands: &Commands,
     changes: mpsc::Sender<SubscriptionChange>,
+    heartbeat_timeout: Duration,
 ) -> Result<(), Error> {
     let mut subscriptions = HashSet::new();
-    let mut deadline = Instant::now() + HEARTBEAT_TIMEOUT;
+    // Keep one deadline across frames. Only decoded application messages renew it.
+    let mut deadline = Instant::now() + heartbeat_timeout;
     loop {
         let frame = timeout_at(deadline, read.next())
             .await
@@ -77,16 +79,26 @@ pub(super) async fn run(
         match frame? {
             Frame::Text(text) => {
                 let message: WsMessage = serde_json::from_str(&text)?;
+                // Nonblocking command queues keep heartbeat processing responsive.
                 if message.topic == ORDER_SEND {
-                    let result = orders
+                    let result = commands
+                        .orders
+                        .as_ref()
                         .ok_or(OrderError::VehicleUnavailable)
                         .and_then(|orders| orders.forward(message.payload));
                     if let Err(error) = result {
                         tracing::warn!(topic = ORDER_SEND, %error, "order rejected");
                     }
+                } else if matches!(message.topic.as_str(), LOGGER_ENABLE | LOGGER_VARIABLES) {
+                    if let Err(error) =
+                        forward_logger(commands.logger.as_ref(), &message.topic, message.payload)
+                    {
+                        tracing::warn!(topic = %message.topic, %error, "logger request rejected");
+                    }
                 } else if let Some(topic) = Topic::from_name(&message.topic) {
                     let request: Subscription = serde_json::from_value(message.payload)?;
                     let enabled = request.subscribe.unwrap_or(true);
+                    // Repeated requests keep the existing subscription and its cursor.
                     let changed = if enabled {
                         subscriptions.insert(topic)
                     } else {
@@ -106,12 +118,31 @@ pub(super) async fn run(
                 } else if message.topic != HEARTBEAT {
                     tracing::warn!(topic = %message.topic, "unsupported WebSocket topic");
                 }
-                deadline = Instant::now() + HEARTBEAT_TIMEOUT;
+                deadline = Instant::now() + heartbeat_timeout;
             }
             Frame::Close(_) => return Ok(()),
             _ => {}
         }
     }
+}
+
+fn forward_logger(
+    logger: Option<&mpsc::Sender<LoggerCommand>>,
+    topic: &str,
+    payload: serde_json::Value,
+) -> Result<(), LoggerError> {
+    let command = if topic == LOGGER_ENABLE {
+        LoggerCommand::Enable(serde_json::from_value(payload)?)
+    } else {
+        LoggerCommand::Variables(serde_json::from_value(payload)?)
+    };
+    logger
+        .ok_or(LoggerError::Unavailable)?
+        .try_send(command)
+        .map_err(|error| match error {
+            mpsc::error::TrySendError::Full(_) => LoggerError::QueueFull,
+            mpsc::error::TrySendError::Closed(_) => LoggerError::Unavailable,
+        })
 }
 
 #[cfg(test)]
@@ -122,12 +153,21 @@ mod tests {
     use super::*;
     use crate::websocket::broker::Broker;
 
+    const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(3);
+
     #[tokio::test(start_paused = true)]
     async fn inactivity_expires() {
         let (_broker, client) = Broker::new();
         let (changes, _subscriptions) = mpsc::channel(1);
         assert!(matches!(
-            run(stream::pending(), &client, None, changes).await,
+            run(
+                stream::pending(),
+                &client,
+                &Commands::default(),
+                changes,
+                HEARTBEAT_TIMEOUT
+            )
+            .await,
             Err(Error::HeartbeatTimeout)
         ));
     }
@@ -139,7 +179,16 @@ mod tests {
         let read = stream::poll_fn(move |cx| frames.poll_recv(cx));
         let (_broker, client) = Broker::new();
         let (changes, mut subscriptions) = mpsc::channel(1);
-        let worker = tokio::spawn(async move { run(read, &client, None, changes).await });
+        let worker = tokio::spawn(async move {
+            run(
+                read,
+                &client,
+                &Commands::default(),
+                changes,
+                HEARTBEAT_TIMEOUT,
+            )
+            .await
+        });
         tokio::task::yield_now().await;
 
         advance(Duration::from_secs(2)).await;
@@ -169,7 +218,14 @@ mod tests {
             )),
             Ok(Frame::Close(None)),
         ]);
-        run(frames, &client, None, changes).await?;
+        run(
+            frames,
+            &client,
+            &Commands::default(),
+            changes,
+            HEARTBEAT_TIMEOUT,
+        )
+        .await?;
         assert!(subscriptions.recv().await.is_none());
         Ok(())
     }
@@ -187,7 +243,14 @@ mod tests {
             )),
             Ok(Frame::Close(None)),
         ]);
-        run(frames, &client, None, changes).await?;
+        run(
+            frames,
+            &client,
+            &Commands::default(),
+            changes,
+            HEARTBEAT_TIMEOUT,
+        )
+        .await?;
         assert!(matches!(
             subscriptions.recv().await,
             Some(SubscriptionChange::Connections(Some(_)))
@@ -222,7 +285,14 @@ mod tests {
             )),
             Ok(Frame::Close(None)),
         ]);
-        run(frames, &client, None, changes).await?;
+        run(
+            frames,
+            &client,
+            &Commands::default(),
+            changes,
+            HEARTBEAT_TIMEOUT,
+        )
+        .await?;
         assert!(matches!(
             subscriptions.recv().await,
             Some(SubscriptionChange::Messages(Some(_)))

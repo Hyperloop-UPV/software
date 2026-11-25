@@ -63,13 +63,13 @@ impl From<Severity> for MessageKind {
     }
 }
 
-/// Legacy RTC timestamp used by the frontend's event display.
+/// Calendar timestamp used by the frontend's event display.
 ///
-/// This is not `ShortTimestamp`: the latter has no date and its subsecond unit
-/// is unresolved. Event construction must supply the date and counter explicitly.
+/// The event publisher supplies the date and RTC counter. The board's
+/// `ShortTimestamp` contains the time of day and a raw subsecond byte.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct MessageTimestamp {
-    /// RTC counter; kept separate from `ShortTimestamp::subsecond`.
+    /// RTC counter supplied by the publisher.
     pub counter: u16,
     /// Second of the minute.
     pub second: u8,

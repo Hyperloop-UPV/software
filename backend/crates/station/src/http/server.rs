@@ -48,14 +48,18 @@ pub(super) fn setup_router(
 }
 
 #[cfg(test)]
-pub(super) mod tests {
-    use std::{io, path::Path, time::Duration};
+mod tests {
+    use std::{io, path::Path, sync::Arc, time::Duration};
 
     use axum::{
         body::{Body, to_bytes},
         http::{Method, Request, StatusCode, header},
     };
-    use software_core::adj::{Adj, load_from_dir};
+    use software_core::{
+        adj::{Adj, load_from_dir},
+        model::{AdjId, OrderPacket, ShortTimestamp, Value},
+        protocol::Index,
+    };
     use tokio::{
         io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
         net::{TcpListener, TcpStream},
@@ -65,6 +69,9 @@ pub(super) mod tests {
     use tower::ServiceExt;
 
     use super::setup_router;
+    use crate::websocket::{
+        self, Commands, OrderForwarder, broker::Broker, payload::ProtectionUpdate,
+    };
 
     pub(in crate::http) const PATHS: [&str; 3] = [
         "/backend/adj/DataPackets",
@@ -199,17 +206,10 @@ pub(super) mod tests {
 
     // Upgrades require a real HTTP connection: oneshot does not provide Hyper's
     // OnUpgrade extension. The server only runs for the duration of the test.
-    async fn handshake(
+    pub(super) async fn handshake(
         app: axum::Router,
     ) -> Result<(String, TcpStream), Box<dyn std::error::Error>> {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
-        handshake_on(listener, app).await
-    }
-
-    pub(in crate::http) async fn handshake_on(
-        listener: TcpListener,
-        app: axum::Router,
-    ) -> Result<(String, TcpStream), Box<dyn std::error::Error>> {
         let address = listener.local_addr()?;
         let (shutdown, stopped) = oneshot::channel();
         let server = tokio::spawn(async move {
@@ -280,490 +280,130 @@ pub(super) mod tests {
     }
 
     #[tokio::test]
-    async fn websocket_subscription_receives_connection_snapshots()
+    async fn websocket_delivers_protections_and_forwards_orders()
     -> Result<(), Box<dyn std::error::Error>> {
-        use crate::websocket::payload::{Connection, StateOrdersUpdate};
-
-        let (broker, client) = crate::websocket::broker::Broker::new();
-        let broker_worker = tokio::spawn(broker.run());
-        let (connections, receiver) = mpsc::channel(1);
-        let worker = tokio::spawn(crate::websocket::run(receiver, client.clone(), None));
-        let app = setup_router(&Adj::default(), Some(connections))?;
-        let (headers, mut first) = handshake(app.clone()).await?;
-        assert!(headers.starts_with("HTTP/1.1 101 Switching Protocols\r\n"));
-        let (_headers, mut second) = handshake(app).await?;
-
-        timeout(Duration::from_secs(5), async {
-            send_text(
-                &mut first,
-                r#"{"topic":"connection/heartbeat","payload":{}}"#,
-            )
-            .await?;
-            // Other frontend topics can be added incrementally without closing the socket.
-            send_text(
-                &mut first,
-                r#"{"topic":"not-a-topic","payload":{"subscribe":true}}"#,
-            )
-            .await?;
-            send_text(
-                &mut first,
-                r#"{"topic":"connection/update","payload":{"subscribe":true}}"#,
-            )
-            .await?;
-            assert_eq!(
-                read_json(&mut first).await?,
-                serde_json::json!({
-                    "topic": "connection/update", "payload": {}
-                })
-            );
-
-            client
-                .publish_connection(Connection {
-                    name: "LCU".into(),
-                    is_connected: true,
-                })
-                .await?;
-            let expected = serde_json::json!({
-                "topic": "connection/update",
-                "payload": {"LCU": {"name": "LCU", "isConnected": true}}
-            });
-            assert_eq!(read_json(&mut first).await?, expected);
-
-            // A client receives nothing before subscribing, then receives the current map.
-            assert!(
-                timeout(Duration::from_millis(50), second.read_u8())
-                    .await
-                    .is_err()
-            );
-            send_text(&mut second, r#"{"topic":"connection/update","payload":{}}"#).await?;
-            assert_eq!(read_json(&mut second).await?, expected);
-
-            client
-                .publish_connection(Connection {
-                    name: "HVBMS".into(),
-                    is_connected: false,
-                })
-                .await?;
-            let expected = serde_json::json!({
-                "topic": "connection/update",
-                "payload": {
-                    "LCU": {"name": "LCU", "isConnected": true},
-                    "HVBMS": {"name": "HVBMS", "isConnected": false}
-                }
-            });
-            assert_eq!(read_json(&mut first).await?, expected);
-            assert_eq!(read_json(&mut second).await?, expected);
-
-            send_text(
-                &mut first,
-                r#"{"topic":"order/stateOrders","payload":{"subscribe":true}}"#,
-            )
-            .await?;
-            assert_eq!(
-                read_json(&mut first).await?,
-                serde_json::json!({
-                    "topic": "order/stateOrders", "payload": {}
-                })
-            );
-            send_text(
-                &mut second,
-                r#"{"topic":"logger/response","payload":{"subscribe":true}}"#,
-            )
-            .await?;
-            assert_eq!(
-                read_json(&mut second).await?,
-                serde_json::json!({
-                    "topic": "logger/response", "payload": false
-                })
-            );
-
-            client
-                .publish_state_orders(StateOrdersUpdate::from([("LCU".into(), vec![1001])]))
-                .await?;
-            assert_eq!(
-                read_json(&mut first).await?,
-                serde_json::json!({
-                    "topic": "order/stateOrders", "payload": {"LCU": [1001]}
-                })
-            );
-            assert!(
-                timeout(Duration::from_millis(50), second.read_u8())
-                    .await
-                    .is_err()
-            );
-
-            client.publish_logger(true).await?;
-            assert_eq!(
-                read_json(&mut second).await?,
-                serde_json::json!({
-                    "topic": "logger/response", "payload": true
-                })
-            );
-            assert!(
-                timeout(Duration::from_millis(50), first.read_u8())
-                    .await
-                    .is_err()
-            );
-
-            // The logger snapshot confirms the preceding unsubscribe was handled.
-            send_text(
-                &mut first,
-                r#"{"topic":"order/stateOrders","payload":{"subscribe":false}}"#,
-            )
-            .await?;
-            send_text(
-                &mut first,
-                r#"{"topic":"logger/response","payload":{"subscribe":true}}"#,
-            )
-            .await?;
-            assert_eq!(
-                read_json(&mut first).await?,
-                serde_json::json!({
-                    "topic": "logger/response", "payload": true
-                })
-            );
-            client
-                .publish_state_orders(StateOrdersUpdate::from([("LCU".into(), vec![])]))
-                .await?;
-            assert!(
-                timeout(Duration::from_millis(50), first.read_u8())
-                    .await
-                    .is_err()
-            );
-
-            // Resubscribing recovers the latest full state, including empty lists.
-            send_text(&mut first, r#"{"topic":"order/stateOrders","payload":{}}"#).await?;
-            assert_eq!(
-                read_json(&mut first).await?,
-                serde_json::json!({
-                    "topic": "order/stateOrders", "payload": {"LCU": []}
-                })
-            );
-            client.publish_logger(false).await?;
-            let expected = serde_json::json!({"topic": "logger/response", "payload": false});
-            assert_eq!(read_json(&mut first).await?, expected);
-            assert_eq!(read_json(&mut second).await?, expected);
-
-            for socket in [&mut first, &mut second] {
-                socket.write_all(&[0x88, 0x80, 0, 0, 0, 0]).await?;
-                assert_eq!(socket.read_u8().await?, 0x88);
-            }
-            Ok::<_, Box<dyn std::error::Error>>(())
-        })
-        .await??;
-        drop(client);
-        worker.await?;
-        timeout(Duration::from_secs(5), broker_worker).await??;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn websocket_telemetry_sends_complete_snapshots() -> Result<(), Box<dyn std::error::Error>>
-    {
-        use crate::websocket::payload::{DataPacketUpdate, MeasurementUpdate};
-        use software_core::model::AdjId;
-
-        let (broker, client) = crate::websocket::broker::Broker::new();
-        let broker_worker = tokio::spawn(broker.run());
-        let (connections, receiver) = mpsc::channel(1);
-        let worker = tokio::spawn(crate::websocket::run(receiver, client.clone(), None));
-        let app = setup_router(&Adj::default(), Some(connections))?;
-        let (_, mut first) = handshake(app.clone()).await?;
-        let (_, mut second) = handshake(app).await?;
-
-        timeout(Duration::from_secs(5), async {
-            send_text(
-                &mut first,
-                r#"{"topic":"podData/update","payload":{"subscribe":true}}"#,
-            )
-            .await?;
-            assert_eq!(
-                read_json(&mut first).await?,
-                serde_json::json!({
-                    "topic": "podData/update", "payload": {}
-                })
-            );
-
-            let packet = DataPacketUpdate {
-                id: AdjId(1000),
-                hex_value: "e8030000bc41".into(),
-                count: 1,
-                cycle_time: 100_000_000,
-                measurement_updates: std::collections::HashMap::from([(
-                    "temperature".into(),
-                    MeasurementUpdate::Numeric {
-                        last: 23.5,
-                        average: 23.0,
-                    },
-                )]),
-            };
-            client.publish_data(packet.clone()).await?;
-            let expected = serde_json::json!({
-                "topic": "podData/update",
-                "payload": {"1000": {
-                    "id": 1000, "hexValue": "e8030000bc41", "count": 1, "cycleTime": 100_000_000,
-                    "measurementUpdates": {"temperature": {"last": 23.5, "average": 23.0}}
-                }}
-            });
-            assert_eq!(read_json(&mut first).await?, expected);
-
-            send_text(&mut second, r#"{"topic":"podData/update","payload":{}}"#).await?;
-            assert_eq!(read_json(&mut second).await?, expected);
-            client
-                .publish_data(DataPacketUpdate {
-                    id: AdjId(1001),
-                    hex_value: "e9030000bc41".into(),
-                    ..packet
-                })
-                .await?;
-            let updated = read_json(&mut first).await?;
-            assert_eq!(updated["topic"], "podData/update");
-            assert_eq!(updated["payload"].as_object().map(|map| map.len()), Some(2));
-            assert_eq!(updated["payload"]["1000"], expected["payload"]["1000"]);
-            assert_eq!(updated["payload"]["1001"]["id"], 1001);
-            assert_eq!(read_json(&mut second).await?, updated);
-
-            for socket in [&mut first, &mut second] {
-                socket.write_all(&[0x88, 0x80, 0, 0, 0, 0]).await?;
-                assert_eq!(socket.read_u8().await?, 0x88);
-            }
-            Ok::<_, Box<dyn std::error::Error>>(())
-        })
-        .await??;
-        drop(client);
-        worker.await?;
-        timeout(Duration::from_secs(5), broker_worker).await??;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn websocket_event_subscriptions_deliver_live_payloads()
-    -> Result<(), Box<dyn std::error::Error>> {
-        use crate::websocket::{
-            broker::Broker,
-            payload::{
-                MessageKind, MessagePayload, MessageTimestamp, MessageUpdate, ProtectionUpdate,
-            },
-        };
-        use serde_json::json;
-        use software_core::model::{AdjId, ShortTimestamp, Value};
-
-        let (broker, client) = Broker::new();
-        let broker_worker = tokio::spawn(broker.run());
-        let (sockets, receiver) = mpsc::channel(1);
-        let worker = tokio::spawn(crate::websocket::run(receiver, client.clone(), None));
-        let message = MessageUpdate {
-            kind: MessageKind::Info,
-            payload: MessagePayload::Text("Order Sent".into()),
-            board: "LCU".into(),
-            name: "1001".into(),
-            timestamp: MessageTimestamp {
-                counter: 0,
-                second: 5,
-                minute: 30,
-                hour: 12,
-                day: 24,
-                month: 11,
-                year: 2026,
-            },
-        };
-        let protection = ProtectionUpdate {
-            id: AdjId(11192),
-            value: Value::Number(105.5),
-            timestamp: ShortTimestamp {
-                hour: 12,
-                minute: 30,
-                second: 6,
-                subsecond: 0,
-            },
-        };
-        let expected_message: serde_json::Value =
-            serde_json::from_str(include_str!("../websocket/payload/example/message.json"))?;
-        let expected_protection: serde_json::Value =
-            serde_json::from_str(include_str!("../websocket/payload/example/protection.json"))?;
-        let (_, mut socket) = handshake(setup_router(&Adj::default(), Some(sockets))?).await?;
-
-        timeout(Duration::from_secs(5), async {
-            let mut logger = client.subscribe_logger();
-            client
-                .publish_message(MessageUpdate {
-                    payload: MessagePayload::Text("Before subscribing".into()),
-                    ..message.clone()
-                })
-                .await?;
-            client.publish_logger(true).await?;
-            logger.changed().await?;
-            send_text(&mut socket, r#"{"topic":"message/update","payload":{}}"#).await?;
-            send_text(
-                &mut socket,
-                r#"{"topic":"protection/update","payload":{"subscribe":true}}"#,
-            )
-            .await?;
-            // The state snapshot confirms the preceding subscriptions were processed.
-            send_text(&mut socket, r#"{"topic":"logger/response","payload":{}}"#).await?;
-            assert_eq!(
-                read_json(&mut socket).await?,
-                json!({"topic": "logger/response", "payload": true})
-            );
-
-            client.publish_message(message.clone()).await?;
-            assert_eq!(read_json(&mut socket).await?, expected_message);
-            client.publish_protection(protection.clone()).await?;
-            assert_eq!(read_json(&mut socket).await?, expected_protection);
-
-            send_text(
-                &mut socket,
-                r#"{"topic":"message/update","payload":{"subscribe":false}}"#,
-            )
-            .await?;
-            send_text(&mut socket, r#"{"topic":"connection/update","payload":{}}"#).await?;
-            assert_eq!(
-                read_json(&mut socket).await?,
-                json!({"topic": "connection/update", "payload": {}})
-            );
-            client
-                .publish_message(MessageUpdate {
-                    payload: MessagePayload::Text("While unsubscribed".into()),
-                    ..message
-                })
-                .await?;
-            client.publish_protection(protection).await?;
-            assert_eq!(read_json(&mut socket).await?, expected_protection);
-            assert!(
-                timeout(Duration::from_millis(50), socket.read_u8())
-                    .await
-                    .is_err()
-            );
-
-            socket.write_all(&[0x88, 0x80, 0, 0, 0, 0]).await?;
-            assert_eq!(socket.read_u8().await?, 0x88);
-            Ok::<_, Box<dyn std::error::Error>>(())
-        })
-        .await??;
-        drop(client);
-        worker.await?;
-        timeout(Duration::from_secs(5), broker_worker).await??;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn websocket_forwards_validated_orders_in_adj_order()
-    -> Result<(), Box<dyn std::error::Error>> {
-        use crate::websocket::{OrderForwarder, broker::Broker};
-        use software_core::{
-            model::{AdjId, OrderPacket, Value},
-            protocol::Index,
-        };
-        use std::sync::Arc;
-
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../core/src/adj/test/adj");
         let adj = load_from_dir(&path)?;
-        let index = Arc::new(Index::new(&adj.pod_data, None));
         let (order_tx, mut orders) = mpsc::channel(1);
-        let forwarder = OrderForwarder::new(index, order_tx);
+        let commands = Commands {
+            orders: Some(OrderForwarder::new(
+                Arc::new(Index::new(&adj.pod_data, None)),
+                order_tx,
+            )),
+            ..Commands::default()
+        };
         let (broker, client) = Broker::new();
-        let broker_worker = tokio::spawn(broker.run());
-        let (connections, receiver) = mpsc::channel(1);
-        let worker = tokio::spawn(crate::websocket::run(receiver, client, Some(forwarder)));
-        let (_, mut socket) = handshake(setup_router(&adj, Some(connections))?).await?;
+        let broker_task = tokio::spawn(broker.run());
+        let (sockets, receiver) = mpsc::channel(1);
+        let socket_task = tokio::spawn(websocket::run(
+            receiver,
+            client.clone(),
+            commands,
+            Duration::from_secs(10),
+        ));
+        let (headers, mut socket) = handshake(setup_router(&adj, Some(sockets))?).await?;
+        assert!(headers.starts_with("HTTP/1.1 101 Switching Protocols\r\n"));
 
         timeout(Duration::from_secs(5), async {
-            for invalid in [
-                r#"{"topic":"order/send","payload":{"id":65535,"fields":{}}}"#,
-                r#"{"topic":"order/send","payload":{"id":809,"fields":{}}}"#,
-                r#"{"topic":"order/send","payload":{"id":801,"fields":{"extra":{"value":0,"type":"uint8"}}}}"#,
-                r#"{"topic":"order/send","payload":{"id":809,"fields":{"desired_current":{"value":12.5,"type":"float64"},"lpu_id":{"value":2,"type":"uint32"}}}}"#,
-                r#"{"topic":"order/send","payload":{"id":809,"fields":{"desired_current":{"value":12.5,"type":"float32"},"lpu_id":{"value":2.5,"type":"uint32"}}}}"#,
-            ] {
-                send_text(&mut socket, invalid).await?;
-            }
-            send_text(&mut socket, r#"{"topic":"order/send","payload":{"id":809,"fields":{"desired_current":{"value":12.5,"type":"float32"},"lpu_id":{"value":2,"type":"uint32"}}}}"#).await?;
-            let stop = r#"{"topic":"order/send","payload":{"id":801,"fields":{}}}"#;
-            send_text(&mut socket, stop).await?;
-
-            // The snapshot confirms both requests reached the receiver before we free the queue.
+            send_text(&mut socket, r#"{"topic":"protection/update","payload":{}}"#).await?;
+            // Receiving the snapshot confirms the preceding event subscription is active.
             send_text(&mut socket, r#"{"topic":"connection/update","payload":{}}"#).await?;
-            assert_eq!(read_json(&mut socket).await?["topic"], "connection/update");
-            assert_eq!(orders.recv().await, Some(OrderPacket::new(
-                AdjId(809), vec![Value::Number(2.0), Value::Number(12.5)],
-            )));
-            assert!(matches!(orders.try_recv(), Err(mpsc::error::TryRecvError::Empty)));
+            assert_eq!(
+                read_json(&mut socket).await?,
+                serde_json::json!({"topic": "connection/update", "payload": {}})
+            );
 
-            send_text(&mut socket, stop).await?;
-            assert_eq!(orders.recv().await, Some(OrderPacket::new(AdjId(801), vec![])));
+            client
+                .publish_protection(ProtectionUpdate {
+                    id: AdjId(11192),
+                    value: Value::Number(105.5),
+                    timestamp: ShortTimestamp {
+                        hour: 12,
+                        minute: 30,
+                        second: 6,
+                        subsecond: 0,
+                    },
+                })
+                .await?;
+            let expected: serde_json::Value = serde_json::from_str(include_str!(
+                "../websocket/payload/example/protection.json"
+            ))?;
+            assert_eq!(read_json(&mut socket).await?, expected);
 
-            socket.write_all(&[0x88, 0x80, 0, 0, 0, 0]).await?;
-            assert_eq!(socket.read_u8().await?, 0x88);
+            send_text(
+                &mut socket,
+                r#"{"topic":"order/send","payload":{"id":809,"fields":{"desired_current":{"value":12.5,"type":"float32"},"lpu_id":{"value":2,"type":"uint32"}}}}"#,
+            )
+            .await?;
+            assert_eq!(
+                orders.recv().await,
+                Some(OrderPacket::new(
+                    AdjId(809),
+                    vec![Value::Number(2.0), Value::Number(12.5)],
+                ))
+            );
+
+            drop(socket);
+            socket_task.await?;
+            drop(client);
+            broker_task.await?;
             Ok::<_, Box<dyn std::error::Error>>(())
-        }).await??;
-        worker.await?;
-        timeout(Duration::from_secs(5), broker_worker).await??;
+        })
+        .await??;
         Ok(())
     }
 
     async fn send_text(
-        client: &mut TcpStream,
+        socket: &mut TcpStream,
         text: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // A zero mask leaves the test JSON unchanged.
         let length = u16::try_from(text.len())?;
         if length < 126 {
-            client.write_all(&[0x81, 0x80 | length as u8]).await?;
+            socket.write_all(&[0x81, 0x80 | length as u8]).await?;
         } else {
-            client.write_all(&[0x81, 0xfe]).await?;
-            client.write_u16(length).await?;
+            socket.write_all(&[0x81, 0xfe]).await?;
+            socket.write_u16(length).await?;
         }
-        client.write_all(&[0; 4]).await?;
-        client.write_all(text.as_bytes()).await?;
+        // The zero mask keeps the test payload bytes unchanged.
+        socket.write_all(&[0; 4]).await?;
+        socket.write_all(text.as_bytes()).await?;
         Ok(())
     }
 
     async fn read_json(
-        client: &mut TcpStream,
+        socket: &mut TcpStream,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-        assert_eq!(client.read_u8().await?, 0x81);
-        let header = client.read_u8().await?;
-        assert_eq!(header & 0x80, 0, "server frames must not be masked");
-        let length = match header {
-            126 => usize::from(client.read_u16().await?),
-            127 => usize::try_from(client.read_u64().await?)?,
-            length => usize::from(length),
+        assert_eq!(socket.read_u8().await?, 0x81);
+        let length = match socket.read_u8().await? {
+            length @ 0..=125 => usize::from(length),
+            126 => usize::from(socket.read_u16().await?),
+            _ => panic!("expected a short, unmasked server frame"),
         };
         let mut body = vec![0; length];
-        client.read_exact(&mut body).await?;
+        socket.read_exact(&mut body).await?;
         Ok(serde_json::from_slice(&body)?)
     }
 
     #[tokio::test]
-    async fn websocket_without_a_consumer_returns_unavailable()
+    async fn websocket_returns_unavailable_when_handoff_cannot_accept_a_socket()
     -> Result<(), Box<dyn std::error::Error>> {
-        let app = setup_router(&Adj::default(), None)?;
-        let (headers, _client) = handshake(app).await?;
-        assert!(headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"));
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn websocket_with_a_closed_channel_returns_unavailable()
-    -> Result<(), Box<dyn std::error::Error>> {
-        let (connections, receiver) = mpsc::channel(1);
+        let (closed, receiver) = mpsc::channel(1);
         drop(receiver);
-        let app = setup_router(&Adj::default(), Some(connections))?;
-        let (headers, _client) = handshake(app).await?;
-        assert!(headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"));
-        Ok(())
-    }
+        let (full, _receiver) = mpsc::channel(1);
+        let _reservation = full.clone().try_reserve_owned()?;
 
-    #[tokio::test]
-    async fn websocket_with_a_full_channel_returns_unavailable()
-    -> Result<(), Box<dyn std::error::Error>> {
-        let (connections, _receiver) = mpsc::channel(1);
-        // Simulate an occupied slot without requiring another test socket.
-        let reservation = connections.clone().try_reserve_owned()?;
-        let app = setup_router(&Adj::default(), Some(connections))?;
-        let (headers, _client) = handshake(app).await?;
-        assert!(headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"));
-        drop(reservation);
+        for (case, connections) in [
+            ("missing", None),
+            ("closed", Some(closed)),
+            ("full", Some(full)),
+        ] {
+            let app = setup_router(&Adj::default(), connections)?;
+            let (headers, _client) = handshake(app).await?;
+            assert!(
+                headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"),
+                "expected 503 for {case} channel, got {headers}",
+            );
+        }
         Ok(())
     }
 

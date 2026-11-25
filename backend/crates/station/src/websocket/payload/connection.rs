@@ -2,6 +2,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 /// Payload of `connection/update`, keyed by board name.
+/// Boards remain in the snapshot with `isConnected: false` after a disconnect.
 pub type ConnectionUpdate = HashMap<String, Connection>;
 
 /// Whether a board is connected to the backend.

@@ -7,13 +7,13 @@ use software_core::model::{AdjId, ProtectionPacket, ShortTimestamp, Value};
 /// Payload of `protection/update`: the triggered id, measured value and time.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ProtectionUpdate {
-    /// Compound protection id; its definition is available in the ADJ catalog.
+    /// Compound ID used to look up the protection definition in the ADJ catalog.
     #[serde(serialize_with = "serialize_adj_id")]
     pub id: AdjId,
     /// Value that triggered the protection, serialized as a JSON primitive.
     #[serde(serialize_with = "serialize_value")]
     pub value: Value,
-    /// Time received from the board, preserving the raw subsecond byte.
+    /// Time of day supplied by the board, with its original subsecond byte.
     #[serde(with = "ShortTimestampJson")]
     pub timestamp: ShortTimestamp,
 }
@@ -28,6 +28,7 @@ impl From<ProtectionPacket> for ProtectionUpdate {
     }
 }
 
+// Defines the frontend timestamp fields locally via Serde's remote derive.
 #[derive(Serialize)]
 #[serde(remote = "ShortTimestamp")]
 struct ShortTimestampJson {
