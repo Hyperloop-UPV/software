@@ -17,9 +17,13 @@ toml.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 serde_json.workspace = true
+futures-util = { version = "0.3", default-features = false, features = ["std", "sink"] }
 tower = "0.5.3"
 axum = { version = "0.8.9", features = ["ws", "http1", "http2"] }
 tower-http = { version = "0.6.11", features = ["cors", "set-header"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
 
 [lints]
 workspace = true

@@ -31,25 +31,6 @@ pub(crate) fn serialize_adj_id<S: Serializer>(
     serializer.serialize_u16(id.0)
 }
 
-// Deserializer works the other way around as Serializer
-pub(crate) fn deserialize_adj_id<'de, D: Deserializer<'de>>(
-    deserializer: D,
-) -> Result<AdjId, D::Error> {
-    u16::deserialize(deserializer).map(AdjId)
-}
-
-// Serializes the value of a protection message
-pub(crate) fn serialize_value<S: Serializer>(
-    value: &Value,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    match value {
-        Value::Number(value) => serializer.serialize_f64(*value),
-        Value::Bool(value) => serializer.serialize_bool(*value),
-        Value::Enum(value) => serializer.serialize_str(value),
-    }
-}
-
 // Serialize numeric kind to match ADJv3 types.
 pub(crate) fn get_numeric_kind(kind: &NumericKind) -> &str {
     match kind {

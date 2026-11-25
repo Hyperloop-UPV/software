@@ -1,13 +1,15 @@
-# WebSocket Message Models (`model::websocket`)
+# WebSocket Message Models (`websocket::payload`)
 
 JSON models for telemetry, connections, orders, messages, protection events
-and logger control. The `websocket` feature enables the types in
-`model/websocket.rs` and `model/websocket/`.
+and logger control. The types live in station's `websocket/payload.rs` and
+`websocket/payload/`, alongside the WebSocket implementation.
 
 The Rust types describe the payload of each topic. Messages sent over the
 WebSocket wrap that payload in `{topic, payload}`, as shown in the templates
 and example files below. Connections, subscriptions, channels and the broker
-belong to the application (`station`).
+are handled by the surrounding [WebSocket module](../README.md). Shared
+serialization helpers live in [serialize.rs](serialize.rs), and domain types
+such as `AdjId`, `Value` and `ProtectionPacket` come from `software_core::model`.
 
 ## Topics
 
@@ -29,16 +31,11 @@ independent of the bundled ADJ fixture and HTTP catalog examples.
 
 ## Usage
 
-Enable the feature in the application's dependency:
-
-```bash
-cargo add software-core -F websocket
-```
-
-With a decoded `packet: ProtectionPacket`:
+The payload module is compiled as part of station, without a separate feature.
+Within station, with a decoded `packet: software_core::model::ProtectionPacket`:
 
 ```rust
-use software_core::model::websocket::{OrderSend, ProtectionUpdate};
+use crate::websocket::payload::{OrderSend, ProtectionUpdate};
 
 let request: OrderSend = serde_json::from_str(r#"{"id":1002,"fields":{}}"#)?;
 let protection = ProtectionUpdate::from(packet);
@@ -48,7 +45,7 @@ let payload_json = serde_json::to_string(&protection)?;
 Published structures implement `serde::Serialize`; `OrderSend` and `OrderField`
 implement `serde::Deserialize`. The logger aliases use the primitive types'
 Serde implementations. All payload types are re-exported from
-`model::websocket`.
+`crate::websocket::payload` within station.
 
 Deserializing an order checks its JSON structure. Parameter types, ranges and
 their correspondence with the ADJ must be validated by the application before
@@ -126,7 +123,6 @@ backend and the board.
     "fields": {
       "<parameter alias>": {
         "value": number, // A boolean or enum string is also possible.
-        "isEnabled": boolean,
         "type": string
       }
     }

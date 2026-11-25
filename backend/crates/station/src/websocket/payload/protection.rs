@@ -1,10 +1,8 @@
-use serde::Serialize;
+use super::serialize::{serialize_adj_id, serialize_value};
+use serde::{Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::{
-    model::{AdjId, ProtectionPacket, ShortTimestamp, Value},
-    utils::serialize::{serialize_adj_id, serialize_value},
-};
+use software_core::model::{AdjId, ProtectionPacket, ShortTimestamp, Value};
 
 /// Payload of `protection/update`: the triggered id, measured value and time.
 #[derive(Debug, Clone, PartialEq, Serialize)]

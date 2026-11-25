@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use serde::Serialize;
+use std::collections::HashMap;
 
 /// Payload of `connection/update`, keyed by board name.
 pub type ConnectionUpdate = HashMap<String, Connection>;

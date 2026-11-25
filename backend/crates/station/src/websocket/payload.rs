@@ -9,6 +9,7 @@ mod data;
 mod message;
 mod order;
 mod protection;
+mod serialize;
 
 pub use connection::{Connection, ConnectionUpdate};
 pub use data::{DataPacketUpdate, DataUpdate, MeasurementUpdate};

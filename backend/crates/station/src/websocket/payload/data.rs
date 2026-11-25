@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
+use super::serialize::serialize_adj_id;
 use serde::Serialize;
-
-use crate::{model::AdjId, utils::serialize::serialize_adj_id};
+use software_core::model::AdjId;
+use std::collections::HashMap;
 
 /// Payload of `podData/update`, keyed by packet id (JSON object keys are strings).
 pub type DataUpdate = HashMap<u16, DataPacketUpdate>;

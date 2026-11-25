@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
+use super::serialize::deserialize_adj_id;
 use serde::Deserialize;
-
-use crate::{model::AdjId, utils::serialize::deserialize_adj_id};
+use software_core::model::AdjId;
+use std::collections::HashMap;
 
 /// Payload of `order/send`; conversion to an `OrderPacket` requires the ADJ.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -20,9 +19,6 @@ pub struct OrderField {
     /// Raw JSON value; its type and range must be checked against the ADJ.
     /// Keeping it raw also preserves integer precision before validation.
     pub value: serde_json::Value,
-    /// Whether the frontend enables this parameter.
-    #[serde(rename = "isEnabled")]
-    pub is_enabled: bool,
     /// Legacy type name, such as `uint16`, `float32`, `bool` or `enum`.
     #[serde(rename = "type")]
     pub field_type: String,

@@ -1,8 +1,6 @@
-use serde::Serialize;
-
-use crate::model::{MessageLevel, Severity};
-
 use super::ProtectionPayload;
+use serde::Serialize;
+use software_core::model::{MessageLevel, Severity};
 
 /// Payload of `message/update`, preserving the legacy event envelope.
 #[derive(Debug, Clone, PartialEq, Serialize)]

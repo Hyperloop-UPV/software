@@ -57,7 +57,7 @@ pub(super) mod tests {
     };
     use software_core::adj::{Adj, load_from_dir};
     use tokio::{
-        io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+        io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
         net::{TcpListener, TcpStream},
         sync::{mpsc, oneshot},
         time::timeout,
@@ -277,6 +277,122 @@ pub(super) mod tests {
         assert_eq!(connections.capacity(), 1);
         drop(socket);
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn websocket_subscription_receives_connection_snapshots()
+    -> Result<(), Box<dyn std::error::Error>> {
+        use super::super::super::websocket::payload::Connection;
+
+        let (broker, client) = crate::websocket::broker::Broker::new();
+        let broker_worker = tokio::spawn(broker.run());
+        let (connections, receiver) = mpsc::channel(1);
+        let worker = tokio::spawn(crate::websocket::run(receiver, client.clone()));
+        let app = setup_router(&Adj::default(), Some(connections))?;
+        let (headers, mut first) = handshake(app.clone()).await?;
+        assert!(headers.starts_with("HTTP/1.1 101 Switching Protocols\r\n"));
+        let (_headers, mut second) = handshake(app).await?;
+
+        timeout(Duration::from_secs(5), async {
+            send_text(
+                &mut first,
+                r#"{"topic":"connection/heartbeat","payload":{}}"#,
+            )
+            .await?;
+            // Other frontend topics can be added incrementally without closing the socket.
+            send_text(
+                &mut first,
+                r#"{"topic":"podData/update","payload":{"subscribe":true}}"#,
+            )
+            .await?;
+            send_text(
+                &mut first,
+                r#"{"topic":"connection/update","payload":{"subscribe":true}}"#,
+            )
+            .await?;
+            assert_eq!(
+                read_json(&mut first).await?,
+                serde_json::json!({
+                    "topic": "connection/update", "payload": {}
+                })
+            );
+
+            client
+                .publish_connection(Connection {
+                    name: "LCU".into(),
+                    is_connected: true,
+                })
+                .await?;
+            let expected = serde_json::json!({
+                "topic": "connection/update",
+                "payload": {"LCU": {"name": "LCU", "isConnected": true}}
+            });
+            assert_eq!(read_json(&mut first).await?, expected);
+
+            // A client receives nothing before subscribing, then receives the current map.
+            assert!(
+                timeout(Duration::from_millis(50), second.read_u8())
+                    .await
+                    .is_err()
+            );
+            send_text(&mut second, r#"{"topic":"connection/update","payload":{}}"#).await?;
+            assert_eq!(read_json(&mut second).await?, expected);
+
+            client
+                .publish_connection(Connection {
+                    name: "HVBMS".into(),
+                    is_connected: false,
+                })
+                .await?;
+            let expected = serde_json::json!({
+                "topic": "connection/update",
+                "payload": {
+                    "LCU": {"name": "LCU", "isConnected": true},
+                    "HVBMS": {"name": "HVBMS", "isConnected": false}
+                }
+            });
+            assert_eq!(read_json(&mut first).await?, expected);
+            assert_eq!(read_json(&mut second).await?, expected);
+
+            for socket in [&mut first, &mut second] {
+                socket.write_all(&[0x88, 0x80, 0, 0, 0, 0]).await?;
+                assert_eq!(socket.read_u8().await?, 0x88);
+            }
+            Ok::<_, Box<dyn std::error::Error>>(())
+        })
+        .await??;
+        drop(client);
+        worker.await?;
+        timeout(Duration::from_secs(5), broker_worker).await??;
+        Ok(())
+    }
+
+    async fn send_text(
+        client: &mut TcpStream,
+        text: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Test requests fit a short masked frame; a zero mask leaves the JSON unchanged.
+        let length = u8::try_from(text.len())?;
+        assert!(length < 126);
+        client.write_all(&[0x81, 0x80 | length, 0, 0, 0, 0]).await?;
+        client.write_all(text.as_bytes()).await?;
+        Ok(())
+    }
+
+    async fn read_json(
+        client: &mut TcpStream,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        assert_eq!(client.read_u8().await?, 0x81);
+        let header = client.read_u8().await?;
+        assert_eq!(header & 0x80, 0, "server frames must not be masked");
+        let length = match header {
+            126 => usize::from(client.read_u16().await?),
+            127 => usize::try_from(client.read_u64().await?)?,
+            length => usize::from(length),
+        };
+        let mut body = vec![0; length];
+        client.read_exact(&mut body).await?;
+        Ok(serde_json::from_slice(&body)?)
     }
 
     #[tokio::test]
