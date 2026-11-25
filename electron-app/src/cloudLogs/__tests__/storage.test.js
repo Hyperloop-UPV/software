@@ -37,6 +37,7 @@ vi.mock("../../config/configInstance.js", () => ({
 import { compressSession, extractSession } from "../archive.js";
 import {
   findLocalSessions,
+  formatDownloadedFolderName,
   formatSessionZipName,
   getCloudRoot,
   inspectSession,
@@ -268,6 +269,60 @@ describe("formatSessionZipName", () => {
     const emptyBoth = formatSessionZipName(null, "");
     expect(emptyBoth).not.toBe("session.zip");
     expect(emptyBoth).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.zip$/);
+  });
+});
+
+describe("formatDownloadedFolderName", () => {
+  it("formats folder name using fileName with hh-mm-ss", () => {
+    expect(
+      formatDownloadedFolderName("2026-11-15T12-30-00", {
+        fileName: "custom-run-1.zip",
+        title: "Test Run Title",
+        id: "session-1",
+      }),
+    ).toBe("custom-run-1-12-30-00");
+  });
+
+  it("strips .zip from fileName and sanitizes illegal characters", () => {
+    expect(
+      formatDownloadedFolderName("2026-11-15T12-30-00", {
+        fileName: "../../nested/bad:file*name?.zip",
+      }),
+    ).toBe("bad_file_name_-12-30-00");
+  });
+
+  it("falls back to title when fileName is omitted or empty", () => {
+    expect(
+      formatDownloadedFolderName("2026-11-15T12-30-00", {
+        title: "High Speed Test",
+      }),
+    ).toBe("High_Speed_Test-12-30-00");
+
+    expect(
+      formatDownloadedFolderName("2026-11-15T12-30-00", {
+        fileName: "  ",
+        title: "Run/1:Test",
+      }),
+    ).toBe("Run_1_Test-12-30-00");
+  });
+
+  it("falls back to id when both fileName and title are omitted", () => {
+    expect(
+      formatDownloadedFolderName("2026-11-15T12-30-00", {
+        id: "session-4",
+      }),
+    ).toBe("session-4-12-30-00");
+  });
+
+  it("falls back to 'session' when no identifiers are provided", () => {
+    expect(formatDownloadedFolderName("2026-11-15T12-30-00")).toBe(
+      "session-12-30-00",
+    );
+  });
+
+  it("falls back to current time when dateStr is missing or invalid", () => {
+    const result = formatDownloadedFolderName(null, { fileName: "run-1" });
+    expect(result).toMatch(/^run-1-\d{2}-\d{2}-\d{2}$/);
   });
 });
 

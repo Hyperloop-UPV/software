@@ -11,6 +11,7 @@ vi.mock("../../config/configInstance.js", () => ({
 
 import {
   autocompleteTags,
+  clearTagCache,
   convertDateToIso,
   downloadLog,
   getAuthHeaders,
@@ -31,6 +32,7 @@ describe("Cloud Logs Client", () => {
   beforeEach(async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), "cloud-logs-client-test-"));
     mockConfig.value = {};
+    clearTagCache();
     originalEnvUrl = process.env.CLOUD_LOGS_API_URL;
     delete process.env.CLOUD_LOGS_API_URL;
     originalFetch = globalThis.fetch;
@@ -351,6 +353,53 @@ describe("Cloud Logs Client", () => {
         await handleResponseError(mockResponseJson);
       } catch (err) {
         expect(err.message).toContain('{"code":"UNKNOWN_ERR"}');
+      }
+    });
+
+    it("strips HTML tags and trims to 300 characters when proxy returns 502 HTML", async () => {
+      const htmlBody = `
+        <!DOCTYPE html>
+        <html>
+          <head><title>502 Bad Gateway</title></head>
+          <body>
+            <h1>502 Bad Gateway</h1>
+            <p>The upstream server failed to respond in time.</p>
+          </body>
+        </html>
+      `;
+      const mockResponse = {
+        status: 502,
+        statusText: "Bad Gateway",
+        text: async () => htmlBody,
+      };
+
+      try {
+        await handleResponseError(mockResponse);
+        expect.unreachable();
+      } catch (err) {
+        expect(err.status).toBe(502);
+        expect(err.message).not.toContain("<html>");
+        expect(err.message).not.toContain("<head>");
+        expect(err.message).not.toContain("<h1>");
+        expect(err.message).toContain("502 Bad Gateway");
+        expect(err.message).toContain(
+          "The upstream server failed to respond in time.",
+        );
+      }
+    });
+
+    it("extracts error or message fields when detail is absent in JSON", async () => {
+      const mockResponseError = {
+        status: 403,
+        text: async () => JSON.stringify({ error: "Access denied by policy" }),
+      };
+
+      try {
+        await handleResponseError(mockResponseError);
+        expect.unreachable();
+      } catch (err) {
+        expect(err.status).toBe(403);
+        expect(err.message).toContain("Access denied by policy");
       }
     });
   });

@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { createHash } from "node:crypto";
 
 const { handlers, mockIpcMain } = vi.hoisted(() => {
   const map = new Map();
@@ -58,19 +57,22 @@ vi.mock("../archive.js", () => ({
   extractSession: vi.fn(),
 }));
 
-vi.mock("../sessions.js", () => ({
-  findLocalSessions: vi.fn(),
-  formatSessionZipName: vi.fn((date, title) => {
-    if (typeof title === "string" && title.trim()) {
-      return `${title.trim()}.zip`;
-    }
-    return date ? `${date}.zip` : "2026-01-01T00-00-00.zip";
-  }),
-  getCloudRoot: vi.fn(),
-  getLogsRoot: vi.fn().mockResolvedValue("/app/logger"),
-  inspectSession: vi.fn(),
-  MAX_BYTES: 4 * 1024 ** 3,
-}));
+vi.mock("../sessions.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    findLocalSessions: vi.fn(),
+    formatSessionZipName: vi.fn((date, title) => {
+      if (typeof title === "string" && title.trim()) {
+        return `${title.trim()}.zip`;
+      }
+      return date ? `${date}.zip` : "2026-01-01T00-00-00.zip";
+    }),
+    getCloudRoot: vi.fn(),
+    getLogsRoot: vi.fn().mockResolvedValue("/app/logger"),
+    inspectSession: vi.fn(),
+  };
+});
 
 import { dialog } from "electron";
 import * as archive from "../archive.js";
@@ -99,6 +101,38 @@ describe("Cloud Logs IPC handlers", () => {
       senderFrame: mainFrame,
     };
   };
+
+  describe("assertSender validation", () => {
+    it("rejects calls from unauthorized URLs or views", async () => {
+      const listHandler = handlers.get("cloud-logs:list");
+      const evilEvent = {
+        sender: {
+          id: 2,
+          mainFrame: { url: "file:///other-app/index.html" },
+          isDestroyed: () => false,
+        },
+        senderFrame: { url: "file:///other-app/index.html" },
+      };
+      await expect(listHandler(evilEvent)).rejects.toThrow(
+        "Cloud Logs is only available to local Logging and Testing views.",
+      );
+    });
+
+    it("rejects calls from child frames even with allowed URL", async () => {
+      const listHandler = handlers.get("cloud-logs:list");
+      const mainFrame = { url: "file:///app/renderer/logging-view/index.html" };
+      const childFrame = {
+        url: "file:///app/renderer/logging-view/index.html",
+      };
+      const iframeEvent = {
+        sender: { id: 1, mainFrame, isDestroyed: () => false },
+        senderFrame: childFrame,
+      };
+      await expect(listHandler(iframeEvent)).rejects.toThrow(
+        "Cloud Logs is only available to local Logging and Testing views.",
+      );
+    });
+  });
 
   describe("list handler", () => {
     it("handles undefined, null, empty, and whitespace cursors gracefully", async () => {
@@ -485,8 +519,7 @@ describe("Cloud Logs IPC handlers", () => {
         maxBytes: 4 * 1024 ** 3,
       });
 
-      const hash = createHash("sha256").update("session-1").digest("hex");
-      const expectedDir = path.join(testCloudRoot, hash);
+      const expectedDir = path.join(testCloudRoot, "custom-run-1-12-30-00");
       expect(result).toEqual({
         id: "session-1",
         path: expectedDir,
@@ -584,10 +617,7 @@ describe("Cloud Logs IPC handlers", () => {
       expect(client.downloadLog).toHaveBeenCalledTimes(1);
       expect(cached).toEqual({
         id: "session-cache",
-        path: path.join(
-          testCloudRoot,
-          createHash("sha256").update("session-cache").digest("hex"),
-        ),
+        path: path.join(testCloudRoot, "cached-session-12-30-00"),
         date: "2026-11-15T12-30-00",
         title: "Original Title",
         fileName: "cached-session.zip",
@@ -598,8 +628,7 @@ describe("Cloud Logs IPC handlers", () => {
       const downloadHandler = handlers.get("cloud-logs:download");
       const event = createEvent();
       const id = "session-cache-no-title";
-      const hash = createHash("sha256").update(id).digest("hex");
-      const dir = path.join(testCloudRoot, hash);
+      const dir = path.join(testCloudRoot, "legacy-run-12-30-00");
       await mkdir(dir, { recursive: true });
       await writeFile(
         path.join(dir, "cloud-log.json"),
@@ -661,10 +690,12 @@ describe("Cloud Logs IPC handlers", () => {
       const downloadHandler = handlers.get("cloud-logs:download");
       const event = createEvent();
       const id = "session-corrupt-cache";
-      const hash = createHash("sha256").update(id).digest("hex");
-      const dir = path.join(testCloudRoot, hash);
+      const dir = path.join(testCloudRoot, "corrupt-cache-dir");
       await mkdir(dir, { recursive: true });
-      await writeFile(path.join(dir, "cloud-log.json"), "{ invalid json");
+      await writeFile(
+        path.join(dir, "cloud-log.json"),
+        `{"id":"${id}", invalid:`,
+      );
 
       const result = await downloadHandler(event, {
         id,
@@ -675,6 +706,44 @@ describe("Cloud Logs IPC handlers", () => {
       expect(client.downloadLog).toHaveBeenCalledTimes(1);
       expect(result.id).toBe(id);
       expect(result.title).toBe("Recovered Title");
+    });
+
+    it("disambiguates destination folder name when destination exists for a different session", async () => {
+      const downloadHandler = handlers.get("cloud-logs:download");
+      const event = createEvent();
+
+      const existingDir = path.join(testCloudRoot, "custom-run-12-30-00");
+      await mkdir(existingDir, { recursive: true });
+      await writeFile(
+        path.join(existingDir, "cloud-log.json"),
+        JSON.stringify({
+          id: "other-id",
+          date: "2026-11-15T12-30-00",
+          fileName: "custom-run.zip",
+        }),
+      );
+
+      const result = await downloadHandler(event, {
+        id: "new-id",
+        fileName: "custom-run.zip",
+        requestId: "req-dl-disambiguate",
+      });
+
+      const disambiguatedDir = path.join(
+        testCloudRoot,
+        "custom-run-12-30-00_2",
+      );
+      expect(result.path).toBe(disambiguatedDir);
+
+      const existingContent = JSON.parse(
+        await readFile(path.join(existingDir, "cloud-log.json"), "utf8"),
+      );
+      expect(existingContent.id).toBe("other-id");
+
+      const newContent = JSON.parse(
+        await readFile(path.join(disambiguatedDir, "cloud-log.json"), "utf8"),
+      );
+      expect(newContent.id).toBe("new-id");
     });
 
     it("rejects download with invalid id, title > 200, or fileName > 255", async () => {
@@ -722,8 +791,7 @@ describe("Cloud Logs IPC handlers", () => {
       expect(downloadsHandler).toBeDefined();
 
       const item1Id = "session-1";
-      const item1Hash = createHash("sha256").update(item1Id).digest("hex");
-      const item1Dir = path.join(testCloudRoot, item1Hash);
+      const item1Dir = path.join(testCloudRoot, "Run A - 12-00-00");
       await mkdir(item1Dir, { recursive: true });
       await writeFile(
         path.join(item1Dir, "cloud-log.json"),
@@ -736,8 +804,7 @@ describe("Cloud Logs IPC handlers", () => {
       );
 
       const item2Id = "session-2";
-      const item2Hash = createHash("sha256").update(item2Id).digest("hex");
-      const item2Dir = path.join(testCloudRoot, item2Hash);
+      const item2Dir = path.join(testCloudRoot, "run-b - 14-00-00");
       await mkdir(item2Dir, { recursive: true });
       await writeFile(
         path.join(item2Dir, "cloud-log.json"),
@@ -749,8 +816,7 @@ describe("Cloud Logs IPC handlers", () => {
       );
 
       const item3Id = "session-3";
-      const item3Hash = createHash("sha256").update(item3Id).digest("hex");
-      const item3Dir = path.join(testCloudRoot, item3Hash);
+      const item3Dir = path.join(testCloudRoot, "session-3 - 10-00-00");
       await mkdir(item3Dir, { recursive: true });
       await writeFile(
         path.join(item3Dir, "cloud-log.json"),
@@ -760,9 +826,9 @@ describe("Cloud Logs IPC handlers", () => {
         }),
       );
 
-      // Non-sha256 directory or invalid directory should be skipped
-      const nonShaDir = path.join(testCloudRoot, "not-a-sha256-hash");
-      await mkdir(nonShaDir, { recursive: true });
+      // Directory without cloud-log.json should be skipped
+      const nonSessionDir = path.join(testCloudRoot, "unrelated-dir");
+      await mkdir(nonSessionDir, { recursive: true });
 
       sessions.inspectSession.mockImplementation(async (dir) => {
         if (dir === item1Dir) return { date: "2026-11-15T12-00-00" };
