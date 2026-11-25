@@ -1,3 +1,7 @@
+// Cloud Logs management dialog (Credentials, Upload, and Catalog Library).
+// Provides an interface to sync, upload local sessions to the cloud,
+// and download remote sessions directly into the local logging directory.
+
 import { useEffect, useRef, useState } from "react";
 import {
   Button,
@@ -41,14 +45,17 @@ const failureMessage = (error: unknown) =>
     /^Error invoking remote method '[^']+': (?:Error: )?/,
     "",
   );
+
 const dateLabel = (date: string) => {
   if (!date) return "";
-  const clean = date.replace(/Z$/, "");
+  const clean = date.replace(/\.\d+Z?$/, "").replace(/Z$/, "");
   return clean
     .replace("T", " · ")
     .replace(/(\d{2})[-:](\d{2})[-:](\d{2})$/, "$1:$2:$3");
 };
+
 const sizeLabel = (bytes: number) => `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+
 const phases = {
   compressing: "Compressing session…",
   uploading: "Uploading ZIP…",
@@ -102,6 +109,7 @@ function CredentialsPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+
   useEffect(() => setUser(status?.user ?? ""), [status?.user]);
 
   const save = async (clear = false) => {
@@ -238,6 +246,7 @@ function UploadPanel({
   const [tagError, setTagError] = useState("");
   const [tagBusy, setTagBusy] = useState(false);
   const [stopped, setStopped] = useState(false);
+
   const refresh = async () => {
     setLoading(true);
     setError("");
@@ -249,9 +258,12 @@ function UploadPanel({
       setLoading(false);
     }
   };
+
   useEffect(() => {
     void refresh();
   }, [api]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounce tag autocomplete (300ms) with a cancellation guard for out-of-order responses.
   useEffect(() => {
     if (!ready) return;
     let current = true;
@@ -276,15 +288,18 @@ function UploadPanel({
       clearTimeout(timer);
     };
   }, [api, query, ready]);
+
   const choose = (session: LocalLogSession | null) => {
     setSelected(session);
     setStopped(false);
   };
+
   const browse = async () => {
     setLoading(true);
     setError("");
     try {
-      choose(await api.selectSession());
+      const picked = await api.selectSession();
+      if (picked) choose(picked);
     } catch (err) {
       setError(failureMessage(err));
     } finally {
@@ -303,6 +318,7 @@ function UploadPanel({
     <form
       className="space-y-4"
       onKeyDown={(e) => {
+        // Prevent Enter inside text inputs from accidentally submitting the upload form.
         if (
           e.key === "Enter" &&
           (e.target as HTMLElement)?.tagName === "INPUT"
@@ -426,6 +442,7 @@ function UploadPanel({
               disabled={!ready}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
+                // Support comma and Enter to quickly insert tags.
                 if (e.key === "Enter" || e.key === ",") {
                   e.preventDefault();
                   e.stopPropagation();
@@ -544,6 +561,7 @@ function LibraryPanel({
   const [cursor, setCursor] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
   const refresh = async (next?: string) => {
     setLoading(true);
     setError("");
@@ -566,9 +584,11 @@ function LibraryPanel({
       setLoading(false);
     }
   };
+
   useEffect(() => {
     if (ready) void refresh();
   }, [api, ready]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -606,6 +626,7 @@ function LibraryPanel({
       {items.map((item) => {
         const headline = item.title || item.fileName || dateLabel(item.date);
         const hasTitleOrFileName = Boolean(item.title || item.fileName);
+        const downloaded = downloads.find((d) => d.id === item.id);
         return (
           <div key={item.id} className="space-y-2 rounded-lg border p-3">
             <div className="flex items-center justify-between gap-3">
@@ -617,15 +638,32 @@ function LibraryPanel({
                     : `${item.user} · ${item.id}`}
                 </p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => onDownload(item)}
-              >
-                <FileDown className="mr-2 size-4" />
-                Download
-              </Button>
+              {downloaded ? (
+                <div className="flex items-center gap-2">
+                  <span className="bg-muted text-muted-foreground rounded px-2 py-0.5 text-xs font-medium">
+                    Downloaded
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => onOpen(downloaded)}
+                  >
+                    <FolderOpen className="mr-2 size-4" />
+                    Open
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => onDownload(item)}
+                >
+                  <FileDown className="mr-2 size-4" />
+                  Download
+                </Button>
+              )}
             </div>
             {item.notes && (
               <p className="text-xs break-words whitespace-pre-wrap">
@@ -705,8 +743,10 @@ export default function CloudLogsDialog() {
   const [progress, setProgress] = useState<CloudLogProgress | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
   const request = useRef<string | null>(null);
   const { openPath, busyPath, failure } = useSessionFolder();
+
   useEffect(() => {
     if (!open || !api) return;
     let current = true;
@@ -724,6 +764,8 @@ export default function CloudLogsDialog() {
       current = false;
     };
   }, [api, open]);
+
+  // Subscribe to IPC progress matching active operation; returns unsubscribe cleanup on unmount.
   useEffect(
     () =>
       api?.onProgress((value) => {
@@ -731,6 +773,8 @@ export default function CloudLogsDialog() {
       }),
     [api],
   );
+
+  // Mutual exclusion lock: prevents concurrent upload/download operations.
   const run = async (operation: (id: string) => Promise<void>) => {
     if (request.current) return false;
     const id = crypto.randomUUID();
@@ -751,9 +795,11 @@ export default function CloudLogsDialog() {
       setProgress(null);
     }
   };
+
   const openDownloaded = async (session: DownloadedLog) => {
     if (await openPath(session.path)) setOpen(false);
   };
+
   const onDownload = (item: CloudLog) => {
     if (!api) return;
     run(async (requestId) => {
@@ -770,13 +816,16 @@ export default function CloudLogsDialog() {
       setMessage("Recording downloaded and ready to open.");
     });
   };
+
   const percent = progress?.total
     ? Math.min(
         100,
         Math.round((100 * (progress.completed ?? 0)) / progress.total),
       )
     : undefined;
+
   const locked = busy || !!busyPath;
+
   return (
     <>
       <SidebarMenuButton

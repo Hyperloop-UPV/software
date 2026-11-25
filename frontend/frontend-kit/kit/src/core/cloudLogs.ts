@@ -1,4 +1,5 @@
-/** Shared desktop contract. HTTP and filesystem implementations live in Electron. */
+/** Shared desktop IPC contract for Cloud Logs management (`window.electronAPI.cloudLogs`). */
+
 export interface CloudLog {
   id: string;
   user: string;
