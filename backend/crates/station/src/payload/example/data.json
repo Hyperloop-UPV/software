@@ -1,0 +1,35 @@
+{
+  "topic": "podData/update",
+  "payload": {
+    "936": {
+      "id": 936,
+      "hexValue": "a80300000e42",
+      "count": 124,
+      "cycleTime": 100000000,
+      "measurementUpdates": {
+        "temperature_1": {
+          "last": 35.5,
+          "average": 35.0
+        }
+      }
+    },
+    "1201": {
+      "id": 1201,
+      "hexValue": "b10401",
+      "count": 58,
+      "cycleTime": 100000000,
+      "measurementUpdates": {
+        "contactor_closed": true
+      }
+    },
+    "1202": {
+      "id": 1202,
+      "hexValue": "b20401",
+      "count": 58,
+      "cycleTime": 100000000,
+      "measurementUpdates": {
+        "state": "Operational"
+      }
+    }
+  }
+}

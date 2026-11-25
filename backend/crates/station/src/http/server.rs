@@ -48,23 +48,31 @@ pub(super) fn setup_router(
 }
 
 #[cfg(test)]
-pub(super) mod tests {
-    use std::{io, path::Path, time::Duration};
+mod tests {
+    use std::{io, path::Path, sync::Arc, time::Duration};
 
     use axum::{
         body::{Body, to_bytes},
         http::{Method, Request, StatusCode, header},
     };
-    use software_core::adj::{Adj, load_from_dir};
+    use software_core::{
+        adj::{Adj, load_from_dir},
+        model::{AdjId, OrderPacket, ShortTimestamp, Value},
+        protocol::Index,
+    };
     use tokio::{
-        io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+        io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
         net::{TcpListener, TcpStream},
         sync::{mpsc, oneshot},
-        time::timeout,
+        time::{Instant, timeout},
     };
     use tower::ServiceExt;
 
     use super::setup_router;
+    use crate::{
+        payload::ProtectionUpdate,
+        websocket::{self, Commands, OrderForwarder, broker::Broker},
+    };
 
     pub(in crate::http) const PATHS: [&str; 3] = [
         "/backend/adj/DataPackets",
@@ -199,17 +207,10 @@ pub(super) mod tests {
 
     // Upgrades require a real HTTP connection: oneshot does not provide Hyper's
     // OnUpgrade extension. The server only runs for the duration of the test.
-    async fn handshake(
+    pub(super) async fn handshake(
         app: axum::Router,
     ) -> Result<(String, TcpStream), Box<dyn std::error::Error>> {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
-        handshake_on(listener, app).await
-    }
-
-    pub(in crate::http) async fn handshake_on(
-        listener: TcpListener,
-        app: axum::Router,
-    ) -> Result<(String, TcpStream), Box<dyn std::error::Error>> {
         let address = listener.local_addr()?;
         let (shutdown, stopped) = oneshot::channel();
         let server = tokio::spawn(async move {
@@ -280,35 +281,134 @@ pub(super) mod tests {
     }
 
     #[tokio::test]
-    async fn websocket_without_a_consumer_returns_unavailable()
+    async fn websocket_routes_messages_until_the_last_frontend_disconnects()
     -> Result<(), Box<dyn std::error::Error>> {
-        let app = setup_router(&Adj::default(), None)?;
-        let (headers, _client) = handshake(app).await?;
-        assert!(headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"));
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../core/src/adj/test/adj");
+        let adj = load_from_dir(&path)?;
+        let (order_tx, mut orders) = mpsc::channel(1);
+        let commands = Commands {
+            orders: Some(OrderForwarder::new(
+                Arc::new(Index::new(&adj.pod_data, None)),
+                order_tx,
+            )),
+            ..Commands::default()
+        };
+        let (broker, client) = Broker::new();
+        let broker_task = tokio::spawn(broker.run());
+        let (sockets, receiver) = mpsc::channel(1);
+        let heartbeat_timeout = Duration::from_secs(3);
+        let socket_task = tokio::spawn(websocket::run(
+            receiver,
+            client.clone(),
+            commands,
+            heartbeat_timeout,
+        ));
+        let (headers, mut socket) = handshake(setup_router(&adj, Some(sockets.clone()))?).await?;
+        assert!(headers.starts_with("HTTP/1.1 101 Switching Protocols\r\n"));
+
+        timeout(Duration::from_secs(5), async {
+            send_text(&mut socket, r#"{"topic":"protection/update","payload":{}}"#).await?;
+            // Receiving the snapshot confirms the preceding event subscription is active.
+            send_text(&mut socket, r#"{"topic":"connection/update","payload":{}}"#).await?;
+            assert_eq!(
+                read_json(&mut socket).await?,
+                serde_json::json!({"topic": "connection/update", "payload": {}})
+            );
+
+            client
+                .publish_protection(ProtectionUpdate {
+                    id: AdjId(11192),
+                    value: Value::Number(105.5),
+                    timestamp: ShortTimestamp {
+                        hour: 12,
+                        minute: 30,
+                        second: 6,
+                        subsecond: 0,
+                    },
+                })
+                .await?;
+            let expected: serde_json::Value = serde_json::from_str(include_str!(
+                "../payload/example/protection.json"
+            ))?;
+            assert_eq!(read_json(&mut socket).await?, expected);
+
+            send_text(
+                &mut socket,
+                r#"{"topic":"order/send","payload":{"id":809,"fields":{"desired_current":{"value":12.5,"isEnabled":false,"type":"float32"},"lpu_id":{"value":2,"isEnabled":true,"type":"uint32"}}}}"#,
+            )
+            .await?;
+            assert_eq!(
+                orders.recv().await,
+                Some(OrderPacket::new(
+                    AdjId(809),
+                    vec![Value::Number(2.0), Value::Number(12.5)],
+                ))
+            );
+
+            let disconnected_at = Instant::now();
+            drop(socket);
+            assert_eq!(socket_task.await?, Err(websocket::FrontendDisconnected));
+            assert!(disconnected_at.elapsed() >= heartbeat_timeout);
+            drop(sockets);
+            drop(client);
+            broker_task.await?;
+            Ok::<_, Box<dyn std::error::Error>>(())
+        })
+        .await??;
         Ok(())
     }
 
+    async fn send_text(
+        socket: &mut TcpStream,
+        text: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let length = u16::try_from(text.len())?;
+        if length < 126 {
+            socket.write_all(&[0x81, 0x80 | length as u8]).await?;
+        } else {
+            socket.write_all(&[0x81, 0xfe]).await?;
+            socket.write_u16(length).await?;
+        }
+        // The zero mask keeps the test payload bytes unchanged.
+        socket.write_all(&[0; 4]).await?;
+        socket.write_all(text.as_bytes()).await?;
+        Ok(())
+    }
+
+    async fn read_json(
+        socket: &mut TcpStream,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        assert_eq!(socket.read_u8().await?, 0x81);
+        let length = match socket.read_u8().await? {
+            length @ 0..=125 => usize::from(length),
+            126 => usize::from(socket.read_u16().await?),
+            _ => panic!("expected a short, unmasked server frame"),
+        };
+        let mut body = vec![0; length];
+        socket.read_exact(&mut body).await?;
+        Ok(serde_json::from_slice(&body)?)
+    }
+
     #[tokio::test]
-    async fn websocket_with_a_closed_channel_returns_unavailable()
+    async fn websocket_returns_unavailable_when_handoff_cannot_accept_a_socket()
     -> Result<(), Box<dyn std::error::Error>> {
-        let (connections, receiver) = mpsc::channel(1);
+        let (closed, receiver) = mpsc::channel(1);
         drop(receiver);
-        let app = setup_router(&Adj::default(), Some(connections))?;
-        let (headers, _client) = handshake(app).await?;
-        assert!(headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"));
-        Ok(())
-    }
+        let (full, _receiver) = mpsc::channel(1);
+        let _reservation = full.clone().try_reserve_owned()?;
 
-    #[tokio::test]
-    async fn websocket_with_a_full_channel_returns_unavailable()
-    -> Result<(), Box<dyn std::error::Error>> {
-        let (connections, _receiver) = mpsc::channel(1);
-        // Simulate an occupied slot without requiring another test socket.
-        let reservation = connections.clone().try_reserve_owned()?;
-        let app = setup_router(&Adj::default(), Some(connections))?;
-        let (headers, _client) = handshake(app).await?;
-        assert!(headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"));
-        drop(reservation);
+        for (case, connections) in [
+            ("missing", None),
+            ("closed", Some(closed)),
+            ("full", Some(full)),
+        ] {
+            let app = setup_router(&Adj::default(), connections)?;
+            let (headers, _client) = handshake(app).await?;
+            assert!(
+                headers.starts_with("HTTP/1.1 503 Service Unavailable\r\n"),
+                "expected 503 for {case} channel, got {headers}",
+            );
+        }
         Ok(())
     }
 

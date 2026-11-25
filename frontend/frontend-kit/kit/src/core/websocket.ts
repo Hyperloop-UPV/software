@@ -26,7 +26,7 @@ import { type SocketConfig, type TopicOptions } from "./types";
 const DEFAULT_CONFIG = {
   host: "127.0.0.1",
   port: 4000,
-  path: "/backend",
+  path: "/backend/ws",
   secure: false,
   heartbeatIntervalMs: 1000,
 } as const;
