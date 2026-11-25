@@ -4,6 +4,10 @@
 
 This module is meant to store and organize all the different structs, enums and other data structures necessary for the backend project.
 
+The domain types describe vehicle definitions and decoded packets. With the
+`http` feature enabled, `model::http` also exposes separate, serializable catalog
+response models; see [section 7](#7-http-http-feature).
+
 ## 1. `board.rs`
 All structs and enums needed for the Pod can be found defined in this file.
 ### 1.1 `PacketType`
@@ -83,9 +87,13 @@ Enum used to classify every numerical value type a measurement can use.
 - 64-bit floating point number (`F64`)
 
 ### 3.2 `Range`
-Struct used to define a maximum and minimum value of any measurement.
+An inclusive range with independently optional lower and upper bounds. This
+helper is not a field of the current `MeasurementKind::Numeric` variant;
+protection bounds are represented by `ProtectionKind` instead.
 #### `min`
+Optional lower bound (`Option<f64>`); `None` means no lower limit.
 #### `max`
+Optional upper bound (`Option<f64>`); `None` means no upper limit.
 
 ### 3.3 `MeasurementKind`
 Enum used to classify the kind of measurement.
@@ -219,7 +227,7 @@ Wraps a `ProtectionPacket` (triggered protection event).
 #### `Message`
 Wraps a `MessagePacket` (free-text log/diagnostic message).
 
-## 5. `protection.rs`
+## 5. `protections.rs`
 A `Protection` is a bound checked against a measurement's decoded value, as declared in the ADJ (`<PLACA>_measurements.json`). This defines the *declaration* (what to watch for, thresholds, and severity) rather than the runtime wire packet emitted when triggered (`ProtectionPacket` in `packet.rs`). In ADJv3, protections and messages are distinct formats with separate lifecycles.
 
 ### 5.1 `ProtectionKind`
@@ -249,6 +257,10 @@ Struct defining a single protection rule attached to a measurement.
 
 #### `id`
 The protection's relative slot index within its parent measurement's protection list, stored as an `AdjId` in the `1–7` range. This is a local index rather than a global ID; it forms the upper 3 bits of the compound wire identifier alongside the 13-bit measurement ID.
+
+Do not confuse this internal position with an HTTP protection ID: both
+`OrderResponse` and `ProtectionResponse` expose the compound ID
+`(position << 13) | measurement_id`, as does `ProtectionPacket` on the wire.
 #### `kind`
 The evaluation rule and threshold bounds (`ProtectionKind`).
 #### `severity`
@@ -268,3 +280,24 @@ A numeric measurement, regardless of its original wire type (`u8`, `i32`, `f32`,
 A boolean measurement (`true` or `false`).
 #### `Enum(String)`
 The selected variant name of an enumerated measurement (e.g. `"Operational"`).
+
+## 7. `http` (`http` feature)
+
+`model/http.rs` publicly re-exports three response types:
+
+- `DataResponse`: data packet definitions grouped by board, without protections.
+- `OrderResponse`: order definitions grouped by board, including parameter protections.
+- `ProtectionResponse`: flat protection definitions and display metadata.
+
+Their nested response structs live in `model/http/data.rs`, `order.rs`, and
+`protection.rs`. Those submodules are crate-visible, not public import paths.
+The response models derive `serde::Serialize`; the domain types do not need to
+adopt the HTTP representation. Shared custom serializers live in
+`utils/serialize.rs`.
+
+The builders are methods of `Adj`, implemented in `adj/http.rs`:
+`adj.data_response()`, `adj.order_response()`, and `adj.protection_response()`.
+This module defines no HTTP server, routes, CORS, or cache policy.
+
+See the [HTTP response models README](http/README.md) for usage, JSON type
+notation, field omission rules, and concrete examples.

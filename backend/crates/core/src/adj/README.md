@@ -2,6 +2,8 @@
 
 This module deserializes, validates, and loads ADJ JSON fixtures into the backend domain model.
 
+With the `http` feature enabled, `adj/http.rs` adds catalog-building methods to `Adj`. The serializable response types live separately in `model::http`; routes, middleware, and server setup belong to the application (`station`). See the [HTTP response models README](../model/http/README.md) for usage, JSON types, and examples.
+
 For schema specifications, packet/measurement ID conventions, and network requirements, refer directly to the official documentation in the **ADJ repository**.
 
 ---
@@ -21,7 +23,6 @@ pub struct Adj {
 Adj
 ├── pod_data (PodData)
 │     └── boards: HashMap<BoardId, Board>
-│           ├── measurements: HashMap<String, Measurement>
 │           └── packets: HashMap<AdjId, PacketDef>
 │                 ├── explicit (Data, Order, Message — declared in packets.json;
 │                 │     a "message"-type packet's own `name` must be one of
@@ -38,6 +39,11 @@ Adj
       └── protection_types: HashMap<String, ProtectionTypeInfo>
 ```
 
+`Board` also carries its `id`, `name`, `ip`, and `mac`. There is no persistent
+`Board::measurements` map: the loader uses a temporary alias-to-measurement map
+to resolve packet variables, then stores the resolved measurements inside
+`PacketType::Data`, `PacketType::Order`, and `PacketType::Protection`.
+
 `message_ids` is the ADJ's own direction: a name (e.g. `"fault"`) to its
 id. Not every entry is one of `model::MessageLevel`'s four severities —
 other reserved names (e.g. `add_state_order`) share this same map.
@@ -47,7 +53,7 @@ other reserved names (e.g. `add_state_order`) share this same map.
 between. It's the reverse of `message_ids`, restricted to whichever of
 `MessageLevel::ALL`'s four names `message_ids` declares — built once in
 `adj::raw::types`'s `TryFrom<RawGeneralInfo> for AdjInfo`, right after
-`message_ids` itself, so it can never drift out of sync with it:
+`message_ids` itself, so the two maps agree when loaded:
 
 ```rust
 let message_levels: HashMap<AdjId, MessageLevel> = MessageLevel::ALL
@@ -57,7 +63,7 @@ let message_levels: HashMap<AdjId, MessageLevel> = MessageLevel::ALL
 ```
 
 Which ADJ name corresponds to which `MessageLevel` is **not** decided
-here — `level.name()`/`MessageLevel::from_name` (see `model/README.md`
+here — `level.name()`/`MessageLevel::from_name` (see [model](../model/README.md)
 §4.4) is the one place that association is spelled out, so `adj`
 doesn't hardcode `"fault"`/`"warning"`/`"info"`/`"panic"` itself.
 
@@ -76,6 +82,27 @@ free-text log frame can reuse the same `"fault"` id. See
 
 ---
 
+## HTTP Catalog Builders (`http` feature)
+
+The methods implemented in `adj/http.rs` borrow `&self`; they do not consume or
+modify the loaded ADJ:
+
+| Method | Return type (in `model::http`) | Contents |
+| --- | --- | --- |
+| `adj.data_response()` | `DataResponse` | Data definitions grouped by board, without protection metadata. |
+| `adj.order_response()` | `OrderResponse` | Order definitions grouped by board, including parameters and their protections. |
+| `adj.protection_response()` | `ProtectionResponse` | Flat catalog of synthetic protection packets, plus display metadata. |
+
+These methods return owned response models, not JSON bytes or HTTP responses.
+The application chooses when to call them and serialize the results. They do
+not configure routes, CORS, or caching.
+
+In the order and protection catalogs, protection IDs are compound IDs:
+`(position << 13) | measurement_id`. The internal `Protection::id` remains the
+one-based position (`1–7`) within its measurement. Empty lists are retained;
+zero protection durations are omitted from JSON. See the
+[HTTP contract](../model/http/README.md) for the complete serialized shapes.
+
 ## Why It Is Structured This Way
 
 The `Adj` object enforces a clear architectural boundary between **vehicle topology** and **session configuration**:
@@ -86,7 +113,7 @@ The `Adj` object enforces a clear architectural boundary between **vehicle topol
 * **Design rationale**: The vehicle itself does not know or care about backend socket configurations or display strings. Separating them prevents UI and orchestration details from polluting the core telemetry model.
 
 ### 2. Standalone Loader Submodule (`raw`)
-The raw deserialization types and the loader logic live isolated inside `raw`[cite: 2]. This enables non-station tools (such as bus sniffers, test runners, or simulators) to parse and ingest ADJ directories without dragging along application-level UI or station state logic.
+The raw deserialization types and the loader logic live isolated inside `raw`. This enables non-station tools (such as bus sniffers, test runners, or simulators) to parse and ingest ADJ directories without dragging along application-level UI or station state logic.
 
 ### 3. Unified Packet Map (`packets`)
 Protections defined under measurements are materialized during loading as first-class `PacketType::Protection(Measurement)` packets alongside the explicit data, order and message packets declared in `packets.json`. Downstream networking layers can route and handle every wire event uniformly via `Board::packets` without needing specialized traversal logic for nested measurement alarms. `packets.json` itself never declares a `"type": "protection"` entry directly — that shape only exists synthesized, one per protection a measurement declares, never as a free-standing declaration with its own arbitrary variable list.
