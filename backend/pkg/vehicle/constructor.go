@@ -75,3 +75,10 @@ func (vehicle *Vehicle) SetIpToBoardId(ipToBoardId map[string]abstraction.BoardI
 	vehicle.ipToBoardId = ipToBoardId
 	vehicle.trace.Info().Msg("set ip to board id")
 }
+
+func (vehicle *Vehicle) SetBoardAddresses(addresses map[string]string) {
+	vehicle.ipToBoardName = make(map[string]string, len(addresses))
+	for name, ip := range addresses {
+		vehicle.ipToBoardName[ip] = name
+	}
+}

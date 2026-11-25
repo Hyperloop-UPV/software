@@ -103,10 +103,19 @@ func (update *Update) SetAPI(api abstraction.BrokerAPI) {
 type pushStruct struct {
 	data      any
 	boardName string
+	category  string
 }
 
 func Push(data any, boardName string) *pushStruct {
 	return &pushStruct{data: data, boardName: boardName}
+}
+
+func PushFromBoard(packet *protection.Packet, boardName string) *pushStruct {
+	category := "protection"
+	if packet.Kind == protection.WarningKind {
+		category = "message"
+	}
+	return &pushStruct{data: packet, boardName: boardName, category: category}
 }
 
 func (push *pushStruct) Topic() abstraction.BrokerTopic {
@@ -117,7 +126,8 @@ func (push *pushStruct) Data(boardName string) wrapper {
 	switch data := push.data.(type) {
 	case *protection.Packet:
 		return wrapper{
-			Kind: string(data.Severity()),
+			Category: push.category,
+			Kind:     string(data.Severity()),
 			Payload: struct {
 				Kind string `json:"kind"`
 				Data any    `json:"data"`
@@ -143,6 +153,7 @@ func (push *pushStruct) Data(boardName string) wrapper {
 }
 
 type wrapper struct {
+	Category  string                `json:"category,omitempty"`
 	Kind      string                `json:"kind"`
 	Payload   any                   `json:"payload"`
 	Board     string                `json:"board"`

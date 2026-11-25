@@ -5,5 +5,15 @@ export const MESSAGE_KIND_COLORS: Record<Message["kind"], string> = {
   info: "border-blue-500 hover:bg-blue-500/5",
   warning: "border-yellow-500 hover:bg-yellow-500/5",
   fault: "border-red-500 hover:bg-red-500/5",
+  panic: "border-purple-500 hover:bg-purple-500/5",
   ok: "border-green-500 hover:bg-green-500/5",
+};
+
+/** Colors for the informative badges in the messages section. */
+export const MESSAGE_KIND_BADGES: Record<Message["kind"], string> = {
+  info: "bg-blue-500 text-white",
+  warning: "bg-yellow-500 text-black",
+  fault: "bg-red-500 text-white",
+  panic: "bg-purple-500 text-white",
+  ok: "bg-green-500 text-white",
 };

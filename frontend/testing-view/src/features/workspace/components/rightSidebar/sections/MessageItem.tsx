@@ -6,8 +6,9 @@ import {
 } from "@hyperloopupv/frontend-kit";
 import { ChevronDown } from "@hyperloopupv/frontend-kit/icons";
 import { cn } from "@hyperloopupv/frontend-kit/lib";
+import { Rows3, Shield, type LucideIcon } from "lucide-react";
 import { useState } from "react";
-import { MESSAGE_KIND_COLORS } from "../../../../../constants/messageKindColors";
+import { MESSAGE_KIND_BADGES, MESSAGE_KIND_COLORS } from "../../../../../constants/messageKindColors";
 import { formatTimestamp } from "../../../../../lib/utils";
 import type { Message } from "../../../../../types/data/message";
 
@@ -17,6 +18,16 @@ interface MessageItemProps {
 
 export const MessageItem = ({ message }: MessageItemProps) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  let label = "Backend";
+  let Icon: LucideIcon | undefined = Rows3;
+  if (message.category === "protection") {
+    label = `${message.board}`;
+    Icon = Shield;
+  } else if (message.category === "message") {
+    label = `${message.board}`;
+    Icon = undefined;
+  }
 
   const renderMessageContent = (payload: any) => {
     // 1. Simple string (Info messages)
@@ -55,17 +66,18 @@ export const MessageItem = ({ message }: MessageItemProps) => {
       )}
     >
       <CollapsibleTrigger className="flex w-full flex-col items-start">
-        <div className="flex w-full items-center gap-2 px-3 py-2.5 text-left">
+        <div className="flex w-full items-start gap-2 px-3 py-2.5 text-left">
           <span className="text-muted-foreground shrink-0 font-mono text-sm">
             {formatTimestamp(message.timestamp)}
           </span>
-
-          <Badge
-            variant="destructive"
-            className="h-4.5 shrink-0 px-1.5 text-[11px] uppercase"
-          >
-            {message.board}
-          </Badge>
+            <span className="text-muted-foreground shrink-0 font-mono text-sm">
+              <Badge
+                //  variant="default"
+                className={cn("h-4.5 shrink-0 px-1.5 text-[11px]", MESSAGE_KIND_BADGES[message.kind])}
+              >
+                {label}
+              </Badge>
+            </span>
 
           <span className="flex-1 truncate text-sm font-medium">
             {message.name}
@@ -79,14 +91,30 @@ export const MessageItem = ({ message }: MessageItemProps) => {
           />
         </div>
 
-        <CollapsibleContent className="w-full cursor-auto select-text px-3 pb-2 pt-0 text-xs">
-          <div onClick={(e) => e.stopPropagation()}>
-            <div className="flex w-full items-end justify-between gap-1">
+        {/* Block (not flex) so the floated icon sits under the time and the
+            expanded text flows to its right, then wraps underneath it. */}
+        <div
+          className={cn(
+            "flow-root w-full px-3 text-left",
+            (Icon || isOpen) && "pb-2",
+          )}
+        >
+          {Icon && (
+            // Same font as the timestamp, so 8ch = width of "HH:MM:SS"
+            <span className="float-left mb-1 mr-2 flex w-[8ch] justify-center font-mono text-sm">
+              <Icon
+                aria-hidden="true"
+                className="text-muted-foreground h-6 w-6"
+              />
+            </span>
+          )}
+          <CollapsibleContent className="cursor-auto select-text text-xs">
+            <div onClick={(e) => e.stopPropagation()}>
               {/* If it's a detailed message, showing the sub-kind can be helpful */}
               {message.payload &&
                 typeof message.payload === "object" &&
                 message.payload.kind && (
-                  <span className="text-muted-foreground text-[10px] font-bold uppercase opacity-70">
+                  <span className="text-muted-foreground block text-[10px] font-bold uppercase opacity-70">
                     {message.payload.kind.replace("_", " ")}
                   </span>
                 )}
@@ -94,8 +122,8 @@ export const MessageItem = ({ message }: MessageItemProps) => {
                 {renderMessageContent(message.payload)}
               </p>
             </div>
-          </div>
-        </CollapsibleContent>
+          </CollapsibleContent>
+        </div>
       </CollapsibleTrigger>
     </Collapsible>
   );
