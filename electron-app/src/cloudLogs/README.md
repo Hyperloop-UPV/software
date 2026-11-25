@@ -310,11 +310,10 @@ sequenceDiagram
   Downloads extract into a private `.download-*` staging directory. The staging ZIP
   is named using the log's remote `fileName` or sanitized `title.zip` (fallback `${id}.zip`),
   avoiding generic names like `session.zip`.
-  After validation, the directory is renamed into `cloud-logs/<sha256(remote-id)>/`.
+  After validation, the directory is renamed into `cloud-logs/<sanitized fileName or title>-<hh-mm-ss>/`.
   `cloud-log.json` stores `{ id, date, title, fileName }` beside the extracted session.
   When opening a downloaded session in Logging View (`list-session-files`), the application
-  reads `cloud-log.json` and presents the session with its real title or filename instead of
-  a generic label or raw SHA-256 hash. Repeated downloads reuse the valid local copy.
+  reads `cloud-log.json` and presents the session with its real title or filename. Repeated downloads reuse the valid local copy.
 - Extraction rejects traversal, symlinks, encrypted archives, duplicate file
   entries and oversized archives. It accepts arbitrary regular files in a
   downloaded recording so future logger subfolders remain usable. Limits: 4 GiB

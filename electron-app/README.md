@@ -118,16 +118,17 @@ that requests come from the local Logging or Testing window and keep local paths
 inside the Electron main process.
 
 The local folder format is `<logging_path>/logger/<app-launch>/<recording>/`.
-Cloud uploads operate on one recording at a time. A recording ZIP contains the
-root `logger_settings.json` and the supported CSV subfolders (`data`, `order`,
-`protections`/`protection`, and `state`). Launcher traces and unrelated files
-are excluded. The date attached to a cloud record comes from the recording's
+Cloud uploads operate on one recording at a time. All regular session files
+(configuration, CSVs, and metadata) are packaged and preserved in the recording
+ZIP, including the root `logger_settings.json` and all current or future telemetry
+subfolders. Launcher traces, symlinks, and directory traversal paths are excluded.
+The date attached to a cloud record comes from the recording's
 `logger_settings.json`, not from the time it was uploaded. Users must confirm
 that recording has stopped; Electron checks that its files did not change while
 it compressed the ZIP and reports compression progress to the requesting view.
 
 Downloaded archives are checked and extracted into
-`<logging_path>/logger/cloud-logs/<sha256-cloud-id>/`. Extraction uses a staging
+`<logging_path>/logger/cloud-logs/<sanitized fileName or title>-<hh-mm-ss>/`. Extraction uses a staging
 directory and rejects unsafe paths, links, duplicate entries, unsupported files,
 encrypted ZIPs, and archives over the configured file and byte limits. Logging
 View opens a downloaded recording through the same loader it uses for local
@@ -147,22 +148,25 @@ secure storage is unavailable, Electron keeps the key in memory until exit. The
 key is never sent back to the renderer; the renderer only receives the user,
 whether a key is configured, and whether storage is persistent.
 
-### Connecting the Cloud Logs API
+### Cloud Logs API Integration
 
-The remote API is intentionally not assumed. Its only integration boundary is
-`src/cloudLogs/client.js`; the four functions there currently reject with a
-clear not-connected error. Implement `listLogs`, `autocompleteTags`, `uploadLog`,
-and `downloadLog` there after confirming endpoint URLs, authentication format,
-pagination, multipart field names, and response shapes with the API owner.
-Normalize returned records to `{ id, user, notes, tags, date }`, stream ZIPs to
-and from disk, enforce download limits while streaming, and sanitize errors so
-they never include credentials. The request and security details are recorded in
-`src/cloudLogs/README.md` next to the service implementation.
+The remote HTTP adapter in `src/cloudLogs/client.js` is fully connected to the
+Cloud Logs API (`https://cloud-logs.hyperloopupv.com/api/v1`, configurable via
+`CLOUD_LOGS_API_URL` or `config.toml`) and supports direct-to-storage uploads
+and downloads:
 
-While the client remains a placeholder, local session discovery, ZIP creation,
-credential management, download validation, and the UI are usable, but browsing
-cloud records, tag suggestions, uploads, and downloads report that the API is
-not connected. There are no mocked cloud results or false success states.
+- **Catalog & Tags**: Lists paginated recordings (`listLogs`) and retrieves tag
+  suggestions for autocomplete (`autocompleteTags`).
+- **Direct-to-Storage Uploads**: Uploads use a two-phase protocol where session
+  metadata is registered with the API (`POST /logs/initiate`) and the ZIP archive
+  is streamed directly to Google Drive via a pre-authenticated resumable upload URL,
+  followed by confirmation (`POST /logs/{id}/complete`).
+- **Direct-to-Storage Downloads**: Downloads stream the ZIP archive directly from
+  storage to disk with size limit enforcement and error sanitization.
+
+All requests are authenticated via `Bearer` token or `X-API-Key`. Detailed API
+specifications, data mappings, and error formats are documented in
+`src/cloudLogs/README.md`.
 
 ## Dependencies
 
