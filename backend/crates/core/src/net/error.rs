@@ -24,5 +24,5 @@ pub enum Error {
     Tcp(#[from] tcp::Error),
     /// On the shared UDP socket.
     #[error(transparent)]
-    Udp(#[from] udp::Error),
+    Udp(#[from] udp::UdpError),
 }

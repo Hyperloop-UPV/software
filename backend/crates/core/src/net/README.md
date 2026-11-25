@@ -10,9 +10,10 @@ Two submodules do the I/O, and **this directory's shared part opens nothing**:
 net/
 ├── net.rs        # module root: docs and re-exports
 ├── report.rs     # Event, Notification, ErrorReport, Reporter — what is reported
-├── error.rs      # Error — aggregates tcp::Error / udp::Error, nothing else
+├── error.rs      # Error — aggregates tcp::Error / udp::UdpError, nothing else
 ├── tcp.rs        # the TCP client        (not written yet: error type + contract)
-└── udp.rs        # the shared UDP socket (not written yet: error type + contract)
+├── udp.rs        # the shared UDP socket
+└── udp/          # its tests: tests.rs, test_support.rs, manual_tests.rs (load probe)
 ```
 
 ## The shared part
@@ -35,7 +36,7 @@ And the board is all the identity there is: one connection per board, one shared
 socket for UDP, so nothing needs telling apart beyond it.
 
 Addresses are for the operator, not for the domain types: they show up
-interpolated in `tcp::Error`/`udp::Error` messages, which is where somebody
+interpolated in `tcp::Error`/`udp::UdpError` messages, which is where somebody
 actually reads them.
 
 ### `Event` and `Notification` — what happened, and when
@@ -86,7 +87,7 @@ that it can afford to queue behind telemetry.
 failed lives inside the `Error` variant, which is the only place that always has
 it. A datagram that fails to decode resolves to no board at all — its id is not in
 the ADJ, so there is no `PacketDef` to ask — and all that can be said about it is
-the address it came from, which is what `udp::Error::Decode` holds.
+the address it came from, which is what `udp::UdpError::Decode` holds.
 
 ### `Error` — aggregation only
 
@@ -102,14 +103,14 @@ submodule's own error: nobody outside knows which of its variants are fatal.
 
 |  | `tcp` | `udp` |
 |---|---|---|
-| Entry point | `spawn(Config, Arc<Index>, Reporter) -> Handles` | `spawn(Config, Arc<Index>, Reporter) -> Result<JoinHandle<()>, Error>` (binds first) |
+| Entry point | `spawn(Config, Arc<Index>, Reporter) -> Handles` | `spawn_udp(UdpConfig, Arc<Index>, Reporter) -> Result<JoinHandle<()>, UdpError>` (binds first) |
 | Inputs | its `Config` (boards, timeouts, backoff, keep-alive) | its `Config` (bind address, `SO_RCVBUF`) |
 | Role | client only; one connection per board, one task each | one shared socket, receive-only, one task |
 | Framing | buffer + `&mut Cursor` + advance by `cursor.position()`; bail out past 374 bytes | none — `recv_from` delivers a whole datagram into a reused 64 KiB buffer |
 | Writing | yes (orders, keep-alive); a single writer task per connection | no |
 | On a decode error | report it; **fatal**, and close/reopen the connection (the stream cannot be resynchronised) | report it; **fatal**, and keep receiving |
 | `Connected`/`Disconnected` | per board | never |
-| Fault | writes it: `Handles::propagate_fault()`, id 0 to every board | cannot write; only reports |
+| Fault | writes it: `Handles::propagate_fault()`, id 0 to every board | cannot write; a received id 0 is reported as `UdpError::Fault`, before decoding |
 
 Both take the same two things besides their own `Config`: an `Arc<Index>` — the
 only part of the ADJ `net` needs, owned by `station` and read-only here — and a
@@ -121,7 +122,9 @@ which is also what lets a test point it at a fake peer.
 reads `is_fatal()` and calls `Handles::propagate_fault()`, which puts the order
 with id 0 into every board's writer channel (the Go backend's `SendFault`). A
 *received* packet with id 0 is the same action requested by a board, and
-`station` answers it the same way.
+`station` answers it the same way. In `udp` it arrives on the error channel as
+`UdpError::Fault { from }`: recognised by its id alone, before decoding, without
+looking at the ADJ.
 
 Three rules both follow:
 
@@ -131,17 +134,22 @@ Three rules both follow:
 
 ### What "fatal" means
 
-`tcp::Error::is_fatal`/`udp::Error::is_fatal` are about the **pod**, not about
-this process: it means the pod has to be sent to fault, and the backend
-**stays up** — still reading, still serving the frontend, still recording — so the
-operator can see why. Nothing in `net` ever calls `std::process::exit`.
+`tcp::Error::is_fatal`/`udp::UdpError::is_fatal` are about the **pod**: they say
+the pod has to be sent to fault. They are a hint, not a decision — what happens
+next (the fault, closing the connections, shutting the backend down safely) is
+decided by whoever consumes the error channel (`station`). Nothing in `net` ever
+calls `std::process::exit`.
 
-Only a decode failure is fatal, on either transport, and this is a deliberate
+On either transport, a decode failure is fatal, and this is a deliberate
 departure from Go. Nothing corrupts a frame or a datagram in flight (both
 transports checksum, TCP retransmits, and the pod's network does not fragment), so
 something that will not decode means the loaded ADJ does not describe what the
 firmware is sending — which reconnecting cannot fix. A failed connect or write is
 *not* fatal: that is what the backoff is for.
+
+Two more are fatal in `udp`: losing the socket (`UdpError::Recv`), which is every
+board's telemetry gone at once, and a fault sent by a board (`UdpError::Fault`,
+packet id 0), which is a board asking for exactly that.
 
 `net` never raises the fault itself — neither transport does. It logs, it reports,
 and `is_fatal()` is the classification whoever consumes the error channel acts on.
