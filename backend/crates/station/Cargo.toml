@@ -9,7 +9,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-software-core = { workspace = true, features = ["net", "git", "http"] }
+software-core = { workspace = true, features = ["net", "git", "http", "logger"] }
 serde.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

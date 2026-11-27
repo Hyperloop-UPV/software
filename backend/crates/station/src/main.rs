@@ -1,5 +1,7 @@
 //! Ejecutable mínimo para demostrar la integración con `software-core`.
 
+mod logging;
+
 use tracing_subscriber::EnvFilter;
 
 fn main() {
